@@ -10,6 +10,8 @@ import Auth from "./pages/Auth";
 import Admin from "./pages/Admin";
 import AdminPropostas from "./pages/AdminPropostas";
 import AdminSugestoes from "./pages/AdminSugestoes";
+import AdminEixos from "./pages/AdminEixos";
+import AdminMunicipios from "./pages/AdminMunicipios";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -28,6 +30,8 @@ const App = () => (
             <Route path="/admin" element={<Admin />} />
             <Route path="/admin/propostas" element={<AdminPropostas />} />
             <Route path="/admin/sugestoes" element={<AdminSugestoes />} />
+            <Route path="/admin/eixos" element={<AdminEixos />} />
+            <Route path="/admin/municipios" element={<AdminMunicipios />} />
             {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
             <Route path="*" element={<NotFound />} />
           </Routes>
