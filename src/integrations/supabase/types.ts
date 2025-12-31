@@ -14,6 +14,48 @@ export type Database = {
   }
   public: {
     Tables: {
+      admin_messages: {
+        Row: {
+          channel: string
+          content: string
+          created_at: string
+          id: string
+          message_type: string
+          metadata: Json | null
+          recipient_ids: string[]
+          sender_id: string
+          sent_at: string | null
+          status: string
+          subject: string
+        }
+        Insert: {
+          channel: string
+          content: string
+          created_at?: string
+          id?: string
+          message_type: string
+          metadata?: Json | null
+          recipient_ids: string[]
+          sender_id: string
+          sent_at?: string | null
+          status?: string
+          subject: string
+        }
+        Update: {
+          channel?: string
+          content?: string
+          created_at?: string
+          id?: string
+          message_type?: string
+          metadata?: Json | null
+          recipient_ids?: string[]
+          sender_id?: string
+          sent_at?: string | null
+          status?: string
+          subject?: string
+        }
+        Relationships: []
+      }
       eixos_tematicos: {
         Row: {
           created_at: string
@@ -37,6 +79,44 @@ export type Database = {
           nome?: string
         }
         Relationships: []
+      }
+      inactivity_alerts: {
+        Row: {
+          alert_sent_at: string
+          channel: string
+          created_at: string
+          hours_inactive: number
+          id: string
+          message_id: string | null
+          user_id: string
+        }
+        Insert: {
+          alert_sent_at?: string
+          channel: string
+          created_at?: string
+          hours_inactive: number
+          id?: string
+          message_id?: string | null
+          user_id: string
+        }
+        Update: {
+          alert_sent_at?: string
+          channel?: string
+          created_at?: string
+          hours_inactive?: number
+          id?: string
+          message_id?: string | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "inactivity_alerts_message_id_fkey"
+            columns: ["message_id"]
+            isOneToOne: false
+            referencedRelation: "admin_messages"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       leads: {
         Row: {
@@ -245,6 +325,33 @@ export type Database = {
         }
         Relationships: []
       }
+      user_activity: {
+        Row: {
+          activity_type: string
+          created_at: string
+          id: string
+          last_activity_at: string
+          metadata: Json | null
+          user_id: string
+        }
+        Insert: {
+          activity_type: string
+          created_at?: string
+          id?: string
+          last_activity_at?: string
+          metadata?: Json | null
+          user_id: string
+        }
+        Update: {
+          activity_type?: string
+          created_at?: string
+          id?: string
+          last_activity_at?: string
+          metadata?: Json | null
+          user_id?: string
+        }
+        Relationships: []
+      }
       user_roles: {
         Row: {
           created_at: string
@@ -271,6 +378,17 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      get_inactive_users: {
+        Args: { hours_threshold?: number }
+        Returns: {
+          email: string
+          full_name: string
+          hours_inactive: number
+          last_activity_at: string
+          roles: string[]
+          user_id: string
+        }[]
+      }
       has_role: {
         Args: {
           _role: Database["public"]["Enums"]["app_role"]

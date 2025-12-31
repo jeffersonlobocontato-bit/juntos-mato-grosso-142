@@ -15,7 +15,8 @@ import {
   Settings,
   Shield,
   UserCheck,
-  ArrowRight
+  ArrowRight,
+  Bell
 } from 'lucide-react';
 
 const Admin = () => {
@@ -100,6 +101,14 @@ const Admin = () => {
       href: '/admin/leads',
       color: 'primary',
       roles: ['admin', 'lider_tematico', 'curador_municipal']
+    },
+    { 
+      icon: Bell, 
+      title: 'Mensageria', 
+      description: 'Alertas e comunicação com membros',
+      href: '/admin/mensageria',
+      color: 'accent',
+      roles: ['admin']
     },
   ];
 
