@@ -14,6 +14,7 @@ import AdminEixos from "./pages/AdminEixos";
 import AdminMunicipios from "./pages/AdminMunicipios";
 import AdminUsuarios from "./pages/AdminUsuarios";
 import AdminLeads from "./pages/AdminLeads";
+import AdminMensageria from "./pages/AdminMensageria";
 import NotFound from "./pages/NotFound";
 const queryClient = new QueryClient();
 
@@ -35,6 +36,7 @@ const App = () => (
             <Route path="/admin/municipios" element={<AdminMunicipios />} />
             <Route path="/admin/usuarios" element={<AdminUsuarios />} />
             <Route path="/admin/leads" element={<AdminLeads />} />
+            <Route path="/admin/mensageria" element={<AdminMensageria />} />
             {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
             <Route path="*" element={<NotFound />} />
           </Routes>
