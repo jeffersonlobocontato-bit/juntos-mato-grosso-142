@@ -13,7 +13,8 @@ import {
   Target, 
   BarChart3,
   Settings,
-  Shield
+  Shield,
+  UserCheck
 } from 'lucide-react';
 
 const Admin = () => {
@@ -90,6 +91,14 @@ const Admin = () => {
       href: '/admin/usuarios',
       color: 'accent',
       roles: ['admin']
+    },
+    { 
+      icon: UserCheck, 
+      title: 'Leads', 
+      description: 'Gerenciar leads e suas origens',
+      href: '/admin/leads',
+      color: 'primary',
+      roles: ['admin', 'lider_tematico', 'curador_municipal']
     },
   ];
 
