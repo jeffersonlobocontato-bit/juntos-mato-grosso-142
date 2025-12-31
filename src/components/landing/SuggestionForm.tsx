@@ -6,6 +6,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Send, CheckCircle2, Sparkles } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
+import { supabase } from "@/integrations/supabase/client";
 
 const eixos = [
   "Educação",
@@ -36,21 +37,66 @@ const SuggestionForm = () => {
   const [isSubmitted, setIsSubmitted] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const { toast } = useToast();
+  
+  // Form state
+  const [nome, setNome] = useState("");
+  const [email, setEmail] = useState("");
+  const [municipio, setMunicipio] = useState("");
+  const [eixo, setEixo] = useState("");
+  const [descricao, setDescricao] = useState("");
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    
+    if (!municipio || !eixo || !descricao) {
+      toast({
+        title: "Campos obrigatórios",
+        description: "Por favor, preencha o município, eixo temático e sua sugestão.",
+        variant: "destructive",
+      });
+      return;
+    }
+    
     setIsLoading(true);
     
-    // Simulate API call
-    await new Promise(resolve => setTimeout(resolve, 1500));
+    const { error } = await supabase
+      .from('sugestoes_populares')
+      .insert({
+        nome: nome || null,
+        email: email || null,
+        municipio,
+        eixo,
+        descricao,
+        publico: true,
+      });
     
     setIsLoading(false);
+    
+    if (error) {
+      console.error('Error submitting suggestion:', error);
+      toast({
+        title: "Erro ao enviar",
+        description: "Ocorreu um erro ao enviar sua sugestão. Tente novamente.",
+        variant: "destructive",
+      });
+      return;
+    }
+    
     setIsSubmitted(true);
     
     toast({
       title: "Sugestão enviada com sucesso!",
       description: "Obrigado por participar da construção do Paraná.",
     });
+  };
+
+  const resetForm = () => {
+    setNome("");
+    setEmail("");
+    setMunicipio("");
+    setEixo("");
+    setDescricao("");
+    setIsSubmitted(false);
   };
 
   if (isSubmitted) {
@@ -73,7 +119,7 @@ const SuggestionForm = () => {
               Sua ideia está no mapa do Paraná! Juntos, estamos construindo o futuro do nosso Estado.
             </p>
             <Button
-              onClick={() => setIsSubmitted(false)}
+              onClick={resetForm}
               variant="outline"
               size="lg"
             >
@@ -126,6 +172,8 @@ const SuggestionForm = () => {
                   </label>
                   <Input
                     placeholder="Seu nome"
+                    value={nome}
+                    onChange={(e) => setNome(e.target.value)}
                     className="h-12 rounded-xl border-border/50 focus:border-primary"
                   />
                 </div>
@@ -136,6 +184,8 @@ const SuggestionForm = () => {
                   <Input
                     type="email"
                     placeholder="seu@email.com"
+                    value={email}
+                    onChange={(e) => setEmail(e.target.value)}
                     className="h-12 rounded-xl border-border/50 focus:border-primary"
                   />
                 </div>
@@ -146,13 +196,13 @@ const SuggestionForm = () => {
                   <label className="text-sm font-medium text-foreground">
                     Município <span className="text-destructive">*</span>
                   </label>
-                  <Select required>
+                  <Select value={municipio} onValueChange={setMunicipio}>
                     <SelectTrigger className="h-12 rounded-xl border-border/50">
                       <SelectValue placeholder="Selecione seu município" />
                     </SelectTrigger>
                     <SelectContent>
                       {municipios.map((m) => (
-                        <SelectItem key={m} value={m.toLowerCase()}>
+                        <SelectItem key={m} value={m}>
                           {m}
                         </SelectItem>
                       ))}
@@ -163,13 +213,13 @@ const SuggestionForm = () => {
                   <label className="text-sm font-medium text-foreground">
                     Eixo Temático <span className="text-destructive">*</span>
                   </label>
-                  <Select required>
+                  <Select value={eixo} onValueChange={setEixo}>
                     <SelectTrigger className="h-12 rounded-xl border-border/50">
                       <SelectValue placeholder="Selecione um eixo" />
                     </SelectTrigger>
                     <SelectContent>
                       {eixos.map((e) => (
-                        <SelectItem key={e} value={e.toLowerCase()}>
+                        <SelectItem key={e} value={e}>
                           {e}
                         </SelectItem>
                       ))}
@@ -185,6 +235,8 @@ const SuggestionForm = () => {
                 <Textarea
                   required
                   placeholder="Descreva sua ideia para o desenvolvimento do Paraná..."
+                  value={descricao}
+                  onChange={(e) => setDescricao(e.target.value)}
                   className="min-h-[150px] rounded-xl border-border/50 focus:border-primary resize-none"
                 />
               </div>
