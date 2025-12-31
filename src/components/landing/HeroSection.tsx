@@ -47,11 +47,11 @@ const HeroSection = () => {
           transition={{ duration: 0.8, delay: 0.4 }}
           className="font-display text-4xl md:text-6xl lg:text-7xl font-black text-primary-foreground mb-6 leading-tight"
         >
-          Rota 399
+          Rota 399:
           <br />
-          <span className="text-accent">O Destino Decidido</span>
+          <span className="text-accent">o destino certo,</span>
           <br />
-          por Todos os Paranaenses
+          é o futuro decidido por todos os paranaenses
         </motion.h1>
 
         <motion.p
