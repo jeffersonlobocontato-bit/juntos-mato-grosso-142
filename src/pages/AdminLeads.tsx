@@ -6,6 +6,12 @@ import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
+import { Calendar as CalendarComponent } from '@/components/ui/calendar';
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from '@/components/ui/popover';
 import {
   Select,
   SelectContent,
@@ -30,10 +36,15 @@ import {
   ClipboardList,
   Download,
   Search,
-  Calendar
+  Calendar,
+  CalendarIcon,
+  ChevronLeft,
+  ChevronRight,
+  X
 } from 'lucide-react';
-import { format } from 'date-fns';
+import { format, isWithinInterval, startOfDay, endOfDay } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
+import { cn } from '@/lib/utils';
 import type { Json } from '@/integrations/supabase/types';
 
 interface Lead {
@@ -47,6 +58,8 @@ interface Lead {
   metadata: Json;
 }
 
+const ITEMS_PER_PAGE = 20;
+
 const AdminLeads = () => {
   const { user, roles, isLoading: authLoading, isAdmin } = useAuth();
   const navigate = useNavigate();
@@ -58,6 +71,9 @@ const AdminLeads = () => {
   const [origemFilter, setOrigemFilter] = useState<string>('all');
   const [municipioFilter, setMunicipioFilter] = useState<string>('all');
   const [municipios, setMunicipios] = useState<string[]>([]);
+  const [dateFrom, setDateFrom] = useState<Date | undefined>(undefined);
+  const [dateTo, setDateTo] = useState<Date | undefined>(undefined);
+  const [currentPage, setCurrentPage] = useState(1);
 
   useEffect(() => {
     if (!authLoading && !user) {
@@ -118,8 +134,41 @@ const AdminLeads = () => {
       filtered = filtered.filter(lead => lead.municipio === municipioFilter);
     }
 
+    // Date filter
+    if (dateFrom || dateTo) {
+      filtered = filtered.filter(lead => {
+        const leadDate = new Date(lead.created_at);
+        if (dateFrom && dateTo) {
+          return isWithinInterval(leadDate, {
+            start: startOfDay(dateFrom),
+            end: endOfDay(dateTo),
+          });
+        }
+        if (dateFrom) {
+          return leadDate >= startOfDay(dateFrom);
+        }
+        if (dateTo) {
+          return leadDate <= endOfDay(dateTo);
+        }
+        return true;
+      });
+    }
+
     setFilteredLeads(filtered);
-  }, [leads, searchTerm, origemFilter, municipioFilter]);
+    setCurrentPage(1); // Reset to first page when filters change
+  }, [leads, searchTerm, origemFilter, municipioFilter, dateFrom, dateTo]);
+
+  // Pagination
+  const totalPages = Math.ceil(filteredLeads.length / ITEMS_PER_PAGE);
+  const paginatedLeads = filteredLeads.slice(
+    (currentPage - 1) * ITEMS_PER_PAGE,
+    currentPage * ITEMS_PER_PAGE
+  );
+
+  const clearDateFilters = () => {
+    setDateFrom(undefined);
+    setDateTo(undefined);
+  };
 
   const hasAccess = isAdmin || 
     roles.includes('lider_tematico') || 
@@ -313,40 +362,109 @@ const AdminLeads = () => {
           {/* Filters */}
           <Card className="mb-6">
             <CardContent className="pt-6">
-              <div className="flex flex-col md:flex-row gap-4">
-                <div className="flex-1 relative">
-                  <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-                  <Input
-                    placeholder="Buscar por nome, email, whatsapp ou município..."
-                    value={searchTerm}
-                    onChange={(e) => setSearchTerm(e.target.value)}
-                    className="pl-10"
-                  />
+              <div className="flex flex-col gap-4">
+                <div className="flex flex-col md:flex-row gap-4">
+                  <div className="flex-1 relative">
+                    <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+                    <Input
+                      placeholder="Buscar por nome, email, whatsapp ou município..."
+                      value={searchTerm}
+                      onChange={(e) => setSearchTerm(e.target.value)}
+                      className="pl-10"
+                    />
+                  </div>
+                  <Select value={origemFilter} onValueChange={setOrigemFilter}>
+                    <SelectTrigger className="w-full md:w-48">
+                      <SelectValue placeholder="Filtrar por origem" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="all">Todas origens</SelectItem>
+                      <SelectItem value="formulario">Formulário</SelectItem>
+                      <SelectItem value="chatbot">Chatbot</SelectItem>
+                      <SelectItem value="proposta">Proposta</SelectItem>
+                    </SelectContent>
+                  </Select>
+                  <Select value={municipioFilter} onValueChange={setMunicipioFilter}>
+                    <SelectTrigger className="w-full md:w-48">
+                      <SelectValue placeholder="Filtrar por município" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="all">Todos municípios</SelectItem>
+                      {municipios.map((municipio) => (
+                        <SelectItem key={municipio} value={municipio}>
+                          {municipio}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
                 </div>
-                <Select value={origemFilter} onValueChange={setOrigemFilter}>
-                  <SelectTrigger className="w-full md:w-48">
-                    <SelectValue placeholder="Filtrar por origem" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="all">Todas origens</SelectItem>
-                    <SelectItem value="formulario">Formulário</SelectItem>
-                    <SelectItem value="chatbot">Chatbot</SelectItem>
-                    <SelectItem value="proposta">Proposta</SelectItem>
-                  </SelectContent>
-                </Select>
-                <Select value={municipioFilter} onValueChange={setMunicipioFilter}>
-                  <SelectTrigger className="w-full md:w-48">
-                    <SelectValue placeholder="Filtrar por município" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="all">Todos municípios</SelectItem>
-                    {municipios.map((municipio) => (
-                      <SelectItem key={municipio} value={municipio}>
-                        {municipio}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
+                
+                {/* Date Filters */}
+                <div className="flex flex-col sm:flex-row gap-4 items-start sm:items-center">
+                  <span className="text-sm text-muted-foreground whitespace-nowrap">Período:</span>
+                  <div className="flex flex-wrap gap-2 items-center">
+                    <Popover>
+                      <PopoverTrigger asChild>
+                        <Button
+                          variant="outline"
+                          className={cn(
+                            "w-[160px] justify-start text-left font-normal",
+                            !dateFrom && "text-muted-foreground"
+                          )}
+                        >
+                          <CalendarIcon className="mr-2 h-4 w-4" />
+                          {dateFrom ? format(dateFrom, "dd/MM/yyyy") : "Data inicial"}
+                        </Button>
+                      </PopoverTrigger>
+                      <PopoverContent className="w-auto p-0" align="start">
+                        <CalendarComponent
+                          mode="single"
+                          selected={dateFrom}
+                          onSelect={setDateFrom}
+                          initialFocus
+                          className={cn("p-3 pointer-events-auto")}
+                          locale={ptBR}
+                        />
+                      </PopoverContent>
+                    </Popover>
+                    <span className="text-muted-foreground">até</span>
+                    <Popover>
+                      <PopoverTrigger asChild>
+                        <Button
+                          variant="outline"
+                          className={cn(
+                            "w-[160px] justify-start text-left font-normal",
+                            !dateTo && "text-muted-foreground"
+                          )}
+                        >
+                          <CalendarIcon className="mr-2 h-4 w-4" />
+                          {dateTo ? format(dateTo, "dd/MM/yyyy") : "Data final"}
+                        </Button>
+                      </PopoverTrigger>
+                      <PopoverContent className="w-auto p-0" align="start">
+                        <CalendarComponent
+                          mode="single"
+                          selected={dateTo}
+                          onSelect={setDateTo}
+                          initialFocus
+                          className={cn("p-3 pointer-events-auto")}
+                          locale={ptBR}
+                        />
+                      </PopoverContent>
+                    </Popover>
+                    {(dateFrom || dateTo) && (
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={clearDateFilters}
+                        className="h-9"
+                      >
+                        <X className="w-4 h-4 mr-1" />
+                        Limpar
+                      </Button>
+                    )}
+                  </div>
+                </div>
               </div>
             </CardContent>
           </Card>
@@ -357,7 +475,7 @@ const AdminLeads = () => {
               <CardTitle className="flex items-center justify-between">
                 <span>Lista de Leads</span>
                 <span className="text-sm font-normal text-muted-foreground">
-                  {filteredLeads.length} resultado(s)
+                  {filteredLeads.length} resultado(s) • Página {currentPage} de {totalPages || 1}
                 </span>
               </CardTitle>
             </CardHeader>
@@ -374,14 +492,14 @@ const AdminLeads = () => {
                     </TableRow>
                   </TableHeader>
                   <TableBody>
-                    {filteredLeads.length === 0 ? (
+                    {paginatedLeads.length === 0 ? (
                       <TableRow>
                         <TableCell colSpan={5} className="text-center py-8 text-muted-foreground">
                           Nenhum lead encontrado
                         </TableCell>
                       </TableRow>
                     ) : (
-                      filteredLeads.map((lead) => (
+                      paginatedLeads.map((lead) => (
                         <TableRow key={lead.id}>
                           <TableCell className="font-medium">
                             {lead.nome || <span className="text-muted-foreground">—</span>}
@@ -418,6 +536,55 @@ const AdminLeads = () => {
                   </TableBody>
                 </Table>
               </div>
+
+              {/* Pagination */}
+              {totalPages > 1 && (
+                <div className="flex items-center justify-center gap-2 mt-6">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
+                    disabled={currentPage === 1}
+                  >
+                    <ChevronLeft className="w-4 h-4" />
+                    Anterior
+                  </Button>
+                  <div className="flex items-center gap-1">
+                    {Array.from({ length: Math.min(5, totalPages) }, (_, i) => {
+                      let pageNum: number;
+                      if (totalPages <= 5) {
+                        pageNum = i + 1;
+                      } else if (currentPage <= 3) {
+                        pageNum = i + 1;
+                      } else if (currentPage >= totalPages - 2) {
+                        pageNum = totalPages - 4 + i;
+                      } else {
+                        pageNum = currentPage - 2 + i;
+                      }
+                      return (
+                        <Button
+                          key={pageNum}
+                          variant={currentPage === pageNum ? "default" : "outline"}
+                          size="sm"
+                          onClick={() => setCurrentPage(pageNum)}
+                          className="w-9"
+                        >
+                          {pageNum}
+                        </Button>
+                      );
+                    })}
+                  </div>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
+                    disabled={currentPage === totalPages}
+                  >
+                    Próximo
+                    <ChevronRight className="w-4 h-4" />
+                  </Button>
+                </div>
+              )}
             </CardContent>
           </Card>
         </motion.div>
