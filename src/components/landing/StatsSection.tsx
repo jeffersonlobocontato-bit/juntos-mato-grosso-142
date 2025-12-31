@@ -24,7 +24,7 @@ const stats = [
   },
   {
     icon: Target,
-    value: 12,
+    value: 8,
     label: "Eixos Temáticos",
     color: "primary",
   },

@@ -77,7 +77,7 @@ const Dashboard = () => {
     { icon: FileText, value: "847", label: "Propostas Técnicas", trend: "+12%", color: "primary" },
     { icon: Users, value: "3.254", label: "Sugestões Populares", trend: "+28%", color: "secondary" },
     { icon: MapPin, value: "267", label: "Municípios Ativos", sublabel: "/399", color: "accent" },
-    { icon: Target, value: "12", label: "Eixos Temáticos", trend: "100%", color: "primary" },
+    { icon: Target, value: "8", label: "Eixos Temáticos", trend: "100%", color: "primary" },
   ];
 
   return (

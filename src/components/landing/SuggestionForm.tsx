@@ -12,13 +12,9 @@ const eixos = [
   "Saúde",
   "Segurança Pública",
   "Infraestrutura",
-  "Agricultura",
-  "Meio Ambiente",
-  "Turismo",
-  "Indústria e Comércio",
-  "Cultura",
-  "Esporte e Lazer",
-  "Assistência Social",
+  "Agricultura e Meio Ambiente",
+  "Economia e Turismo",
+  "Desenvolvimento Social",
   "Tecnologia e Inovação",
 ];
 
