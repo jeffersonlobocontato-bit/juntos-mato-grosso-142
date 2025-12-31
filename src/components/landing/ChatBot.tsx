@@ -17,14 +17,7 @@ interface Message {
   content: string;
 }
 
-const defaultResponses: Record<string, string> = {
-  "o que é a rota 399": "A Rota 399 é uma iniciativa popular que percorre todos os 399 municípios do Paraná para coletar propostas técnicas e sugestões da população, construindo colaborativamente um Plano de Governo para o Estado.",
-  "como participar": "Você pode participar de duas formas: 1) Enviando sua sugestão através do formulário na página principal, ou 2) Participando das audiências públicas que acontecem em cada município.",
-  "quem pode enviar sugestões": "Qualquer cidadão paranaense pode enviar sugestões! Não é necessário ser especialista. Valorizamos todas as vozes e perspectivas.",
-  "o que acontece com minha sugestão": "Sua sugestão é registrada e analisada por nossa equipe técnica. As sugestões são agrupadas por eixo temático e município, e as mais relevantes são incorporadas ao Plano de Governo.",
-  "quais são os eixos temáticos": "Os principais eixos são: Educação, Saúde, Segurança, Infraestrutura, Meio Ambiente, Agricultura, Desenvolvimento Econômico, Cultura e Turismo, Assistência Social, entre outros.",
-  "quando será lançado o plano": "O Plano de Governo está sendo construído ao longo de 2024, com previsão de consolidação final após as 4 etapas do processo participativo em todos os municípios.",
-};
+const CHAT_URL = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/chat-rota399`;
 
 const ChatBot = () => {
   const [isOpen, setIsOpen] = useState(false);
@@ -75,42 +68,106 @@ const ChatBot = () => {
       {
         id: "welcome",
         role: "assistant",
-        content: `Olá, ${formData.name}! 👋 Sou o assistente da Rota 399. Estou aqui para tirar suas dúvidas sobre nossa iniciativa popular de construção do Plano de Governo do Paraná.\n\nPergunte-me sobre:\n• O que é a Rota 399\n• Como participar\n• Eixos temáticos\n• O que acontece com sua sugestão\n\nComo posso ajudar?`,
+        content: `Olá, ${formData.name}! 👋 Sou o assistente virtual da Rota 399. Estou aqui para tirar suas dúvidas sobre nossa iniciativa popular de construção do Plano de Governo do Paraná.\n\nComo posso ajudar você hoje?`,
       },
     ]);
   };
 
-  const findBestResponse = (question: string): string => {
-    const normalizedQuestion = question.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+  const streamChat = async (userMessage: Message) => {
+    const apiMessages = messages
+      .filter(m => m.id !== "welcome")
+      .map(m => ({ role: m.role, content: m.content }));
     
-    for (const [key, response] of Object.entries(defaultResponses)) {
-      const normalizedKey = key.normalize("NFD").replace(/[\u0300-\u036f]/g, "");
-      if (normalizedQuestion.includes(normalizedKey) || normalizedKey.split(" ").some(word => word.length > 3 && normalizedQuestion.includes(word))) {
-        return response;
+    apiMessages.push({ role: "user", content: userMessage.content });
+
+    const response = await fetch(CHAT_URL, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY}`,
+      },
+      body: JSON.stringify({
+        messages: apiMessages,
+        userName: userData?.name,
+        userCity: userData?.city,
+      }),
+    });
+
+    if (!response.ok) {
+      const errorData = await response.json().catch(() => ({}));
+      throw new Error(errorData.error || "Erro ao conectar com o assistente");
+    }
+
+    if (!response.body) {
+      throw new Error("Resposta vazia do servidor");
+    }
+
+    const reader = response.body.getReader();
+    const decoder = new TextDecoder();
+    let textBuffer = "";
+    let assistantContent = "";
+    const assistantId = (Date.now() + 1).toString();
+
+    // Add empty assistant message
+    setMessages(prev => [...prev, { id: assistantId, role: "assistant", content: "" }]);
+
+    while (true) {
+      const { done, value } = await reader.read();
+      if (done) break;
+
+      textBuffer += decoder.decode(value, { stream: true });
+
+      let newlineIndex: number;
+      while ((newlineIndex = textBuffer.indexOf("\n")) !== -1) {
+        let line = textBuffer.slice(0, newlineIndex);
+        textBuffer = textBuffer.slice(newlineIndex + 1);
+
+        if (line.endsWith("\r")) line = line.slice(0, -1);
+        if (line.startsWith(":") || line.trim() === "") continue;
+        if (!line.startsWith("data: ")) continue;
+
+        const jsonStr = line.slice(6).trim();
+        if (jsonStr === "[DONE]") break;
+
+        try {
+          const parsed = JSON.parse(jsonStr);
+          const content = parsed.choices?.[0]?.delta?.content;
+          if (content) {
+            assistantContent += content;
+            setMessages(prev =>
+              prev.map(m =>
+                m.id === assistantId ? { ...m, content: assistantContent } : m
+              )
+            );
+          }
+        } catch {
+          // Incomplete JSON, put back and wait
+          textBuffer = line + "\n" + textBuffer;
+          break;
+        }
       }
     }
 
-    // Check for keywords
-    if (normalizedQuestion.includes("participar") || normalizedQuestion.includes("contribuir")) {
-      return defaultResponses["como participar"];
+    // Handle remaining buffer
+    if (textBuffer.trim()) {
+      for (let raw of textBuffer.split("\n")) {
+        if (!raw || raw.startsWith(":") || !raw.startsWith("data: ")) continue;
+        const jsonStr = raw.slice(6).trim();
+        if (jsonStr === "[DONE]") continue;
+        try {
+          const parsed = JSON.parse(jsonStr);
+          const content = parsed.choices?.[0]?.delta?.content;
+          if (content) {
+            assistantContent += content;
+            setMessages(prev =>
+              prev.map(m =>
+                m.id === assistantId ? { ...m, content: assistantContent } : m
+              )
+            );
+          }
+        } catch { /* ignore */ }
+      }
     }
-    if (normalizedQuestion.includes("eixo") || normalizedQuestion.includes("tema")) {
-      return defaultResponses["quais são os eixos temáticos"];
-    }
-    if (normalizedQuestion.includes("sugestao") || normalizedQuestion.includes("ideia")) {
-      return defaultResponses["o que acontece com minha sugestão"];
-    }
-    if (normalizedQuestion.includes("quem") || normalizedQuestion.includes("pode")) {
-      return defaultResponses["quem pode enviar sugestões"];
-    }
-    if (normalizedQuestion.includes("quando") || normalizedQuestion.includes("prazo") || normalizedQuestion.includes("plano")) {
-      return defaultResponses["quando será lançado o plano"];
-    }
-    if (normalizedQuestion.includes("rota") || normalizedQuestion.includes("399") || normalizedQuestion.includes("o que")) {
-      return defaultResponses["o que é a rota 399"];
-    }
-
-    return "Desculpe, não tenho uma resposta específica para essa pergunta. Você pode reformular ou perguntar sobre: o que é a Rota 399, como participar, eixos temáticos, ou o processo de sugestões. Se preferir, envie sua sugestão pelo formulário na página principal!";
   };
 
   const handleSendMessage = async () => {
@@ -122,23 +179,22 @@ const ChatBot = () => {
       content: inputValue.trim(),
     };
 
-    setMessages((prev) => [...prev, userMessage]);
+    setMessages(prev => [...prev, userMessage]);
     setInputValue("");
     setIsLoading(true);
 
-    // Simulate response delay
-    await new Promise((resolve) => setTimeout(resolve, 800 + Math.random() * 700));
-
-    const response = findBestResponse(userMessage.content);
-    
-    const assistantMessage: Message = {
-      id: (Date.now() + 1).toString(),
-      role: "assistant",
-      content: response,
-    };
-
-    setMessages((prev) => [...prev, assistantMessage]);
-    setIsLoading(false);
+    try {
+      await streamChat(userMessage);
+    } catch (error) {
+      console.error("Chat error:", error);
+      toast({
+        title: "Erro",
+        description: error instanceof Error ? error.message : "Erro ao enviar mensagem",
+        variant: "destructive",
+      });
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   const handleKeyPress = (e: React.KeyboardEvent) => {
@@ -180,7 +236,7 @@ const ChatBot = () => {
                 </div>
                 <div>
                   <h3 className="font-display font-bold">Assistente Rota 399</h3>
-                  <p className="text-xs text-primary-foreground/70">Tire suas dúvidas</p>
+                  <p className="text-xs text-primary-foreground/70">Powered by AI</p>
                 </div>
               </div>
               <button
@@ -267,12 +323,12 @@ const ChatBot = () => {
                       </div>
                     </div>
                   ))}
-                  {isLoading && (
+                  {isLoading && messages[messages.length - 1]?.role === "user" && (
                     <div className="flex justify-start">
                       <div className="bg-muted rounded-2xl rounded-bl-md px-4 py-3">
                         <div className="flex items-center gap-2">
                           <Loader2 className="w-4 h-4 animate-spin text-muted-foreground" />
-                          <span className="text-sm text-muted-foreground">Digitando...</span>
+                          <span className="text-sm text-muted-foreground">Pensando...</span>
                         </div>
                       </div>
                     </div>
