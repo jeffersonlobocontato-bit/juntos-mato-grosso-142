@@ -38,6 +38,60 @@ export type Database = {
         }
         Relationships: []
       }
+      leads: {
+        Row: {
+          created_at: string
+          email: string | null
+          id: string
+          metadata: Json | null
+          municipio: string | null
+          nome: string | null
+          origem: Database["public"]["Enums"]["lead_origem"]
+          proposta_id: string | null
+          sugestao_id: string | null
+          whatsapp: string | null
+        }
+        Insert: {
+          created_at?: string
+          email?: string | null
+          id?: string
+          metadata?: Json | null
+          municipio?: string | null
+          nome?: string | null
+          origem: Database["public"]["Enums"]["lead_origem"]
+          proposta_id?: string | null
+          sugestao_id?: string | null
+          whatsapp?: string | null
+        }
+        Update: {
+          created_at?: string
+          email?: string | null
+          id?: string
+          metadata?: Json | null
+          municipio?: string | null
+          nome?: string | null
+          origem?: Database["public"]["Enums"]["lead_origem"]
+          proposta_id?: string | null
+          sugestao_id?: string | null
+          whatsapp?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "leads_proposta_id_fkey"
+            columns: ["proposta_id"]
+            isOneToOne: false
+            referencedRelation: "propostas_tecnicas"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "leads_sugestao_id_fkey"
+            columns: ["sugestao_id"]
+            isOneToOne: false
+            referencedRelation: "sugestoes_populares"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       municipios: {
         Row: {
           codigo_ibge: string | null
@@ -232,6 +286,7 @@ export type Database = {
         | "lider_tematico"
         | "curador_municipal"
         | "especialista"
+      lead_origem: "formulario" | "chatbot" | "proposta"
       proposal_status: "rascunho" | "validada" | "consolidada" | "aprovada"
     }
     CompositeTypes: {
@@ -366,6 +421,7 @@ export const Constants = {
         "curador_municipal",
         "especialista",
       ],
+      lead_origem: ["formulario", "chatbot", "proposta"],
       proposal_status: ["rascunho", "validada", "consolidada", "aprovada"],
     },
   },

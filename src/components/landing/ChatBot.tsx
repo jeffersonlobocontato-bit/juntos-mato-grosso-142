@@ -4,6 +4,7 @@ import { MessageCircle, X, Send, Loader2, User } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { useToast } from "@/hooks/use-toast";
+import { supabase } from "@/integrations/supabase/client";
 
 interface UserData {
   name: string;
@@ -44,7 +45,21 @@ const ChatBot = () => {
     return `(${numbers.slice(0, 2)}) ${numbers.slice(2, 7)}-${numbers.slice(7, 11)}`;
   };
 
-  const handleStartChat = () => {
+  const saveLeadFromChat = async (data: UserData) => {
+    try {
+      await supabase.from('leads').insert({
+        nome: data.name,
+        municipio: data.city,
+        whatsapp: data.whatsapp,
+        origem: 'chatbot',
+        metadata: { source: 'landing_page_chatbot' },
+      });
+    } catch (error) {
+      console.error('Error saving chatbot lead:', error);
+    }
+  };
+
+  const handleStartChat = async () => {
     if (!formData.name.trim() || !formData.city.trim() || !formData.whatsapp.trim()) {
       toast({
         title: "Campos obrigatórios",
@@ -62,6 +77,9 @@ const ChatBot = () => {
       });
       return;
     }
+
+    // Save lead to database
+    await saveLeadFromChat(formData);
 
     setUserData(formData);
     setMessages([
