@@ -92,6 +92,105 @@ export type Database = {
         }
         Relationships: []
       }
+      propostas_tecnicas: {
+        Row: {
+          anexos: string[] | null
+          autor_id: string
+          created_at: string
+          descricao: string
+          eixo_id: string
+          etapa: number
+          id: string
+          indicadores: string | null
+          metas: string | null
+          municipio_id: string | null
+          status: Database["public"]["Enums"]["proposal_status"]
+          titulo: string
+          updated_at: string
+        }
+        Insert: {
+          anexos?: string[] | null
+          autor_id: string
+          created_at?: string
+          descricao: string
+          eixo_id: string
+          etapa?: number
+          id?: string
+          indicadores?: string | null
+          metas?: string | null
+          municipio_id?: string | null
+          status?: Database["public"]["Enums"]["proposal_status"]
+          titulo: string
+          updated_at?: string
+        }
+        Update: {
+          anexos?: string[] | null
+          autor_id?: string
+          created_at?: string
+          descricao?: string
+          eixo_id?: string
+          etapa?: number
+          id?: string
+          indicadores?: string | null
+          metas?: string | null
+          municipio_id?: string | null
+          status?: Database["public"]["Enums"]["proposal_status"]
+          titulo?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "propostas_tecnicas_eixo_id_fkey"
+            columns: ["eixo_id"]
+            isOneToOne: false
+            referencedRelation: "eixos_tematicos"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "propostas_tecnicas_municipio_id_fkey"
+            columns: ["municipio_id"]
+            isOneToOne: false
+            referencedRelation: "municipios"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      sugestoes_populares: {
+        Row: {
+          created_at: string
+          descricao: string
+          eixo: string
+          email: string | null
+          id: string
+          municipio: string
+          nome: string | null
+          publico: boolean | null
+          whatsapp: string | null
+        }
+        Insert: {
+          created_at?: string
+          descricao: string
+          eixo: string
+          email?: string | null
+          id?: string
+          municipio: string
+          nome?: string | null
+          publico?: boolean | null
+          whatsapp?: string | null
+        }
+        Update: {
+          created_at?: string
+          descricao?: string
+          eixo?: string
+          email?: string | null
+          id?: string
+          municipio?: string
+          nome?: string | null
+          publico?: boolean | null
+          whatsapp?: string | null
+        }
+        Relationships: []
+      }
       user_roles: {
         Row: {
           created_at: string
@@ -133,6 +232,7 @@ export type Database = {
         | "lider_tematico"
         | "curador_municipal"
         | "especialista"
+      proposal_status: "rascunho" | "validada" | "consolidada" | "aprovada"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -266,6 +366,7 @@ export const Constants = {
         "curador_municipal",
         "especialista",
       ],
+      proposal_status: ["rascunho", "validada", "consolidada", "aprovada"],
     },
   },
 } as const
