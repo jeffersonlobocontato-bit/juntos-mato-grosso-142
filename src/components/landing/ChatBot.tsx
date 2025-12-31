@@ -6,6 +6,21 @@ import { Input } from "@/components/ui/input";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 
+// Input validation constants
+const MAX_MESSAGE_LENGTH = 2000;
+const MAX_NAME_LENGTH = 100;
+const MAX_CITY_LENGTH = 100;
+
+// Sanitize string input
+const sanitizeInput = (input: string): string => {
+  return input.trim().replace(/[<>]/g, "");
+};
+
+// Validate input length and content
+const isValidInput = (input: string, maxLength: number): boolean => {
+  return input.trim().length > 0 && input.length <= maxLength;
+};
+
 interface UserData {
   name: string;
   city: string;
@@ -60,33 +75,53 @@ const ChatBot = () => {
   };
 
   const handleStartChat = async () => {
-    if (!formData.name.trim() || !formData.city.trim() || !formData.whatsapp.trim()) {
+    // Validate name
+    if (!isValidInput(formData.name, MAX_NAME_LENGTH)) {
       toast({
-        title: "Campos obrigatórios",
-        description: "Por favor, preencha todos os campos para iniciar a conversa.",
+        title: "Nome inválido",
+        description: `Por favor, informe um nome válido (máximo ${MAX_NAME_LENGTH} caracteres).`,
         variant: "destructive",
       });
       return;
     }
 
-    if (formData.whatsapp.replace(/\D/g, "").length < 10) {
+    // Validate city
+    if (!isValidInput(formData.city, MAX_CITY_LENGTH)) {
+      toast({
+        title: "Cidade inválida",
+        description: `Por favor, informe uma cidade válida (máximo ${MAX_CITY_LENGTH} caracteres).`,
+        variant: "destructive",
+      });
+      return;
+    }
+
+    // Validate WhatsApp
+    const whatsappDigits = formData.whatsapp.replace(/\D/g, "");
+    if (whatsappDigits.length < 10 || whatsappDigits.length > 11) {
       toast({
         title: "WhatsApp inválido",
-        description: "Por favor, informe um número de WhatsApp válido.",
+        description: "Por favor, informe um número de WhatsApp válido com DDD.",
         variant: "destructive",
       });
       return;
     }
 
-    // Save lead to database
-    await saveLeadFromChat(formData);
+    // Sanitize inputs before saving
+    const sanitizedData: UserData = {
+      name: sanitizeInput(formData.name).slice(0, MAX_NAME_LENGTH),
+      city: sanitizeInput(formData.city).slice(0, MAX_CITY_LENGTH),
+      whatsapp: formData.whatsapp,
+    };
 
-    setUserData(formData);
+    // Save lead to database
+    await saveLeadFromChat(sanitizedData);
+
+    setUserData(sanitizedData);
     setMessages([
       {
         id: "welcome",
         role: "assistant",
-        content: `Olá, ${formData.name}! 👋 Sou o assistente virtual da Rota 399. Estou aqui para tirar suas dúvidas sobre nossa iniciativa popular de construção do Plano de Governo do Paraná.\n\nComo posso ajudar você hoje?`,
+        content: `Olá, ${sanitizedData.name}! 👋 Sou o assistente virtual da Rota 399. Estou aqui para tirar suas dúvidas sobre nossa iniciativa popular de construção do Plano de Governo do Paraná.\n\nComo posso ajudar você hoje?`,
       },
     ]);
   };
@@ -189,12 +224,26 @@ const ChatBot = () => {
   };
 
   const handleSendMessage = async () => {
-    if (!inputValue.trim() || isLoading) return;
+    const trimmedInput = inputValue.trim();
+    
+    // Validate message
+    if (!trimmedInput || isLoading) return;
+    
+    if (trimmedInput.length > MAX_MESSAGE_LENGTH) {
+      toast({
+        title: "Mensagem muito longa",
+        description: `Por favor, reduza sua mensagem (máximo ${MAX_MESSAGE_LENGTH} caracteres).`,
+        variant: "destructive",
+      });
+      return;
+    }
 
+    const sanitizedContent = sanitizeInput(trimmedInput);
+    
     const userMessage: Message = {
       id: Date.now().toString(),
       role: "user",
-      content: inputValue.trim(),
+      content: sanitizedContent,
     };
 
     setMessages(prev => [...prev, userMessage]);
