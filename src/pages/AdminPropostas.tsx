@@ -39,8 +39,10 @@ import {
   FileText,
   Edit,
   Trash2,
-  Filter
+  Filter,
+  PieChart as PieChartIcon
 } from 'lucide-react';
+import AdminPieChart from '@/components/admin/AdminPieChart';
 
 type ProposalStatus = 'rascunho' | 'validada' | 'consolidada' | 'aprovada';
 
@@ -457,6 +459,26 @@ const AdminPropostas = () => {
               </div>
             </CardContent>
           </Card>
+
+          {/* Charts */}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
+            <AdminPieChart
+              title="Propostas por Status"
+              data={[
+                { name: 'Rascunho', value: proposals.filter(p => p.status === 'rascunho').length, color: 'hsl(215, 20%, 65%)' },
+                { name: 'Validada', value: proposals.filter(p => p.status === 'validada').length, color: 'hsl(210, 100%, 50%)' },
+                { name: 'Consolidada', value: proposals.filter(p => p.status === 'consolidada').length, color: 'hsl(45, 100%, 50%)' },
+                { name: 'Aprovada', value: proposals.filter(p => p.status === 'aprovada').length, color: 'hsl(152, 60%, 40%)' },
+              ]}
+            />
+            <AdminPieChart
+              title="Propostas por Eixo Temático"
+              data={eixos.map(eixo => ({
+                name: eixo.nome,
+                value: proposals.filter(p => p.eixo_id === eixo.id).length,
+              }))}
+            />
+          </div>
 
           {/* Stats */}
           <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">

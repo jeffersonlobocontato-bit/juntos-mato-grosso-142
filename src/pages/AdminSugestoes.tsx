@@ -37,8 +37,10 @@ import {
   Trash2,
   Filter,
   Download,
-  MessageSquare
+  MessageSquare,
+  PieChart as PieChartIcon
 } from 'lucide-react';
+import AdminPieChart from '@/components/admin/AdminPieChart';
 
 interface Sugestao {
   id: string;
@@ -195,6 +197,31 @@ const AdminSugestoes = () => {
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.5 }}
         >
+          {/* Charts */}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
+            <AdminPieChart
+              title="Sugestões por Eixo Temático"
+              data={eixosList.map(eixo => ({
+                name: eixo,
+                value: countByEixo(eixo),
+              }))}
+            />
+            <AdminPieChart
+              title="Top 8 Municípios"
+              data={
+                Object.entries(
+                  sugestoes.reduce((acc, s) => {
+                    acc[s.municipio] = (acc[s.municipio] || 0) + 1;
+                    return acc;
+                  }, {} as Record<string, number>)
+                )
+                  .sort((a, b) => b[1] - a[1])
+                  .slice(0, 8)
+                  .map(([name, value]) => ({ name, value }))
+              }
+            />
+          </div>
+
           {/* Stats by Eixo */}
           <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
             {eixosList.slice(0, 4).map(eixo => (
