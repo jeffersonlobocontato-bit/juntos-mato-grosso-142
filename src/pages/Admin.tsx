@@ -14,7 +14,8 @@ import {
   BarChart3,
   Settings,
   Shield,
-  UserCheck
+  UserCheck,
+  ArrowRight
 } from 'lucide-react';
 
 const Admin = () => {
@@ -162,6 +163,34 @@ const Admin = () => {
                 </p>
               </CardContent>
             </Card>
+          )}
+
+          {/* Leads CTA Banner */}
+          {(isAdmin || roles.includes('lider_tematico') || roles.includes('curador_municipal')) && (
+            <Link to="/admin/leads">
+              <Card className="mb-8 bg-gradient-to-r from-primary/10 via-accent/10 to-primary/10 border-primary/20 hover:shadow-lg transition-all duration-300 hover:-translate-y-1 cursor-pointer group overflow-hidden relative">
+                <div className="absolute inset-0 bg-gradient-to-r from-primary/5 to-accent/5 opacity-0 group-hover:opacity-100 transition-opacity" />
+                <CardContent className="py-6 flex items-center justify-between relative z-10">
+                  <div className="flex items-center gap-4">
+                    <div className="w-14 h-14 rounded-xl bg-primary/20 flex items-center justify-center group-hover:scale-110 transition-transform">
+                      <UserCheck className="w-7 h-7 text-primary" />
+                    </div>
+                    <div>
+                      <h3 className="text-lg font-display font-bold text-foreground group-hover:text-primary transition-colors">
+                        Painel de Leads
+                      </h3>
+                      <p className="text-sm text-muted-foreground">
+                        Acompanhe leads do formulário, chatbot e propostas técnicas
+                      </p>
+                    </div>
+                  </div>
+                  <Button variant="default" className="hidden sm:flex">
+                    Acessar Painel
+                    <ArrowRight className="w-4 h-4 ml-2" />
+                  </Button>
+                </CardContent>
+              </Card>
+            </Link>
           )}
 
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
