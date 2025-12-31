@@ -43,9 +43,9 @@ const AboutSection = () => {
             <span className="text-primary"> Juntos</span>
           </h2>
           <p className="text-lg text-muted-foreground leading-relaxed">
-            A Rota 399 é uma iniciativa colaborativa que percorre todos os municípios 
-            paranaenses para coletar propostas técnicas e sugestões populares, 
-            formando a base do novo Plano de Governo do Estado.
+            A Rota 399 é uma iniciativa popular que percorre todos os municípios 
+            paranaenses para coletar propostas técnicas e sugestões da população, 
+            construindo colaborativamente um Plano de Governo para o Paraná.
           </p>
         </motion.div>
 

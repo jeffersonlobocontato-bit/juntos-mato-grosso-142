@@ -5,6 +5,7 @@ import MapSection from "@/components/landing/MapSection";
 import StatsSection from "@/components/landing/StatsSection";
 import SuggestionForm from "@/components/landing/SuggestionForm";
 import Footer from "@/components/landing/Footer";
+import ChatBot from "@/components/landing/ChatBot";
 
 const Index = () => {
   return (
@@ -18,6 +19,7 @@ const Index = () => {
         <SuggestionForm />
       </main>
       <Footer />
+      <ChatBot />
     </div>
   );
 };

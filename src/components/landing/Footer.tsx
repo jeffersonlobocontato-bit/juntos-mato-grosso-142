@@ -14,12 +14,12 @@ const Footer = () => {
               </div>
               <div>
                 <h3 className="font-display font-bold text-2xl text-background">Rota 399</h3>
-                <p className="text-sm text-background/60">Governo do Estado do Paraná</p>
+                <p className="text-sm text-background/60">Iniciativa Popular</p>
               </div>
             </div>
             <p className="text-background/70 max-w-md leading-relaxed mb-6">
-              Construindo o futuro do Paraná de forma colaborativa, ouvindo todos os 
-              399 municípios e seus cidadãos.
+              Uma iniciativa popular para construir colaborativamente um Plano de Governo 
+              para o Paraná, ouvindo todos os 399 municípios.
             </p>
             <div className="flex gap-4">
               <a
@@ -64,15 +64,15 @@ const Footer = () => {
             <ul className="space-y-3">
               <li className="flex items-center gap-3 text-background/70">
                 <Mail className="w-5 h-5 flex-shrink-0" />
-                <span>contato@rota399.pr.gov.br</span>
+                <span>contato@rota399.org.br</span>
               </li>
               <li className="flex items-center gap-3 text-background/70">
                 <Phone className="w-5 h-5 flex-shrink-0" />
-                <span>0800 399 0399</span>
+                <span>(41) 99999-0399</span>
               </li>
               <li className="flex items-start gap-3 text-background/70">
                 <MapPin className="w-5 h-5 flex-shrink-0 mt-0.5" />
-                <span>Palácio Iguaçu, Centro Cívico<br />Curitiba - PR</span>
+                <span>Curitiba - PR</span>
               </li>
             </ul>
           </div>
@@ -81,7 +81,7 @@ const Footer = () => {
         {/* Bottom */}
         <div className="pt-8 border-t border-background/10 flex flex-col md:flex-row justify-between items-center gap-4">
           <p className="text-sm text-background/50">
-            © 2024 Rota 399 - Governo do Estado do Paraná. Todos os direitos reservados.
+            © 2024 Rota 399 - Iniciativa Popular. Todos os direitos reservados.
           </p>
           <div className="flex gap-6 text-sm">
             <a href="#" className="text-background/50 hover:text-background/70 transition-colors">
