@@ -106,6 +106,7 @@ const AdminPropostas = () => {
     titulo: '',
     descricao: '',
     eixo_id: '',
+    municipio_id: '',
     metas: '',
     indicadores: '',
     status: 'rascunho' as ProposalStatus,
@@ -177,6 +178,7 @@ const AdminPropostas = () => {
           titulo: formData.titulo,
           descricao: formData.descricao,
           eixo_id: formData.eixo_id,
+          municipio_id: formData.municipio_id || null,
           metas: formData.metas || null,
           indicadores: formData.indicadores || null,
           status: formData.status,
@@ -199,6 +201,7 @@ const AdminPropostas = () => {
           titulo: formData.titulo,
           descricao: formData.descricao,
           eixo_id: formData.eixo_id,
+          municipio_id: formData.municipio_id || null,
           metas: formData.metas || null,
           indicadores: formData.indicadores || null,
           status: formData.status,
@@ -225,6 +228,7 @@ const AdminPropostas = () => {
       titulo: proposal.titulo,
       descricao: proposal.descricao,
       eixo_id: proposal.eixo_id,
+      municipio_id: proposal.municipio_id || '',
       metas: proposal.metas || '',
       indicadores: proposal.indicadores || '',
       status: proposal.status,
@@ -255,6 +259,7 @@ const AdminPropostas = () => {
       titulo: '',
       descricao: '',
       eixo_id: '',
+      municipio_id: '',
       metas: '',
       indicadores: '',
       status: 'rascunho',
@@ -362,6 +367,27 @@ const AdminPropostas = () => {
                             {eixo.nome}
                           </SelectItem>
                         ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  
+                  <div className="space-y-2">
+                    <Label htmlFor="municipio">Município</Label>
+                    <Select
+                      value={formData.municipio_id}
+                      onValueChange={(value) => setFormData({ ...formData, municipio_id: value })}
+                    >
+                      <SelectTrigger>
+                        <SelectValue placeholder="Selecione o município" />
+                      </SelectTrigger>
+                      <SelectContent className="max-h-[200px]">
+                        {municipios
+                          .sort((a, b) => a.nome.localeCompare(b.nome))
+                          .map(m => (
+                            <SelectItem key={m.id} value={m.id}>
+                              {m.nome}
+                            </SelectItem>
+                          ))}
                       </SelectContent>
                     </Select>
                   </div>
