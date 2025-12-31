@@ -60,8 +60,8 @@ const HeroSection = () => {
           transition={{ duration: 0.8, delay: 0.6 }}
           className="text-lg md:text-xl text-primary-foreground/80 max-w-2xl mx-auto mb-10"
         >
-          Ajude a construir um novo Paraná com sua sugestão. 
-          Participe da elaboração do Plano de Governo do nosso Estado.
+          Uma iniciativa popular para construir, juntos, um Plano de Governo 
+          para o Paraná. Sua voz transforma o futuro do nosso Estado.
         </motion.p>
 
         <motion.div
