@@ -78,6 +78,11 @@ const Header = () => {
                   Dashboard
                 </Button>
               </Link>
+              <Link to="/auth">
+                <Button variant={isScrolled ? "ghost" : "glassDark"} size="sm">
+                  Entrar
+                </Button>
+              </Link>
               <Button
                 onClick={() => scrollToSection("sugestao")}
                 variant={isScrolled ? "hero" : "hero"}
@@ -130,6 +135,11 @@ const Header = () => {
               <Link to="/dashboard" onClick={() => setIsMobileMenuOpen(false)}>
                 <Button variant="outline" size="lg">
                   Dashboard
+                </Button>
+              </Link>
+              <Link to="/auth" onClick={() => setIsMobileMenuOpen(false)}>
+                <Button variant="ghost" size="lg">
+                  Entrar
                 </Button>
               </Link>
               <Button
