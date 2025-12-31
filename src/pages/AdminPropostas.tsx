@@ -43,6 +43,7 @@ import {
   PieChart as PieChartIcon
 } from 'lucide-react';
 import AdminPieChart from '@/components/admin/AdminPieChart';
+import ParanaMap from '@/components/admin/ParanaMap';
 
 type ProposalStatus = 'rascunho' | 'validada' | 'consolidada' | 'aprovada';
 
@@ -65,6 +66,13 @@ interface Eixo {
   nome: string;
 }
 
+interface Municipio {
+  id: string;
+  nome: string;
+  latitude: number | null;
+  longitude: number | null;
+}
+
 const statusColors: Record<ProposalStatus, string> = {
   rascunho: 'bg-muted text-muted-foreground',
   validada: 'bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200',
@@ -85,6 +93,7 @@ const AdminPropostas = () => {
   
   const [proposals, setProposals] = useState<Proposal[]>([]);
   const [eixos, setEixos] = useState<Eixo[]>([]);
+  const [municipios, setMunicipios] = useState<Municipio[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
   const [filterStatus, setFilterStatus] = useState<string>('all');
@@ -113,6 +122,7 @@ const AdminPropostas = () => {
     if (user) {
       fetchProposals();
       fetchEixos();
+      fetchMunicipios();
     }
   }, [user]);
 
@@ -139,6 +149,16 @@ const AdminPropostas = () => {
     
     if (!error && data) {
       setEixos(data);
+    }
+  };
+
+  const fetchMunicipios = async () => {
+    const { data, error } = await supabase
+      .from('municipios')
+      .select('id, nome, latitude, longitude');
+    
+    if (!error && data) {
+      setMunicipios(data);
     }
   };
 
@@ -253,6 +273,28 @@ const AdminPropostas = () => {
   const getEixoNome = (eixoId: string) => {
     return eixos.find(e => e.id === eixoId)?.nome || 'N/A';
   };
+
+  const getMunicipio = (municipioId: string | null) => {
+    return municipios.find(m => m.id === municipioId);
+  };
+
+  // Preparar dados do mapa
+  const mapMarkers = filteredProposals
+    .map(p => {
+      const municipio = getMunicipio(p.municipio_id);
+      if (!municipio?.latitude || !municipio?.longitude) return null;
+      return {
+        id: p.id,
+        latitude: municipio.latitude,
+        longitude: municipio.longitude,
+        title: p.titulo,
+        description: p.descricao,
+        status: p.status,
+        eixo: getEixoNome(p.eixo_id),
+        municipio: municipio.nome,
+      };
+    })
+    .filter((m): m is NonNullable<typeof m> => m !== null);
 
   if (authLoading || isLoading) {
     return (
@@ -459,6 +501,15 @@ const AdminPropostas = () => {
               </div>
             </CardContent>
           </Card>
+
+          {/* Mapa do Paraná */}
+          <div className="mb-6">
+            <ParanaMap
+              markers={mapMarkers}
+              title="Mapa de Propostas por Município"
+              colorBy="status"
+            />
+          </div>
 
           {/* Charts */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">

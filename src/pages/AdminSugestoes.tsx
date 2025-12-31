@@ -41,6 +41,7 @@ import {
   PieChart as PieChartIcon
 } from 'lucide-react';
 import AdminPieChart from '@/components/admin/AdminPieChart';
+import ParanaMap from '@/components/admin/ParanaMap';
 
 interface Sugestao {
   id: string;
@@ -52,6 +53,13 @@ interface Sugestao {
   descricao: string;
   publico: boolean;
   created_at: string;
+}
+
+interface Municipio {
+  id: string;
+  nome: string;
+  latitude: number | null;
+  longitude: number | null;
 }
 
 const eixosList = [
@@ -70,6 +78,7 @@ const AdminSugestoes = () => {
   const navigate = useNavigate();
   
   const [sugestoes, setSugestoes] = useState<Sugestao[]>([]);
+  const [municipios, setMunicipios] = useState<Municipio[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
   const [filterEixo, setFilterEixo] = useState<string>('all');
@@ -86,6 +95,7 @@ const AdminSugestoes = () => {
   useEffect(() => {
     if (user) {
       fetchSugestoes();
+      fetchMunicipios();
     }
   }, [user]);
 
@@ -103,6 +113,16 @@ const AdminSugestoes = () => {
       setSugestoes(data || []);
     }
     setIsLoading(false);
+  };
+
+  const fetchMunicipios = async () => {
+    const { data, error } = await supabase
+      .from('municipios')
+      .select('id, nome, latitude, longitude');
+    
+    if (!error && data) {
+      setMunicipios(data);
+    }
   };
 
   const handleDelete = async (id: string) => {
@@ -158,6 +178,25 @@ const AdminSugestoes = () => {
 
   const countByEixo = (eixo: string) => sugestoes.filter(s => s.eixo === eixo).length;
 
+  // Preparar dados do mapa - match nome do município
+  const mapMarkers = filteredSugestoes
+    .map(s => {
+      const municipio = municipios.find(m => 
+        m.nome.toLowerCase() === s.municipio.toLowerCase()
+      );
+      if (!municipio?.latitude || !municipio?.longitude) return null;
+      return {
+        id: s.id,
+        latitude: municipio.latitude,
+        longitude: municipio.longitude,
+        title: s.descricao.substring(0, 50) + (s.descricao.length > 50 ? '...' : ''),
+        description: s.descricao,
+        eixo: s.eixo,
+        municipio: s.municipio,
+      };
+    })
+    .filter((m): m is NonNullable<typeof m> => m !== null);
+
   if (authLoading || isLoading) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-background">
@@ -197,6 +236,15 @@ const AdminSugestoes = () => {
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.5 }}
         >
+          {/* Mapa do Paraná */}
+          <div className="mb-6">
+            <ParanaMap
+              markers={mapMarkers}
+              title="Mapa de Sugestões por Município"
+              colorBy="eixo"
+            />
+          </div>
+
           {/* Charts */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
             <AdminPieChart
