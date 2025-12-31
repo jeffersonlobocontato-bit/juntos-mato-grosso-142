@@ -1,0 +1,188 @@
+import { useEffect } from 'react';
+import { useNavigate, Link } from 'react-router-dom';
+import { motion } from 'framer-motion';
+import { useAuth } from '@/hooks/useAuth';
+import { Button } from '@/components/ui/button';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { 
+  LogOut, 
+  Home, 
+  FileText, 
+  Users, 
+  MapPin, 
+  Target, 
+  BarChart3,
+  Settings,
+  Shield
+} from 'lucide-react';
+
+const Admin = () => {
+  const { user, roles, isLoading, signOut, isAdmin } = useAuth();
+  const navigate = useNavigate();
+
+  useEffect(() => {
+    if (!isLoading && !user) {
+      navigate('/auth');
+    }
+  }, [user, isLoading, navigate]);
+
+  const handleSignOut = async () => {
+    await signOut();
+    navigate('/');
+  };
+
+  if (isLoading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-background">
+        <div className="animate-spin text-4xl">⏳</div>
+      </div>
+    );
+  }
+
+  if (!user) {
+    return null;
+  }
+
+  const menuItems = [
+    { 
+      icon: BarChart3, 
+      title: 'Dashboard', 
+      description: 'Visualize métricas e indicadores',
+      href: '/dashboard',
+      color: 'primary'
+    },
+    { 
+      icon: FileText, 
+      title: 'Propostas Técnicas', 
+      description: 'Gerenciar propostas dos especialistas',
+      href: '/admin/propostas',
+      color: 'secondary',
+      roles: ['admin', 'lider_tematico', 'curador_municipal', 'especialista']
+    },
+    { 
+      icon: Users, 
+      title: 'Sugestões Populares', 
+      description: 'Visualizar sugestões da população',
+      href: '/admin/sugestoes',
+      color: 'accent',
+      roles: ['admin', 'lider_tematico', 'curador_municipal']
+    },
+    { 
+      icon: Target, 
+      title: 'Eixos Temáticos', 
+      description: 'Gerenciar os 8 eixos temáticos',
+      href: '/admin/eixos',
+      color: 'primary',
+      roles: ['admin']
+    },
+    { 
+      icon: MapPin, 
+      title: 'Municípios', 
+      description: 'Gerenciar os 399 municípios',
+      href: '/admin/municipios',
+      color: 'secondary',
+      roles: ['admin']
+    },
+    { 
+      icon: Shield, 
+      title: 'Usuários', 
+      description: 'Gerenciar usuários e permissões',
+      href: '/admin/usuarios',
+      color: 'accent',
+      roles: ['admin']
+    },
+  ];
+
+  const filteredMenuItems = menuItems.filter(item => {
+    if (!item.roles) return true;
+    return item.roles.some(role => roles.includes(role as any) || isAdmin);
+  });
+
+  return (
+    <div className="min-h-screen bg-muted/20">
+      {/* Header */}
+      <header className="sticky top-0 z-50 bg-background/95 backdrop-blur-md border-b border-border">
+        <div className="container mx-auto px-4 py-4">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-4">
+              <Link to="/" className="flex items-center gap-1">
+                <span className="text-2xl font-display font-black text-primary">Rota</span>
+                <span className="text-2xl font-display font-black text-accent">399</span>
+              </Link>
+              <span className="text-muted-foreground">|</span>
+              <span className="text-sm font-medium text-muted-foreground">Painel de Gestão</span>
+            </div>
+            
+            <div className="flex items-center gap-4">
+              <div className="text-right hidden sm:block">
+                <p className="text-sm font-medium">{user.email}</p>
+                <p className="text-xs text-muted-foreground">
+                  {roles.length > 0 ? roles.join(', ') : 'Sem permissões atribuídas'}
+                </p>
+              </div>
+              <Button variant="outline" size="sm" onClick={handleSignOut}>
+                <LogOut className="w-4 h-4 mr-2" />
+                Sair
+              </Button>
+            </div>
+          </div>
+        </div>
+      </header>
+
+      {/* Main Content */}
+      <main className="container mx-auto px-4 py-8">
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.5 }}
+        >
+          <div className="mb-8">
+            <h1 className="text-3xl font-display font-bold mb-2">
+              Bem-vindo ao Painel
+            </h1>
+            <p className="text-muted-foreground">
+              Gerencie propostas, sugestões e acompanhe o progresso da Rota 399.
+            </p>
+          </div>
+
+          {roles.length === 0 && !isAdmin && (
+            <Card className="mb-8 border-amber-500/50 bg-amber-500/10">
+              <CardContent className="py-4">
+                <p className="text-amber-600 dark:text-amber-400">
+                  ⚠️ Sua conta ainda não possui permissões atribuídas. Entre em contato com um administrador para solicitar acesso.
+                </p>
+              </CardContent>
+            </Card>
+          )}
+
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            {filteredMenuItems.map((item, index) => (
+              <motion.div
+                key={item.title}
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.5, delay: index * 0.1 }}
+              >
+                <Link to={item.href}>
+                  <Card className="h-full hover:shadow-lg transition-all duration-300 hover:-translate-y-1 cursor-pointer group">
+                    <CardHeader>
+                      <div className={`w-12 h-12 rounded-lg bg-${item.color}/10 flex items-center justify-center mb-4 group-hover:scale-110 transition-transform`}>
+                        <item.icon className={`w-6 h-6 text-${item.color}`} />
+                      </div>
+                      <CardTitle className="group-hover:text-primary transition-colors">
+                        {item.title}
+                      </CardTitle>
+                      <CardDescription>{item.description}</CardDescription>
+                    </CardHeader>
+                  </Card>
+                </Link>
+              </motion.div>
+            ))}
+          </div>
+        </motion.div>
+      </main>
+    </div>
+  );
+};
+
+export default Admin;
