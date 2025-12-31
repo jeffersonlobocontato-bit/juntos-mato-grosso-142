@@ -87,11 +87,32 @@ const ParanaMap: React.FC<ParanaMapProps> = ({
       'top-right'
     );
 
+    // Forçar resize quando o mapa carregar para garantir renderização
     map.current.on('load', () => {
       setMapLoaded(true);
+      // Múltiplos resizes para garantir que o mapa renderize
+      map.current?.resize();
+      setTimeout(() => {
+        map.current?.resize();
+      }, 100);
+      setTimeout(() => {
+        map.current?.resize();
+      }, 300);
     });
 
+    // Resize também quando o estilo carregar
+    map.current.on('style.load', () => {
+      map.current?.resize();
+    });
+
+    // ResizeObserver para detectar mudanças no container
+    const resizeObserver = new ResizeObserver(() => {
+      map.current?.resize();
+    });
+    resizeObserver.observe(mapContainer.current);
+
     return () => {
+      resizeObserver.disconnect();
       markersRef.current.forEach((marker) => marker.remove());
       markersRef.current = [];
       map.current?.remove();
