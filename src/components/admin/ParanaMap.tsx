@@ -20,7 +20,6 @@ interface MapMarker {
 interface ParanaMapProps {
   markers: MapMarker[];
   title: string;
-  colorBy?: 'status' | 'eixo';
   statusColors?: Record<string, string>;
   eixoColors?: Record<string, string>;
 }
@@ -45,10 +44,14 @@ const defaultEixoColors: Record<string, string> = {
 
 const MAPBOX_TOKEN = import.meta.env.VITE_MAPBOX_PUBLIC_TOKEN || '';
 
+// Bounds do Paraná para filtrar marcadores fora do estado
+const isWithinParana = (lat: number, lng: number): boolean => {
+  return lat >= -26.8 && lat <= -22.4 && lng >= -54.8 && lng <= -48.0;
+};
+
 const ParanaMap: React.FC<ParanaMapProps> = ({
   markers,
   title,
-  colorBy = 'status',
   statusColors = defaultStatusColors,
   eixoColors = defaultEixoColors,
 }) => {
@@ -58,14 +61,45 @@ const ParanaMap: React.FC<ParanaMapProps> = ({
   const [isVisible, setIsVisible] = useState(true);
   const [mapLoaded, setMapLoaded] = useState(false);
 
-  const getMarkerColor = (marker: MapMarker): string => {
-    if (colorBy === 'status' && marker.status) {
-      return statusColors[marker.status] || '#6b7280';
+  const getStatusColor = (status?: string): string => {
+    return status ? statusColors[status] || '#6b7280' : '#6b7280';
+  };
+
+  const getEixoColor = (eixo?: string): string => {
+    return eixo ? eixoColors[eixo] || '#6b7280' : '#6b7280';
+  };
+
+  // Cria marcador bicolor com status (metade superior) e eixo (metade inferior)
+  const createBicolorMarker = (
+    statusColor: string,
+    eixoColor: string,
+    count: number
+  ): HTMLDivElement => {
+    const el = document.createElement('div');
+    const size = Math.min(44, 28 + count * 2);
+    
+    el.style.cssText = `
+      width: ${size}px;
+      height: ${size}px;
+      background: linear-gradient(to bottom, ${statusColor} 50%, ${eixoColor} 50%);
+      border-radius: 50%;
+      border: 3px solid white;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.35);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: white;
+      font-weight: bold;
+      font-size: 12px;
+      cursor: pointer;
+      text-shadow: 0 1px 2px rgba(0,0,0,0.5);
+    `;
+    
+    if (count > 1) {
+      el.textContent = String(count);
     }
-    if (colorBy === 'eixo' && marker.eixo) {
-      return eixoColors[marker.eixo] || '#6b7280';
-    }
-    return '#3b82f6';
+    
+    return el;
   };
 
   useEffect(() => {
@@ -76,7 +110,7 @@ const ParanaMap: React.FC<ParanaMapProps> = ({
     map.current = new mapboxgl.Map({
       container: mapContainer.current,
       style: 'mapbox://styles/mapbox/light-v11',
-      center: [-51.5, -24.5], // Centro do Paraná
+      center: [-51.5, -24.5],
       zoom: 6,
     });
 
@@ -87,25 +121,17 @@ const ParanaMap: React.FC<ParanaMapProps> = ({
       'top-right'
     );
 
-    // Forçar resize quando o mapa carregar para garantir renderização
     map.current.on('load', () => {
       setMapLoaded(true);
-      // Múltiplos resizes para garantir que o mapa renderize
       map.current?.resize();
-      setTimeout(() => {
-        map.current?.resize();
-      }, 100);
-      setTimeout(() => {
-        map.current?.resize();
-      }, 300);
+      setTimeout(() => map.current?.resize(), 100);
+      setTimeout(() => map.current?.resize(), 300);
     });
 
-    // Resize também quando o estilo carregar
     map.current.on('style.load', () => {
       map.current?.resize();
     });
 
-    // ResizeObserver para detectar mudanças no container
     const resizeObserver = new ResizeObserver(() => {
       map.current?.resize();
     });
@@ -123,12 +149,16 @@ const ParanaMap: React.FC<ParanaMapProps> = ({
   useEffect(() => {
     if (!map.current || !mapLoaded || !isVisible) return;
 
-    // Limpar marcadores antigos
     markersRef.current.forEach((marker) => marker.remove());
     markersRef.current = [];
 
-    // Agrupar por município para clustering
-    const groupedMarkers = markers.reduce((acc, marker) => {
+    // Filtrar marcadores fora do Paraná
+    const validMarkers = markers.filter(
+      (m) => m.latitude && m.longitude && isWithinParana(m.latitude, m.longitude)
+    );
+
+    // Agrupar por município
+    const groupedMarkers = validMarkers.reduce((acc, marker) => {
       const key = `${marker.latitude}-${marker.longitude}`;
       if (!acc[key]) {
         acc[key] = { ...marker, count: 1, items: [marker] };
@@ -139,45 +169,26 @@ const ParanaMap: React.FC<ParanaMapProps> = ({
       return acc;
     }, {} as Record<string, MapMarker & { items: MapMarker[] }>);
 
-    // Adicionar novos marcadores
     Object.values(groupedMarkers).forEach((group) => {
       if (!group.latitude || !group.longitude) return;
 
-      const el = document.createElement('div');
-      el.className = 'custom-marker';
-      el.style.cssText = `
-        width: ${Math.min(40, 24 + (group.count || 1) * 2)}px;
-        height: ${Math.min(40, 24 + (group.count || 1) * 2)}px;
-        background-color: ${getMarkerColor(group)};
-        border-radius: 50%;
-        border: 3px solid white;
-        box-shadow: 0 2px 6px rgba(0,0,0,0.3);
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        color: white;
-        font-weight: bold;
-        font-size: 12px;
-        cursor: pointer;
-        transition: transform 0.2s;
-      `;
-      el.textContent = (group.count || 1) > 1 ? String(group.count) : '';
-      el.addEventListener('mouseenter', () => {
-        el.style.transform = 'scale(1.2)';
-      });
-      el.addEventListener('mouseleave', () => {
-        el.style.transform = 'scale(1)';
-      });
+      // Usar primeiro item do grupo para cores
+      const statusColor = getStatusColor(group.status);
+      const eixoColor = getEixoColor(group.eixo);
+
+      const el = createBicolorMarker(statusColor, eixoColor, group.count || 1);
 
       const popupContent = `
-        <div style="max-width: 250px; padding: 8px;">
-          <h3 style="font-weight: bold; margin-bottom: 4px; font-size: 14px;">${group.municipio}</h3>
-          <p style="color: #666; font-size: 12px; margin-bottom: 8px;">${group.count || 1} item(ns)</p>
+        <div style="max-width: 280px; padding: 10px;">
+          <h3 style="font-weight: bold; margin-bottom: 6px; font-size: 14px;">${group.municipio}</h3>
+          <p style="color: #666; font-size: 12px; margin-bottom: 10px;">${group.count || 1} item(ns)</p>
           ${group.items.slice(0, 3).map(item => `
-            <div style="background: #f5f5f5; padding: 6px; border-radius: 4px; margin-bottom: 4px; font-size: 11px;">
+            <div style="background: #f5f5f5; padding: 8px; border-radius: 6px; margin-bottom: 6px; font-size: 11px; border-left: 4px solid ${getStatusColor(item.status)};">
               <strong>${item.title}</strong>
-              ${item.status ? `<span style="color: ${getMarkerColor(item)}; margin-left: 4px;">(${item.status})</span>` : ''}
-              ${item.eixo ? `<br/><span style="color: #666;">${item.eixo}</span>` : ''}
+              <div style="display: flex; gap: 8px; margin-top: 4px;">
+                <span style="background: ${getStatusColor(item.status)}; color: white; padding: 2px 6px; border-radius: 3px; font-size: 10px;">${item.status || 'N/A'}</span>
+                <span style="background: ${getEixoColor(item.eixo)}; color: white; padding: 2px 6px; border-radius: 3px; font-size: 10px;">${item.eixo || 'N/A'}</span>
+              </div>
             </div>
           `).join('')}
           ${(group.count || 1) > 3 ? `<p style="color: #666; font-size: 11px; font-style: italic;">+ ${(group.count || 1) - 3} mais...</p>` : ''}
@@ -194,18 +205,14 @@ const ParanaMap: React.FC<ParanaMapProps> = ({
       markersRef.current.push(marker);
     });
 
-    // Ajustar bounds se houver marcadores
-    if (markers.length > 0) {
-      const validMarkers = markers.filter(m => m.latitude && m.longitude);
-      if (validMarkers.length > 0) {
-        const bounds = new mapboxgl.LngLatBounds();
-        validMarkers.forEach((marker) => {
-          bounds.extend([marker.longitude, marker.latitude]);
-        });
-        map.current.fitBounds(bounds, { padding: 50, maxZoom: 10 });
-      }
+    if (validMarkers.length > 0) {
+      const bounds = new mapboxgl.LngLatBounds();
+      validMarkers.forEach((marker) => {
+        bounds.extend([marker.longitude, marker.latitude]);
+      });
+      map.current.fitBounds(bounds, { padding: 50, maxZoom: 10 });
     }
-  }, [markers, mapLoaded, isVisible, colorBy]);
+  }, [markers, mapLoaded, isVisible]);
 
   if (!MAPBOX_TOKEN) {
     return (
@@ -260,31 +267,46 @@ const ParanaMap: React.FC<ParanaMapProps> = ({
           </div>
         )}
 
-        {/* Legenda */}
+        {/* Legenda Bicolor */}
         {isVisible && (
-          <div className="mt-4 flex flex-wrap gap-3">
-            {colorBy === 'status' &&
-              Object.entries(statusColors).map(([status, color]) => (
-                <div key={status} className="flex items-center gap-1.5">
-                  <div
-                    className="w-3 h-3 rounded-full"
-                    style={{ backgroundColor: color }}
-                  />
-                  <span className="text-xs text-muted-foreground capitalize">
-                    {status}
-                  </span>
-                </div>
-              ))}
-            {colorBy === 'eixo' &&
-              Object.entries(eixoColors).map(([eixo, color]) => (
-                <div key={eixo} className="flex items-center gap-1.5">
-                  <div
-                    className="w-3 h-3 rounded-full"
-                    style={{ backgroundColor: color }}
-                  />
-                  <span className="text-xs text-muted-foreground">{eixo}</span>
-                </div>
-              ))}
+          <div className="mt-4 space-y-3">
+            {/* Legenda de Status */}
+            <div>
+              <p className="text-xs font-medium text-muted-foreground mb-2">
+                🔼 Metade superior: Status
+              </p>
+              <div className="flex flex-wrap gap-3">
+                {Object.entries(statusColors).map(([status, color]) => (
+                  <div key={status} className="flex items-center gap-1.5">
+                    <div
+                      className="w-3 h-3 rounded-full"
+                      style={{ backgroundColor: color }}
+                    />
+                    <span className="text-xs text-muted-foreground capitalize">
+                      {status}
+                    </span>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            {/* Legenda de Eixo */}
+            <div>
+              <p className="text-xs font-medium text-muted-foreground mb-2">
+                🔽 Metade inferior: Eixo Temático
+              </p>
+              <div className="flex flex-wrap gap-3">
+                {Object.entries(eixoColors).map(([eixo, color]) => (
+                  <div key={eixo} className="flex items-center gap-1.5">
+                    <div
+                      className="w-3 h-3 rounded-full"
+                      style={{ backgroundColor: color }}
+                    />
+                    <span className="text-xs text-muted-foreground">{eixo}</span>
+                  </div>
+                ))}
+              </div>
+            </div>
           </div>
         )}
       </CardContent>
