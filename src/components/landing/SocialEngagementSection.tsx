@@ -51,9 +51,9 @@ const SocialEngagementSection = () => {
           </motion.div>
 
           <h2 className="font-display text-3xl md:text-4xl lg:text-5xl font-bold text-foreground mb-6">
-            Compartilhe a Rota 399
+            Compartilhe a Rota 399,
             <br />
-            <span className="text-accent">com quem você ama</span>
+            <span className="text-accent">com quem ama o Paraná</span>
           </h2>
 
           <p className="text-lg text-muted-foreground mb-8">
