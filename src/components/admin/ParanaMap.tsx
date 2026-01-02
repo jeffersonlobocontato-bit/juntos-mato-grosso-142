@@ -1,4 +1,4 @@
-import React, { useEffect, useRef, useState } from 'react';
+import React, { useEffect, useRef, useState, useCallback } from 'react';
 import mapboxgl from 'mapbox-gl';
 import 'mapbox-gl/dist/mapbox-gl.css';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -59,10 +59,21 @@ const ParanaMap: React.FC<ParanaMapProps> = ({
   const mapContainer = useRef<HTMLDivElement>(null);
   const fullscreenMapContainer = useRef<HTMLDivElement>(null);
   const map = useRef<mapboxgl.Map | null>(null);
+  const fullscreenMap = useRef<mapboxgl.Map | null>(null);
   const markersRef = useRef<mapboxgl.Marker[]>([]);
+  const fullscreenMarkersRef = useRef<mapboxgl.Marker[]>([]);
   const [isVisible, setIsVisible] = useState(true);
   const [isFullscreen, setIsFullscreen] = useState(false);
   const [mapLoaded, setMapLoaded] = useState(false);
+  const [fullscreenReady, setFullscreenReady] = useState(false);
+
+  // Callback ref para detectar quando o container fullscreen está montado
+  const fullscreenMapRef = useCallback((node: HTMLDivElement | null) => {
+    fullscreenMapContainer.current = node;
+    if (node && node.offsetWidth > 0) {
+      setFullscreenReady(true);
+    }
+  }, []);
 
   const getStatusColor = (status?: string): string => {
     return status ? statusColors[status] || '#6b7280' : '#6b7280';
@@ -233,29 +244,49 @@ const ParanaMap: React.FC<ParanaMapProps> = ({
 
   // Mapa fullscreen
   useEffect(() => {
-    if (!fullscreenMapContainer.current || !isFullscreen || !MAPBOX_TOKEN) return;
+    if (!isFullscreen || !fullscreenReady || !MAPBOX_TOKEN) return;
 
-    const fullscreenMap = initMap(fullscreenMapContainer.current);
-    if (!fullscreenMap) return;
+    const container = fullscreenMapContainer.current;
+    if (!container || container.offsetWidth === 0) return;
 
-    fullscreenMap.on('load', () => {
-      fullscreenMap.resize();
-      setTimeout(() => {
-        fullscreenMap.resize();
-        addMarkersToMap(fullscreenMap);
-      }, 100);
-    });
+    // Delay para garantir que o Dialog está completamente renderizado
+    const timer = setTimeout(() => {
+      if (!container || container.offsetWidth === 0) return;
 
-    const resizeObserver = new ResizeObserver(() => {
-      fullscreenMap.resize();
-    });
-    resizeObserver.observe(fullscreenMapContainer.current);
+      fullscreenMap.current = initMap(container);
+      if (!fullscreenMap.current) return;
+
+      fullscreenMap.current.on('load', () => {
+        fullscreenMap.current?.resize();
+        setTimeout(() => {
+          fullscreenMap.current?.resize();
+          if (fullscreenMap.current) {
+            // Limpar marcadores anteriores do fullscreen
+            fullscreenMarkersRef.current.forEach((marker) => marker.remove());
+            fullscreenMarkersRef.current = [];
+            addMarkersToMap(fullscreenMap.current);
+          }
+        }, 100);
+      });
+
+      const resizeObserver = new ResizeObserver(() => {
+        fullscreenMap.current?.resize();
+      });
+      resizeObserver.observe(container);
+
+      return () => {
+        resizeObserver.disconnect();
+      };
+    }, 150);
 
     return () => {
-      resizeObserver.disconnect();
-      fullscreenMap.remove();
+      clearTimeout(timer);
+      fullscreenMarkersRef.current.forEach((marker) => marker.remove());
+      fullscreenMarkersRef.current = [];
+      fullscreenMap.current?.remove();
+      fullscreenMap.current = null;
     };
-  }, [isFullscreen, markers]);
+  }, [isFullscreen, fullscreenReady, markers]);
 
   if (!MAPBOX_TOKEN) {
     return (
@@ -371,7 +402,15 @@ const ParanaMap: React.FC<ParanaMapProps> = ({
       </Card>
 
       {/* Modal Fullscreen */}
-      <Dialog open={isFullscreen} onOpenChange={setIsFullscreen}>
+      <Dialog 
+        open={isFullscreen} 
+        onOpenChange={(open) => {
+          setIsFullscreen(open);
+          if (!open) {
+            setFullscreenReady(false);
+          }
+        }}
+      >
         <DialogContent className="max-w-[95vw] w-[95vw] h-[90vh] max-h-[90vh] p-0">
           <DialogHeader className="p-4 pb-0 flex flex-row items-center justify-between">
             <DialogTitle className="flex items-center gap-2">
@@ -393,7 +432,7 @@ const ParanaMap: React.FC<ParanaMapProps> = ({
           </DialogHeader>
           <div className="flex-1 p-4 pt-2 overflow-auto">
             <div
-              ref={fullscreenMapContainer}
+              ref={fullscreenMapRef}
               className="w-full rounded-lg overflow-hidden"
               style={{ height: 'calc(90vh - 160px)' }}
             />
