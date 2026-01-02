@@ -5,3 +5,6 @@ verify_jwt = false
 
 [functions.plano-governo-ai]
 verify_jwt = false
+
+[functions.geolocate-visitor]
+verify_jwt = false
