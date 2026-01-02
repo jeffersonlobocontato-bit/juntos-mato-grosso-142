@@ -1,1 +1,7 @@
 project_id = "ckgmdsdoywkncduigdkk"
+
+[functions.chat-rota399]
+verify_jwt = false
+
+[functions.plano-governo-ai]
+verify_jwt = false
