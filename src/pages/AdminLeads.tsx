@@ -28,6 +28,7 @@ import {
   TableRow,
 } from '@/components/ui/table';
 import AdminPieChart from '@/components/admin/AdminPieChart';
+import TimelineChart from '@/components/admin/TimelineChart';
 import { 
   ArrowLeft, 
   Users, 
@@ -351,6 +352,33 @@ const AdminLeads = () => {
                 </div>
               </CardContent>
             </Card>
+          </div>
+
+          {/* Timeline Chart */}
+          <div className="mb-8">
+            <TimelineChart
+              title="Evolução de Leads"
+              series={[
+                {
+                  key: 'formulario',
+                  label: 'Formulário',
+                  color: 'hsl(var(--primary))',
+                  data: leads.filter(l => l.origem === 'formulario'),
+                },
+                {
+                  key: 'chatbot',
+                  label: 'Chatbot',
+                  color: 'hsl(var(--accent))',
+                  data: leads.filter(l => l.origem === 'chatbot'),
+                },
+                {
+                  key: 'proposta',
+                  label: 'Proposta',
+                  color: 'hsl(152, 60%, 40%)',
+                  data: leads.filter(l => l.origem === 'proposta'),
+                },
+              ]}
+            />
           </div>
 
           {/* Charts */}

@@ -41,6 +41,7 @@ import {
   Upload
 } from 'lucide-react';
 import AdminPieChart from '@/components/admin/AdminPieChart';
+import TimelineChart from '@/components/admin/TimelineChart';
 
 interface Municipio {
   id: string;
@@ -71,6 +72,7 @@ const AdminMunicipios = () => {
   
   const [municipios, setMunicipios] = useState<Municipio[]>([]);
   const [sugestaoCounts, setSugestaoCounts] = useState<Record<string, number>>({});
+  const [sugestoes, setSugestoes] = useState<{ created_at: string }[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
   const [filterRegiao, setFilterRegiao] = useState<string>('all');
@@ -114,16 +116,17 @@ const AdminMunicipios = () => {
     }
 
     // Fetch sugestao counts per municipio
-    const { data: sugestoes } = await supabase
+    const { data: sugestoesData } = await supabase
       .from('sugestoes_populares')
-      .select('municipio');
+      .select('municipio, created_at');
     
-    if (sugestoes) {
+    if (sugestoesData) {
       const counts: Record<string, number> = {};
-      sugestoes.forEach(s => {
+      sugestoesData.forEach(s => {
         counts[s.municipio] = (counts[s.municipio] || 0) + 1;
       });
       setSugestaoCounts(counts);
+      setSugestoes(sugestoesData);
     }
     
     setIsLoading(false);
@@ -385,6 +388,21 @@ const AdminMunicipios = () => {
                 <p className="text-sm text-muted-foreground">Com Sugestões</p>
               </CardContent>
             </Card>
+          </div>
+
+          {/* Timeline Chart */}
+          <div className="mb-6">
+            <TimelineChart
+              title="Evolução de Sugestões por Município"
+              series={[
+                {
+                  key: 'sugestoes',
+                  label: 'Sugestões Recebidas',
+                  color: 'hsl(210, 100%, 50%)',
+                  data: sugestoes,
+                },
+              ]}
+            />
           </div>
 
           {/* Charts */}

@@ -44,6 +44,7 @@ import {
 } from 'lucide-react';
 import AdminPieChart from '@/components/admin/AdminPieChart';
 import ParanaMap from '@/components/admin/ParanaMap';
+import TimelineChart from '@/components/admin/TimelineChart';
 
 type ProposalStatus = 'rascunho' | 'validada' | 'consolidada' | 'aprovada';
 
@@ -533,6 +534,21 @@ const AdminPropostas = () => {
             <ParanaMap
               markers={mapMarkers}
               title="Mapa de Propostas por Município"
+            />
+          </div>
+
+          {/* Timeline Chart */}
+          <div className="mb-6">
+            <TimelineChart
+              title="Evolução de Cadastros"
+              series={[
+                {
+                  key: 'propostas',
+                  label: 'Propostas Técnicas',
+                  color: 'hsl(152, 60%, 40%)',
+                  data: proposals,
+                },
+              ]}
             />
           </div>
 

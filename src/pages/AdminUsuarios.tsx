@@ -12,6 +12,7 @@ import { Badge } from '@/components/ui/badge';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useToast } from '@/hooks/use-toast';
 import AdminPieChart from '@/components/admin/AdminPieChart';
+import TimelineChart from '@/components/admin/TimelineChart';
 
 type AppRole = 'admin' | 'lider_tematico' | 'curador_municipal' | 'especialista';
 
@@ -241,12 +242,32 @@ const AdminUsuarios = () => {
           </Card>
         </motion.div>
 
+        {/* Timeline Chart */}
+        <motion.div 
+          className="mb-8"
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.1 }}
+        >
+          <TimelineChart
+            title="Evolução de Cadastros de Usuários"
+            series={[
+              {
+                key: 'usuarios',
+                label: 'Usuários Cadastrados',
+                color: 'hsl(var(--primary))',
+                data: profiles || [],
+              },
+            ]}
+          />
+        </motion.div>
+
         {/* Charts */}
         <motion.div 
           className="grid md:grid-cols-2 gap-6 mb-8"
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.1 }}
+          transition={{ delay: 0.15 }}
         >
           <AdminPieChart 
             title="Distribuição por Role" 
