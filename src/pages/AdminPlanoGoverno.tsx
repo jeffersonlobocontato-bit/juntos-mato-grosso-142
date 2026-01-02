@@ -11,6 +11,8 @@ import { Switch } from '@/components/ui/switch';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { useToast } from '@/hooks/use-toast';
+import MarkdownRenderer from '@/components/admin/MarkdownRenderer';
+import AIConfigPanel from '@/components/admin/AIConfigPanel';
 import { 
   ArrowLeft, 
   Send, 
@@ -319,6 +321,9 @@ const AdminPlanoGoverno = () => {
             </CardContent>
           </Card>
 
+          {/* AI Configuration Panel - Admin Only */}
+          <AIConfigPanel isAdmin={isAdmin} />
+
           {/* Filters */}
           <Card className="mb-6">
             <CardHeader className="pb-3">
@@ -514,14 +519,20 @@ const AdminPlanoGoverno = () => {
                               : 'bg-muted'
                           }`}
                         >
-                          <div className="whitespace-pre-wrap text-sm">
-                            {message.content || (
-                              <span className="flex items-center gap-2 text-muted-foreground">
+                          {message.role === 'assistant' ? (
+                            message.content ? (
+                              <MarkdownRenderer content={message.content} />
+                            ) : (
+                              <span className="flex items-center gap-2 text-muted-foreground text-sm">
                                 <Loader2 className="w-4 h-4 animate-spin" />
                                 Pensando...
                               </span>
-                            )}
-                          </div>
+                            )
+                          ) : (
+                            <div className="whitespace-pre-wrap text-sm">
+                              {message.content}
+                            </div>
+                          )}
                         </div>
                       </motion.div>
                     ))}

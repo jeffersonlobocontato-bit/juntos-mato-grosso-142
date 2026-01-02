@@ -56,6 +56,69 @@ export type Database = {
         }
         Relationships: []
       }
+      ai_agent_config: {
+        Row: {
+          agent_type: string
+          config: Json | null
+          created_at: string
+          id: string
+          is_active: boolean | null
+          system_prompt: string
+          updated_at: string
+        }
+        Insert: {
+          agent_type?: string
+          config?: Json | null
+          created_at?: string
+          id?: string
+          is_active?: boolean | null
+          system_prompt: string
+          updated_at?: string
+        }
+        Update: {
+          agent_type?: string
+          config?: Json | null
+          created_at?: string
+          id?: string
+          is_active?: boolean | null
+          system_prompt?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      ai_knowledge_base: {
+        Row: {
+          content: string
+          created_at: string
+          doc_type: string
+          id: string
+          is_active: boolean | null
+          priority: number | null
+          title: string
+          updated_at: string
+        }
+        Insert: {
+          content: string
+          created_at?: string
+          doc_type?: string
+          id?: string
+          is_active?: boolean | null
+          priority?: number | null
+          title: string
+          updated_at?: string
+        }
+        Update: {
+          content?: string
+          created_at?: string
+          doc_type?: string
+          id?: string
+          is_active?: boolean | null
+          priority?: number | null
+          title?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       eixos_tematicos: {
         Row: {
           created_at: string
