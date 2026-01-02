@@ -241,7 +241,6 @@ const AdminSugestoes = () => {
             <ParanaMap
               markers={mapMarkers}
               title="Mapa de Sugestões por Município"
-              colorBy="eixo"
             />
           </div>
 

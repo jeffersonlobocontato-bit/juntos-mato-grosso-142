@@ -533,7 +533,6 @@ const AdminPropostas = () => {
             <ParanaMap
               markers={mapMarkers}
               title="Mapa de Propostas por Município"
-              colorBy="status"
             />
           </div>
 
