@@ -4,9 +4,10 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Send, CheckCircle2, Sparkles } from "lucide-react";
+import { Send, CheckCircle2, Sparkles, Share2 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
+import SocialShareButtons from "./SocialShareButtons";
 
 const eixos = [
   "Educação",
@@ -118,6 +119,24 @@ const SuggestionForm = () => {
             <p className="text-lg text-muted-foreground mb-8">
               Sua ideia está no mapa do Paraná! Juntos, estamos construindo o futuro do nosso Estado.
             </p>
+
+            {/* Social Share Section */}
+            <div className="bg-muted/50 rounded-2xl p-6 mb-8">
+              <div className="flex items-center justify-center gap-2 mb-3">
+                <Share2 className="w-5 h-5 text-primary" />
+                <h4 className="font-display font-bold text-lg text-foreground">
+                  Agora convide seus amigos!
+                </h4>
+              </div>
+              <p className="text-sm text-muted-foreground mb-4">
+                Quanto mais vozes, mais forte o Paraná. Compartilhe!
+              </p>
+              <SocialShareButtons 
+                message="Acabei de contribuir com a Rota 399! Você também pode ajudar a construir o Paraná 🌲"
+                variant="default"
+              />
+            </div>
+
             <Button
               onClick={resetForm}
               variant="outline"
