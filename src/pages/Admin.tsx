@@ -119,6 +119,14 @@ const Admin = () => {
       color: 'primary',
       roles: ['admin', 'lider_tematico']
     },
+    { 
+      icon: BarChart3, 
+      title: 'Analytics LP', 
+      description: 'Métricas de tráfego e navegação',
+      href: '/admin/analytics',
+      color: 'secondary',
+      roles: ['admin', 'lider_tematico']
+    },
   ];
 
   const filteredMenuItems = menuItems.filter(item => {
