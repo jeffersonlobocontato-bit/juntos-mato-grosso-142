@@ -162,7 +162,7 @@ const FloatingShareButton = () => {
       {/* Pulse animation when closed */}
       {!isOpen && (
         <motion.div
-          className="absolute inset-0 rounded-full bg-primary"
+          className="absolute inset-0 rounded-full bg-primary pointer-events-none"
           initial={{ scale: 1, opacity: 0.5 }}
           animate={{ scale: 1.5, opacity: 0 }}
           transition={{ duration: 1.5, repeat: Infinity }}
