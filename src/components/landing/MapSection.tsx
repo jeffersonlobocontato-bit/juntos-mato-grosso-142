@@ -1,18 +1,55 @@
-import { motion } from "framer-motion";
+import { motion, AnimatePresence } from "framer-motion";
 import { MapPin, Users, FileText } from "lucide-react";
-import paranaMap from "@/assets/parana-map.png";
-
-// Sample data for demonstration
-const regions = [
-  { name: "Curitiba", proposals: 45, suggestions: 234, x: 75, y: 70 },
-  { name: "Londrina", proposals: 32, suggestions: 156, x: 50, y: 25 },
-  { name: "Maringá", proposals: 28, suggestions: 142, x: 40, y: 30 },
-  { name: "Cascavel", proposals: 24, suggestions: 98, x: 15, y: 50 },
-  { name: "Foz do Iguaçu", proposals: 18, suggestions: 87, x: 5, y: 75 },
-  { name: "Ponta Grossa", proposals: 22, suggestions: 112, x: 65, y: 55 },
-];
+import { useState, useEffect } from "react";
+import { useQuery } from "@tanstack/react-query";
+import { supabase } from "@/integrations/supabase/client";
+import paranaMap3D from "@/assets/parana-map-3d.png";
 
 const MapSection = () => {
+  const [displayedCities, setDisplayedCities] = useState<string[]>([]);
+
+  // Fetch all municipalities from database
+  const { data: municipios = [] } = useQuery({
+    queryKey: ['municipios-names'],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('municipios')
+        .select('nome')
+        .order('nome');
+      
+      if (error) throw error;
+      return data.map(m => m.nome);
+    },
+  });
+
+  // Rotate cities every 3 seconds
+  useEffect(() => {
+    if (municipios.length === 0) return;
+
+    const getRandomCities = () => {
+      const shuffled = [...municipios].sort(() => Math.random() - 0.5);
+      return shuffled.slice(0, 6);
+    };
+
+    // Initial set
+    setDisplayedCities(getRandomCities());
+
+    const interval = setInterval(() => {
+      setDisplayedCities(getRandomCities());
+    }, 3000);
+
+    return () => clearInterval(interval);
+  }, [municipios]);
+
+  // Generate random stats for visual effect
+  const getRandomStats = () => ({
+    proposals: Math.floor(Math.random() * 40) + 5,
+    suggestions: Math.floor(Math.random() * 200) + 50,
+  });
+
+  const leftCities = displayedCities.slice(0, 3);
+  const rightCities = displayedCities.slice(3, 6);
+
   return (
     <section id="mapa" className="py-24 bg-background">
       <div className="container mx-auto px-4">
@@ -24,55 +61,58 @@ const MapSection = () => {
           className="text-center max-w-3xl mx-auto mb-16"
         >
           <span className="inline-block px-4 py-1.5 rounded-full bg-secondary/10 text-secondary text-sm font-semibold mb-4">
-            Mapa Interativo
+            Presença Estadual
           </span>
           <h2 className="font-display text-3xl md:text-4xl lg:text-5xl font-bold text-foreground mb-6">
-            Propostas por
-            <span className="text-secondary"> Município</span>
+            Todos os
+            <span className="text-secondary"> 399 Municípios</span>
           </h2>
           <p className="text-lg text-muted-foreground">
-            Visualize a distribuição das propostas técnicas e sugestões populares 
-            em todo o território paranaense.
+            Construindo um plano de governo que representa cada canto do Paraná, 
+            com propostas e sugestões de todas as regiões do estado.
           </p>
         </motion.div>
 
         <div className="grid lg:grid-cols-3 gap-8 items-center">
-          {/* Stats sidebar */}
-          <motion.div
-            initial={{ opacity: 0, x: -20 }}
-            whileInView={{ opacity: 1, x: 0 }}
-            viewport={{ once: true }}
-            transition={{ duration: 0.6 }}
-            className="space-y-4"
-          >
-            {regions.slice(0, 3).map((region, index) => (
-              <div
-                key={region.name}
-                className="bg-card rounded-xl p-4 border border-border/50 shadow-[0_4px_20px_-4px_hsl(215_25%_15%_/_0.08)] hover:shadow-[0_8px_30px_-8px_hsl(215_25%_15%_/_0.12)] transition-all hover:-translate-y-0.5"
-              >
-                <div className="flex items-center gap-4">
-                  <div className="w-10 h-10 rounded-lg bg-primary/10 flex items-center justify-center">
-                    <MapPin className="w-5 h-5 text-primary" />
-                  </div>
-                  <div className="flex-1">
-                    <h4 className="font-display font-bold text-foreground">{region.name}</h4>
-                    <div className="flex gap-4 text-sm text-muted-foreground">
-                      <span className="flex items-center gap-1">
-                        <FileText className="w-3 h-3" />
-                        {region.proposals}
-                      </span>
-                      <span className="flex items-center gap-1">
-                        <Users className="w-3 h-3" />
-                        {region.suggestions}
-                      </span>
+          {/* Left sidebar - cities */}
+          <div className="space-y-4">
+            <AnimatePresence mode="popLayout">
+              {leftCities.map((city, index) => {
+                const stats = getRandomStats();
+                return (
+                  <motion.div
+                    key={`left-${city}-${index}`}
+                    initial={{ opacity: 0, x: -20, scale: 0.95 }}
+                    animate={{ opacity: 1, x: 0, scale: 1 }}
+                    exit={{ opacity: 0, x: -20, scale: 0.95 }}
+                    transition={{ duration: 0.4, delay: index * 0.1 }}
+                    className="bg-card rounded-xl p-4 border border-border/50 shadow-[0_4px_20px_-4px_hsl(215_25%_15%_/_0.08)]"
+                  >
+                    <div className="flex items-center gap-4">
+                      <div className="w-10 h-10 rounded-lg bg-primary/10 flex items-center justify-center">
+                        <MapPin className="w-5 h-5 text-primary" />
+                      </div>
+                      <div className="flex-1">
+                        <h4 className="font-display font-bold text-foreground truncate">{city}</h4>
+                        <div className="flex gap-4 text-sm text-muted-foreground">
+                          <span className="flex items-center gap-1">
+                            <FileText className="w-3 h-3" />
+                            {stats.proposals}
+                          </span>
+                          <span className="flex items-center gap-1">
+                            <Users className="w-3 h-3" />
+                            {stats.suggestions}
+                          </span>
+                        </div>
+                      </div>
                     </div>
-                  </div>
-                </div>
-              </div>
-            ))}
-          </motion.div>
+                  </motion.div>
+                );
+              })}
+            </AnimatePresence>
+          </div>
 
-          {/* Map */}
+          {/* 3D Map */}
           <motion.div
             initial={{ opacity: 0, scale: 0.95 }}
             whileInView={{ opacity: 1, scale: 1 }}
@@ -80,72 +120,69 @@ const MapSection = () => {
             transition={{ duration: 0.8 }}
             className="relative lg:col-span-1 aspect-square"
           >
-            <div className="relative w-full h-full rounded-3xl overflow-hidden bg-gradient-to-br from-secondary/5 to-primary/5 p-8">
+            <div className="relative w-full h-full rounded-3xl overflow-hidden bg-gradient-to-br from-secondary/5 to-primary/5 p-8 flex items-center justify-center">
               <img
-                src={paranaMap}
-                alt="Mapa do Paraná"
-                className="w-full h-full object-contain opacity-80"
+                src={paranaMap3D}
+                alt="Mapa 3D do Paraná"
+                className="w-full h-full object-contain drop-shadow-2xl"
               />
               
-              {/* Map markers */}
-              {regions.map((region, index) => (
-                <motion.div
-                  key={region.name}
-                  initial={{ scale: 0 }}
-                  whileInView={{ scale: 1 }}
-                  viewport={{ once: true }}
-                  transition={{ duration: 0.4, delay: 0.5 + index * 0.1 }}
-                  className="absolute group cursor-pointer"
-                  style={{ left: `${region.x}%`, top: `${region.y}%` }}
-                >
-                  <div className="relative">
-                    <div className="w-4 h-4 rounded-full bg-primary border-2 border-background shadow-[0_0_20px_hsl(152_60%_28%_/_0.4)] animate-pulse" />
-                    <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none">
-                      <div className="bg-foreground text-background text-xs font-medium px-2 py-1 rounded whitespace-nowrap">
-                        {region.name}: {region.proposals + region.suggestions}
-                      </div>
-                    </div>
-                  </div>
-                </motion.div>
-              ))}
+              {/* Subtle glow effect */}
+              <div className="absolute inset-0 bg-gradient-to-t from-primary/5 via-transparent to-secondary/5 pointer-events-none" />
             </div>
           </motion.div>
 
-          {/* Stats sidebar right */}
-          <motion.div
-            initial={{ opacity: 0, x: 20 }}
-            whileInView={{ opacity: 1, x: 0 }}
-            viewport={{ once: true }}
-            transition={{ duration: 0.6 }}
-            className="space-y-4"
-          >
-            {regions.slice(3).map((region, index) => (
-              <div
-                key={region.name}
-                className="bg-card rounded-xl p-4 border border-border/50 shadow-[0_4px_20px_-4px_hsl(215_25%_15%_/_0.08)] hover:shadow-[0_8px_30px_-8px_hsl(215_25%_15%_/_0.12)] transition-all hover:-translate-y-0.5"
-              >
-                <div className="flex items-center gap-4">
-                  <div className="w-10 h-10 rounded-lg bg-secondary/10 flex items-center justify-center">
-                    <MapPin className="w-5 h-5 text-secondary" />
-                  </div>
-                  <div className="flex-1">
-                    <h4 className="font-display font-bold text-foreground">{region.name}</h4>
-                    <div className="flex gap-4 text-sm text-muted-foreground">
-                      <span className="flex items-center gap-1">
-                        <FileText className="w-3 h-3" />
-                        {region.proposals}
-                      </span>
-                      <span className="flex items-center gap-1">
-                        <Users className="w-3 h-3" />
-                        {region.suggestions}
-                      </span>
+          {/* Right sidebar - cities */}
+          <div className="space-y-4">
+            <AnimatePresence mode="popLayout">
+              {rightCities.map((city, index) => {
+                const stats = getRandomStats();
+                return (
+                  <motion.div
+                    key={`right-${city}-${index}`}
+                    initial={{ opacity: 0, x: 20, scale: 0.95 }}
+                    animate={{ opacity: 1, x: 0, scale: 1 }}
+                    exit={{ opacity: 0, x: 20, scale: 0.95 }}
+                    transition={{ duration: 0.4, delay: index * 0.1 }}
+                    className="bg-card rounded-xl p-4 border border-border/50 shadow-[0_4px_20px_-4px_hsl(215_25%_15%_/_0.08)]"
+                  >
+                    <div className="flex items-center gap-4">
+                      <div className="w-10 h-10 rounded-lg bg-secondary/10 flex items-center justify-center">
+                        <MapPin className="w-5 h-5 text-secondary" />
+                      </div>
+                      <div className="flex-1">
+                        <h4 className="font-display font-bold text-foreground truncate">{city}</h4>
+                        <div className="flex gap-4 text-sm text-muted-foreground">
+                          <span className="flex items-center gap-1">
+                            <FileText className="w-3 h-3" />
+                            {stats.proposals}
+                          </span>
+                          <span className="flex items-center gap-1">
+                            <Users className="w-3 h-3" />
+                            {stats.suggestions}
+                          </span>
+                        </div>
+                      </div>
                     </div>
-                  </div>
-                </div>
-              </div>
-            ))}
-          </motion.div>
+                  </motion.div>
+                );
+              })}
+            </AnimatePresence>
+          </div>
         </div>
+
+        {/* Counter */}
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          whileInView={{ opacity: 1, y: 0 }}
+          viewport={{ once: true }}
+          transition={{ duration: 0.6, delay: 0.3 }}
+          className="text-center mt-12"
+        >
+          <p className="text-muted-foreground">
+            Dados de <span className="font-bold text-foreground">{municipios.length}</span> municípios paranaenses
+          </p>
+        </motion.div>
       </div>
     </section>
   );
