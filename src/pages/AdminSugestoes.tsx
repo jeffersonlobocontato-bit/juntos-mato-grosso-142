@@ -73,6 +73,22 @@ const eixosList = [
   "Tecnologia e Inovação",
 ];
 
+// Cores dos eixos temáticos (mesmas do mapa)
+const eixoColors: Record<string, { bg: string; text: string }> = {
+  "Educação": { bg: "bg-blue-500", text: "text-white" },
+  "Saúde": { bg: "bg-red-500", text: "text-white" },
+  "Segurança Pública": { bg: "bg-amber-500", text: "text-white" },
+  "Infraestrutura": { bg: "bg-purple-500", text: "text-white" },
+  "Agricultura e Meio Ambiente": { bg: "bg-green-500", text: "text-white" },
+  "Economia e Turismo": { bg: "bg-pink-500", text: "text-white" },
+  "Desenvolvimento Social": { bg: "bg-orange-500", text: "text-white" },
+  "Tecnologia e Inovação": { bg: "bg-cyan-500", text: "text-white" },
+};
+
+const getEixoColors = (eixo: string) => {
+  return eixoColors[eixo] || { bg: "bg-muted", text: "text-foreground" };
+};
+
 const AdminSugestoes = () => {
   const { user, isLoading: authLoading } = useAuth();
   const navigate = useNavigate();
@@ -357,7 +373,7 @@ const AdminSugestoes = () => {
                           </TableCell>
                           <TableCell>{sugestao.municipio}</TableCell>
                           <TableCell>
-                            <Badge variant="secondary" className="text-xs">
+                            <Badge className={`text-xs ${getEixoColors(sugestao.eixo).bg} ${getEixoColors(sugestao.eixo).text} hover:opacity-90`}>
                               {sugestao.eixo}
                             </Badge>
                           </TableCell>
@@ -426,7 +442,7 @@ const AdminSugestoes = () => {
               
               <div>
                 <p className="text-sm text-muted-foreground mb-1">Eixo Temático</p>
-                <Badge variant="secondary">{viewingSugestao.eixo}</Badge>
+                <Badge className={`${getEixoColors(viewingSugestao.eixo).bg} ${getEixoColors(viewingSugestao.eixo).text}`}>{viewingSugestao.eixo}</Badge>
               </div>
               
               <div>
