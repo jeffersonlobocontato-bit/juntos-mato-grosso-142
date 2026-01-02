@@ -265,6 +265,87 @@ export type Database = {
         }
         Relationships: []
       }
+      page_analytics_events: {
+        Row: {
+          browser: string | null
+          city: string | null
+          component_action: string | null
+          component_name: string | null
+          country: string | null
+          created_at: string
+          device_type: string | null
+          event_type: string
+          id: string
+          metadata: Json | null
+          os: string | null
+          page_path: string
+          referrer: string | null
+          region: string | null
+          screen_height: number | null
+          screen_width: number | null
+          scroll_depth: number | null
+          session_id: string
+          time_on_page: number | null
+          utm_campaign: string | null
+          utm_content: string | null
+          utm_medium: string | null
+          utm_source: string | null
+          visitor_id: string | null
+        }
+        Insert: {
+          browser?: string | null
+          city?: string | null
+          component_action?: string | null
+          component_name?: string | null
+          country?: string | null
+          created_at?: string
+          device_type?: string | null
+          event_type: string
+          id?: string
+          metadata?: Json | null
+          os?: string | null
+          page_path?: string
+          referrer?: string | null
+          region?: string | null
+          screen_height?: number | null
+          screen_width?: number | null
+          scroll_depth?: number | null
+          session_id: string
+          time_on_page?: number | null
+          utm_campaign?: string | null
+          utm_content?: string | null
+          utm_medium?: string | null
+          utm_source?: string | null
+          visitor_id?: string | null
+        }
+        Update: {
+          browser?: string | null
+          city?: string | null
+          component_action?: string | null
+          component_name?: string | null
+          country?: string | null
+          created_at?: string
+          device_type?: string | null
+          event_type?: string
+          id?: string
+          metadata?: Json | null
+          os?: string | null
+          page_path?: string
+          referrer?: string | null
+          region?: string | null
+          screen_height?: number | null
+          screen_width?: number | null
+          scroll_depth?: number | null
+          session_id?: string
+          time_on_page?: number | null
+          utm_campaign?: string | null
+          utm_content?: string | null
+          utm_medium?: string | null
+          utm_source?: string | null
+          visitor_id?: string | null
+        }
+        Relationships: []
+      }
       profiles: {
         Row: {
           created_at: string
