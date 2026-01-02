@@ -82,6 +82,33 @@ serve(async (req) => {
       });
     }
 
+    // Fetch custom agent config and knowledge base
+    const [configResult, knowledgeResult] = await Promise.all([
+      supabase
+        .from("ai_agent_config")
+        .select("system_prompt, config")
+        .eq("agent_type", "plano_governo")
+        .eq("is_active", true)
+        .single(),
+      supabase
+        .from("ai_knowledge_base")
+        .select("title, content")
+        .eq("is_active", true)
+        .order("priority", { ascending: false })
+    ]);
+
+    const customPrompt = configResult.data?.system_prompt || null;
+    const knowledgeDocs = knowledgeResult.data || [];
+
+    // Build knowledge base context
+    let knowledgeContext = "";
+    if (knowledgeDocs.length > 0) {
+      knowledgeContext = "\n\n=== BASE DE CONHECIMENTO ===\n";
+      knowledgeDocs.forEach((doc, i) => {
+        knowledgeContext += `\n--- ${doc.title} ---\n${doc.content}\n`;
+      });
+    }
+
     // Fetch context data based on filters
     let contextData = "";
 
@@ -210,8 +237,7 @@ serve(async (req) => {
     }
 
     // Build system prompt based on mode
-    const systemPrompt = mode === "brainstorm" 
-      ? `Você é um especialista em políticas públicas e comunicação política, focado em ajudar na criação de propostas e discursos para o Estado do Paraná.
+    const defaultBrainstormPrompt = `Você é um especialista em políticas públicas e comunicação política, focado em ajudar na criação de propostas e discursos para o Estado do Paraná.
 
 Seu papel é:
 1. Analisar as sugestões populares e propostas técnicas disponíveis
@@ -221,10 +247,15 @@ Seu papel é:
 
 IMPORTANTE: Use os dados fornecidos como base para suas sugestões. Cite exemplos concretos quando disponíveis.
 
-${contextData ? `DADOS DISPONÍVEIS:${contextData}` : 'Não há dados filtrados disponíveis. Faça sugestões gerais baseadas em boas práticas.'}
+Use formatação limpa e profissional:
+- Use títulos claros com ## ou ###
+- Use listas com bullets (- ou •) ou números
+- Use **negrito** para destacar pontos importantes
+- Estruture respostas de forma organizada e fácil de ler
 
-Responda em português brasileiro, de forma clara e estruturada.`
-      : `Você é um especialista em elaboração de planos de governo e políticas públicas para o Estado do Paraná.
+Responda em português brasileiro, de forma clara e estruturada.`;
+
+    const defaultPlanPrompt = `Você é um especialista em elaboração de planos de governo e políticas públicas para o Estado do Paraná.
 
 Seu papel é:
 1. Criar planos de governo técnicos e profissionais
@@ -234,9 +265,21 @@ Seu papel é:
 
 IMPORTANTE: Crie conteúdo técnico e institucional, com linguagem apropriada para documentos oficiais.
 
-${contextData ? `DADOS DISPONÍVEIS:${contextData}` : ''}
+Use formatação limpa e profissional:
+- Use títulos claros com ## ou ###
+- Use listas com bullets (- ou •) ou números
+- Use **negrito** para destacar pontos importantes
+- Estruture respostas com seções bem definidas
 
 Responda em português brasileiro. Estruture suas respostas com títulos, subtítulos, metas e indicadores quando apropriado.`;
+
+    // Use custom prompt if available, otherwise use default
+    const basePrompt = customPrompt || (mode === "brainstorm" ? defaultBrainstormPrompt : defaultPlanPrompt);
+    
+    // Build final system prompt with context
+    const systemPrompt = `${basePrompt}
+${knowledgeContext}
+${contextData ? `\nDADOS DISPONÍVEIS:${contextData}` : ''}`;
 
     // Prepare messages for API
     const apiMessages: ChatMessage[] = [
