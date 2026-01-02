@@ -377,9 +377,11 @@ export type Database = {
           created_at: string
           descricao: string
           eixo_id: string
+          entrevistado: string | null
           etapa: number
           id: string
           indicadores: string | null
+          lider_responsavel_id: string | null
           metas: string | null
           municipio_id: string | null
           status: Database["public"]["Enums"]["proposal_status"]
@@ -392,9 +394,11 @@ export type Database = {
           created_at?: string
           descricao: string
           eixo_id: string
+          entrevistado?: string | null
           etapa?: number
           id?: string
           indicadores?: string | null
+          lider_responsavel_id?: string | null
           metas?: string | null
           municipio_id?: string | null
           status?: Database["public"]["Enums"]["proposal_status"]
@@ -407,9 +411,11 @@ export type Database = {
           created_at?: string
           descricao?: string
           eixo_id?: string
+          entrevistado?: string | null
           etapa?: number
           id?: string
           indicadores?: string | null
+          lider_responsavel_id?: string | null
           metas?: string | null
           municipio_id?: string | null
           status?: Database["public"]["Enums"]["proposal_status"]
@@ -422,6 +428,13 @@ export type Database = {
             columns: ["eixo_id"]
             isOneToOne: false
             referencedRelation: "eixos_tematicos"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "propostas_tecnicas_lider_responsavel_id_fkey"
+            columns: ["lider_responsavel_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
             referencedColumns: ["id"]
           },
           {

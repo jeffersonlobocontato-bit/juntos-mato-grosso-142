@@ -60,6 +60,13 @@ interface Proposal {
   eixo_id: string;
   municipio_id: string | null;
   autor_id: string;
+  entrevistado: string | null;
+  lider_responsavel_id: string | null;
+}
+
+interface LiderTecnico {
+  id: string;
+  full_name: string | null;
 }
 
 interface Eixo {
@@ -95,6 +102,7 @@ const AdminPropostas = () => {
   const [proposals, setProposals] = useState<Proposal[]>([]);
   const [eixos, setEixos] = useState<Eixo[]>([]);
   const [municipios, setMunicipios] = useState<Municipio[]>([]);
+  const [lideresTecnicos, setLideresTecnicos] = useState<LiderTecnico[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
   const [filterStatus, setFilterStatus] = useState<string>('all');
@@ -112,6 +120,8 @@ const AdminPropostas = () => {
     indicadores: '',
     status: 'rascunho' as ProposalStatus,
     etapa: 1,
+    entrevistado: '',
+    lider_responsavel_id: '',
   });
 
   useEffect(() => {
@@ -125,6 +135,7 @@ const AdminPropostas = () => {
       fetchProposals();
       fetchEixos();
       fetchMunicipios();
+      fetchLideresTecnicos();
     }
   }, [user]);
 
@@ -164,6 +175,28 @@ const AdminPropostas = () => {
     }
   };
 
+  const fetchLideresTecnicos = async () => {
+    // Buscar usuários com role 'lider_tematico' ou 'admin'
+    const { data: rolesData, error: rolesError } = await supabase
+      .from('user_roles')
+      .select('user_id')
+      .in('role', ['lider_tematico', 'admin']);
+    
+    if (rolesError || !rolesData) return;
+    
+    const userIds = rolesData.map(r => r.user_id);
+    
+    const { data: profilesData, error: profilesError } = await supabase
+      .from('profiles')
+      .select('id, full_name')
+      .in('id', userIds)
+      .order('full_name');
+    
+    if (!profilesError && profilesData) {
+      setLideresTecnicos(profilesData);
+    }
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
@@ -184,6 +217,8 @@ const AdminPropostas = () => {
           indicadores: formData.indicadores || null,
           status: formData.status,
           etapa: formData.etapa,
+          entrevistado: formData.entrevistado || null,
+          lider_responsavel_id: formData.lider_responsavel_id || null,
         })
         .eq('id', editingProposal.id);
       
@@ -208,6 +243,8 @@ const AdminPropostas = () => {
           status: formData.status,
           etapa: formData.etapa,
           autor_id: user?.id,
+          entrevistado: formData.entrevistado || null,
+          lider_responsavel_id: formData.lider_responsavel_id || null,
         });
       
       if (error) {
@@ -234,6 +271,8 @@ const AdminPropostas = () => {
       indicadores: proposal.indicadores || '',
       status: proposal.status,
       etapa: proposal.etapa,
+      entrevistado: proposal.entrevistado || '',
+      lider_responsavel_id: proposal.lider_responsavel_id || '',
     });
     setIsDialogOpen(true);
   };
@@ -265,6 +304,8 @@ const AdminPropostas = () => {
       indicadores: '',
       status: 'rascunho',
       etapa: 1,
+      entrevistado: '',
+      lider_responsavel_id: '',
     });
   };
 
@@ -389,6 +430,35 @@ const AdminPropostas = () => {
                               {m.nome}
                             </SelectItem>
                           ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  
+                  <div className="space-y-2">
+                    <Label htmlFor="entrevistado">Nome do Entrevistado</Label>
+                    <Input
+                      id="entrevistado"
+                      value={formData.entrevistado}
+                      onChange={(e) => setFormData({ ...formData, entrevistado: e.target.value })}
+                      placeholder="Nome da pessoa entrevistada"
+                    />
+                  </div>
+                  
+                  <div className="space-y-2">
+                    <Label htmlFor="lider_responsavel">Líder Técnico Responsável</Label>
+                    <Select
+                      value={formData.lider_responsavel_id}
+                      onValueChange={(value) => setFormData({ ...formData, lider_responsavel_id: value })}
+                    >
+                      <SelectTrigger>
+                        <SelectValue placeholder="Selecione o líder responsável" />
+                      </SelectTrigger>
+                      <SelectContent className="max-h-[200px]">
+                        {lideresTecnicos.map(lider => (
+                          <SelectItem key={lider.id} value={lider.id}>
+                            {lider.full_name || 'Sem nome'}
+                          </SelectItem>
+                        ))}
                       </SelectContent>
                     </Select>
                   </div>
