@@ -16,7 +16,8 @@ import {
   Shield,
   UserCheck,
   ArrowRight,
-  Bell
+  Bell,
+  Sparkles
 } from 'lucide-react';
 
 const Admin = () => {
@@ -109,6 +110,14 @@ const Admin = () => {
       href: '/admin/mensageria',
       color: 'accent',
       roles: ['admin']
+    },
+    { 
+      icon: Sparkles, 
+      title: 'Gerador de Plano', 
+      description: 'IA para planos e brainstorming',
+      href: '/admin/plano-governo',
+      color: 'primary',
+      roles: ['admin', 'lider_tematico']
     },
   ];
 
