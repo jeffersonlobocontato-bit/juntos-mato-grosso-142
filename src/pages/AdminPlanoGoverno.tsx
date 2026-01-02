@@ -414,15 +414,15 @@ const AdminPlanoGoverno = () => {
                     <>
                       <div className="space-y-2">
                         <Label>Região (opcional)</Label>
-                        <Select value={brainstormRegion} onValueChange={(v) => {
-                          setBrainstormRegion(v);
+                      <Select value={brainstormRegion || "__all__"} onValueChange={(v) => {
+                          setBrainstormRegion(v === "__all__" ? "" : v);
                           setBrainstormCity('');
                         }}>
                           <SelectTrigger>
                             <SelectValue placeholder="Filtrar por região" />
                           </SelectTrigger>
                           <SelectContent>
-                            <SelectItem value="">Todas as regiões</SelectItem>
+                            <SelectItem value="__all__">Todas as regiões</SelectItem>
                             {REGIOES.map(regiao => (
                               <SelectItem key={regiao} value={regiao}>{regiao}</SelectItem>
                             ))}
@@ -436,7 +436,7 @@ const AdminPlanoGoverno = () => {
                             <SelectValue placeholder="Selecione a cidade" />
                           </SelectTrigger>
                           <SelectContent>
-                            {filteredCities.map(cidade => (
+                            {filteredCities.filter(cidade => cidade.nome).map(cidade => (
                               <SelectItem key={cidade.id} value={cidade.nome}>{cidade.nome}</SelectItem>
                             ))}
                           </SelectContent>
@@ -447,12 +447,12 @@ const AdminPlanoGoverno = () => {
 
                   <div className="space-y-2">
                     <Label>Eixo Temático</Label>
-                    <Select value={brainstormEixo} onValueChange={setBrainstormEixo}>
+                    <Select value={brainstormEixo || "__all__"} onValueChange={(v) => setBrainstormEixo(v === "__all__" ? "" : v)}>
                       <SelectTrigger>
                         <SelectValue placeholder="Selecione o eixo" />
                       </SelectTrigger>
                       <SelectContent>
-                        <SelectItem value="">Todos os eixos</SelectItem>
+                        <SelectItem value="__all__">Todos os eixos</SelectItem>
                         {eixos.map(eixo => (
                           <SelectItem key={eixo.id} value={eixo.nome}>{eixo.nome}</SelectItem>
                         ))}
