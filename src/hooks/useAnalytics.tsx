@@ -75,6 +75,49 @@ const getChannelFromReferrer = (referrer: string) => {
   return 'referral';
 };
 
+// Obter geolocalização via Edge Function
+interface GeoData {
+  city: string | null;
+  region: string | null;
+  country: string;
+  country_code: string;
+}
+
+let cachedGeoData: GeoData | null = null;
+
+const getGeoLocation = async (): Promise<GeoData> => {
+  // Check sessionStorage cache first
+  const cached = sessionStorage.getItem('rota399_geo');
+  if (cached) {
+    cachedGeoData = JSON.parse(cached);
+    return cachedGeoData!;
+  }
+
+  // If already fetched in this session
+  if (cachedGeoData) {
+    return cachedGeoData;
+  }
+
+  try {
+    const { data, error } = await supabase.functions.invoke('geolocate-visitor');
+    
+    if (error) {
+      console.error('Geolocation error:', error);
+      cachedGeoData = { city: null, region: null, country: 'Brasil', country_code: 'BR' };
+    } else {
+      cachedGeoData = data as GeoData;
+    }
+    
+    // Cache in sessionStorage
+    sessionStorage.setItem('rota399_geo', JSON.stringify(cachedGeoData));
+    return cachedGeoData;
+  } catch (error) {
+    console.error('Geolocation fetch error:', error);
+    cachedGeoData = { city: null, region: null, country: 'Brasil', country_code: 'BR' };
+    return cachedGeoData;
+  }
+};
+
 interface AnalyticsEvent {
   event_type: string;
   component_name?: string;
@@ -117,6 +160,9 @@ export const useAnalytics = () => {
 
     const utmParams = getUTMParams();
     const referrer = document.referrer;
+    
+    // Get geolocation data (cached after first call)
+    const geoData = await getGeoLocation();
 
     try {
       await supabase.from('page_analytics_events').insert({
@@ -138,6 +184,9 @@ export const useAnalytics = () => {
         screen_height: window.innerHeight,
         scroll_depth: event.scroll_depth || maxScrollDepth,
         time_on_page: event.time_on_page || (pageStartTime ? Math.floor((Date.now() - pageStartTime) / 1000) : 0),
+        city: geoData.city,
+        region: geoData.region,
+        country: geoData.country_code,
         metadata: {
           ...event.metadata,
           channel: utmParams.utm_source || getChannelFromReferrer(referrer),
