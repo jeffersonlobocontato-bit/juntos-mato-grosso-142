@@ -2,8 +2,9 @@ import React, { useEffect, useRef, useState } from 'react';
 import mapboxgl from 'mapbox-gl';
 import 'mapbox-gl/dist/mapbox-gl.css';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { MapPin, Eye, EyeOff } from 'lucide-react';
+import { MapPin, Eye, EyeOff, Maximize2, Minimize2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 
 interface MapMarker {
   id: string;
@@ -56,9 +57,11 @@ const ParanaMap: React.FC<ParanaMapProps> = ({
   eixoColors = defaultEixoColors,
 }) => {
   const mapContainer = useRef<HTMLDivElement>(null);
+  const fullscreenMapContainer = useRef<HTMLDivElement>(null);
   const map = useRef<mapboxgl.Map | null>(null);
   const markersRef = useRef<mapboxgl.Marker[]>([]);
   const [isVisible, setIsVisible] = useState(true);
+  const [isFullscreen, setIsFullscreen] = useState(false);
   const [mapLoaded, setMapLoaded] = useState(false);
 
   const getStatusColor = (status?: string): string => {
@@ -102,53 +105,30 @@ const ParanaMap: React.FC<ParanaMapProps> = ({
     return el;
   };
 
-  useEffect(() => {
-    if (!mapContainer.current || !isVisible || !MAPBOX_TOKEN) return;
+  const initMap = (container: HTMLDivElement) => {
+    if (!MAPBOX_TOKEN) return null;
 
     mapboxgl.accessToken = MAPBOX_TOKEN;
 
-    map.current = new mapboxgl.Map({
-      container: mapContainer.current,
+    const newMap = new mapboxgl.Map({
+      container: container,
       style: 'mapbox://styles/mapbox/light-v11',
       center: [-51.5, -24.5],
       zoom: 6,
     });
 
-    map.current.addControl(
+    newMap.addControl(
       new mapboxgl.NavigationControl({
         visualizePitch: true,
       }),
       'top-right'
     );
 
-    map.current.on('load', () => {
-      setMapLoaded(true);
-      map.current?.resize();
-      setTimeout(() => map.current?.resize(), 100);
-      setTimeout(() => map.current?.resize(), 300);
-    });
+    return newMap;
+  };
 
-    map.current.on('style.load', () => {
-      map.current?.resize();
-    });
-
-    const resizeObserver = new ResizeObserver(() => {
-      map.current?.resize();
-    });
-    resizeObserver.observe(mapContainer.current);
-
-    return () => {
-      resizeObserver.disconnect();
-      markersRef.current.forEach((marker) => marker.remove());
-      markersRef.current = [];
-      map.current?.remove();
-      setMapLoaded(false);
-    };
-  }, [isVisible]);
-
-  useEffect(() => {
-    if (!map.current || !mapLoaded || !isVisible) return;
-
+  const addMarkersToMap = (mapInstance: mapboxgl.Map) => {
+    // Limpar marcadores existentes
     markersRef.current.forEach((marker) => marker.remove());
     markersRef.current = [];
 
@@ -172,7 +152,6 @@ const ParanaMap: React.FC<ParanaMapProps> = ({
     Object.values(groupedMarkers).forEach((group) => {
       if (!group.latitude || !group.longitude) return;
 
-      // Usar primeiro item do grupo para cores
       const statusColor = getStatusColor(group.status);
       const eixoColor = getEixoColor(group.eixo);
 
@@ -200,7 +179,7 @@ const ParanaMap: React.FC<ParanaMapProps> = ({
       const marker = new mapboxgl.Marker(el)
         .setLngLat([group.longitude, group.latitude])
         .setPopup(popup)
-        .addTo(map.current!);
+        .addTo(mapInstance);
 
       markersRef.current.push(marker);
     });
@@ -210,9 +189,73 @@ const ParanaMap: React.FC<ParanaMapProps> = ({
       validMarkers.forEach((marker) => {
         bounds.extend([marker.longitude, marker.latitude]);
       });
-      map.current.fitBounds(bounds, { padding: 50, maxZoom: 10 });
+      mapInstance.fitBounds(bounds, { padding: 50, maxZoom: 10 });
     }
-  }, [markers, mapLoaded, isVisible]);
+  };
+
+  // Mapa normal
+  useEffect(() => {
+    if (!mapContainer.current || !isVisible || isFullscreen || !MAPBOX_TOKEN) return;
+
+    map.current = initMap(mapContainer.current);
+    if (!map.current) return;
+
+    map.current.on('load', () => {
+      setMapLoaded(true);
+      map.current?.resize();
+      setTimeout(() => map.current?.resize(), 100);
+      setTimeout(() => map.current?.resize(), 300);
+    });
+
+    map.current.on('style.load', () => {
+      map.current?.resize();
+    });
+
+    const resizeObserver = new ResizeObserver(() => {
+      map.current?.resize();
+    });
+    resizeObserver.observe(mapContainer.current);
+
+    return () => {
+      resizeObserver.disconnect();
+      markersRef.current.forEach((marker) => marker.remove());
+      markersRef.current = [];
+      map.current?.remove();
+      setMapLoaded(false);
+    };
+  }, [isVisible, isFullscreen]);
+
+  // Atualizar marcadores no mapa normal
+  useEffect(() => {
+    if (!map.current || !mapLoaded || !isVisible || isFullscreen) return;
+    addMarkersToMap(map.current);
+  }, [markers, mapLoaded, isVisible, isFullscreen]);
+
+  // Mapa fullscreen
+  useEffect(() => {
+    if (!fullscreenMapContainer.current || !isFullscreen || !MAPBOX_TOKEN) return;
+
+    const fullscreenMap = initMap(fullscreenMapContainer.current);
+    if (!fullscreenMap) return;
+
+    fullscreenMap.on('load', () => {
+      fullscreenMap.resize();
+      setTimeout(() => {
+        fullscreenMap.resize();
+        addMarkersToMap(fullscreenMap);
+      }, 100);
+    });
+
+    const resizeObserver = new ResizeObserver(() => {
+      fullscreenMap.resize();
+    });
+    resizeObserver.observe(fullscreenMapContainer.current);
+
+    return () => {
+      resizeObserver.disconnect();
+      fullscreenMap.remove();
+    };
+  }, [isFullscreen, markers]);
 
   if (!MAPBOX_TOKEN) {
     return (
@@ -235,82 +278,130 @@ const ParanaMap: React.FC<ParanaMapProps> = ({
     );
   }
 
+  const renderLegend = () => (
+    <div className="mt-4 space-y-3">
+      {/* Legenda de Status */}
+      <div>
+        <p className="text-xs font-medium text-muted-foreground mb-2">
+          🔼 Metade superior: Status
+        </p>
+        <div className="flex flex-wrap gap-3">
+          {Object.entries(statusColors).map(([status, color]) => (
+            <div key={status} className="flex items-center gap-1.5">
+              <div
+                className="w-3 h-3 rounded-full"
+                style={{ backgroundColor: color }}
+              />
+              <span className="text-xs text-muted-foreground capitalize">
+                {status}
+              </span>
+            </div>
+          ))}
+        </div>
+      </div>
+
+      {/* Legenda de Eixo */}
+      <div>
+        <p className="text-xs font-medium text-muted-foreground mb-2">
+          🔽 Metade inferior: Eixo Temático
+        </p>
+        <div className="flex flex-wrap gap-3">
+          {Object.entries(eixoColors).map(([eixo, color]) => (
+            <div key={eixo} className="flex items-center gap-1.5">
+              <div
+                className="w-3 h-3 rounded-full"
+                style={{ backgroundColor: color }}
+              />
+              <span className="text-xs text-muted-foreground">{eixo}</span>
+            </div>
+          ))}
+        </div>
+      </div>
+    </div>
+  );
+
   return (
-    <Card className="bg-card">
-      <CardHeader className="flex flex-row items-center justify-between">
-        <CardTitle className="flex items-center gap-2 text-foreground">
-          <MapPin className="h-5 w-5" />
-          {title}
-          <span className="text-sm font-normal text-muted-foreground">
-            ({markers.length} itens)
-          </span>
-        </CardTitle>
-        <Button
-          variant="ghost"
-          size="sm"
-          onClick={() => setIsVisible(!isVisible)}
-        >
-          {isVisible ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
-          <span className="ml-1">{isVisible ? 'Ocultar' : 'Mostrar'}</span>
-        </Button>
-      </CardHeader>
-      <CardContent>
-        {isVisible ? (
-          <div
-            ref={mapContainer}
-            className="h-80 rounded-lg overflow-hidden"
-            style={{ minHeight: '320px' }}
-          />
-        ) : (
-          <div className="flex items-center justify-center h-20 bg-muted rounded-lg">
-            <p className="text-muted-foreground">Mapa oculto</p>
+    <>
+      <Card className="bg-card">
+        <CardHeader className="flex flex-row items-center justify-between">
+          <CardTitle className="flex items-center gap-2 text-foreground">
+            <MapPin className="h-5 w-5" />
+            {title}
+            <span className="text-sm font-normal text-muted-foreground">
+              ({markers.length} itens)
+            </span>
+          </CardTitle>
+          <div className="flex items-center gap-2">
+            {isVisible && (
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => setIsFullscreen(true)}
+                title="Expandir mapa"
+              >
+                <Maximize2 className="h-4 w-4" />
+                <span className="ml-1 hidden sm:inline">Expandir</span>
+              </Button>
+            )}
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => setIsVisible(!isVisible)}
+            >
+              {isVisible ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+              <span className="ml-1">{isVisible ? 'Ocultar' : 'Mostrar'}</span>
+            </Button>
           </div>
-        )}
-
-        {/* Legenda Bicolor */}
-        {isVisible && (
-          <div className="mt-4 space-y-3">
-            {/* Legenda de Status */}
-            <div>
-              <p className="text-xs font-medium text-muted-foreground mb-2">
-                🔼 Metade superior: Status
-              </p>
-              <div className="flex flex-wrap gap-3">
-                {Object.entries(statusColors).map(([status, color]) => (
-                  <div key={status} className="flex items-center gap-1.5">
-                    <div
-                      className="w-3 h-3 rounded-full"
-                      style={{ backgroundColor: color }}
-                    />
-                    <span className="text-xs text-muted-foreground capitalize">
-                      {status}
-                    </span>
-                  </div>
-                ))}
-              </div>
+        </CardHeader>
+        <CardContent>
+          {isVisible ? (
+            <div
+              ref={mapContainer}
+              className="h-80 rounded-lg overflow-hidden"
+              style={{ minHeight: '320px' }}
+            />
+          ) : (
+            <div className="flex items-center justify-center h-20 bg-muted rounded-lg">
+              <p className="text-muted-foreground">Mapa oculto</p>
             </div>
+          )}
 
-            {/* Legenda de Eixo */}
-            <div>
-              <p className="text-xs font-medium text-muted-foreground mb-2">
-                🔽 Metade inferior: Eixo Temático
-              </p>
-              <div className="flex flex-wrap gap-3">
-                {Object.entries(eixoColors).map(([eixo, color]) => (
-                  <div key={eixo} className="flex items-center gap-1.5">
-                    <div
-                      className="w-3 h-3 rounded-full"
-                      style={{ backgroundColor: color }}
-                    />
-                    <span className="text-xs text-muted-foreground">{eixo}</span>
-                  </div>
-                ))}
-              </div>
-            </div>
+          {isVisible && renderLegend()}
+        </CardContent>
+      </Card>
+
+      {/* Modal Fullscreen */}
+      <Dialog open={isFullscreen} onOpenChange={setIsFullscreen}>
+        <DialogContent className="max-w-[95vw] w-[95vw] h-[90vh] max-h-[90vh] p-0">
+          <DialogHeader className="p-4 pb-0 flex flex-row items-center justify-between">
+            <DialogTitle className="flex items-center gap-2">
+              <MapPin className="h-5 w-5" />
+              {title}
+              <span className="text-sm font-normal text-muted-foreground">
+                ({markers.length} itens)
+              </span>
+            </DialogTitle>
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => setIsFullscreen(false)}
+              className="mr-8"
+            >
+              <Minimize2 className="h-4 w-4" />
+              <span className="ml-1">Recolher</span>
+            </Button>
+          </DialogHeader>
+          <div className="flex-1 p-4 pt-2 overflow-auto">
+            <div
+              ref={fullscreenMapContainer}
+              className="w-full rounded-lg overflow-hidden"
+              style={{ height: 'calc(90vh - 160px)' }}
+            />
+            {renderLegend()}
           </div>
-        )}
-      </CardContent>
-    </Card>
+        </DialogContent>
+      </Dialog>
+    </>
   );
 };
 
