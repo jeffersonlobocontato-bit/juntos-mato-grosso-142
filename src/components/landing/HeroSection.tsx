@@ -1,12 +1,39 @@
-import { motion, useScroll, useTransform } from "framer-motion";
+import { useState } from "react";
+import { motion, useScroll, useTransform, AnimatePresence } from "framer-motion";
 import { Button } from "@/components/ui/button";
-import { ChevronDown, Sparkles } from "lucide-react";
+import { ChevronDown, Sparkles, Share2, X, MessageCircle, Facebook, Linkedin, Send, Copy, Check } from "lucide-react";
 import heroImage from "@/assets/hero-parana.jpg";
-
+import { useToast } from "@/hooks/use-toast";
 const HeroSection = () => {
   const { scrollY } = useScroll();
   const y = useTransform(scrollY, [0, 500], [0, 150]);
   const opacity = useTransform(scrollY, [0, 300], [1, 0]);
+  const [showShareMenu, setShowShareMenu] = useState(false);
+  const [copied, setCopied] = useState(false);
+  const { toast } = useToast();
+
+  const message = "Participe da Rota 399! Ajude a construir o futuro do Paraná 🌲";
+  const url = typeof window !== "undefined" ? window.location.origin : "https://rota399.org.br";
+  const shareText = encodeURIComponent(message);
+  const shareUrl = encodeURIComponent(url);
+
+  const socialLinks = [
+    { name: "WhatsApp", icon: MessageCircle, href: `https://wa.me/?text=${shareText}%20${shareUrl}`, color: "bg-[#25D366]" },
+    { name: "Facebook", icon: Facebook, href: `https://www.facebook.com/sharer/sharer.php?u=${shareUrl}&quote=${shareText}`, color: "bg-[#1877F2]" },
+    { name: "LinkedIn", icon: Linkedin, href: `https://www.linkedin.com/sharing/share-offsite/?url=${shareUrl}`, color: "bg-[#0A66C2]" },
+    { name: "Telegram", icon: Send, href: `https://t.me/share/url?url=${shareUrl}&text=${shareText}`, color: "bg-[#0088CC]" },
+  ];
+
+  const handleCopyLink = async () => {
+    try {
+      await navigator.clipboard.writeText(`${message} ${url}`);
+      setCopied(true);
+      toast({ title: "Link copiado!", description: "Compartilhe com seus amigos." });
+      setTimeout(() => setCopied(false), 3000);
+    } catch {
+      toast({ title: "Erro ao copiar", variant: "destructive" });
+    }
+  };
 
   const scrollToSection = (id: string) => {
     const element = document.getElementById(id);
@@ -86,6 +113,62 @@ const HeroSection = () => {
           >
             Saiba Mais
           </Button>
+          <div className="relative">
+            <Button
+              onClick={() => setShowShareMenu(!showShareMenu)}
+              variant="heroOutline"
+              size="xl"
+              className="gap-2"
+            >
+              <Share2 className="w-5 h-5" />
+              <span>Convide Amigos</span>
+            </Button>
+            <AnimatePresence>
+              {showShareMenu && (
+                <motion.div
+                  initial={{ opacity: 0, y: 10, scale: 0.95 }}
+                  animate={{ opacity: 1, y: 0, scale: 1 }}
+                  exit={{ opacity: 0, y: 10, scale: 0.95 }}
+                  transition={{ duration: 0.2 }}
+                  className="absolute top-full mt-3 left-1/2 -translate-x-1/2 bg-card rounded-2xl shadow-xl border border-border p-4 min-w-[220px] z-50"
+                >
+                  <div className="flex items-center justify-between mb-3">
+                    <p className="text-sm font-medium text-foreground">Compartilhe:</p>
+                    <button onClick={() => setShowShareMenu(false)} className="text-muted-foreground hover:text-foreground">
+                      <X className="w-4 h-4" />
+                    </button>
+                  </div>
+                  <div className="flex items-center justify-center gap-2 mb-3">
+                    {socialLinks.map((social) => {
+                      const IconComponent = social.icon;
+                      return (
+                        <a
+                          key={social.name}
+                          href={social.href}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className={`w-10 h-10 rounded-xl ${social.color} flex items-center justify-center text-white transition-transform hover:scale-110`}
+                          title={social.name}
+                        >
+                          <IconComponent className="w-5 h-5" />
+                        </a>
+                      );
+                    })}
+                    <button
+                      onClick={handleCopyLink}
+                      className="w-10 h-10 rounded-xl bg-muted flex items-center justify-center text-foreground transition-transform hover:scale-110 hover:bg-primary hover:text-primary-foreground"
+                      title="Copiar link"
+                    >
+                      {copied ? <Check className="w-5 h-5" /> : <Copy className="w-5 h-5" />}
+                    </button>
+                  </div>
+                  <p className="text-xs text-muted-foreground text-center">
+                    Juntos somos mais fortes! 🌲
+                  </p>
+                </motion.div>
+              )}
+            </AnimatePresence>
+          </div>
         </motion.div>
       </motion.div>
 
