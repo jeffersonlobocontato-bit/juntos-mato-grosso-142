@@ -42,6 +42,7 @@ import {
 } from 'lucide-react';
 import AdminPieChart from '@/components/admin/AdminPieChart';
 import ParanaMap from '@/components/admin/ParanaMap';
+import TimelineChart from '@/components/admin/TimelineChart';
 
 interface Sugestao {
   id: string;
@@ -257,6 +258,21 @@ const AdminSugestoes = () => {
             <ParanaMap
               markers={mapMarkers}
               title="Mapa de Sugestões por Município"
+            />
+          </div>
+
+          {/* Timeline Chart */}
+          <div className="mb-6">
+            <TimelineChart
+              title="Evolução de Cadastros"
+              series={[
+                {
+                  key: 'sugestoes',
+                  label: 'Sugestões Populares',
+                  color: 'hsl(210, 100%, 50%)',
+                  data: sugestoes,
+                },
+              ]}
             />
           </div>
 

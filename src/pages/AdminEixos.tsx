@@ -25,6 +25,7 @@ import {
   Users
 } from 'lucide-react';
 import AdminPieChart from '@/components/admin/AdminPieChart';
+import TimelineChart from '@/components/admin/TimelineChart';
 
 interface Eixo {
   id: string;
@@ -51,6 +52,8 @@ const AdminEixos = () => {
   const [eixos, setEixos] = useState<Eixo[]>([]);
   const [proposalCounts, setProposalCounts] = useState<Record<string, number>>({});
   const [sugestaoCounts, setSugestaoCounts] = useState<Record<string, number>>({});
+  const [propostas, setPropostas] = useState<{ created_at: string }[]>([]);
+  const [sugestoes, setSugestoes] = useState<{ created_at: string }[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   
   // Form state
@@ -90,29 +93,31 @@ const AdminEixos = () => {
     }
 
     // Fetch proposal counts per eixo
-    const { data: propostas } = await supabase
+    const { data: propostasData } = await supabase
       .from('propostas_tecnicas')
-      .select('eixo_id');
+      .select('eixo_id, created_at');
     
-    if (propostas) {
+    if (propostasData) {
       const counts: Record<string, number> = {};
-      propostas.forEach(p => {
+      propostasData.forEach(p => {
         counts[p.eixo_id] = (counts[p.eixo_id] || 0) + 1;
       });
       setProposalCounts(counts);
+      setPropostas(propostasData);
     }
 
     // Fetch sugestao counts per eixo
-    const { data: sugestoes } = await supabase
+    const { data: sugestoesData } = await supabase
       .from('sugestoes_populares')
-      .select('eixo');
+      .select('eixo, created_at');
     
-    if (sugestoes) {
+    if (sugestoesData) {
       const counts: Record<string, number> = {};
-      sugestoes.forEach(s => {
+      sugestoesData.forEach(s => {
         counts[s.eixo] = (counts[s.eixo] || 0) + 1;
       });
       setSugestaoCounts(counts);
+      setSugestoes(sugestoesData);
     }
     
     setIsLoading(false);
@@ -308,6 +313,27 @@ const AdminEixos = () => {
                 <p className="text-sm text-muted-foreground">Sugestões Populares</p>
               </CardContent>
             </Card>
+          </div>
+
+          {/* Timeline Chart */}
+          <div className="mb-6">
+            <TimelineChart
+              title="Evolução de Cadastros"
+              series={[
+                {
+                  key: 'propostas',
+                  label: 'Propostas Técnicas',
+                  color: 'hsl(152, 60%, 40%)',
+                  data: propostas,
+                },
+                {
+                  key: 'sugestoes',
+                  label: 'Sugestões Populares',
+                  color: 'hsl(210, 100%, 50%)',
+                  data: sugestoes,
+                },
+              ]}
+            />
           </div>
 
           {/* Charts */}
