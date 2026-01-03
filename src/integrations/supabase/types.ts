@@ -561,6 +561,7 @@ export type Database = {
         | "lider_tematico"
         | "curador_municipal"
         | "especialista"
+        | "admin_master"
       lead_origem: "formulario" | "chatbot" | "proposta"
       proposal_status: "rascunho" | "validada" | "consolidada" | "aprovada"
     }
@@ -695,6 +696,7 @@ export const Constants = {
         "lider_tematico",
         "curador_municipal",
         "especialista",
+        "admin_master",
       ],
       lead_origem: ["formulario", "chatbot", "proposta"],
       proposal_status: ["rascunho", "validada", "consolidada", "aprovada"],
