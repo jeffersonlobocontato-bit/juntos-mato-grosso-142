@@ -181,6 +181,8 @@ const EntrevistaForm = () => {
 
   // Identificação
   const [entrevistado, setEntrevistado] = useState("");
+  const [entrevistadoEmail, setEntrevistadoEmail] = useState("");
+  const [entrevistadoCelular, setEntrevistadoCelular] = useState("");
   const [municipioId, setMunicipioId] = useState("");
   const [eixoId, setEixoId] = useState("");
 
@@ -358,6 +360,14 @@ const EntrevistaForm = () => {
       const metas = questionario.indicadores.metas_4_anos;
       const indicadores = questionario.indicadores.indicadores_sucesso.filter(i => i.trim()).join("\n");
 
+      const questionarioCompleto = {
+        ...questionario,
+        identificacao: {
+          entrevistado_email: entrevistadoEmail.trim(),
+          entrevistado_celular: entrevistadoCelular.trim(),
+        },
+      };
+
       const { error } = await supabase.from("propostas_tecnicas").insert([{
         autor_id: user.id,
         lider_responsavel_id: user.id,
@@ -368,7 +378,7 @@ const EntrevistaForm = () => {
         descricao,
         metas,
         indicadores,
-        questionario: JSON.parse(JSON.stringify(questionario)),
+        questionario: JSON.parse(JSON.stringify(questionarioCompleto)),
         status: "rascunho" as const,
         etapa: 1,
       }]);
@@ -388,6 +398,8 @@ const EntrevistaForm = () => {
   const resetForm = () => {
     setCurrentStep(0);
     setEntrevistado("");
+    setEntrevistadoEmail("");
+    setEntrevistadoCelular("");
     setMunicipioId("");
     setEixoId("");
     setQuestionario(initialQuestionario);
@@ -492,6 +504,36 @@ const EntrevistaForm = () => {
                 placeholder="Nome completo do especialista entrevistado"
                 className="bg-gray-900 border-gray-700 text-white"
               />
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div>
+                <Label htmlFor="entrevistadoEmail" className="text-white mb-2 block">
+                  Email do Entrevistado
+                </Label>
+                <Input
+                  id="entrevistadoEmail"
+                  type="email"
+                  value={entrevistadoEmail}
+                  onChange={(e) => setEntrevistadoEmail(e.target.value)}
+                  placeholder="email@exemplo.com"
+                  className="bg-gray-900 border-gray-700 text-white"
+                />
+              </div>
+
+              <div>
+                <Label htmlFor="entrevistadoCelular" className="text-white mb-2 block">
+                  Celular do Entrevistado
+                </Label>
+                <Input
+                  id="entrevistadoCelular"
+                  type="tel"
+                  value={entrevistadoCelular}
+                  onChange={(e) => setEntrevistadoCelular(e.target.value)}
+                  placeholder="(41) 99999-9999"
+                  className="bg-gray-900 border-gray-700 text-white"
+                />
+              </div>
             </div>
 
             <div>
