@@ -4,7 +4,11 @@ import { Button } from "@/components/ui/button";
 import { Menu, X, MapPin } from "lucide-react";
 import { Link } from "react-router-dom";
 
-const Header = () => {
+interface HeaderProps {
+  showSuggestionButton?: boolean;
+}
+
+const Header = ({ showSuggestionButton = true }: HeaderProps) => {
   const [isScrolled, setIsScrolled] = useState(false);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
 
@@ -83,13 +87,15 @@ const Header = () => {
                   Entrar
                 </Button>
               </Link>
-              <Button
-                onClick={() => scrollToSection("sugestao")}
-                variant={isScrolled ? "hero" : "hero"}
-                size="sm"
-              >
-                Envie sua Ideia
-              </Button>
+              {showSuggestionButton && (
+                <Button
+                  onClick={() => scrollToSection("sugestao")}
+                  variant="hero"
+                  size="sm"
+                >
+                  Envie sua Ideia
+                </Button>
+              )}
             </nav>
 
             {/* Mobile Menu Button */}
@@ -142,13 +148,15 @@ const Header = () => {
                   Entrar
                 </Button>
               </Link>
-              <Button
-                onClick={() => scrollToSection("sugestao")}
-                variant="hero"
-                size="lg"
-              >
-                Envie sua Ideia
-              </Button>
+              {showSuggestionButton && (
+                <Button
+                  onClick={() => scrollToSection("sugestao")}
+                  variant="hero"
+                  size="lg"
+                >
+                  Envie sua Ideia
+                </Button>
+              )}
             </nav>
           </motion.div>
         )}

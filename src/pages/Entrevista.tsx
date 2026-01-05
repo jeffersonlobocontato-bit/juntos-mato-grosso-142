@@ -59,7 +59,7 @@ const Entrevista = () => {
 
   return (
     <div className="min-h-screen bg-background">
-      <Header />
+      <Header showSuggestionButton={false} />
       <main>
         <EntrevistaHero />
         <EntrevistaAbout />
