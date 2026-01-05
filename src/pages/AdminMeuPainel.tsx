@@ -14,6 +14,8 @@ import { StackedAreaChart } from "@/components/admin/StackedAreaChart";
 import { TopMunicipiosCard } from "@/components/admin/TopMunicipiosCard";
 import { RecentActivityFeed } from "@/components/admin/RecentActivityFeed";
 import { LeadsOriginChart } from "@/components/admin/LeadsOriginChart";
+import { EixoStatusChart } from "@/components/admin/EixoStatusChart";
+import { EixoSummaryTable } from "@/components/admin/EixoSummaryTable";
 import {
   FileText,
   Users,
@@ -224,16 +226,70 @@ export default function AdminMeuPainel() {
     { name: "Etapa 4", value: metrics.etapaCount[4], fill: "hsl(142, 76%, 36%)" },
   ];
 
-  // Distribution by eixo
-  const eixoDistribution = useMemo(() => {
+  // Propostas por eixo (apenas propostas)
+  const propostasPorEixo = useMemo(() => {
+    if (!eixos || !propostas) return [];
+    
+    return eixos.map(eixo => ({
+      name: eixo.nome.length > 18 ? eixo.nome.substring(0, 18) + "..." : eixo.nome,
+      fullName: eixo.nome,
+      value: propostas.filter(p => p.eixo_id === eixo.id).length,
+      eixoId: eixo.id,
+    }));
+  }, [eixos, propostas]);
+
+  // Sugestões por eixo (apenas sugestões)
+  const sugestoesPorEixo = useMemo(() => {
+    if (!eixos || !sugestoes) return [];
+    
+    return eixos.map(eixo => ({
+      name: eixo.nome.length > 18 ? eixo.nome.substring(0, 18) + "..." : eixo.nome,
+      fullName: eixo.nome,
+      value: sugestoes.filter(s => s.eixo === eixo.nome).length,
+    }));
+  }, [eixos, sugestoes]);
+
+  // Status das propostas por eixo (para barras empilhadas)
+  const statusPorEixo = useMemo(() => {
+    if (!eixos || !propostas) return [];
+    
+    return eixos.map(eixo => {
+      const eixoPropostas = propostas.filter(p => p.eixo_id === eixo.id);
+      const rascunho = eixoPropostas.filter(p => p.status === "rascunho").length;
+      const validada = eixoPropostas.filter(p => p.status === "validada").length;
+      const consolidada = eixoPropostas.filter(p => p.status === "consolidada").length;
+      const aprovada = eixoPropostas.filter(p => p.status === "aprovada").length;
+      
+      return {
+        name: eixo.nome.length > 18 ? eixo.nome.substring(0, 18) + "..." : eixo.nome,
+        fullName: eixo.nome,
+        rascunho,
+        validada,
+        consolidada,
+        aprovada,
+        total: rascunho + validada + consolidada + aprovada,
+      };
+    });
+  }, [eixos, propostas]);
+
+  // Resumo por eixo para tabela
+  const eixoSummary = useMemo(() => {
     if (!eixos || !propostas || !sugestoes) return [];
     
     return eixos.map(eixo => {
-      const propostasCount = propostas.filter(p => p.eixo_id === eixo.id).length;
-      const sugestoesCount = sugestoes.filter(s => s.eixo === eixo.nome).length;
+      const eixoPropostas = propostas.filter(p => p.eixo_id === eixo.id);
+      const eixoSugestoes = sugestoes.filter(s => s.eixo === eixo.nome);
+      const aprovadas = eixoPropostas.filter(p => p.status === "aprovada").length;
+      const taxaAprovacao = eixoPropostas.length > 0 
+        ? (aprovadas / eixoPropostas.length) * 100 
+        : 0;
+      
       return {
-        name: eixo.nome.length > 15 ? eixo.nome.substring(0, 15) + "..." : eixo.nome,
-        value: propostasCount + sugestoesCount,
+        nome: eixo.nome,
+        propostas: eixoPropostas.length,
+        sugestoes: eixoSugestoes.length,
+        aprovadas,
+        taxaAprovacao,
       };
     });
   }, [eixos, propostas, sugestoes]);
@@ -529,19 +585,39 @@ export default function AdminMeuPainel() {
         <LeadsOriginChart data={leadsOriginTimeline} isLoading={loadingLeads} />
       </div>
 
-      {/* Distribution and Ranking */}
+      {/* Propostas e Sugestões por Eixo */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
         <HorizontalBarChart
-          title="Distribuição por Eixo Temático"
-          data={eixoDistribution}
-          isLoading={loadingEixos}
+          title="Propostas Técnicas por Eixo"
+          data={propostasPorEixo}
+          isLoading={loadingEixos || loadingPropostas}
         />
-        <TopMunicipiosCard
-          data={municipiosRanking}
-          title="Top 10 Municípios"
-          isLoading={isLoading}
+        <HorizontalBarChart
+          title="Sugestões Populares por Eixo"
+          data={sugestoesPorEixo}
+          isLoading={loadingEixos || loadingSugestoes}
         />
       </div>
+
+      {/* Status das Propostas por Eixo */}
+      <EixoStatusChart
+        title="Status das Propostas por Eixo"
+        data={statusPorEixo}
+        isLoading={loadingEixos || loadingPropostas}
+      />
+
+      {/* Tabela Resumo por Eixo */}
+      <EixoSummaryTable
+        data={eixoSummary}
+        isLoading={loadingEixos || loadingPropostas || loadingSugestoes}
+      />
+
+      {/* Top Municípios */}
+      <TopMunicipiosCard
+        data={municipiosRanking}
+        title="Top 10 Municípios"
+        isLoading={isLoading}
+      />
 
       {/* Recent Activity */}
       <RecentActivityFeed
