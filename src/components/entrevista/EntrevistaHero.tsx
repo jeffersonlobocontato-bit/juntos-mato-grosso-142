@@ -170,7 +170,7 @@ const EntrevistaHero = () => {
                     Senador Sergio Moro
                   </h3>
                   <p className="text-emerald-400 text-sm font-medium">
-                    Embaixador da Iniciativa Rota 399
+                    Idealizador da Iniciativa Rota 399 Paraná
                   </p>
                 </motion.div>
               </div>
