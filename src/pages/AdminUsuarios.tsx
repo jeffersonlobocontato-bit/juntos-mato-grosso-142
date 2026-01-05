@@ -4,20 +4,24 @@ import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
 import { useNavigate, Link } from 'react-router-dom';
 import { motion } from 'framer-motion';
-import { ArrowLeft, Users, Shield, UserCheck, MapPin, Briefcase, Plus, Trash2 } from 'lucide-react';
+import { ArrowLeft, Users, Shield, UserCheck, MapPin, Briefcase, Plus, Trash2, UserPlus, Lock } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { Checkbox } from '@/components/ui/checkbox';
 import { useToast } from '@/hooks/use-toast';
 import AdminPieChart from '@/components/admin/AdminPieChart';
 import TimelineChart from '@/components/admin/TimelineChart';
 
-type AppRole = 'admin' | 'lider_tematico' | 'curador_municipal' | 'especialista';
+type AppRole = 'admin' | 'admin_master' | 'lider_tematico' | 'curador_municipal' | 'especialista';
 
 const ROLE_LABELS: Record<AppRole, string> = {
   admin: 'Administrador',
+  admin_master: 'Admin Master',
   lider_tematico: 'Líder Temático',
   curador_municipal: 'Curador Municipal',
   especialista: 'Especialista',
@@ -25,18 +29,39 @@ const ROLE_LABELS: Record<AppRole, string> = {
 
 const ROLE_COLORS: Record<AppRole, string> = {
   admin: 'bg-destructive text-destructive-foreground',
-  lider_tematico: 'bg-primary text-primary-foreground',
+  admin_master: 'bg-primary text-primary-foreground',
+  lider_tematico: 'bg-blue-600 text-white',
   curador_municipal: 'bg-accent text-accent-foreground',
   especialista: 'bg-secondary text-secondary-foreground',
 };
 
+// Roles that can be assigned (not admin_master)
+const ASSIGNABLE_ROLES: AppRole[] = ['admin', 'lider_tematico', 'curador_municipal', 'especialista'];
+
+// Roles that require eixo assignment
+const ROLES_REQUIRING_EIXOS: AppRole[] = ['lider_tematico', 'curador_municipal', 'especialista'];
+
 const AdminUsuarios = () => {
-  const { user, isAdmin, isLoading: authLoading } = useAuth();
+  const { user, isAdmin, isAdminMaster, isLoading: authLoading } = useAuth();
   const navigate = useNavigate();
   const { toast } = useToast();
   const queryClient = useQueryClient();
+  
+  // State for role management
   const [selectedUserId, setSelectedUserId] = useState<string | null>(null);
   const [newRole, setNewRole] = useState<AppRole | ''>('');
+
+  // State for new user form
+  const [showCreateForm, setShowCreateForm] = useState(false);
+  const [newUserData, setNewUserData] = useState({
+    full_name: '',
+    email: '',
+    celular: '',
+    cargo: '',
+    password: '',
+  });
+  const [selectedRoles, setSelectedRoles] = useState<AppRole[]>([]);
+  const [selectedEixos, setSelectedEixos] = useState<string[]>([]);
 
   // Fetch all profiles
   const { data: profiles, isLoading: profilesLoading } = useQuery({
@@ -49,7 +74,7 @@ const AdminUsuarios = () => {
       if (error) throw error;
       return data;
     },
-    enabled: isAdmin,
+    enabled: isAdmin || isAdminMaster,
   });
 
   // Fetch all user roles
@@ -62,7 +87,68 @@ const AdminUsuarios = () => {
       if (error) throw error;
       return data;
     },
-    enabled: isAdmin,
+    enabled: isAdmin || isAdminMaster,
+  });
+
+  // Fetch all eixos
+  const { data: eixos } = useQuery({
+    queryKey: ['eixos-tematicos'],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('eixos_tematicos')
+        .select('*')
+        .order('nome');
+      if (error) throw error;
+      return data;
+    },
+    enabled: isAdminMaster,
+  });
+
+  // Fetch user_eixos relationships
+  const { data: userEixos } = useQuery({
+    queryKey: ['user-eixos'],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('user_eixos')
+        .select('*');
+      if (error) throw error;
+      return data;
+    },
+    enabled: isAdminMaster,
+  });
+
+  // Create user mutation
+  const createUserMutation = useMutation({
+    mutationFn: async (data: {
+      email: string;
+      password: string;
+      full_name: string;
+      celular?: string;
+      cargo?: string;
+      roles: string[];
+      eixo_ids: string[];
+    }) => {
+      const { data: result, error } = await supabase.functions.invoke('admin-create-user', {
+        body: data,
+      });
+      if (error) throw error;
+      if (result.error) throw new Error(result.error);
+      return result;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['admin-profiles'] });
+      queryClient.invalidateQueries({ queryKey: ['admin-user-roles'] });
+      queryClient.invalidateQueries({ queryKey: ['user-eixos'] });
+      toast({ title: 'Usuário criado com sucesso!' });
+      resetCreateForm();
+    },
+    onError: (error: any) => {
+      toast({
+        title: 'Erro ao criar usuário',
+        description: error.message,
+        variant: 'destructive',
+      });
+    },
   });
 
   // Add role mutation
@@ -111,6 +197,75 @@ const AdminUsuarios = () => {
     },
   });
 
+  const resetCreateForm = () => {
+    setShowCreateForm(false);
+    setNewUserData({
+      full_name: '',
+      email: '',
+      celular: '',
+      cargo: '',
+      password: '',
+    });
+    setSelectedRoles([]);
+    setSelectedEixos([]);
+  };
+
+  const handleCreateUser = () => {
+    if (!newUserData.full_name || !newUserData.email || !newUserData.password) {
+      toast({
+        title: 'Campos obrigatórios',
+        description: 'Preencha nome, email e senha',
+        variant: 'destructive',
+      });
+      return;
+    }
+
+    if (selectedRoles.length === 0) {
+      toast({
+        title: 'Função obrigatória',
+        description: 'Selecione pelo menos uma função',
+        variant: 'destructive',
+      });
+      return;
+    }
+
+    const needsEixos = selectedRoles.some(r => ROLES_REQUIRING_EIXOS.includes(r));
+    if (needsEixos && selectedEixos.length === 0) {
+      toast({
+        title: 'Eixos obrigatórios',
+        description: 'Selecione pelo menos um eixo temático',
+        variant: 'destructive',
+      });
+      return;
+    }
+
+    createUserMutation.mutate({
+      email: newUserData.email,
+      password: newUserData.password,
+      full_name: newUserData.full_name,
+      celular: newUserData.celular || undefined,
+      cargo: newUserData.cargo || undefined,
+      roles: selectedRoles,
+      eixo_ids: selectedEixos,
+    });
+  };
+
+  const toggleRole = (role: AppRole) => {
+    setSelectedRoles(prev =>
+      prev.includes(role)
+        ? prev.filter(r => r !== role)
+        : [...prev, role]
+    );
+  };
+
+  const toggleEixo = (eixoId: string) => {
+    setSelectedEixos(prev =>
+      prev.includes(eixoId)
+        ? prev.filter(e => e !== eixoId)
+        : [...prev, eixoId]
+    );
+  };
+
   if (authLoading) {
     return (
       <div className="min-h-screen flex items-center justify-center">
@@ -119,7 +274,7 @@ const AdminUsuarios = () => {
     );
   }
 
-  if (!user || !isAdmin) {
+  if (!user || (!isAdmin && !isAdminMaster)) {
     navigate('/admin');
     return null;
   }
@@ -128,8 +283,16 @@ const AdminUsuarios = () => {
     return userRoles?.filter(r => r.user_id === userId).map(r => r.role as AppRole) || [];
   };
 
+  const getUserEixos = (userId: string): string[] => {
+    return userEixos?.filter(ue => ue.user_id === userId).map(ue => {
+      const eixo = eixos?.find(e => e.id === ue.eixo_id);
+      return eixo?.nome || '';
+    }).filter(Boolean) || [];
+  };
+
   // Calculate stats
   const totalUsers = profiles?.length || 0;
+  const adminMasterCount = userRoles?.filter(r => r.role === 'admin_master').length || 0;
   const adminCount = userRoles?.filter(r => r.role === 'admin').length || 0;
   const leaderCount = userRoles?.filter(r => r.role === 'lider_tematico').length || 0;
   const curatorCount = userRoles?.filter(r => r.role === 'curador_municipal').length || 0;
@@ -137,6 +300,7 @@ const AdminUsuarios = () => {
 
   // Chart data
   const roleDistributionData = [
+    { name: 'Admin Master', value: adminMasterCount },
     { name: 'Administradores', value: adminCount },
     { name: 'Líderes Temáticos', value: leaderCount },
     { name: 'Curadores Municipais', value: curatorCount },
@@ -158,30 +322,204 @@ const AdminUsuarios = () => {
   };
 
   const isLoading = profilesLoading || rolesLoading;
+  const needsEixoSelection = selectedRoles.some(r => ROLES_REQUIRING_EIXOS.includes(r));
 
   return (
     <div className="min-h-screen bg-background">
       {/* Header */}
       <header className="bg-card border-b border-border">
         <div className="container mx-auto px-4 py-4">
-          <div className="flex items-center gap-4">
-            <Link to="/admin">
-              <Button variant="ghost" size="icon">
-                <ArrowLeft className="h-5 w-5" />
-              </Button>
-            </Link>
-            <div>
-              <h1 className="text-2xl font-bold text-foreground">Gestão de Usuários</h1>
-              <p className="text-muted-foreground">Gerencie usuários e suas permissões</p>
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-4">
+              <Link to="/admin">
+                <Button variant="ghost" size="icon">
+                  <ArrowLeft className="h-5 w-5" />
+                </Button>
+              </Link>
+              <div>
+                <h1 className="text-2xl font-bold text-foreground">Gestão de Usuários</h1>
+                <p className="text-muted-foreground">
+                  {isAdminMaster ? 'Cadastre e gerencie usuários e permissões' : 'Visualize usuários e permissões'}
+                </p>
+              </div>
             </div>
+            {isAdminMaster && (
+              <Button onClick={() => setShowCreateForm(!showCreateForm)} className="gap-2">
+                <UserPlus className="h-4 w-4" />
+                Cadastrar Usuário
+              </Button>
+            )}
           </div>
         </div>
       </header>
 
       <main className="container mx-auto px-4 py-8">
+        {/* Access Restricted Message for non-admin_master */}
+        {!isAdminMaster && (
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            className="mb-8"
+          >
+            <Card className="border-amber-500/50 bg-amber-500/10">
+              <CardContent className="pt-6">
+                <div className="flex items-center gap-3">
+                  <Lock className="h-6 w-6 text-amber-500" />
+                  <div>
+                    <p className="font-semibold text-foreground">Acesso Limitado</p>
+                    <p className="text-muted-foreground text-sm">
+                      Apenas usuários com perfil Admin Master podem cadastrar novos usuários e gerenciar eixos de acesso.
+                    </p>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          </motion.div>
+        )}
+
+        {/* Create User Form - Only for admin_master */}
+        {isAdminMaster && showCreateForm && (
+          <motion.div
+            initial={{ opacity: 0, height: 0 }}
+            animate={{ opacity: 1, height: 'auto' }}
+            exit={{ opacity: 0, height: 0 }}
+            className="mb-8"
+          >
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <UserPlus className="h-5 w-5" />
+                  Cadastrar Novo Usuário
+                </CardTitle>
+                <CardDescription>
+                  Preencha os dados do novo usuário, selecione suas funções e eixos de acesso.
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-6">
+                {/* Identification Fields */}
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div>
+                    <Label htmlFor="full_name">Nome Completo *</Label>
+                    <Input
+                      id="full_name"
+                      value={newUserData.full_name}
+                      onChange={(e) => setNewUserData(prev => ({ ...prev, full_name: e.target.value }))}
+                      placeholder="Nome completo do usuário"
+                    />
+                  </div>
+                  <div>
+                    <Label htmlFor="email">Email *</Label>
+                    <Input
+                      id="email"
+                      type="email"
+                      value={newUserData.email}
+                      onChange={(e) => setNewUserData(prev => ({ ...prev, email: e.target.value }))}
+                      placeholder="email@exemplo.com"
+                    />
+                  </div>
+                  <div>
+                    <Label htmlFor="celular">Celular</Label>
+                    <Input
+                      id="celular"
+                      type="tel"
+                      value={newUserData.celular}
+                      onChange={(e) => setNewUserData(prev => ({ ...prev, celular: e.target.value }))}
+                      placeholder="(41) 99999-9999"
+                    />
+                  </div>
+                  <div>
+                    <Label htmlFor="cargo">Cargo/Função</Label>
+                    <Input
+                      id="cargo"
+                      value={newUserData.cargo}
+                      onChange={(e) => setNewUserData(prev => ({ ...prev, cargo: e.target.value }))}
+                      placeholder="Ex: Coordenador de Saúde"
+                    />
+                  </div>
+                  <div className="md:col-span-2">
+                    <Label htmlFor="password">Senha Temporária *</Label>
+                    <Input
+                      id="password"
+                      type="password"
+                      value={newUserData.password}
+                      onChange={(e) => setNewUserData(prev => ({ ...prev, password: e.target.value }))}
+                      placeholder="Senha que o usuário usará no primeiro acesso"
+                    />
+                  </div>
+                </div>
+
+                {/* Roles Selection */}
+                <div>
+                  <Label className="mb-3 block">Funções *</Label>
+                  <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+                    {ASSIGNABLE_ROLES.map((role) => (
+                      <div
+                        key={role}
+                        className={`flex items-center gap-2 p-3 rounded-lg border cursor-pointer transition-colors ${
+                          selectedRoles.includes(role)
+                            ? 'border-primary bg-primary/10'
+                            : 'border-border hover:border-primary/50'
+                        }`}
+                        onClick={() => toggleRole(role)}
+                      >
+                        <Checkbox
+                          checked={selectedRoles.includes(role)}
+                          onCheckedChange={() => toggleRole(role)}
+                        />
+                        <span className="text-sm font-medium">{ROLE_LABELS[role]}</span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+
+                {/* Eixos Selection - Only show if role requires it */}
+                {needsEixoSelection && (
+                  <div>
+                    <Label className="mb-3 block">
+                      Eixos Temáticos (acesso permitido) *
+                    </Label>
+                    <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+                      {eixos?.map((eixo) => (
+                        <div
+                          key={eixo.id}
+                          className={`flex items-center gap-2 p-3 rounded-lg border cursor-pointer transition-colors ${
+                            selectedEixos.includes(eixo.id)
+                              ? 'border-primary bg-primary/10'
+                              : 'border-border hover:border-primary/50'
+                          }`}
+                          onClick={() => toggleEixo(eixo.id)}
+                        >
+                          <Checkbox
+                            checked={selectedEixos.includes(eixo.id)}
+                            onCheckedChange={() => toggleEixo(eixo.id)}
+                          />
+                          <span className="text-sm font-medium">{eixo.nome}</span>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                {/* Action Buttons */}
+                <div className="flex justify-end gap-3">
+                  <Button variant="outline" onClick={resetCreateForm}>
+                    Cancelar
+                  </Button>
+                  <Button
+                    onClick={handleCreateUser}
+                    disabled={createUserMutation.isPending}
+                  >
+                    {createUserMutation.isPending ? 'Cadastrando...' : 'Cadastrar Usuário'}
+                  </Button>
+                </div>
+              </CardContent>
+            </Card>
+          </motion.div>
+        )}
+
         {/* Stats Cards */}
         <motion.div 
-          className="grid grid-cols-2 md:grid-cols-5 gap-4 mb-8"
+          className="grid grid-cols-2 md:grid-cols-6 gap-4 mb-8"
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
         >
@@ -192,6 +530,17 @@ const AdminUsuarios = () => {
                 <div>
                   <p className="text-2xl font-bold">{totalUsers}</p>
                   <p className="text-sm text-muted-foreground">Total</p>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+          <Card>
+            <CardContent className="pt-6">
+              <div className="flex items-center gap-3">
+                <Shield className="h-8 w-8 text-primary" />
+                <div>
+                  <p className="text-2xl font-bold">{adminMasterCount}</p>
+                  <p className="text-sm text-muted-foreground">Master</p>
                 </div>
               </div>
             </CardContent>
@@ -210,7 +559,7 @@ const AdminUsuarios = () => {
           <Card>
             <CardContent className="pt-6">
               <div className="flex items-center gap-3">
-                <UserCheck className="h-8 w-8 text-primary" />
+                <UserCheck className="h-8 w-8 text-blue-500" />
                 <div>
                   <p className="text-2xl font-bold">{leaderCount}</p>
                   <p className="text-sm text-muted-foreground">Líderes</p>
@@ -299,84 +648,105 @@ const AdminUsuarios = () => {
                   Nenhum usuário cadastrado
                 </p>
               ) : (
-                <Table>
-                  <TableHeader>
-                    <TableRow>
-                      <TableHead>Nome</TableHead>
-                      <TableHead>Email</TableHead>
-                      <TableHead>Roles</TableHead>
-                      <TableHead>Adicionar Role</TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {profiles?.map((profile) => {
-                      const roles = getUserRoles(profile.id);
-                      return (
-                        <TableRow key={profile.id}>
-                          <TableCell className="font-medium">
-                            {profile.full_name || 'Sem nome'}
-                          </TableCell>
-                          <TableCell>{profile.email}</TableCell>
-                          <TableCell>
-                            <div className="flex flex-wrap gap-1">
-                              {roles.length === 0 ? (
-                                <span className="text-muted-foreground text-sm">Sem roles</span>
-                              ) : (
-                                roles.map((role) => (
-                                  <Badge 
-                                    key={role} 
-                                    className={`${ROLE_COLORS[role]} cursor-pointer`}
-                                    onClick={() => {
-                                      if (confirm(`Remover role "${ROLE_LABELS[role]}"?`)) {
-                                        removeRoleMutation.mutate({ userId: profile.id, role });
-                                      }
+                <div className="overflow-x-auto">
+                  <Table>
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead>Nome</TableHead>
+                        <TableHead>Email</TableHead>
+                        <TableHead>Roles</TableHead>
+                        {isAdminMaster && <TableHead>Eixos</TableHead>}
+                        {isAdminMaster && <TableHead>Adicionar Role</TableHead>}
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {profiles?.map((profile) => {
+                        const roles = getUserRoles(profile.id);
+                        const eixosNomes = isAdminMaster ? getUserEixos(profile.id) : [];
+                        return (
+                          <TableRow key={profile.id}>
+                            <TableCell className="font-medium">
+                              {profile.full_name || 'Sem nome'}
+                            </TableCell>
+                            <TableCell>{profile.email}</TableCell>
+                            <TableCell>
+                              <div className="flex flex-wrap gap-1">
+                                {roles.length === 0 ? (
+                                  <span className="text-muted-foreground text-sm">Sem roles</span>
+                                ) : (
+                                  roles.map((role) => (
+                                    <Badge 
+                                      key={role} 
+                                      className={`${ROLE_COLORS[role]} ${isAdminMaster ? 'cursor-pointer' : ''}`}
+                                      onClick={() => {
+                                        if (isAdminMaster && confirm(`Remover role "${ROLE_LABELS[role]}"?`)) {
+                                          removeRoleMutation.mutate({ userId: profile.id, role });
+                                        }
+                                      }}
+                                    >
+                                      {ROLE_LABELS[role]}
+                                      {isAdminMaster && <Trash2 className="h-3 w-3 ml-1" />}
+                                    </Badge>
+                                  ))
+                                )}
+                              </div>
+                            </TableCell>
+                            {isAdminMaster && (
+                              <TableCell>
+                                <div className="flex flex-wrap gap-1">
+                                  {eixosNomes.length === 0 ? (
+                                    <span className="text-muted-foreground text-sm">-</span>
+                                  ) : (
+                                    eixosNomes.map((nome) => (
+                                      <Badge key={nome} variant="outline" className="text-xs">
+                                        {nome}
+                                      </Badge>
+                                    ))
+                                  )}
+                                </div>
+                              </TableCell>
+                            )}
+                            {isAdminMaster && (
+                              <TableCell>
+                                <div className="flex gap-2">
+                                  <Select
+                                    value={selectedUserId === profile.id ? newRole : ''}
+                                    onValueChange={(value) => {
+                                      setSelectedUserId(profile.id);
+                                      setNewRole(value as AppRole);
                                     }}
                                   >
-                                    {ROLE_LABELS[role]}
-                                    <Trash2 className="h-3 w-3 ml-1" />
-                                  </Badge>
-                                ))
-                              )}
-                            </div>
-                          </TableCell>
-                          <TableCell>
-                            <div className="flex gap-2">
-                              <Select
-                                value={selectedUserId === profile.id ? newRole : ''}
-                                onValueChange={(value) => {
-                                  setSelectedUserId(profile.id);
-                                  setNewRole(value as AppRole);
-                                }}
-                              >
-                                <SelectTrigger className="w-[180px]">
-                                  <SelectValue placeholder="Selecionar role" />
-                                </SelectTrigger>
-                                <SelectContent>
-                                  {Object.entries(ROLE_LABELS)
-                                    .filter(([key]) => !roles.includes(key as AppRole))
-                                    .map(([key, label]) => (
-                                      <SelectItem key={key} value={key}>
-                                        {label}
-                                      </SelectItem>
-                                    ))}
-                                </SelectContent>
-                              </Select>
-                              {selectedUserId === profile.id && newRole && (
-                                <Button 
-                                  size="icon" 
-                                  onClick={handleAddRole}
-                                  disabled={addRoleMutation.isPending}
-                                >
-                                  <Plus className="h-4 w-4" />
-                                </Button>
-                              )}
-                            </div>
-                          </TableCell>
-                        </TableRow>
-                      );
-                    })}
-                  </TableBody>
-                </Table>
+                                    <SelectTrigger className="w-[180px]">
+                                      <SelectValue placeholder="Selecionar role" />
+                                    </SelectTrigger>
+                                    <SelectContent>
+                                      {ASSIGNABLE_ROLES
+                                        .filter((key) => !roles.includes(key))
+                                        .map((key) => (
+                                          <SelectItem key={key} value={key}>
+                                            {ROLE_LABELS[key]}
+                                          </SelectItem>
+                                        ))}
+                                    </SelectContent>
+                                  </Select>
+                                  {selectedUserId === profile.id && newRole && (
+                                    <Button 
+                                      size="icon" 
+                                      onClick={handleAddRole}
+                                      disabled={addRoleMutation.isPending}
+                                    >
+                                      <Plus className="h-4 w-4" />
+                                    </Button>
+                                  )}
+                                </div>
+                              </TableCell>
+                            )}
+                          </TableRow>
+                        );
+                      })}
+                    </TableBody>
+                  </Table>
+                </div>
               )}
             </CardContent>
           </Card>
