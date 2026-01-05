@@ -65,10 +65,10 @@ const Header = () => {
                 onClick={() => scrollToSection("mapa")}
                 className={`text-sm font-medium transition-colors hover:text-primary ${isScrolled ? "text-foreground" : "text-primary-foreground"}`}
               >
-                Mapa
+                Municípios
               </button>
               <button
-                onClick={() => scrollToSection("indicadores")}
+                onClick={() => scrollToSection("dashboard")}
                 className={`text-sm font-medium transition-colors hover:text-primary ${isScrolled ? "text-foreground" : "text-primary-foreground"}`}
               >
                 Indicadores
@@ -124,10 +124,10 @@ const Header = () => {
                 onClick={() => scrollToSection("mapa")}
                 className="text-xl font-medium text-foreground hover:text-primary transition-colors"
               >
-                Mapa
+                Municípios
               </button>
               <button
-                onClick={() => scrollToSection("indicadores")}
+                onClick={() => scrollToSection("dashboard")}
                 className="text-xl font-medium text-foreground hover:text-primary transition-colors"
               >
                 Indicadores
