@@ -204,7 +204,7 @@ const Admin = () => {
               className="mb-8"
             >
               <a 
-                href="https://lovable.dev/projects/b68c5dbb-4a6d-4929-911b-8c8c89b73aa5" 
+                href="https://biz-ai-partners.lovable.app/admin" 
                 target="_blank" 
                 rel="noopener noreferrer"
                 className="block"
