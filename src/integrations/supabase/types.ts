@@ -348,6 +348,8 @@ export type Database = {
       }
       profiles: {
         Row: {
+          cargo: string | null
+          celular: string | null
           created_at: string
           email: string | null
           full_name: string | null
@@ -355,6 +357,8 @@ export type Database = {
           updated_at: string
         }
         Insert: {
+          cargo?: string | null
+          celular?: string | null
           created_at?: string
           email?: string | null
           full_name?: string | null
@@ -362,6 +366,8 @@ export type Database = {
           updated_at?: string
         }
         Update: {
+          cargo?: string | null
+          celular?: string | null
           created_at?: string
           email?: string | null
           full_name?: string | null
@@ -511,6 +517,35 @@ export type Database = {
           user_id?: string
         }
         Relationships: []
+      }
+      user_eixos: {
+        Row: {
+          created_at: string
+          eixo_id: string
+          id: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          eixo_id: string
+          id?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          eixo_id?: string
+          id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "user_eixos_eixo_id_fkey"
+            columns: ["eixo_id"]
+            isOneToOne: false
+            referencedRelation: "eixos_tematicos"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       user_roles: {
         Row: {
