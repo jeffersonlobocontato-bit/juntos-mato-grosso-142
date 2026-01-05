@@ -384,6 +384,7 @@ export type Database = {
           lider_responsavel_id: string | null
           metas: string | null
           municipio_id: string | null
+          questionario: Json | null
           status: Database["public"]["Enums"]["proposal_status"]
           titulo: string
           updated_at: string
@@ -401,6 +402,7 @@ export type Database = {
           lider_responsavel_id?: string | null
           metas?: string | null
           municipio_id?: string | null
+          questionario?: Json | null
           status?: Database["public"]["Enums"]["proposal_status"]
           titulo: string
           updated_at?: string
@@ -418,6 +420,7 @@ export type Database = {
           lider_responsavel_id?: string | null
           metas?: string | null
           municipio_id?: string | null
+          questionario?: Json | null
           status?: Database["public"]["Enums"]["proposal_status"]
           titulo?: string
           updated_at?: string
