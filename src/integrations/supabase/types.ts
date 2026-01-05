@@ -547,6 +547,35 @@ export type Database = {
           },
         ]
       }
+      user_municipios: {
+        Row: {
+          created_at: string
+          id: string
+          municipio_id: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          municipio_id: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          municipio_id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "user_municipios_municipio_id_fkey"
+            columns: ["municipio_id"]
+            isOneToOne: false
+            referencedRelation: "municipios"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       user_roles: {
         Row: {
           created_at: string

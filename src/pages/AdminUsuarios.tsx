@@ -39,7 +39,10 @@ const ROLE_COLORS: Record<AppRole, string> = {
 const ASSIGNABLE_ROLES: AppRole[] = ['admin', 'lider_tematico', 'curador_municipal', 'especialista'];
 
 // Roles that require eixo assignment
-const ROLES_REQUIRING_EIXOS: AppRole[] = ['lider_tematico', 'curador_municipal', 'especialista'];
+const ROLES_REQUIRING_EIXOS: AppRole[] = ['lider_tematico', 'especialista'];
+
+// Roles that require municipio assignment
+const ROLES_REQUIRING_MUNICIPIOS: AppRole[] = ['curador_municipal'];
 
 const AdminUsuarios = () => {
   const { user, isAdmin, isAdminMaster, isLoading: authLoading } = useAuth();
@@ -62,6 +65,7 @@ const AdminUsuarios = () => {
   });
   const [selectedRoles, setSelectedRoles] = useState<AppRole[]>([]);
   const [selectedEixos, setSelectedEixos] = useState<string[]>([]);
+  const [selectedMunicipios, setSelectedMunicipios] = useState<string[]>([]);
 
   // Fetch all profiles
   const { data: profiles, isLoading: profilesLoading } = useQuery({
@@ -104,7 +108,32 @@ const AdminUsuarios = () => {
     enabled: isAdminMaster,
   });
 
-  // Fetch user_eixos relationships
+  // Fetch all municipios
+  const { data: municipios } = useQuery({
+    queryKey: ['municipios'],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('municipios')
+        .select('id, nome')
+        .order('nome');
+      if (error) throw error;
+      return data;
+    },
+    enabled: isAdminMaster,
+  });
+
+  // Fetch user_municipios relationships
+  const { data: userMunicipios } = useQuery({
+    queryKey: ['user-municipios'],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('user_municipios')
+        .select('*');
+      if (error) throw error;
+      return data;
+    },
+    enabled: isAdminMaster,
+  });
   const { data: userEixos } = useQuery({
     queryKey: ['user-eixos'],
     queryFn: async () => {
@@ -117,7 +146,6 @@ const AdminUsuarios = () => {
     enabled: isAdminMaster,
   });
 
-  // Create user mutation
   const createUserMutation = useMutation({
     mutationFn: async (data: {
       email: string;
@@ -127,6 +155,7 @@ const AdminUsuarios = () => {
       cargo?: string;
       roles: string[];
       eixo_ids: string[];
+      municipio_ids?: string[];
     }) => {
       const { data: result, error } = await supabase.functions.invoke('admin-create-user', {
         body: data,
@@ -139,6 +168,7 @@ const AdminUsuarios = () => {
       queryClient.invalidateQueries({ queryKey: ['admin-profiles'] });
       queryClient.invalidateQueries({ queryKey: ['admin-user-roles'] });
       queryClient.invalidateQueries({ queryKey: ['user-eixos'] });
+      queryClient.invalidateQueries({ queryKey: ['user-municipios'] });
       toast({ title: 'Usuário criado com sucesso!' });
       resetCreateForm();
     },
@@ -208,6 +238,7 @@ const AdminUsuarios = () => {
     });
     setSelectedRoles([]);
     setSelectedEixos([]);
+    setSelectedMunicipios([]);
   };
 
   const handleCreateUser = () => {
@@ -239,6 +270,16 @@ const AdminUsuarios = () => {
       return;
     }
 
+    const needsMunicipios = selectedRoles.some(r => ROLES_REQUIRING_MUNICIPIOS.includes(r));
+    if (needsMunicipios && selectedMunicipios.length === 0) {
+      toast({
+        title: 'Municípios obrigatórios',
+        description: 'Selecione pelo menos um município',
+        variant: 'destructive',
+      });
+      return;
+    }
+
     createUserMutation.mutate({
       email: newUserData.email,
       password: newUserData.password,
@@ -247,6 +288,7 @@ const AdminUsuarios = () => {
       cargo: newUserData.cargo || undefined,
       roles: selectedRoles,
       eixo_ids: selectedEixos,
+      municipio_ids: needsMunicipios ? selectedMunicipios : undefined,
     });
   };
 
@@ -263,6 +305,14 @@ const AdminUsuarios = () => {
       prev.includes(eixoId)
         ? prev.filter(e => e !== eixoId)
         : [...prev, eixoId]
+    );
+  };
+
+  const toggleMunicipio = (municipioId: string) => {
+    setSelectedMunicipios(prev =>
+      prev.includes(municipioId)
+        ? prev.filter(m => m !== municipioId)
+        : [...prev, municipioId]
     );
   };
 
@@ -500,7 +550,44 @@ const AdminUsuarios = () => {
                   </div>
                 )}
 
-                {/* Action Buttons */}
+                {/* Municipios Selection - Only show if curador_municipal role is selected */}
+                {selectedRoles.includes('curador_municipal') && (
+                  <div>
+                    <Label className="mb-3 block">
+                      Municípios (acesso permitido) *
+                    </Label>
+                    <p className="text-sm text-muted-foreground mb-3">
+                      Selecione os municípios que este curador poderá gerenciar.
+                    </p>
+                    <div className="max-h-60 overflow-y-auto border rounded-lg p-2">
+                      <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
+                        {municipios?.map((municipio) => (
+                          <div
+                            key={municipio.id}
+                            className={`flex items-center gap-2 p-2 rounded-lg border cursor-pointer transition-colors ${
+                              selectedMunicipios.includes(municipio.id)
+                                ? 'border-primary bg-primary/10'
+                                : 'border-border hover:border-primary/50'
+                            }`}
+                            onClick={() => toggleMunicipio(municipio.id)}
+                          >
+                            <Checkbox
+                              checked={selectedMunicipios.includes(municipio.id)}
+                              onCheckedChange={() => toggleMunicipio(municipio.id)}
+                            />
+                            <span className="text-xs font-medium truncate">{municipio.nome}</span>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                    {selectedMunicipios.length > 0 && (
+                      <p className="text-sm text-muted-foreground mt-2">
+                        {selectedMunicipios.length} município(s) selecionado(s)
+                      </p>
+                    )}
+                  </div>
+                )}
+
                 <div className="flex justify-end gap-3">
                   <Button variant="outline" onClick={resetCreateForm}>
                     Cancelar

@@ -80,13 +80,18 @@ interface Profile {
 }
 
 const AdminMensageria = () => {
-  const { user, roles, isLoading: authLoading, isAdmin } = useAuth();
+  const { user, roles, isLoading: authLoading, isAdmin, hasRole } = useAuth();
   const navigate = useNavigate();
+
+  const isLiderTematico = hasRole('lider_tematico');
+  const canAccess = isAdmin || isLiderTematico;
 
   const [activeTab, setActiveTab] = useState('inactivos');
   const [inactiveUsers, setInactiveUsers] = useState<InactiveUser[]>([]);
   const [messages, setMessages] = useState<AdminMessage[]>([]);
   const [allUsers, setAllUsers] = useState<Profile[]>([]);
+  const [userEixos, setUserEixos] = useState<string[]>([]);
+  const [eixosUsers, setEixosUsers] = useState<string[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [selectedUsers, setSelectedUsers] = useState<string[]>([]);
   const [messageSubject, setMessageSubject] = useState('');
@@ -104,10 +109,10 @@ const AdminMensageria = () => {
   }, [user, authLoading, navigate]);
 
   useEffect(() => {
-    if (user && isAdmin) {
+    if (user && canAccess) {
       fetchData();
     }
-  }, [user, isAdmin]);
+  }, [user, canAccess]);
 
   const fetchData = async () => {
     setIsLoading(true);
@@ -154,6 +159,43 @@ const AdminMensageria = () => {
   };
 
   const fetchAllUsers = async () => {
+    // First, get current user's eixos if lider_tematico
+    if (isLiderTematico && !isAdmin && user) {
+      const { data: myEixos } = await supabase
+        .from('user_eixos')
+        .select('eixo_id')
+        .eq('user_id', user.id);
+      
+      const eixoIds = myEixos?.map(e => e.eixo_id) || [];
+      setUserEixos(eixoIds);
+
+      if (eixoIds.length > 0) {
+        // Get users that belong to these eixos
+        const { data: usersInEixos } = await supabase
+          .from('user_eixos')
+          .select('user_id')
+          .in('eixo_id', eixoIds);
+        
+        const userIds = [...new Set(usersInEixos?.map(u => u.user_id) || [])];
+        setEixosUsers(userIds);
+
+        // Fetch only those profiles
+        if (userIds.length > 0) {
+          const { data, error } = await supabase
+            .from('profiles')
+            .select('id, full_name, email')
+            .in('id', userIds)
+            .order('full_name');
+
+          if (!error && data) {
+            setAllUsers(data);
+          }
+        }
+        return;
+      }
+    }
+
+    // For admins, fetch all users
     const { data, error } = await supabase
       .from('profiles')
       .select('id, full_name, email')
@@ -339,7 +381,7 @@ Equipe Rota 399`;
     );
   }
 
-  if (!isAdmin) {
+  if (!canAccess) {
     return (
       <div className="min-h-screen bg-muted/20 flex items-center justify-center">
         <Card className="max-w-md">
@@ -347,7 +389,7 @@ Equipe Rota 399`;
             <AlertTriangle className="w-12 h-12 text-destructive mx-auto mb-4" />
             <h2 className="text-xl font-bold mb-2">Acesso Restrito</h2>
             <p className="text-muted-foreground mb-4">
-              Esta área é restrita a administradores.
+              Esta área é restrita a administradores e líderes temáticos.
             </p>
             <Button onClick={() => navigate('/admin')}>
               Voltar ao Painel
