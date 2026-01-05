@@ -54,17 +54,25 @@ const Admin = () => {
   const menuItems = [
     { 
       icon: BarChart3, 
-      title: 'Dashboard', 
-      description: 'Visualize métricas e indicadores',
+      title: 'Meu Painel', 
+      description: 'Dashboard personalizado por escopo',
+      href: '/admin/meu-painel',
+      color: 'primary',
+      roles: ['admin', 'lider_tematico', 'curador_municipal', 'especialista']
+    },
+    { 
+      icon: BarChart3, 
+      title: 'Dashboard Público', 
+      description: 'Visualize métricas agregadas',
       href: '/dashboard',
-      color: 'primary'
+      color: 'secondary'
     },
     { 
       icon: FileText, 
       title: 'Propostas Técnicas', 
       description: 'Gerenciar propostas dos especialistas',
       href: '/admin/propostas',
-      color: 'secondary',
+      color: 'primary',
       roles: ['admin', 'lider_tematico', 'curador_municipal', 'especialista']
     },
     { 
@@ -113,7 +121,7 @@ const Admin = () => {
       description: 'Alertas e comunicação com membros',
       href: '/admin/mensageria',
       color: 'accent',
-      roles: ['admin']
+      roles: ['admin', 'lider_tematico']
     },
     { 
       icon: Sparkles, 

@@ -13,6 +13,7 @@ interface CreateUserRequest {
   cargo?: string;
   roles: string[];
   eixo_ids: string[];
+  municipio_ids?: string[];
 }
 
 Deno.serve(async (req) => {
@@ -94,12 +95,21 @@ Deno.serve(async (req) => {
     }
 
     // Check if roles requiring eixos have eixos selected
-    const rolesRequiringEixos = ["lider_tematico", "curador_municipal", "especialista"];
+    const rolesRequiringEixos = ["lider_tematico", "especialista"];
     const hasRoleRequiringEixo = body.roles.some(r => rolesRequiringEixos.includes(r));
     
     if (hasRoleRequiringEixo && (!body.eixo_ids || body.eixo_ids.length === 0)) {
       return new Response(
-        JSON.stringify({ error: "Eixos são obrigatórios para líderes, curadores e especialistas" }),
+        JSON.stringify({ error: "Eixos são obrigatórios para líderes e especialistas" }),
+        { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
+    // Check if curador_municipal has municipios selected
+    const hasCuradorRole = body.roles.includes("curador_municipal");
+    if (hasCuradorRole && (!body.municipio_ids || body.municipio_ids.length === 0)) {
+      return new Response(
+        JSON.stringify({ error: "Municípios são obrigatórios para curadores municipais" }),
         { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
@@ -178,6 +188,25 @@ Deno.serve(async (req) => {
         // Non-fatal, continue
       } else {
         console.log("Eixos assigned:", body.eixo_ids);
+      }
+    }
+
+    // Insert municipio relationships for curador_municipal
+    if (body.municipio_ids && body.municipio_ids.length > 0) {
+      const municipioInserts = body.municipio_ids.map(municipio_id => ({
+        user_id: newUser.user.id,
+        municipio_id,
+      }));
+
+      const { error: municipiosError } = await supabaseAdmin
+        .from("user_municipios")
+        .insert(municipioInserts);
+
+      if (municipiosError) {
+        console.error("Error inserting municipios:", municipiosError);
+        // Non-fatal, continue
+      } else {
+        console.log("Municipios assigned:", body.municipio_ids);
       }
     }
 
