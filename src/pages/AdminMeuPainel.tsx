@@ -1,509 +1,603 @@
-import { useState, useEffect } from 'react';
-import { useNavigate, Link } from 'react-router-dom';
-import { motion } from 'framer-motion';
-import { useAuth } from '@/hooks/useAuth';
-import { useUserAccess } from '@/hooks/useUserAccess';
-import { supabase } from '@/integrations/supabase/client';
-import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
-import { Badge } from '@/components/ui/badge';
+import { useState, useMemo } from "react";
+import { useAuth } from "@/hooks/useAuth";
+import { useUserAccess } from "@/hooks/useUserAccess";
+import { supabase } from "@/integrations/supabase/client";
+import { useQuery } from "@tanstack/react-query";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { StatCard } from "@/components/admin/StatCard";
+import AdminPieChart from "@/components/admin/AdminPieChart";
+import { HorizontalBarChart } from "@/components/admin/HorizontalBarChart";
+import { StackedAreaChart } from "@/components/admin/StackedAreaChart";
+import { TopMunicipiosCard } from "@/components/admin/TopMunicipiosCard";
+import { RecentActivityFeed } from "@/components/admin/RecentActivityFeed";
+import { LeadsOriginChart } from "@/components/admin/LeadsOriginChart";
 import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from '@/components/ui/table';
-import AdminPieChart from '@/components/admin/AdminPieChart';
-import TimelineChart from '@/components/admin/TimelineChart';
-import { 
-  ArrowLeft, 
-  FileText, 
-  Users, 
+  FileText,
+  Users,
   Target,
+  UserCheck,
+  Eye,
+  Globe,
+  TrendingUp,
   MapPin,
-  BarChart3,
-  ExternalLink,
-  Eye
-} from 'lucide-react';
-import { format } from 'date-fns';
-import { ptBR } from 'date-fns/locale';
+  RefreshCw,
+  Smartphone,
+  Monitor,
+  Tablet,
+} from "lucide-react";
+import { format, subDays, subMonths, startOfDay, eachDayOfInterval, eachWeekOfInterval, eachMonthOfInterval } from "date-fns";
+import { ptBR } from "date-fns/locale";
 
-interface Proposal {
-  id: string;
-  titulo: string;
-  descricao: string;
-  status: string;
-  created_at: string;
-  eixo_id: string;
-  municipio_id: string | null;
-  autor_id: string;
-}
+type PeriodFilter = "7d" | "30d" | "6m" | "12m" | "all";
 
-interface Sugestao {
-  id: string;
-  descricao: string;
-  eixo: string;
-  municipio: string;
-  created_at: string;
-}
-
-interface Lead {
-  id: string;
-  nome: string | null;
-  email: string | null;
-  municipio: string | null;
-  origem: string;
-  created_at: string;
-}
-
-interface Eixo {
-  id: string;
-  nome: string;
-}
-
-interface Municipio {
-  id: string;
-  nome: string;
-}
-
-const statusColors: Record<string, string> = {
-  rascunho: 'bg-muted text-muted-foreground',
-  validada: 'bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200',
-  consolidada: 'bg-amber-100 text-amber-800 dark:bg-amber-900 dark:text-amber-200',
-  aprovada: 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200',
+const getRoleBadge = (roles: string[]) => {
+  if (roles.includes("admin_master")) return { label: "Admin Master", variant: "destructive" as const };
+  if (roles.includes("admin")) return { label: "Administrador", variant: "default" as const };
+  if (roles.includes("lider_tematico")) return { label: "Líder Temático", variant: "secondary" as const };
+  if (roles.includes("curador_municipal")) return { label: "Curador Municipal", variant: "outline" as const };
+  if (roles.includes("especialista")) return { label: "Especialista", variant: "outline" as const };
+  return { label: "Usuário", variant: "outline" as const };
 };
 
-const statusLabels: Record<string, string> = {
-  rascunho: 'Rascunho',
-  validada: 'Validada',
-  consolidada: 'Consolidada',
-  aprovada: 'Aprovada',
-};
+export default function AdminMeuPainel() {
+  const { roles } = useAuth();
+  const { userEixos, userMunicipios, isAdmin, isLiderTematico: isLider, isCuradorMunicipal: isCurador, getEixoIds, getMunicipioIds } = useUserAccess();
+  const [period, setPeriod] = useState<PeriodFilter>("30d");
+  const roleBadge = getRoleBadge(roles);
 
-const AdminMeuPainel = () => {
-  const { user, isLoading: authLoading } = useAuth();
-  const { 
-    isLoading: accessLoading, 
-    userEixos, 
-    userMunicipios, 
-    getAccessType, 
-    getEixoIds,
-    getMunicipioIds,
-    isAdmin,
-    isAdminMaster,
-    isLiderTematico,
-    isCuradorMunicipal,
-    isEspecialista,
-    userId
-  } = useUserAccess();
-  const navigate = useNavigate();
-
-  const [proposals, setProposals] = useState<Proposal[]>([]);
-  const [sugestoes, setSugestoes] = useState<Sugestao[]>([]);
-  const [leads, setLeads] = useState<Lead[]>([]);
-  const [eixos, setEixos] = useState<Eixo[]>([]);
-  const [municipios, setMunicipios] = useState<Municipio[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
-
-  const accessType = getAccessType();
-
-  useEffect(() => {
-    if (!authLoading && !user) {
-      navigate('/auth');
-    }
-  }, [user, authLoading, navigate]);
-
-  useEffect(() => {
-    if (user && !accessLoading) {
-      fetchData();
-    }
-  }, [user, accessLoading, userEixos, userMunicipios]);
-
-  const fetchData = async () => {
-    setIsLoading(true);
-    try {
-      // Fetch eixos and municipios for reference
-      const [eixosRes, municipiosRes] = await Promise.all([
-        supabase.from('eixos_tematicos').select('id, nome'),
-        supabase.from('municipios').select('id, nome')
-      ]);
-      
-      if (eixosRes.data) setEixos(eixosRes.data);
-      if (municipiosRes.data) setMunicipios(municipiosRes.data);
-
-      // Build filtered queries based on access type
-      let proposalsQuery = supabase.from('propostas_tecnicas').select('*').order('created_at', { ascending: false });
-      let sugestoesQuery = supabase.from('sugestoes_populares').select('*').order('created_at', { ascending: false });
-      let leadsQuery = supabase.from('leads').select('*').order('created_at', { ascending: false });
-
-      // Apply filters based on access type
-      if (accessType === 'eixo') {
-        const eixoIds = getEixoIds();
-        const eixoNomes = userEixos.map(e => e.eixo_nome).filter(Boolean);
-        
-        proposalsQuery = proposalsQuery.in('eixo_id', eixoIds);
-        if (eixoNomes.length > 0) {
-          sugestoesQuery = sugestoesQuery.in('eixo', eixoNomes);
-        }
-      } else if (accessType === 'municipio') {
-        const municipioIds = getMunicipioIds();
-        const municipioNomes = userMunicipios.map(m => m.municipio_nome).filter(Boolean);
-        
-        proposalsQuery = proposalsQuery.in('municipio_id', municipioIds);
-        if (municipioNomes.length > 0) {
-          sugestoesQuery = sugestoesQuery.in('municipio', municipioNomes);
-          leadsQuery = leadsQuery.in('municipio', municipioNomes);
-        }
-      } else if (accessType === 'own') {
-        proposalsQuery = proposalsQuery.eq('autor_id', userId!);
-        // Especialistas não veem sugestões ou leads
-        setSugestoes([]);
-        setLeads([]);
-      }
-
-      // Execute queries
-      const [proposalsRes, sugestoesRes, leadsRes] = await Promise.all([
-        proposalsQuery.limit(100),
-        accessType !== 'own' ? sugestoesQuery.limit(100) : Promise.resolve({ data: [] }),
-        accessType !== 'own' ? leadsQuery.limit(100) : Promise.resolve({ data: [] }),
-      ]);
-
-      setProposals(proposalsRes.data || []);
-      if (accessType !== 'own') {
-        setSugestoes(sugestoesRes.data || []);
-        setLeads(leadsRes.data || []);
-      }
-    } catch (error) {
-      console.error('Error fetching data:', error);
-    } finally {
-      setIsLoading(false);
+  const getDateRange = () => {
+    const now = new Date();
+    switch (period) {
+      case "7d": return subDays(now, 7);
+      case "30d": return subDays(now, 30);
+      case "6m": return subMonths(now, 6);
+      case "12m": return subMonths(now, 12);
+      default: return new Date("2020-01-01");
     }
   };
 
-  const getEixoNome = (eixoId: string) => eixos.find(e => e.id === eixoId)?.nome || 'N/A';
-  const getMunicipioNome = (municipioId: string | null) => 
-    municipioId ? municipios.find(m => m.id === municipioId)?.nome || 'N/A' : 'N/A';
+  // Fetch all data
+  const { data: propostas, isLoading: loadingPropostas, refetch: refetchPropostas } = useQuery({
+    queryKey: ["meu-painel-propostas", userEixos, userMunicipios],
+    queryFn: async () => {
+      let query = supabase.from("propostas_tecnicas").select("*");
+      if (isLider && userEixos.length > 0 && !isAdmin) {
+        query = query.in("eixo_id", getEixoIds());
+      }
+      if (isCurador && userMunicipios.length > 0 && !isAdmin && !isLider) {
+        query = query.in("municipio_id", getMunicipioIds());
+      }
+      const { data, error } = await query;
+      if (error) throw error;
+      return data || [];
+    },
+  });
 
-  const getAccessLabel = () => {
-    switch (accessType) {
-      case 'full': return 'Acesso Completo';
-      case 'eixo': return `Eixos: ${userEixos.map(e => e.eixo_nome).join(', ')}`;
-      case 'municipio': return `Municípios: ${userMunicipios.map(m => m.municipio_nome).join(', ')}`;
-      case 'own': return 'Minhas Contribuições';
-      default: return 'Dashboard Público';
-    }
+  const { data: sugestoes, isLoading: loadingSugestoes, refetch: refetchSugestoes } = useQuery({
+    queryKey: ["meu-painel-sugestoes"],
+    queryFn: async () => {
+      const { data, error } = await supabase.from("sugestoes_populares").select("*");
+      if (error) throw error;
+      return data || [];
+    },
+  });
+
+  const { data: leads, isLoading: loadingLeads, refetch: refetchLeads } = useQuery({
+    queryKey: ["meu-painel-leads"],
+    queryFn: async () => {
+      const { data, error } = await supabase.from("leads").select("*");
+      if (error) throw error;
+      return data || [];
+    },
+  });
+
+  const { data: eixos, isLoading: loadingEixos } = useQuery({
+    queryKey: ["meu-painel-eixos"],
+    queryFn: async () => {
+      const { data, error } = await supabase.from("eixos_tematicos").select("*");
+      if (error) throw error;
+      return data || [];
+    },
+  });
+
+  const { data: analytics, isLoading: loadingAnalytics } = useQuery({
+    queryKey: ["meu-painel-analytics", period],
+    queryFn: async () => {
+      const startDate = getDateRange();
+      const { data, error } = await supabase
+        .from("page_analytics_events")
+        .select("*")
+        .gte("created_at", startDate.toISOString());
+      if (error) throw error;
+      return data || [];
+    },
+    enabled: isAdmin || isLider,
+  });
+
+  const { data: userRoles } = useQuery({
+    queryKey: ["meu-painel-user-roles"],
+    queryFn: async () => {
+      const { data, error } = await supabase.from("user_roles").select("*");
+      if (error) throw error;
+      return data || [];
+    },
+    enabled: isAdmin,
+  });
+
+  const handleRefresh = () => {
+    refetchPropostas();
+    refetchSugestoes();
+    refetchLeads();
   };
 
-  // Calculate stats
-  const totalPropostas = proposals.length;
-  const totalSugestoes = sugestoes.length;
-  const totalLeads = leads.length;
+  // Calculate metrics
+  const metrics = useMemo(() => {
+    const startDate = getDateRange();
+    
+    const filteredPropostas = propostas?.filter(p => new Date(p.created_at) >= startDate) || [];
+    const filteredSugestoes = sugestoes?.filter(s => new Date(s.created_at) >= startDate) || [];
+    const filteredLeads = leads?.filter(l => new Date(l.created_at) >= startDate) || [];
 
-  const propostasByStatus = proposals.reduce((acc, p) => {
-    acc[p.status] = (acc[p.status] || 0) + 1;
-    return acc;
-  }, {} as Record<string, number>);
+    const totalPropostas = filteredPropostas.length;
+    const totalSugestoes = filteredSugestoes.length;
+    const totalLeads = filteredLeads.length;
 
-  const statusChartData = Object.entries(propostasByStatus).map(([status, count], i) => ({
-    name: statusLabels[status] || status,
-    value: count,
-    color: ['hsl(var(--primary))', 'hsl(var(--accent))', 'hsl(280 65% 60%)', 'hsl(142 76% 36%)'][i % 4],
-  }));
+    // Status distribution
+    const statusCount = {
+      rascunho: filteredPropostas.filter(p => p.status === "rascunho").length,
+      validada: filteredPropostas.filter(p => p.status === "validada").length,
+      consolidada: filteredPropostas.filter(p => p.status === "consolidada").length,
+      aprovada: filteredPropostas.filter(p => p.status === "aprovada").length,
+    };
 
-  if (authLoading || accessLoading || isLoading) {
-    return (
-      <div className="min-h-screen flex items-center justify-center bg-background">
-        <div className="animate-spin text-4xl">⏳</div>
-      </div>
-    );
-  }
+    // Leads origin
+    const leadsOrigin = {
+      formulario: filteredLeads.filter(l => l.origem === "formulario").length,
+      chatbot: filteredLeads.filter(l => l.origem === "chatbot").length,
+      proposta: filteredLeads.filter(l => l.origem === "proposta").length,
+    };
+
+    // Etapa distribution
+    const etapaCount = {
+      1: filteredPropostas.filter(p => p.etapa === 1).length,
+      2: filteredPropostas.filter(p => p.etapa === 2).length,
+      3: filteredPropostas.filter(p => p.etapa === 3).length,
+      4: filteredPropostas.filter(p => p.etapa === 4).length,
+    };
+
+    // Analytics metrics
+    const pageviews = analytics?.filter(a => a.event_type === "page_view").length || 0;
+    const uniqueSessions = new Set(analytics?.map(a => a.session_id)).size;
+    const conversionRate = uniqueSessions > 0 ? ((totalLeads / uniqueSessions) * 100).toFixed(1) : "0";
+
+    // Device breakdown
+    const deviceBreakdown = {
+      mobile: analytics?.filter(a => a.device_type === "mobile").length || 0,
+      desktop: analytics?.filter(a => a.device_type === "desktop").length || 0,
+      tablet: analytics?.filter(a => a.device_type === "tablet").length || 0,
+    };
+
+    // Unique municipalities with activity
+    const activeMunicipios = new Set([
+      ...filteredPropostas.map(p => p.municipio_id).filter(Boolean),
+      ...filteredSugestoes.map(s => s.municipio).filter(Boolean),
+      ...filteredLeads.map(l => l.municipio).filter(Boolean),
+    ]).size;
+
+    return {
+      totalPropostas,
+      totalSugestoes,
+      totalLeads,
+      statusCount,
+      leadsOrigin,
+      etapaCount,
+      pageviews,
+      uniqueSessions,
+      conversionRate,
+      deviceBreakdown,
+      activeMunicipios,
+      totalUsers: userRoles?.length || 0,
+    };
+  }, [propostas, sugestoes, leads, analytics, userRoles, period]);
+
+  // Prepare chart data
+  const statusChartData = [
+    { name: "Rascunho", value: metrics.statusCount.rascunho, fill: "hsl(var(--muted-foreground))" },
+    { name: "Validada", value: metrics.statusCount.validada, fill: "hsl(38, 92%, 50%)" },
+    { name: "Consolidada", value: metrics.statusCount.consolidada, fill: "hsl(221, 83%, 53%)" },
+    { name: "Aprovada", value: metrics.statusCount.aprovada, fill: "hsl(142, 76%, 36%)" },
+  ];
+
+  const originChartData = [
+    { name: "Formulário", value: metrics.leadsOrigin.formulario, fill: "hsl(var(--primary))" },
+    { name: "Chatbot", value: metrics.leadsOrigin.chatbot, fill: "hsl(142, 76%, 36%)" },
+    { name: "Proposta", value: metrics.leadsOrigin.proposta, fill: "hsl(38, 92%, 50%)" },
+  ];
+
+  const etapaChartData = [
+    { name: "Etapa 1", value: metrics.etapaCount[1], fill: "hsl(var(--muted-foreground))" },
+    { name: "Etapa 2", value: metrics.etapaCount[2], fill: "hsl(199, 89%, 48%)" },
+    { name: "Etapa 3", value: metrics.etapaCount[3], fill: "hsl(262, 83%, 58%)" },
+    { name: "Etapa 4", value: metrics.etapaCount[4], fill: "hsl(142, 76%, 36%)" },
+  ];
+
+  // Distribution by eixo
+  const eixoDistribution = useMemo(() => {
+    if (!eixos || !propostas || !sugestoes) return [];
+    
+    return eixos.map(eixo => {
+      const propostasCount = propostas.filter(p => p.eixo_id === eixo.id).length;
+      const sugestoesCount = sugestoes.filter(s => s.eixo === eixo.nome).length;
+      return {
+        name: eixo.nome.length > 15 ? eixo.nome.substring(0, 15) + "..." : eixo.nome,
+        value: propostasCount + sugestoesCount,
+      };
+    });
+  }, [eixos, propostas, sugestoes]);
+
+  // Municipios ranking
+  const municipiosRanking = useMemo(() => {
+    const countMap: Record<string, number> = {};
+    
+    leads?.forEach(l => {
+      if (l.municipio) {
+        countMap[l.municipio] = (countMap[l.municipio] || 0) + 1;
+      }
+    });
+    
+    sugestoes?.forEach(s => {
+      if (s.municipio) {
+        countMap[s.municipio] = (countMap[s.municipio] || 0) + 1;
+      }
+    });
+
+    return Object.entries(countMap)
+      .map(([nome, count]) => ({ nome, count }))
+      .sort((a, b) => b.count - a.count)
+      .slice(0, 10);
+  }, [leads, sugestoes]);
+
+  // Timeline data
+  const timelineData = useMemo(() => {
+    const startDate = getDateRange();
+    const now = new Date();
+    
+    let intervals: Date[];
+    let formatStr: string;
+    
+    if (period === "7d" || period === "30d") {
+      intervals = eachDayOfInterval({ start: startDate, end: now });
+      formatStr = "dd/MM";
+    } else if (period === "6m") {
+      intervals = eachWeekOfInterval({ start: startDate, end: now });
+      formatStr = "dd/MM";
+    } else {
+      intervals = eachMonthOfInterval({ start: startDate, end: now });
+      formatStr = "MMM/yy";
+    }
+
+    return intervals.map(date => {
+      const dayStart = startOfDay(date);
+      const dayEnd = period === "7d" || period === "30d" 
+        ? startOfDay(new Date(date.getTime() + 86400000))
+        : period === "6m"
+          ? startOfDay(new Date(date.getTime() + 7 * 86400000))
+          : startOfDay(new Date(date.getFullYear(), date.getMonth() + 1, 1));
+
+      const propostasCount = propostas?.filter(p => {
+        const d = new Date(p.created_at);
+        return d >= dayStart && d < dayEnd;
+      }).length || 0;
+
+      const sugestoesCount = sugestoes?.filter(s => {
+        const d = new Date(s.created_at);
+        return d >= dayStart && d < dayEnd;
+      }).length || 0;
+
+      const leadsCount = leads?.filter(l => {
+        const d = new Date(l.created_at);
+        return d >= dayStart && d < dayEnd;
+      }).length || 0;
+
+      return {
+        date: format(date, formatStr, { locale: ptBR }),
+        Propostas: propostasCount,
+        Sugestões: sugestoesCount,
+        Leads: leadsCount,
+      };
+    });
+  }, [propostas, sugestoes, leads, period]);
+
+  // Leads origin timeline
+  const leadsOriginTimeline = useMemo(() => {
+    const startDate = getDateRange();
+    const now = new Date();
+    
+    let intervals: Date[];
+    let formatStr: string;
+    
+    if (period === "7d" || period === "30d") {
+      intervals = eachDayOfInterval({ start: startDate, end: now });
+      formatStr = "dd/MM";
+    } else if (period === "6m") {
+      intervals = eachWeekOfInterval({ start: startDate, end: now });
+      formatStr = "dd/MM";
+    } else {
+      intervals = eachMonthOfInterval({ start: startDate, end: now });
+      formatStr = "MMM/yy";
+    }
+
+    return intervals.map(date => {
+      const dayStart = startOfDay(date);
+      const dayEnd = period === "7d" || period === "30d" 
+        ? startOfDay(new Date(date.getTime() + 86400000))
+        : period === "6m"
+          ? startOfDay(new Date(date.getTime() + 7 * 86400000))
+          : startOfDay(new Date(date.getFullYear(), date.getMonth() + 1, 1));
+
+      const filterByDate = (items: typeof leads) => items?.filter(l => {
+        const d = new Date(l.created_at);
+        return d >= dayStart && d < dayEnd;
+      }) || [];
+
+      const filtered = filterByDate(leads);
+
+      return {
+        date: format(date, formatStr, { locale: ptBR }),
+        formulario: filtered.filter(l => l.origem === "formulario").length,
+        chatbot: filtered.filter(l => l.origem === "chatbot").length,
+        proposta: filtered.filter(l => l.origem === "proposta").length,
+      };
+    });
+  }, [leads, period]);
+
+  // Recent activity
+  const recentPropostas = useMemo(() => 
+    (propostas || [])
+      .sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime())
+      .slice(0, 5)
+      .map(p => ({
+        id: p.id,
+        title: p.titulo,
+        subtitle: `Status: ${p.status}`,
+        created_at: p.created_at,
+      })),
+    [propostas]
+  );
+
+  const recentSugestoes = useMemo(() => 
+    (sugestoes || [])
+      .sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime())
+      .slice(0, 5)
+      .map(s => ({
+        id: s.id,
+        title: s.descricao.substring(0, 50) + (s.descricao.length > 50 ? "..." : ""),
+        subtitle: s.municipio,
+        created_at: s.created_at,
+      })),
+    [sugestoes]
+  );
+
+  const recentLeads = useMemo(() => 
+    (leads || [])
+      .sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime())
+      .slice(0, 5)
+      .map(l => ({
+        id: l.id,
+        title: l.nome || l.email || "Lead anônimo",
+        subtitle: `${l.origem} - ${l.municipio || "N/A"}`,
+        created_at: l.created_at,
+      })),
+    [leads]
+  );
+
+  const isLoading = loadingPropostas || loadingSugestoes || loadingLeads;
 
   return (
-    <div className="min-h-screen bg-muted/20">
+    <div className="space-y-6">
       {/* Header */}
-      <header className="sticky top-0 z-50 bg-background/95 backdrop-blur-md border-b border-border">
-        <div className="container mx-auto px-4 py-4">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-4">
-              <Link to="/admin" className="text-muted-foreground hover:text-foreground">
-                <ArrowLeft className="w-5 h-5" />
-              </Link>
-              <div>
-                <h1 className="text-xl font-display font-bold">Meu Painel</h1>
-                <p className="text-sm text-muted-foreground">{getAccessLabel()}</p>
-              </div>
-            </div>
-            <Link to="/dashboard">
-              <Button variant="outline" size="sm">
-                <ExternalLink className="w-4 h-4 mr-2" />
-                Dashboard Público
-              </Button>
-            </Link>
-          </div>
-        </div>
-      </header>
-
-      <main className="container mx-auto px-4 py-8">
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.5 }}
-        >
-          {/* Access Info Card */}
-          <Card className="mb-8 bg-gradient-to-r from-primary/10 via-accent/10 to-primary/10 border-primary/20">
-            <CardContent className="py-4">
-              <div className="flex items-center gap-4">
-                <div className="w-10 h-10 rounded-full bg-primary/20 flex items-center justify-center">
-                  <Eye className="w-5 h-5 text-primary" />
-                </div>
-                <div>
-                  <p className="font-medium">Seu Nível de Acesso</p>
-                  <p className="text-sm text-muted-foreground">{getAccessLabel()}</p>
-                </div>
-                {accessType === 'eixo' && (
-                  <div className="ml-auto flex gap-2 flex-wrap">
-                    {userEixos.map(e => (
-                      <Badge key={e.eixo_id} variant="secondary">{e.eixo_nome}</Badge>
-                    ))}
-                  </div>
-                )}
-                {accessType === 'municipio' && (
-                  <div className="ml-auto flex gap-2 flex-wrap">
-                    {userMunicipios.map(m => (
-                      <Badge key={m.municipio_id} variant="secondary">{m.municipio_nome}</Badge>
-                    ))}
-                  </div>
-                )}
-              </div>
-            </CardContent>
-          </Card>
-
-          {/* Stats Cards */}
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-8">
-            <Card>
-              <CardContent className="pt-6">
-                <div className="flex items-center gap-4">
-                  <div className="w-12 h-12 rounded-lg bg-primary/10 flex items-center justify-center">
-                    <FileText className="w-6 h-6 text-primary" />
-                  </div>
-                  <div>
-                    <p className="text-sm text-muted-foreground">
-                      {accessType === 'own' ? 'Minhas Propostas' : 'Propostas'}
-                    </p>
-                    <p className="text-2xl font-bold">{totalPropostas}</p>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-
-            {accessType !== 'own' && (
-              <>
-                <Card>
-                  <CardContent className="pt-6">
-                    <div className="flex items-center gap-4">
-                      <div className="w-12 h-12 rounded-lg bg-accent/10 flex items-center justify-center">
-                        <Users className="w-6 h-6 text-accent-foreground" />
-                      </div>
-                      <div>
-                        <p className="text-sm text-muted-foreground">Sugestões</p>
-                        <p className="text-2xl font-bold">{totalSugestoes}</p>
-                      </div>
-                    </div>
-                  </CardContent>
-                </Card>
-
-                <Card>
-                  <CardContent className="pt-6">
-                    <div className="flex items-center gap-4">
-                      <div className="w-12 h-12 rounded-lg bg-secondary/10 flex items-center justify-center">
-                        <Target className="w-6 h-6 text-secondary-foreground" />
-                      </div>
-                      <div>
-                        <p className="text-sm text-muted-foreground">Leads</p>
-                        <p className="text-2xl font-bold">{totalLeads}</p>
-                      </div>
-                    </div>
-                  </CardContent>
-                </Card>
-              </>
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+        <div>
+          <h1 className="text-2xl font-bold tracking-tight">Meu Painel</h1>
+          <div className="flex items-center gap-2 mt-1">
+            <Badge variant={roleBadge.variant}>{roleBadge.label}</Badge>
+            {isLider && userEixos.length > 0 && (
+              <span className="text-sm text-muted-foreground">
+                {userEixos.length} eixo(s) vinculado(s)
+              </span>
+            )}
+            {isCurador && userMunicipios.length > 0 && (
+              <span className="text-sm text-muted-foreground">
+                {userMunicipios.length} município(s) vinculado(s)
+              </span>
             )}
           </div>
+        </div>
+        <div className="flex items-center gap-2">
+          <Tabs value={period} onValueChange={(v) => setPeriod(v as PeriodFilter)}>
+            <TabsList>
+              <TabsTrigger value="7d">7d</TabsTrigger>
+              <TabsTrigger value="30d">30d</TabsTrigger>
+              <TabsTrigger value="6m">6m</TabsTrigger>
+              <TabsTrigger value="12m">12m</TabsTrigger>
+              <TabsTrigger value="all">Tudo</TabsTrigger>
+            </TabsList>
+          </Tabs>
+          <Button variant="outline" size="icon" onClick={handleRefresh} disabled={isLoading}>
+            <RefreshCw className={`h-4 w-4 ${isLoading ? "animate-spin" : ""}`} />
+          </Button>
+        </div>
+      </div>
 
-          {/* Charts */}
-          {statusChartData.length > 0 && (
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
-              <AdminPieChart title="Propostas por Status" data={statusChartData} />
-              <TimelineChart
-                title="Evolução de Propostas"
-                series={[{
-                  key: 'propostas',
-                  label: 'Propostas',
-                  color: 'hsl(var(--primary))',
-                  data: proposals,
-                }]}
-              />
-            </div>
-          )}
+      {/* Big Numbers Row 1 */}
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+        <StatCard
+          title="Propostas Técnicas"
+          value={metrics.totalPropostas}
+          icon={FileText}
+          variant="primary"
+          isLoading={loadingPropostas}
+        />
+        <StatCard
+          title="Sugestões Populares"
+          value={metrics.totalSugestoes}
+          icon={Users}
+          variant="success"
+          isLoading={loadingSugestoes}
+        />
+        <StatCard
+          title="Leads Capturados"
+          value={metrics.totalLeads}
+          icon={Target}
+          variant="warning"
+          isLoading={loadingLeads}
+        />
+        <StatCard
+          title="Usuários Cadastrados"
+          value={metrics.totalUsers}
+          icon={UserCheck}
+          variant="default"
+          isLoading={!userRoles && isAdmin}
+        />
+      </div>
 
-          {/* Proposals Table */}
-          <Card className="mb-8">
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <FileText className="w-5 h-5" />
-                {accessType === 'own' ? 'Minhas Propostas' : 'Propostas Recentes'}
-              </CardTitle>
-              <CardDescription>
-                {accessType === 'own' 
-                  ? 'Propostas que você criou'
-                  : 'Últimas propostas do seu escopo de acesso'
-                }
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              {proposals.length === 0 ? (
-                <p className="text-center text-muted-foreground py-8">
-                  Nenhuma proposta encontrada
-                </p>
-              ) : (
-                <Table>
-                  <TableHeader>
-                    <TableRow>
-                      <TableHead>Título</TableHead>
-                      <TableHead>Eixo</TableHead>
-                      <TableHead>Município</TableHead>
-                      <TableHead>Status</TableHead>
-                      <TableHead>Data</TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {proposals.slice(0, 10).map((proposal) => (
-                      <TableRow key={proposal.id}>
-                        <TableCell className="font-medium max-w-xs truncate">
-                          {proposal.titulo}
-                        </TableCell>
-                        <TableCell>{getEixoNome(proposal.eixo_id)}</TableCell>
-                        <TableCell>{getMunicipioNome(proposal.municipio_id)}</TableCell>
-                        <TableCell>
-                          <Badge className={statusColors[proposal.status]}>
-                            {statusLabels[proposal.status] || proposal.status}
-                          </Badge>
-                        </TableCell>
-                        <TableCell className="text-muted-foreground">
-                          {format(new Date(proposal.created_at), 'dd/MM/yyyy', { locale: ptBR })}
-                        </TableCell>
-                      </TableRow>
-                    ))}
-                  </TableBody>
-                </Table>
-              )}
-              {proposals.length > 10 && (
-                <div className="mt-4 text-center">
-                  <Link to="/admin/propostas">
-                    <Button variant="outline">
-                      Ver todas as propostas
-                    </Button>
-                  </Link>
-                </div>
-              )}
-            </CardContent>
-          </Card>
+      {/* Big Numbers Row 2 - Analytics (Admin/Líder only) */}
+      {(isAdmin || isLider) && (
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+          <StatCard
+            title="Visualizações LP"
+            value={metrics.pageviews}
+            icon={Eye}
+            variant="default"
+            isLoading={loadingAnalytics}
+          />
+          <StatCard
+            title="Visitantes Únicos"
+            value={metrics.uniqueSessions}
+            icon={Globe}
+            variant="default"
+            isLoading={loadingAnalytics}
+          />
+          <StatCard
+            title="Taxa de Conversão"
+            value={`${metrics.conversionRate}%`}
+            icon={TrendingUp}
+            variant="primary"
+            isLoading={loadingAnalytics}
+          />
+          <StatCard
+            title="Municípios Ativos"
+            value={metrics.activeMunicipios}
+            icon={MapPin}
+            variant="success"
+            isLoading={isLoading}
+          />
+        </div>
+      )}
 
-          {/* Sugestões Table - Only for non-especialista */}
-          {accessType !== 'own' && sugestoes.length > 0 && (
-            <Card className="mb-8">
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <Users className="w-5 h-5" />
-                  Sugestões Recentes
-                </CardTitle>
-                <CardDescription>
-                  Sugestões populares do seu escopo de acesso
-                </CardDescription>
-              </CardHeader>
-              <CardContent>
-                <Table>
-                  <TableHeader>
-                    <TableRow>
-                      <TableHead>Descrição</TableHead>
-                      <TableHead>Eixo</TableHead>
-                      <TableHead>Município</TableHead>
-                      <TableHead>Data</TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {sugestoes.slice(0, 5).map((sugestao) => (
-                      <TableRow key={sugestao.id}>
-                        <TableCell className="font-medium max-w-md truncate">
-                          {sugestao.descricao}
-                        </TableCell>
-                        <TableCell>
-                          <Badge variant="outline">{sugestao.eixo}</Badge>
-                        </TableCell>
-                        <TableCell>{sugestao.municipio}</TableCell>
-                        <TableCell className="text-muted-foreground">
-                          {format(new Date(sugestao.created_at), 'dd/MM/yyyy', { locale: ptBR })}
-                        </TableCell>
-                      </TableRow>
-                    ))}
-                  </TableBody>
-                </Table>
-                {sugestoes.length > 5 && (
-                  <div className="mt-4 text-center">
-                    <Link to="/admin/sugestoes">
-                      <Button variant="outline">
-                        Ver todas as sugestões
-                      </Button>
-                    </Link>
-                  </div>
-                )}
-              </CardContent>
-            </Card>
-          )}
+      {/* Pie Charts Row */}
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+        <AdminPieChart
+          title="Status das Propostas"
+          data={statusChartData}
+        />
+        <AdminPieChart
+          title="Origem dos Leads"
+          data={originChartData}
+        />
+        <AdminPieChart
+          title="Etapa das Propostas"
+          data={etapaChartData}
+        />
+      </div>
 
-          {/* Quick Links */}
+      {/* Timeline Charts */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+        <StackedAreaChart
+          title="Evolução Geral"
+          data={timelineData}
+          series={[
+            { key: "Propostas", label: "Propostas", color: "hsl(var(--primary))" },
+            { key: "Sugestões", label: "Sugestões", color: "hsl(142, 76%, 36%)" },
+            { key: "Leads", label: "Leads", color: "hsl(38, 92%, 50%)" },
+          ]}
+          isLoading={isLoading}
+        />
+        <LeadsOriginChart data={leadsOriginTimeline} isLoading={loadingLeads} />
+      </div>
+
+      {/* Distribution and Ranking */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+        <HorizontalBarChart
+          title="Distribuição por Eixo Temático"
+          data={eixoDistribution}
+          isLoading={loadingEixos}
+        />
+        <TopMunicipiosCard
+          data={municipiosRanking}
+          title="Top 10 Municípios"
+          isLoading={isLoading}
+        />
+      </div>
+
+      {/* Recent Activity */}
+      <RecentActivityFeed
+        propostas={recentPropostas}
+        sugestoes={recentSugestoes}
+        leads={recentLeads}
+        isLoading={isLoading}
+      />
+
+      {/* Device Analytics (Admin only) */}
+      {isAdmin && (
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
           <Card>
-            <CardHeader>
-              <CardTitle>Acesso Rápido</CardTitle>
+            <CardHeader className="pb-2">
+              <CardTitle className="text-lg flex items-center gap-2">
+                <Smartphone className="h-5 w-5 text-primary" />
+                Mobile
+              </CardTitle>
             </CardHeader>
             <CardContent>
-              <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                <Link to="/dashboard">
-                  <Button variant="outline" className="w-full h-auto py-4 flex flex-col gap-2">
-                    <BarChart3 className="w-5 h-5" />
-                    <span className="text-sm">Dashboard Público</span>
-                  </Button>
-                </Link>
-                <Link to="/admin/propostas">
-                  <Button variant="outline" className="w-full h-auto py-4 flex flex-col gap-2">
-                    <FileText className="w-5 h-5" />
-                    <span className="text-sm">Propostas</span>
-                  </Button>
-                </Link>
-                {accessType !== 'own' && (
-                  <>
-                    <Link to="/admin/sugestoes">
-                      <Button variant="outline" className="w-full h-auto py-4 flex flex-col gap-2">
-                        <Users className="w-5 h-5" />
-                        <span className="text-sm">Sugestões</span>
-                      </Button>
-                    </Link>
-                    <Link to="/admin/leads">
-                      <Button variant="outline" className="w-full h-auto py-4 flex flex-col gap-2">
-                        <Target className="w-5 h-5" />
-                        <span className="text-sm">Leads</span>
-                      </Button>
-                    </Link>
-                  </>
-                )}
-              </div>
+              <p className="text-3xl font-bold">{metrics.deviceBreakdown.mobile}</p>
+              <p className="text-sm text-muted-foreground">
+                {analytics?.length ? ((metrics.deviceBreakdown.mobile / analytics.length) * 100).toFixed(1) : 0}% do total
+              </p>
             </CardContent>
           </Card>
-        </motion.div>
-      </main>
+          <Card>
+            <CardHeader className="pb-2">
+              <CardTitle className="text-lg flex items-center gap-2">
+                <Monitor className="h-5 w-5 text-primary" />
+                Desktop
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <p className="text-3xl font-bold">{metrics.deviceBreakdown.desktop}</p>
+              <p className="text-sm text-muted-foreground">
+                {analytics?.length ? ((metrics.deviceBreakdown.desktop / analytics.length) * 100).toFixed(1) : 0}% do total
+              </p>
+            </CardContent>
+          </Card>
+          <Card>
+            <CardHeader className="pb-2">
+              <CardTitle className="text-lg flex items-center gap-2">
+                <Tablet className="h-5 w-5 text-primary" />
+                Tablet
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <p className="text-3xl font-bold">{metrics.deviceBreakdown.tablet}</p>
+              <p className="text-sm text-muted-foreground">
+                {analytics?.length ? ((metrics.deviceBreakdown.tablet / analytics.length) * 100).toFixed(1) : 0}% do total
+              </p>
+            </CardContent>
+          </Card>
+        </div>
+      )}
     </div>
   );
-};
-
-export default AdminMeuPainel;
+}
