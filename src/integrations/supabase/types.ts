@@ -376,6 +376,50 @@ export type Database = {
         }
         Relationships: []
       }
+      proposal_alerts: {
+        Row: {
+          acknowledged_at: string | null
+          alert_type: string
+          created_at: string
+          hours_stale: number
+          id: string
+          metadata: Json | null
+          proposta_id: string
+          responsavel_id: string
+          sent_at: string
+        }
+        Insert: {
+          acknowledged_at?: string | null
+          alert_type?: string
+          created_at?: string
+          hours_stale: number
+          id?: string
+          metadata?: Json | null
+          proposta_id: string
+          responsavel_id: string
+          sent_at?: string
+        }
+        Update: {
+          acknowledged_at?: string | null
+          alert_type?: string
+          created_at?: string
+          hours_stale?: number
+          id?: string
+          metadata?: Json | null
+          proposta_id?: string
+          responsavel_id?: string
+          sent_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "proposal_alerts_proposta_id_fkey"
+            columns: ["proposta_id"]
+            isOneToOne: false
+            referencedRelation: "propostas_tecnicas"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       propostas_tecnicas: {
         Row: {
           anexos: string[] | null
@@ -611,6 +655,25 @@ export type Database = {
           last_activity_at: string
           roles: string[]
           user_id: string
+        }[]
+      }
+      get_stale_proposals: {
+        Args: { hours_threshold?: number }
+        Returns: {
+          created_at: string
+          eixo_id: string
+          eixo_nome: string
+          etapa: number
+          hours_stale: number
+          municipio_id: string
+          municipio_nome: string
+          proposta_id: string
+          responsavel_email: string
+          responsavel_id: string
+          responsavel_nome: string
+          status: string
+          titulo: string
+          updated_at: string
         }[]
       }
       has_role: {
