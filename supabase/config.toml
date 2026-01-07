@@ -14,3 +14,6 @@ verify_jwt = false
 
 [functions.proposal-stale-alert]
 verify_jwt = false
+
+[functions.seed-test-users]
+verify_jwt = false

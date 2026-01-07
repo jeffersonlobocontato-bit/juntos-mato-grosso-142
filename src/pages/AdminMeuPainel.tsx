@@ -17,6 +17,8 @@ import { LeadsOriginChart } from "@/components/admin/LeadsOriginChart";
 import { EixoStatusChart } from "@/components/admin/EixoStatusChart";
 import { EixoSummaryTable } from "@/components/admin/EixoSummaryTable";
 import { StaleProposalsAlertPanel } from "@/components/admin/StaleProposalsAlertPanel";
+import { ProposalAnalysisPanel } from "@/components/admin/ProposalAnalysisPanel";
+import { EixoComparisonPanel } from "@/components/admin/EixoComparisonPanel";
 import {
   FileText,
   Users,
@@ -30,9 +32,11 @@ import {
   Smartphone,
   Monitor,
   Tablet,
+  UserPlus,
 } from "lucide-react";
 import { format, subDays, subMonths, startOfDay, eachDayOfInterval, eachWeekOfInterval, eachMonthOfInterval } from "date-fns";
 import { ptBR } from "date-fns/locale";
+import { useToast } from "@/hooks/use-toast";
 
 type PeriodFilter = "7d" | "30d" | "6m" | "12m" | "all";
 
@@ -47,9 +51,42 @@ const getRoleBadge = (roles: string[]) => {
 
 export default function AdminMeuPainel() {
   const { roles } = useAuth();
-  const { userEixos, userMunicipios, isAdmin, isLiderTematico: isLider, isCuradorMunicipal: isCurador, getEixoIds, getMunicipioIds } = useUserAccess();
+  const { userEixos, userMunicipios, isAdmin, isAdminMaster, isLiderTematico: isLider, isCuradorMunicipal: isCurador, getEixoIds, getMunicipioIds } = useUserAccess();
   const [period, setPeriod] = useState<PeriodFilter>("30d");
+  const [isSeeding, setIsSeeding] = useState(false);
   const roleBadge = getRoleBadge(roles);
+  const { toast } = useToast();
+
+  const handleSeedTestUsers = async () => {
+    setIsSeeding(true);
+    try {
+      const { data: sessionData } = await supabase.auth.getSession();
+      const token = sessionData.session?.access_token;
+      
+      if (!token) {
+        toast({ title: "Erro", description: "Você precisa estar logado", variant: "destructive" });
+        return;
+      }
+
+      const response = await supabase.functions.invoke('seed-test-users', {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+
+      if (response.error) {
+        toast({ title: "Erro", description: response.error.message, variant: "destructive" });
+      } else {
+        toast({ 
+          title: "Sucesso!", 
+          description: response.data.message || "Usuários de teste criados",
+        });
+        handleRefresh();
+      }
+    } catch (err) {
+      toast({ title: "Erro", description: "Falha ao criar usuários de teste", variant: "destructive" });
+    } finally {
+      setIsSeeding(false);
+    }
+  };
 
   const getDateRange = () => {
     const now = new Date();
@@ -105,6 +142,15 @@ export default function AdminMeuPainel() {
     queryKey: ["meu-painel-eixos"],
     queryFn: async () => {
       const { data, error } = await supabase.from("eixos_tematicos").select("*");
+      if (error) throw error;
+      return data || [];
+    },
+  });
+
+  const { data: municipiosData, isLoading: loadingMunicipios } = useQuery({
+    queryKey: ["meu-painel-municipios"],
+    queryFn: async () => {
+      const { data, error } = await supabase.from("municipios").select("id, nome");
       if (error) throw error;
       return data || [];
     },
@@ -490,6 +536,18 @@ export default function AdminMeuPainel() {
           <Button variant="outline" size="icon" onClick={handleRefresh} disabled={isLoading}>
             <RefreshCw className={`h-4 w-4 ${isLoading ? "animate-spin" : ""}`} />
           </Button>
+          {isAdminMaster && (
+            <Button 
+              variant="outline" 
+              size="sm"
+              onClick={handleSeedTestUsers} 
+              disabled={isSeeding}
+              className="gap-2"
+            >
+              <UserPlus className={`h-4 w-4 ${isSeeding ? "animate-spin" : ""}`} />
+              <span className="hidden sm:inline">Popular Usuários</span>
+            </Button>
+          )}
         </div>
       </div>
 
@@ -629,6 +687,53 @@ export default function AdminMeuPainel() {
       {/* Tabela Resumo por Eixo */}
       <EixoSummaryTable
         data={eixoSummary}
+        isLoading={loadingEixos || loadingPropostas || loadingSugestoes}
+      />
+
+      {/* Painel de Análise de Propostas */}
+      <ProposalAnalysisPanel
+        proposals={(propostas || []).map(p => ({
+          id: p.id,
+          titulo: p.titulo,
+          status: p.status,
+          etapa: p.etapa,
+          updated_at: p.updated_at,
+          created_at: p.created_at,
+          eixo_id: p.eixo_id,
+          eixo_nome: (p.eixos_tematicos as any)?.nome,
+          municipio_id: p.municipio_id || undefined,
+          municipio_nome: (p.municipios as any)?.nome,
+          autor_id: p.autor_id,
+        }))}
+        eixos={(eixos || []).map(e => ({ id: e.id, nome: e.nome }))}
+        municipios={municipiosData || []}
+        isLoading={loadingPropostas || loadingEixos || loadingMunicipios}
+        onRefresh={refetchPropostas}
+      />
+
+      {/* Comparativo entre Eixos */}
+      <EixoComparisonPanel
+        eixosData={(eixos || []).map(eixo => {
+          const eixoPropostas = propostas?.filter(p => p.eixo_id === eixo.id) || [];
+          const eixoSugestoes = sugestoes?.filter(s => s.eixo === eixo.nome) || [];
+          const now = new Date();
+          const atrasadas = eixoPropostas.filter(p => {
+            const hours = (now.getTime() - new Date(p.updated_at).getTime()) / (1000 * 60 * 60);
+            return hours >= 48 && p.status !== 'aprovada';
+          }).length;
+
+          return {
+            id: eixo.id,
+            nome: eixo.nome,
+            propostas: eixoPropostas.length,
+            aprovadas: eixoPropostas.filter(p => p.status === 'aprovada').length,
+            atrasadas,
+            sugestoes: eixoSugestoes.length,
+            rascunho: eixoPropostas.filter(p => p.status === 'rascunho').length,
+            validada: eixoPropostas.filter(p => p.status === 'validada').length,
+            consolidada: eixoPropostas.filter(p => p.status === 'consolidada').length,
+          };
+        })}
         isLoading={loadingEixos || loadingPropostas || loadingSugestoes}
       />
 
