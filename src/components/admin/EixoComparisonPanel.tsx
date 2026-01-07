@@ -21,6 +21,8 @@ interface EixoData {
 interface EixoComparisonPanelProps {
   eixosData: EixoData[];
   isLoading?: boolean;
+  selectedEixos?: string[];
+  onSelectionChange?: (eixos: string[]) => void;
 }
 
 const EIXO_COLORS: Record<string, string> = {
@@ -34,19 +36,24 @@ const EIXO_COLORS: Record<string, string> = {
   'Tecnologia e Inovação': '#06b6d4',
 };
 
-export function EixoComparisonPanel({ eixosData, isLoading = false }: EixoComparisonPanelProps) {
-  const [selectedEixos, setSelectedEixos] = useState<string[]>([]);
+export function EixoComparisonPanel({ 
+  eixosData, 
+  isLoading = false,
+  selectedEixos: externalSelectedEixos,
+  onSelectionChange
+}: EixoComparisonPanelProps) {
+  const [internalSelectedEixos, setInternalSelectedEixos] = useState<string[]>([]);
+  
+  // Use external state if provided, otherwise use internal state
+  const selectedEixos = externalSelectedEixos ?? internalSelectedEixos;
+  const setSelectedEixos = onSelectionChange ?? setInternalSelectedEixos;
 
   const toggleEixo = (eixoId: string) => {
-    setSelectedEixos(prev => {
-      if (prev.includes(eixoId)) {
-        return prev.filter(id => id !== eixoId);
-      }
-      if (prev.length >= 4) {
-        return prev; // Max 4 selected
-      }
-      return [...prev, eixoId];
-    });
+    if (selectedEixos.includes(eixoId)) {
+      setSelectedEixos(selectedEixos.filter(id => id !== eixoId));
+    } else if (selectedEixos.length < 4) {
+      setSelectedEixos([...selectedEixos, eixoId]);
+    }
   };
 
   const selectedData = useMemo(() => {
