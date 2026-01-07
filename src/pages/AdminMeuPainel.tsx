@@ -19,6 +19,7 @@ import { EixoSummaryTable } from "@/components/admin/EixoSummaryTable";
 import { StaleProposalsAlertPanel } from "@/components/admin/StaleProposalsAlertPanel";
 import { ProposalAnalysisPanel } from "@/components/admin/ProposalAnalysisPanel";
 import { EixoComparisonPanel } from "@/components/admin/EixoComparisonPanel";
+import ParanaMap from "@/components/admin/ParanaMap";
 import {
   FileText,
   Users,
@@ -150,7 +151,7 @@ export default function AdminMeuPainel() {
   const { data: municipiosData, isLoading: loadingMunicipios } = useQuery({
     queryKey: ["meu-painel-municipios"],
     queryFn: async () => {
-      const { data, error } = await supabase.from("municipios").select("id, nome");
+      const { data, error } = await supabase.from("municipios").select("id, nome, latitude, longitude");
       if (error) throw error;
       return data || [];
     },
@@ -735,6 +736,28 @@ export default function AdminMeuPainel() {
           };
         })}
         isLoading={loadingEixos || loadingPropostas || loadingSugestoes}
+      />
+
+      {/* Mapa de Distribuição Geográfica */}
+      <ParanaMap
+        markers={(propostas || [])
+          .filter(p => p.municipio_id)
+          .map(proposta => {
+            const municipio = municipiosData?.find(m => m.id === proposta.municipio_id);
+            if (!municipio?.latitude || !municipio?.longitude) return null;
+            return {
+              id: proposta.id,
+              latitude: Number(municipio.latitude),
+              longitude: Number(municipio.longitude),
+              title: proposta.titulo,
+              description: proposta.descricao?.substring(0, 100),
+              status: proposta.status as string,
+              eixo: (proposta.eixos_tematicos as any)?.nome,
+              municipio: municipio.nome,
+            };
+          })
+          .filter((m): m is NonNullable<typeof m> => m !== null)}
+        title="Distribuição Geográfica das Propostas"
       />
 
       {/* Top Municípios */}
