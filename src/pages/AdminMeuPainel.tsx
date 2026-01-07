@@ -55,6 +55,7 @@ export default function AdminMeuPainel() {
   const { userEixos, userMunicipios, isAdmin, isAdminMaster, isLiderTematico: isLider, isCuradorMunicipal: isCurador, getEixoIds, getMunicipioIds } = useUserAccess();
   const [period, setPeriod] = useState<PeriodFilter>("30d");
   const [isSeeding, setIsSeeding] = useState(false);
+  const [selectedEixosForComparison, setSelectedEixosForComparison] = useState<string[]>([]);
   const roleBadge = getRoleBadge(roles);
   const { toast } = useToast();
 
@@ -736,12 +737,19 @@ export default function AdminMeuPainel() {
           };
         })}
         isLoading={loadingEixos || loadingPropostas || loadingSugestoes}
+        selectedEixos={selectedEixosForComparison}
+        onSelectionChange={setSelectedEixosForComparison}
       />
 
       {/* Mapa de Distribuição Geográfica */}
       <ParanaMap
         markers={(propostas || [])
           .filter(p => p.municipio_id)
+          .filter(p => {
+            // Filter by selected eixos if any are selected
+            if (selectedEixosForComparison.length === 0) return true;
+            return selectedEixosForComparison.includes(p.eixo_id);
+          })
           .map(proposta => {
             const municipio = municipiosData?.find(m => m.id === proposta.municipio_id);
             if (!municipio?.latitude || !municipio?.longitude) return null;
@@ -757,7 +765,11 @@ export default function AdminMeuPainel() {
             };
           })
           .filter((m): m is NonNullable<typeof m> => m !== null)}
-        title="Distribuição Geográfica das Propostas"
+        title={
+          selectedEixosForComparison.length > 0
+            ? `Propostas dos Eixos Selecionados (${selectedEixosForComparison.length})`
+            : "Distribuição Geográfica das Propostas"
+        }
       />
 
       {/* Top Municípios */}
