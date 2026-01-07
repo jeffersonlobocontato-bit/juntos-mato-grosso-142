@@ -16,6 +16,7 @@ import { RecentActivityFeed } from "@/components/admin/RecentActivityFeed";
 import { LeadsOriginChart } from "@/components/admin/LeadsOriginChart";
 import { EixoStatusChart } from "@/components/admin/EixoStatusChart";
 import { EixoSummaryTable } from "@/components/admin/EixoSummaryTable";
+import { StaleProposalsAlertPanel } from "@/components/admin/StaleProposalsAlertPanel";
 import {
   FileText,
   Users,
@@ -65,7 +66,11 @@ export default function AdminMeuPainel() {
   const { data: propostas, isLoading: loadingPropostas, refetch: refetchPropostas } = useQuery({
     queryKey: ["meu-painel-propostas", userEixos, userMunicipios],
     queryFn: async () => {
-      let query = supabase.from("propostas_tecnicas").select("*");
+      let query = supabase.from("propostas_tecnicas").select(`
+        *,
+        eixos_tematicos(nome),
+        municipios(nome)
+      `);
       if (isLider && userEixos.length > 0 && !isAdmin) {
         query = query.in("eixo_id", getEixoIds());
       }
@@ -553,6 +558,21 @@ export default function AdminMeuPainel() {
           />
         </div>
       )}
+
+      {/* Stale Proposals Alert Panel */}
+      <StaleProposalsAlertPanel
+        proposals={(propostas || []).map(p => ({
+          id: p.id,
+          titulo: p.titulo,
+          status: p.status,
+          etapa: p.etapa,
+          eixo_nome: (p.eixos_tematicos as any)?.nome,
+          municipio_nome: (p.municipios as any)?.nome,
+          updated_at: p.updated_at,
+        }))}
+        isLoading={loadingPropostas}
+        onRefresh={refetchPropostas}
+      />
 
       {/* Pie Charts Row */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
