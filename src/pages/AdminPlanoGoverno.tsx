@@ -150,19 +150,55 @@ const AdminPlanoGoverno = () => {
       
       setLoadingBalanceData(true);
       try {
-        // Fetch documents with temporal status for balance chart
-        const { data: documents } = await supabase
-          .from('ai_documents')
-          .select('eixo_id, temporal_status');
+        // Get eixo_id if filter is active
+        const selectedEixo = filters.eixo ? eixos.find(e => e.nome === filters.eixo) : null;
+        const eixoId = selectedEixo?.id || null;
 
-        // Fetch proposals and suggestions counts for cross-ref
-        const [proposalsRes, suggestionsRes] = await Promise.all([
-          supabase.from('propostas_tecnicas').select('eixo_id, status'),
-          supabase.from('sugestoes_populares').select('eixo')
+        // Build documents query with filters
+        let documentsQuery = supabase.from('ai_documents').select('eixo_id, temporal_status, doc_category');
+        if (eixoId) {
+          documentsQuery = documentsQuery.eq('eixo_id', eixoId);
+        }
+        if (filters.docCategory) {
+          documentsQuery = documentsQuery.eq('doc_category', filters.docCategory);
+        }
+        if (filters.temporalStatus) {
+          documentsQuery = documentsQuery.eq('temporal_status', filters.temporalStatus);
+        }
+
+        // Build proposals query with filters
+        let proposalsQuery = supabase.from('propostas_tecnicas').select('eixo_id, status, municipio_id');
+        if (eixoId) {
+          proposalsQuery = proposalsQuery.eq('eixo_id', eixoId);
+        }
+        if (filters.municipio) {
+          const selectedMunicipio = municipios.find(m => m.nome === filters.municipio);
+          if (selectedMunicipio) {
+            proposalsQuery = proposalsQuery.eq('municipio_id', selectedMunicipio.id);
+          }
+        }
+
+        // Build suggestions query with filters
+        let suggestionsQuery = supabase.from('sugestoes_populares').select('eixo, municipio');
+        if (filters.eixo) {
+          suggestionsQuery = suggestionsQuery.eq('eixo', filters.eixo);
+        }
+        if (filters.municipio) {
+          suggestionsQuery = suggestionsQuery.eq('municipio', filters.municipio);
+        }
+
+        // Execute queries
+        const [documentsRes, proposalsRes, suggestionsRes] = await Promise.all([
+          documentsQuery,
+          proposalsQuery,
+          suggestionsQuery
         ]);
 
-        // Build balance data by eixo
-        const balanceByEixo = eixos.map(eixo => {
+        const documents = documentsRes.data;
+
+        // Build balance data - if eixo filter is active, only show that eixo
+        const eixosToShow = selectedEixo ? [selectedEixo] : eixos;
+        const balanceByEixo = eixosToShow.map(eixo => {
           const eixoDocs = documents?.filter(d => d.eixo_id === eixo.id) || [];
           return {
             eixo: eixo.nome.length > 15 ? eixo.nome.substring(0, 15) + '...' : eixo.nome,
@@ -174,10 +210,12 @@ const AdminPlanoGoverno = () => {
         });
 
         setBalanceData(balanceByEixo);
+        
+        // Set cross-ref stats respecting source toggles
         setCrossRefStats({
-          sugestoes: suggestionsRes.data?.length || 0,
-          propostas: proposalsRes.data?.length || 0,
-          documentos: documents?.length || 0,
+          sugestoes: filters.includeSugestoes ? (suggestionsRes.data?.length || 0) : 0,
+          propostas: filters.includePropostas ? (proposalsRes.data?.length || 0) : 0,
+          documentos: filters.includeDocumentos ? (documents?.length || 0) : 0,
         });
       } catch (error) {
         console.error('Error fetching balance data:', error);
@@ -187,7 +225,7 @@ const AdminPlanoGoverno = () => {
     };
 
     fetchBalanceData();
-  }, [user, isAuthorized, eixos]);
+  }, [user, isAuthorized, eixos, municipios, filters]);
 
   // Scroll to bottom when messages change
   useEffect(() => {

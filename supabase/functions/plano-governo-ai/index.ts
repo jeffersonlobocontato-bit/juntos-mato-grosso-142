@@ -114,6 +114,18 @@ serve(async (req) => {
     // Build context data based on filters and mode
     let contextData = "";
     
+    // Get eixo_id first if eixo filter is active (reuse for all queries)
+    let eixoId: string | null = null;
+    if (filters.eixo) {
+      const { data: eixoData } = await supabase
+        .from("eixos_tematicos")
+        .select("id")
+        .eq("nome", filters.eixo)
+        .maybeSingle();
+      eixoId = eixoData?.id || null;
+      console.log("Eixo filter active:", filters.eixo, "-> ID:", eixoId);
+    }
+    
     // Get municipalities for region filtering
     let municipioNames: string[] = [];
     if (filters.regiao) {
@@ -122,6 +134,17 @@ serve(async (req) => {
         .select("nome")
         .eq("regiao", filters.regiao);
       municipioNames = municipiosRegiao?.map(m => m.nome) || [];
+    }
+
+    // Get municipio_id if cidade filter is active
+    let municipioId: string | null = null;
+    if (filters.cidade) {
+      const { data: municipioData } = await supabase
+        .from("municipios")
+        .select("id")
+        .eq("nome", filters.cidade)
+        .maybeSingle();
+      municipioId = municipioData?.id || null;
     }
 
     // 1. Fetch suggestions if enabled
@@ -142,6 +165,7 @@ serve(async (req) => {
       }
 
       const { data: suggestions } = await suggestionsQuery;
+      console.log("Suggestions fetched:", suggestions?.length || 0);
 
       if (suggestions && suggestions.length > 0) {
         contextData += "\n\n=== SUGESTÕES POPULARES ===\n";
@@ -162,22 +186,34 @@ serve(async (req) => {
           etapa,
           indicadores,
           metas,
+          municipio_id,
+          eixo_id,
           municipios(nome, regiao),
           eixos_tematicos(nome)
         `)
         .limit(30);
 
-      if (filters.cidade) {
-        proposalsQuery = proposalsQuery.eq("municipios.nome", filters.cidade);
-      } else if (filters.regiao) {
-        proposalsQuery = proposalsQuery.eq("municipios.regiao", filters.regiao);
+      // Filter by eixo_id directly (correct way)
+      if (eixoId) {
+        proposalsQuery = proposalsQuery.eq("eixo_id", eixoId);
       }
 
-      if (filters.eixo) {
-        proposalsQuery = proposalsQuery.eq("eixos_tematicos.nome", filters.eixo);
+      // Filter by municipio_id directly (correct way)
+      if (municipioId) {
+        proposalsQuery = proposalsQuery.eq("municipio_id", municipioId);
+      } else if (filters.regiao && municipioNames.length > 0) {
+        // Get municipio IDs for the region
+        const { data: municipiosIds } = await supabase
+          .from("municipios")
+          .select("id")
+          .eq("regiao", filters.regiao);
+        if (municipiosIds && municipiosIds.length > 0) {
+          proposalsQuery = proposalsQuery.in("municipio_id", municipiosIds.map(m => m.id));
+        }
       }
 
       const { data: proposals } = await proposalsQuery;
+      console.log("Proposals fetched:", proposals?.length || 0);
 
       if (proposals && proposals.length > 0) {
         contextData += "\n\n=== PROPOSTAS TÉCNICAS ===\n";
@@ -224,17 +260,8 @@ serve(async (req) => {
         docsQuery = docsQuery.eq("regiao", filters.regiao);
       }
 
-      if (filters.eixo) {
-        // Need to filter by eixo name - get eixo id first
-        const { data: eixoData } = await supabase
-          .from("eixos_tematicos")
-          .select("id")
-          .eq("nome", filters.eixo)
-          .maybeSingle();
-        
-        if (eixoData?.id) {
-          docsQuery = docsQuery.eq("eixo_id", eixoData.id);
-        }
+      if (eixoId) {
+        docsQuery = docsQuery.eq("eixo_id", eixoId);
       }
 
       const { data: documents } = await docsQuery;
@@ -437,6 +464,42 @@ IMPORTANTE: Seja específico nas avaliações. Cite qual documento de referênci
     // Use custom prompt if available, otherwise use default for mode
     const basePrompt = customPrompt || systemPrompts[mode] || systemPrompts.plano;
     
+    // Build filter description for AI context
+    const buildFilterDescription = (): string => {
+      const parts: string[] = [];
+      
+      if (filters.eixo) {
+        parts.push(`EIXO TEMÁTICO SELECIONADO: ${filters.eixo}`);
+      }
+      if (filters.cidade) {
+        parts.push(`MUNICÍPIO SELECIONADO: ${filters.cidade}`);
+      }
+      if (filters.regiao) {
+        parts.push(`REGIÃO SELECIONADA: ${filters.regiao}`);
+      }
+      if (filters.docCategory) {
+        parts.push(`CATEGORIA DE DOCUMENTO: ${filters.docCategory}`);
+      }
+      if (filters.temporalStatus) {
+        parts.push(`STATUS TEMPORAL: ${filters.temporalStatus}`);
+      }
+      
+      const sources: string[] = [];
+      if (filters.includeSugestoes !== false) sources.push('Sugestões Populares');
+      if (filters.includePropostas !== false) sources.push('Propostas Técnicas');
+      if (filters.includeDocumentos !== false) sources.push('Documentos da Base');
+      
+      if (sources.length > 0) {
+        parts.push(`FONTES DE DADOS ATIVAS: ${sources.join(', ')}`);
+      }
+      
+      return parts.length > 0 
+        ? `\n\n=== FILTROS APLICADOS PELO USUÁRIO ===\n${parts.join('\n')}\n\nIMPORTANTE: Os dados abaixo já estão FILTRADOS de acordo com as seleções do usuário. Analise DIRETAMENTE estes dados sem pedir mais especificações.`
+        : '';
+    };
+
+    const filterDescription = buildFilterDescription();
+    
     // Add formatting instructions with explicit table rules
     const formattingInstructions = `
 
@@ -464,6 +527,7 @@ Responda em português brasileiro.`;
 
     // Build final system prompt with context
     const systemPrompt = `${basePrompt}${formattingInstructions}
+${filterDescription}
 ${contextData ? `\n\nDADOS DISPONÍVEIS PARA ANÁLISE:${contextData}` : ''}`;
 
     // Prepare messages for API
