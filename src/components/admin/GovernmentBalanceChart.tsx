@@ -61,7 +61,12 @@ export function GovernmentBalanceChart({ data, isLoading = false }: GovernmentBa
   const total = totals.realizado + totals.em_andamento + totals.prometido + totals.nao_iniciado;
   const taxaRealizacao = total > 0 ? ((totals.realizado / total) * 100).toFixed(1) : "0";
 
-  if (sortedData.length === 0) {
+  // Check if there's any actual data (not just zeros)
+  const hasData = sortedData.some(d => 
+    d.realizado > 0 || d.em_andamento > 0 || d.prometido > 0 || d.nao_iniciado > 0
+  );
+
+  if (sortedData.length === 0 || !hasData) {
     return (
       <Card>
         <CardHeader className="pb-2">
@@ -71,8 +76,12 @@ export function GovernmentBalanceChart({ data, isLoading = false }: GovernmentBa
           </CardTitle>
         </CardHeader>
         <CardContent>
-          <div className="h-80 flex items-center justify-center text-muted-foreground">
-            Nenhum documento de balanço encontrado
+          <div className="h-80 flex flex-col items-center justify-center text-muted-foreground text-center">
+            <AlertCircle className="h-8 w-8 mb-3 opacity-50" />
+            <p className="font-medium">Nenhum dado de balanço disponível</p>
+            <p className="text-xs mt-2 max-w-md">
+              Os dados são calculados com base em propostas técnicas (por status) e documentos com status temporal definido.
+            </p>
           </div>
         </CardContent>
       </Card>
