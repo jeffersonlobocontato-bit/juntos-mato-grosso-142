@@ -6,24 +6,23 @@ import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { Switch } from '@/components/ui/switch';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { ScrollArea } from '@/components/ui/scroll-area';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useToast } from '@/hooks/use-toast';
 import MarkdownRenderer from '@/components/admin/MarkdownRenderer';
 import AIConfigPanel from '@/components/admin/AIConfigPanel';
+import AnalysisModeSelector, { type AnalysisMode } from '@/components/admin/AnalysisModeSelector';
+import DataSourceFilters, { type DataFilters } from '@/components/admin/DataSourceFilters';
+import DocumentLibrary from '@/components/admin/DocumentLibrary';
 import { 
   ArrowLeft, 
   Send, 
   Sparkles, 
-  FileText, 
-  Lightbulb,
   Copy,
   Loader2,
-  MapPin,
-  Target,
-  Building2
+  BookOpen,
+  MessageSquare,
+  Settings
 } from 'lucide-react';
 
 type Message = {
@@ -62,17 +61,20 @@ const AdminPlanoGoverno = () => {
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
   // Mode state
-  const [isBrainstormMode, setIsBrainstormMode] = useState(false);
+  const [analysisMode, setAnalysisMode] = useState<AnalysisMode>('plano');
+  const [activeTab, setActiveTab] = useState('chat');
 
-  // Plan mode filters
-  const [planScope, setPlanScope] = useState<'estadual' | 'regional'>('estadual');
-  const [selectedRegion, setSelectedRegion] = useState<string>('');
-
-  // Brainstorm mode filters
-  const [locationFilter, setLocationFilter] = useState<'regiao' | 'cidade'>('regiao');
-  const [brainstormRegion, setBrainstormRegion] = useState<string>('');
-  const [brainstormCity, setBrainstormCity] = useState<string>('');
-  const [brainstormEixo, setBrainstormEixo] = useState<string>('');
+  // Unified filters
+  const [filters, setFilters] = useState<DataFilters>({
+    includeSugestoes: true,
+    includePropostas: true,
+    includeDocumentos: true,
+    regiao: '',
+    municipio: '',
+    eixo: '',
+    docCategory: '',
+    temporalStatus: '',
+  });
 
   // Data
   const [municipios, setMunicipios] = useState<Municipio[]>([]);
@@ -121,11 +123,6 @@ const AdminPlanoGoverno = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [messages]);
 
-  // Get filtered cities based on selected region
-  const filteredCities = brainstormRegion 
-    ? municipios.filter(m => m.regiao === brainstormRegion)
-    : municipios;
-
   const handleSendMessage = async () => {
     if (!inputMessage.trim() || isStreaming) return;
 
@@ -137,18 +134,21 @@ const AdminPlanoGoverno = () => {
     try {
       const payload = {
         messages: [...messages, userMessage],
-        mode: isBrainstormMode ? 'brainstorm' : 'plano',
-        filters: isBrainstormMode 
-          ? {
-              locationType: locationFilter,
-              regiao: locationFilter === 'regiao' ? brainstormRegion : undefined,
-              cidade: locationFilter === 'cidade' ? brainstormCity : undefined,
-              eixo: brainstormEixo
-            }
-          : {
-              scope: planScope,
-              regiao: planScope === 'regional' ? selectedRegion : undefined
-            }
+        mode: analysisMode,
+        filters: {
+          // Data sources
+          includeSugestoes: filters.includeSugestoes,
+          includePropostas: filters.includePropostas,
+          includeDocumentos: filters.includeDocumentos,
+          // Location
+          regiao: filters.regiao || undefined,
+          cidade: filters.municipio || undefined,
+          // Thematic
+          eixo: filters.eixo || undefined,
+          // Document specific
+          docCategory: filters.docCategory || undefined,
+          temporalStatus: filters.temporalStatus || undefined,
+        }
       };
 
       const response = await fetch(
@@ -250,6 +250,68 @@ const AdminPlanoGoverno = () => {
     setMessages([]);
   };
 
+  const getModeDescription = () => {
+    switch (analysisMode) {
+      case 'plano':
+        return 'Crie planos de governo técnicos e profissionais';
+      case 'brainstorm':
+        return 'Gere ideias criativas baseadas nas demandas populares';
+      case 'cruzamento':
+        return 'Compare documentos, propostas e sugestões';
+      case 'balanco':
+        return 'Analise o que foi feito vs. prometido';
+      case 'conteudo':
+        return 'Gere releases, discursos e notas técnicas';
+      case 'coerencia':
+        return 'Avalie alinhamento entre propostas e documentos';
+      default:
+        return 'Solicite análises e insights baseados nos dados';
+    }
+  };
+
+  const getExamplePrompts = () => {
+    switch (analysisMode) {
+      case 'plano':
+        return [
+          '"Crie um plano de governo para o eixo de saúde"',
+          '"Elabore metas e indicadores para educação"',
+          '"Estruture um plano integrado para desenvolvimento econômico"',
+        ];
+      case 'brainstorm':
+        return [
+          '"Sugira propostas para saúde baseadas nas demandas da população"',
+          '"Crie pontos de discurso sobre educação para esta região"',
+          '"Quais são as principais demandas da população sobre infraestrutura?"',
+        ];
+      case 'cruzamento':
+        return [
+          '"Compare as propostas técnicas com as sugestões populares de infraestrutura"',
+          '"Identifique lacunas entre o plano de governo e as propostas existentes"',
+          '"Cruze os documentos de investimento com as demandas populares"',
+        ];
+      case 'balanco':
+        return [
+          '"Analise o que foi realizado no eixo de saúde"',
+          '"Compare o prometido vs. realizado em infraestrutura"',
+          '"Gere um relatório de cumprimento de metas por região"',
+        ];
+      case 'conteudo':
+        return [
+          '"Crie um release de imprensa sobre as realizações em educação"',
+          '"Elabore um discurso político sobre desenvolvimento regional"',
+          '"Gere uma nota técnica sobre os investimentos em infraestrutura"',
+        ];
+      case 'coerencia':
+        return [
+          '"Avalie a coerência das propostas de saúde com o plano de governo"',
+          '"Identifique propostas desalinhadas com as diretrizes oficiais"',
+          '"Classifique as propostas por exequibilidade técnica"',
+        ];
+      default:
+        return [];
+    }
+  };
+
   if (authLoading) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-background">
@@ -277,307 +339,174 @@ const AdminPlanoGoverno = () => {
               <div>
                 <h1 className="text-xl font-display font-bold flex items-center gap-2">
                   <Sparkles className="w-5 h-5 text-primary" />
-                  Gerador de Plano de Governo
+                  Análise, Diagnóstico e Propostas (IA avançada)
                 </h1>
                 <p className="text-sm text-muted-foreground">
-                  IA para criar planos e brainstorming de propostas
+                  Cruzamento inteligente de dados para geração de insights e propostas
                 </p>
               </div>
             </div>
+            {messages.length > 0 && (
+              <Button variant="outline" size="sm" onClick={clearChat}>
+                Limpar Chat
+              </Button>
+            )}
           </div>
         </div>
       </header>
 
       <main className="container mx-auto px-4 py-6">
-        <div className="max-w-5xl mx-auto">
-          {/* Mode Toggle */}
-          <Card className="mb-6">
-            <CardContent className="py-4">
-              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-                <div className="flex items-center gap-4">
-                  <div className={`flex items-center gap-2 ${!isBrainstormMode ? 'text-primary font-medium' : 'text-muted-foreground'}`}>
-                    <FileText className="w-5 h-5" />
-                    <span>Modo Plano</span>
-                  </div>
-                  <Switch
-                    checked={isBrainstormMode}
-                    onCheckedChange={(checked) => {
-                      setIsBrainstormMode(checked);
-                      clearChat();
-                    }}
-                  />
-                  <div className={`flex items-center gap-2 ${isBrainstormMode ? 'text-accent font-medium' : 'text-muted-foreground'}`}>
-                    <Lightbulb className="w-5 h-5" />
-                    <span>Modo Brainstorming</span>
-                  </div>
-                </div>
-
-                {messages.length > 0 && (
-                  <Button variant="outline" size="sm" onClick={clearChat}>
-                    Limpar Chat
-                  </Button>
-                )}
-              </div>
-            </CardContent>
-          </Card>
-
-          {/* AI Configuration Panel - Admin Only */}
-          <AIConfigPanel isAdmin={isAdmin} />
-
-          {/* Filters */}
-          <Card className="mb-6">
+        <div className="max-w-6xl mx-auto space-y-6">
+          {/* Mode Selector */}
+          <Card>
             <CardHeader className="pb-3">
-              <CardTitle className="text-base flex items-center gap-2">
-                {isBrainstormMode ? (
-                  <>
-                    <Lightbulb className="w-4 h-4 text-accent" />
-                    Filtros de Brainstorming
-                  </>
-                ) : (
-                  <>
-                    <Target className="w-4 h-4 text-primary" />
-                    Escopo do Plano
-                  </>
-                )}
-              </CardTitle>
+              <CardTitle className="text-base">Modo de Análise</CardTitle>
             </CardHeader>
             <CardContent>
-              {!isBrainstormMode ? (
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                  <div className="space-y-2">
-                    <Label>Abrangência</Label>
-                    <Select value={planScope} onValueChange={(v) => setPlanScope(v as 'estadual' | 'regional')}>
-                      <SelectTrigger>
-                        <SelectValue />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="estadual">
-                          <span className="flex items-center gap-2">
-                            <MapPin className="w-4 h-4" />
-                            Plano Estadual
-                          </span>
-                        </SelectItem>
-                        <SelectItem value="regional">
-                          <span className="flex items-center gap-2">
-                            <Building2 className="w-4 h-4" />
-                            Plano Regional
-                          </span>
-                        </SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </div>
-
-                  {planScope === 'regional' && (
-                    <div className="space-y-2">
-                      <Label>Região</Label>
-                      <Select value={selectedRegion} onValueChange={setSelectedRegion}>
-                        <SelectTrigger>
-                          <SelectValue placeholder="Selecione a região" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          {REGIOES.map(regiao => (
-                            <SelectItem key={regiao} value={regiao}>{regiao}</SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-                    </div>
-                  )}
-                </div>
-              ) : (
-                <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-                  <div className="space-y-2">
-                    <Label>Filtrar por</Label>
-                    <Select value={locationFilter} onValueChange={(v) => {
-                      setLocationFilter(v as 'regiao' | 'cidade');
-                      setBrainstormCity('');
-                    }}>
-                      <SelectTrigger>
-                        <SelectValue />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="regiao">Região</SelectItem>
-                        <SelectItem value="cidade">Cidade</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </div>
-
-                  {locationFilter === 'regiao' ? (
-                    <div className="space-y-2">
-                      <Label>Região</Label>
-                      <Select value={brainstormRegion} onValueChange={setBrainstormRegion}>
-                        <SelectTrigger>
-                          <SelectValue placeholder="Selecione a região" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          {REGIOES.map(regiao => (
-                            <SelectItem key={regiao} value={regiao}>{regiao}</SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-                    </div>
-                  ) : (
-                    <>
-                      <div className="space-y-2">
-                        <Label>Região (opcional)</Label>
-                      <Select value={brainstormRegion || "__all__"} onValueChange={(v) => {
-                          setBrainstormRegion(v === "__all__" ? "" : v);
-                          setBrainstormCity('');
-                        }}>
-                          <SelectTrigger>
-                            <SelectValue placeholder="Filtrar por região" />
-                          </SelectTrigger>
-                          <SelectContent>
-                            <SelectItem value="__all__">Todas as regiões</SelectItem>
-                            {REGIOES.map(regiao => (
-                              <SelectItem key={regiao} value={regiao}>{regiao}</SelectItem>
-                            ))}
-                          </SelectContent>
-                        </Select>
-                      </div>
-                      <div className="space-y-2">
-                        <Label>Cidade</Label>
-                        <Select value={brainstormCity} onValueChange={setBrainstormCity}>
-                          <SelectTrigger>
-                            <SelectValue placeholder="Selecione a cidade" />
-                          </SelectTrigger>
-                          <SelectContent>
-                            {filteredCities.filter(cidade => cidade.nome).map(cidade => (
-                              <SelectItem key={cidade.id} value={cidade.nome}>{cidade.nome}</SelectItem>
-                            ))}
-                          </SelectContent>
-                        </Select>
-                      </div>
-                    </>
-                  )}
-
-                  <div className="space-y-2">
-                    <Label>Eixo Temático</Label>
-                    <Select value={brainstormEixo || "__all__"} onValueChange={(v) => setBrainstormEixo(v === "__all__" ? "" : v)}>
-                      <SelectTrigger>
-                        <SelectValue placeholder="Selecione o eixo" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="__all__">Todos os eixos</SelectItem>
-                        {eixos.map(eixo => (
-                          <SelectItem key={eixo.id} value={eixo.nome}>{eixo.nome}</SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  </div>
-                </div>
-              )}
+              <AnalysisModeSelector 
+                value={analysisMode} 
+                onChange={(mode) => {
+                  setAnalysisMode(mode);
+                  clearChat();
+                }} 
+              />
             </CardContent>
           </Card>
 
-          {/* Chat Area */}
-          <Card className="mb-4">
-            <CardContent className="p-0">
-              <ScrollArea className="h-[400px] p-4">
-                {messages.length === 0 ? (
-                  <div className="h-full flex flex-col items-center justify-center text-center text-muted-foreground">
-                    <Sparkles className="w-12 h-12 mb-4 text-primary/30" />
-                    <h3 className="text-lg font-medium mb-2">
-                      {isBrainstormMode 
-                        ? 'Modo Brainstorming Ativo' 
-                        : 'Gerador de Plano de Governo'}
-                    </h3>
-                    <p className="max-w-md">
-                      {isBrainstormMode 
-                        ? 'Peça ideias de propostas e discursos baseados nas sugestões da população e propostas técnicas existentes.'
-                        : 'Solicite a criação de planos de governo técnicos seguindo melhores práticas de políticas públicas.'}
-                    </p>
-                    <div className="mt-4 text-sm">
-                      <p className="font-medium text-foreground mb-1">Exemplos de perguntas:</p>
-                      {isBrainstormMode ? (
-                        <ul className="space-y-1">
-                          <li>• "Sugira propostas para saúde baseadas nas demandas da população"</li>
-                          <li>• "Crie pontos de discurso sobre educação para esta região"</li>
-                          <li>• "Quais são as principais demandas da população sobre infraestrutura?"</li>
-                        </ul>
-                      ) : (
-                        <ul className="space-y-1">
-                          <li>• "Crie um plano de governo para o eixo de saúde"</li>
-                          <li>• "Elabore metas e indicadores para educação"</li>
-                          <li>• "Estruture um plano integrado para desenvolvimento econômico"</li>
-                        </ul>
-                      )}
-                    </div>
-                  </div>
-                ) : (
-                  <div className="space-y-4">
-                    {messages.map((message, index) => (
-                      <motion.div
-                        key={index}
-                        initial={{ opacity: 0, y: 10 }}
-                        animate={{ opacity: 1, y: 0 }}
-                        className={`flex ${message.role === 'user' ? 'justify-end' : 'justify-start'}`}
-                      >
-                        <div
-                          className={`max-w-[85%] rounded-lg px-4 py-3 ${
-                            message.role === 'user'
-                              ? 'bg-primary text-primary-foreground'
-                              : 'bg-muted'
-                          }`}
-                        >
-                          {message.role === 'assistant' ? (
-                            message.content ? (
-                              <MarkdownRenderer content={message.content} />
-                            ) : (
-                              <span className="flex items-center gap-2 text-muted-foreground text-sm">
-                                <Loader2 className="w-4 h-4 animate-spin" />
-                                Pensando...
-                              </span>
-                            )
-                          ) : (
-                            <div className="whitespace-pre-wrap text-sm">
-                              {message.content}
-                            </div>
-                          )}
+          {/* Tabs: Chat / Documents / Config */}
+          <Tabs value={activeTab} onValueChange={setActiveTab}>
+            <TabsList className="grid w-full grid-cols-3">
+              <TabsTrigger value="chat" className="flex items-center gap-2">
+                <MessageSquare className="w-4 h-4" />
+                Chat de Análise
+              </TabsTrigger>
+              <TabsTrigger value="documents" className="flex items-center gap-2">
+                <BookOpen className="w-4 h-4" />
+                Biblioteca de Documentos
+              </TabsTrigger>
+              <TabsTrigger value="config" className="flex items-center gap-2">
+                <Settings className="w-4 h-4" />
+                Configurações
+              </TabsTrigger>
+            </TabsList>
+
+            {/* Chat Tab */}
+            <TabsContent value="chat" className="space-y-4 mt-4">
+              {/* Filters */}
+              <DataSourceFilters
+                filters={filters}
+                onChange={setFilters}
+                regioes={REGIOES}
+                municipios={municipios}
+                eixos={eixos}
+              />
+
+              {/* Chat Area */}
+              <Card>
+                <CardContent className="p-0">
+                  <ScrollArea className="h-[400px] p-4">
+                    {messages.length === 0 ? (
+                      <div className="h-full flex flex-col items-center justify-center text-center text-muted-foreground">
+                        <Sparkles className="w-12 h-12 mb-4 text-primary/30" />
+                        <h3 className="text-lg font-medium mb-2">
+                          {getModeDescription()}
+                        </h3>
+                        <div className="mt-4 text-sm">
+                          <p className="font-medium text-foreground mb-2">Exemplos de perguntas:</p>
+                          <ul className="space-y-1">
+                            {getExamplePrompts().map((prompt, i) => (
+                              <li key={i}>• {prompt}</li>
+                            ))}
+                          </ul>
                         </div>
-                      </motion.div>
-                    ))}
-                    <div ref={messagesEndRef} />
-                  </div>
-                )}
-              </ScrollArea>
-            </CardContent>
-          </Card>
+                      </div>
+                    ) : (
+                      <div className="space-y-4">
+                        {messages.map((message, index) => (
+                          <motion.div
+                            key={index}
+                            initial={{ opacity: 0, y: 10 }}
+                            animate={{ opacity: 1, y: 0 }}
+                            className={`flex ${message.role === 'user' ? 'justify-end' : 'justify-start'}`}
+                          >
+                            <div
+                              className={`max-w-[85%] rounded-lg px-4 py-3 ${
+                                message.role === 'user'
+                                  ? 'bg-primary text-primary-foreground'
+                                  : 'bg-muted'
+                              }`}
+                            >
+                              {message.role === 'assistant' ? (
+                                message.content ? (
+                                  <MarkdownRenderer content={message.content} />
+                                ) : (
+                                  <span className="flex items-center gap-2 text-muted-foreground text-sm">
+                                    <Loader2 className="w-4 h-4 animate-spin" />
+                                    Pensando...
+                                  </span>
+                                )
+                              ) : (
+                                <div className="whitespace-pre-wrap text-sm">
+                                  {message.content}
+                                </div>
+                              )}
+                            </div>
+                          </motion.div>
+                        ))}
+                        <div ref={messagesEndRef} />
+                      </div>
+                    )}
+                  </ScrollArea>
+                </CardContent>
+              </Card>
 
-          {/* Input Area */}
-          <div className="flex gap-2">
-            <Input
-              value={inputMessage}
-              onChange={(e) => setInputMessage(e.target.value)}
-              onKeyDown={handleKeyPress}
-              placeholder={
-                isBrainstormMode 
-                  ? "Peça ideias de propostas ou discursos..." 
-                  : "Solicite a criação de um plano de governo..."
-              }
-              disabled={isStreaming}
-              className="flex-1"
-            />
-            {messages.some(m => m.role === 'assistant' && m.content) && (
-              <Button
-                variant="outline"
-                size="icon"
-                onClick={handleCopyLastResponse}
-                title="Copiar última resposta"
-              >
-                <Copy className="w-4 h-4" />
-              </Button>
-            )}
-            <Button 
-              onClick={handleSendMessage} 
-              disabled={!inputMessage.trim() || isStreaming}
-            >
-              {isStreaming ? (
-                <Loader2 className="w-4 h-4 animate-spin" />
-              ) : (
-                <Send className="w-4 h-4" />
-              )}
-            </Button>
-          </div>
+              {/* Input Area */}
+              <div className="flex gap-2">
+                <Input
+                  value={inputMessage}
+                  onChange={(e) => setInputMessage(e.target.value)}
+                  onKeyDown={handleKeyPress}
+                  placeholder={`Faça uma pergunta no modo ${analysisMode}...`}
+                  disabled={isStreaming}
+                  className="flex-1"
+                />
+                {messages.some(m => m.role === 'assistant' && m.content) && (
+                  <Button
+                    variant="outline"
+                    size="icon"
+                    onClick={handleCopyLastResponse}
+                    title="Copiar última resposta"
+                  >
+                    <Copy className="w-4 h-4" />
+                  </Button>
+                )}
+                <Button 
+                  onClick={handleSendMessage} 
+                  disabled={!inputMessage.trim() || isStreaming}
+                >
+                  {isStreaming ? (
+                    <Loader2 className="w-4 h-4 animate-spin" />
+                  ) : (
+                    <Send className="w-4 h-4" />
+                  )}
+                </Button>
+              </div>
+            </TabsContent>
+
+            {/* Documents Tab */}
+            <TabsContent value="documents" className="mt-4">
+              <DocumentLibrary
+                eixos={eixos}
+                municipios={municipios}
+                regioes={REGIOES}
+              />
+            </TabsContent>
+
+            {/* Config Tab */}
+            <TabsContent value="config" className="mt-4">
+              <AIConfigPanel isAdmin={isAdmin} />
+            </TabsContent>
+          </Tabs>
         </div>
       </main>
     </div>
