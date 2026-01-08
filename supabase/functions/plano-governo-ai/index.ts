@@ -358,12 +358,53 @@ IMPORTANTE: Use os dados fornecidos como base para suas sugestões. Cite exemplo
 
 Seu papel é:
 1. CRUZAR dados de diferentes fontes: sugestões populares, propostas técnicas e documentos oficiais
-2. Identificar SINERGIAS e LACUNAS entre o que a população pede, o que está sendo proposto e o que foi planejado/realizado
-3. Apontar DIVERGÊNCIAS entre propostas e documentos formais
-4. Classificar propostas por nível de ALINHAMENTO com diretrizes oficiais
-5. Sugerir CONEXÕES entre diferentes dados que podem não ser óbvias
+2. Identificar CONVERGÊNCIAS (onde diferentes fontes concordam)
+3. Identificar DIVERGÊNCIAS (onde há conflitos ou contradições)
+4. Identificar LACUNAS (áreas não cobertas pelas propostas atuais)
+5. Identificar OPORTUNIDADES (potenciais inovações)
 
-IMPORTANTE: Sempre que fizer uma análise comparativa, cite explicitamente as fontes (qual sugestão, qual proposta, qual documento). Use tabelas comparativas quando apropriado.`,
+FORMATO DE RESPOSTA OBRIGATÓRIO:
+Sempre que realizar uma análise de cruzamento, inclua um bloco JSON no final da sua resposta com as descobertas estruturadas no seguinte formato:
+
+\`\`\`json
+{
+  "discoveries": [
+    {
+      "type": "convergence",
+      "title": "Título curto da descoberta",
+      "description": "Descrição detalhada da convergência identificada",
+      "sources": ["Sugestão Popular", "Proposta Técnica X"],
+      "relevance": "high"
+    },
+    {
+      "type": "divergence",
+      "title": "Título do conflito",
+      "description": "Descrição da divergência encontrada",
+      "sources": ["Documento Y", "Proposta Z"],
+      "relevance": "medium"
+    },
+    {
+      "type": "gap",
+      "title": "Título da lacuna",
+      "description": "Área não coberta identificada",
+      "sources": ["Sugestões de Município X"],
+      "relevance": "high"
+    },
+    {
+      "type": "opportunity",
+      "title": "Título da oportunidade",
+      "description": "Potencial inovação identificada",
+      "sources": ["Cruzamento de dados"],
+      "relevance": "low"
+    }
+  ]
+}
+\`\`\`
+
+Tipos válidos: "convergence", "divergence", "gap", "opportunity"
+Relevância válida: "high", "medium", "low"
+
+IMPORTANTE: Sempre que fizer uma análise comparativa, cite explicitamente as fontes. Use tabelas comparativas quando apropriado. Inclua SEMPRE o bloco JSON ao final.`,
 
       balanco: `Você é um analista especializado em avaliação de políticas públicas e balanço de governo para o Estado do Paraná.
 
