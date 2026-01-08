@@ -1,8 +1,8 @@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, Legend, Cell } from "recharts";
+import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, Legend } from "recharts";
 import { TrendingUp, TrendingDown, Clock, AlertCircle } from "lucide-react";
 
-interface BalanceData {
+export interface BalanceData {
   eixo: string;
   realizado: number;
   em_andamento: number;
@@ -13,6 +13,7 @@ interface BalanceData {
 interface GovernmentBalanceChartProps {
   data: BalanceData[];
   isLoading?: boolean;
+  onCategoryClick?: (category: 'realizado' | 'em_andamento' | 'prometido' | 'nao_iniciado', eixo?: string) => void;
 }
 
 const STATUS_CONFIG = {
@@ -22,7 +23,7 @@ const STATUS_CONFIG = {
   nao_iniciado: { color: "hsl(var(--muted-foreground))", label: "Não Iniciado" },
 };
 
-export function GovernmentBalanceChart({ data, isLoading = false }: GovernmentBalanceChartProps) {
+export function GovernmentBalanceChart({ data, isLoading = false, onCategoryClick }: GovernmentBalanceChartProps) {
   if (isLoading) {
     return (
       <Card>
@@ -88,39 +89,66 @@ export function GovernmentBalanceChart({ data, isLoading = false }: GovernmentBa
     );
   }
 
+  const handleCardClick = (category: 'realizado' | 'em_andamento' | 'prometido' | 'nao_iniciado') => {
+    if (onCategoryClick && totals[category] > 0) {
+      onCategoryClick(category);
+    }
+  };
+
+  const handleBarClick = (data: any, category: 'realizado' | 'em_andamento' | 'prometido' | 'nao_iniciado') => {
+    if (onCategoryClick && data[category] > 0) {
+      onCategoryClick(category, data.eixo);
+    }
+  };
+
   return (
     <Card>
       <CardHeader className="pb-2">
         <CardTitle className="text-lg flex items-center gap-2">
           <TrendingUp className="h-5 w-5" />
           Balanço de Governo por Eixo
+          {onCategoryClick && (
+            <span className="text-xs font-normal text-muted-foreground ml-2">(clique nos indicadores para detalhes)</span>
+          )}
         </CardTitle>
       </CardHeader>
       <CardContent className="space-y-4">
-        {/* Summary Stats */}
+        {/* Summary Stats - Clickable */}
         <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-          <div className="flex items-center gap-2 p-2 rounded-lg bg-green-500/10">
+          <div 
+            className={`flex items-center gap-2 p-2 rounded-lg bg-green-500/10 ${onCategoryClick && totals.realizado > 0 ? 'cursor-pointer hover:bg-green-500/20 transition-colors' : ''}`}
+            onClick={() => handleCardClick('realizado')}
+          >
             <TrendingUp className="h-4 w-4 text-green-600" />
             <div>
               <p className="text-xs text-muted-foreground">Realizado</p>
               <p className="font-semibold text-green-600">{totals.realizado}</p>
             </div>
           </div>
-          <div className="flex items-center gap-2 p-2 rounded-lg bg-amber-500/10">
+          <div 
+            className={`flex items-center gap-2 p-2 rounded-lg bg-amber-500/10 ${onCategoryClick && totals.em_andamento > 0 ? 'cursor-pointer hover:bg-amber-500/20 transition-colors' : ''}`}
+            onClick={() => handleCardClick('em_andamento')}
+          >
             <Clock className="h-4 w-4 text-amber-600" />
             <div>
               <p className="text-xs text-muted-foreground">Em Andamento</p>
               <p className="font-semibold text-amber-600">{totals.em_andamento}</p>
             </div>
           </div>
-          <div className="flex items-center gap-2 p-2 rounded-lg bg-blue-500/10">
+          <div 
+            className={`flex items-center gap-2 p-2 rounded-lg bg-blue-500/10 ${onCategoryClick && totals.prometido > 0 ? 'cursor-pointer hover:bg-blue-500/20 transition-colors' : ''}`}
+            onClick={() => handleCardClick('prometido')}
+          >
             <TrendingDown className="h-4 w-4 text-blue-600" />
             <div>
               <p className="text-xs text-muted-foreground">Prometido</p>
               <p className="font-semibold text-blue-600">{totals.prometido}</p>
             </div>
           </div>
-          <div className="flex items-center gap-2 p-2 rounded-lg bg-muted/50">
+          <div 
+            className={`flex items-center gap-2 p-2 rounded-lg bg-muted/50 ${onCategoryClick && totals.nao_iniciado > 0 ? 'cursor-pointer hover:bg-muted transition-colors' : ''}`}
+            onClick={() => handleCardClick('nao_iniciado')}
+          >
             <AlertCircle className="h-4 w-4 text-muted-foreground" />
             <div>
               <p className="text-xs text-muted-foreground">Não Iniciado</p>
@@ -167,10 +195,35 @@ export function GovernmentBalanceChart({ data, isLoading = false }: GovernmentBa
                 return config?.label || value;
               }}
             />
-            <Bar dataKey="realizado" stackId="a" fill={STATUS_CONFIG.realizado.color} />
-            <Bar dataKey="em_andamento" stackId="a" fill={STATUS_CONFIG.em_andamento.color} />
-            <Bar dataKey="prometido" stackId="a" fill={STATUS_CONFIG.prometido.color} />
-            <Bar dataKey="nao_iniciado" stackId="a" fill={STATUS_CONFIG.nao_iniciado.color} radius={[0, 4, 4, 0]} />
+            <Bar 
+              dataKey="realizado" 
+              stackId="a" 
+              fill={STATUS_CONFIG.realizado.color}
+              cursor={onCategoryClick ? "pointer" : undefined}
+              onClick={(data) => handleBarClick(data, 'realizado')}
+            />
+            <Bar 
+              dataKey="em_andamento" 
+              stackId="a" 
+              fill={STATUS_CONFIG.em_andamento.color}
+              cursor={onCategoryClick ? "pointer" : undefined}
+              onClick={(data) => handleBarClick(data, 'em_andamento')}
+            />
+            <Bar 
+              dataKey="prometido" 
+              stackId="a" 
+              fill={STATUS_CONFIG.prometido.color}
+              cursor={onCategoryClick ? "pointer" : undefined}
+              onClick={(data) => handleBarClick(data, 'prometido')}
+            />
+            <Bar 
+              dataKey="nao_iniciado" 
+              stackId="a" 
+              fill={STATUS_CONFIG.nao_iniciado.color} 
+              radius={[0, 4, 4, 0]}
+              cursor={onCategoryClick ? "pointer" : undefined}
+              onClick={(data) => handleBarClick(data, 'nao_iniciado')}
+            />
           </BarChart>
         </ResponsiveContainer>
       </CardContent>

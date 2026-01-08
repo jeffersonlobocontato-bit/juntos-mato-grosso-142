@@ -14,8 +14,9 @@ import AIConfigPanel from '@/components/admin/AIConfigPanel';
 import AnalysisModeSelector, { type AnalysisMode } from '@/components/admin/AnalysisModeSelector';
 import DataSourceFilters, { type DataFilters } from '@/components/admin/DataSourceFilters';
 import DocumentLibrary from '@/components/admin/DocumentLibrary';
-import { GovernmentBalanceChart } from '@/components/admin/GovernmentBalanceChart';
+import { GovernmentBalanceChart, type BalanceData } from '@/components/admin/GovernmentBalanceChart';
 import { CrossReferenceResultsPanel } from '@/components/admin/CrossReferenceResultsPanel';
+import { BalanceDetailModal, type BalanceItem } from '@/components/admin/BalanceDetailModal';
 import { 
   ArrowLeft, 
   Send, 
@@ -89,13 +90,11 @@ const AdminPlanoGoverno = () => {
   const [isStreaming, setIsStreaming] = useState(false);
 
   // Balance and cross-reference data
-  const [balanceData, setBalanceData] = useState<{
-    eixo: string;
-    realizado: number;
-    em_andamento: number;
-    prometido: number;
-    nao_iniciado: number;
-  }[]>([]);
+  const [balanceData, setBalanceData] = useState<BalanceData[]>([]);
+  const [balanceRawData, setBalanceRawData] = useState<{
+    documents: Array<{id: string; title: string; eixo_id: string | null; temporal_status: string | null; file_url: string | null; source_url: string | null}>;
+    proposals: Array<{id: string; titulo: string; eixo_id: string; status: string; anexos: string[] | null}>;
+  }>({ documents: [], proposals: [] });
   const [crossRefResults, setCrossRefResults] = useState<{
     type: 'convergence' | 'divergence' | 'gap' | 'opportunity';
     title: string;
@@ -109,6 +108,13 @@ const AdminPlanoGoverno = () => {
     documentos: number;
   }>({ sugestoes: 0, propostas: 0, documentos: 0 });
   const [loadingBalanceData, setLoadingBalanceData] = useState(false);
+  
+  // Balance detail modal state
+  const [balanceDetailModal, setBalanceDetailModal] = useState<{
+    open: boolean;
+    category: 'realizado' | 'em_andamento' | 'prometido' | 'nao_iniciado' | null;
+    eixo?: string;
+  }>({ open: false, category: null });
 
   // Check authorization
   const isAuthorized = isAdmin || hasRole('lider_tematico');
@@ -154,8 +160,8 @@ const AdminPlanoGoverno = () => {
         const selectedEixo = filters.eixo ? eixos.find(e => e.nome === filters.eixo) : null;
         const eixoId = selectedEixo?.id || null;
 
-        // Build documents query with filters
-        let documentsQuery = supabase.from('ai_documents').select('eixo_id, temporal_status, doc_category');
+        // Build documents query with filters - include fields for detail modal
+        let documentsQuery = supabase.from('ai_documents').select('id, title, eixo_id, temporal_status, doc_category, file_url, source_url');
         if (eixoId) {
           documentsQuery = documentsQuery.eq('eixo_id', eixoId);
         }
@@ -166,8 +172,8 @@ const AdminPlanoGoverno = () => {
           documentsQuery = documentsQuery.eq('temporal_status', filters.temporalStatus);
         }
 
-        // Build proposals query with filters
-        let proposalsQuery = supabase.from('propostas_tecnicas').select('eixo_id, status, municipio_id');
+        // Build proposals query with filters - include fields for detail modal
+        let proposalsQuery = supabase.from('propostas_tecnicas').select('id, titulo, eixo_id, status, municipio_id, anexos');
         if (eixoId) {
           proposalsQuery = proposalsQuery.eq('eixo_id', eixoId);
         }
@@ -230,6 +236,25 @@ const AdminPlanoGoverno = () => {
 
         setBalanceData(balanceByEixo);
         
+        // Store raw data for detail modal
+        setBalanceRawData({
+          documents: documents.map(d => ({
+            id: d.id,
+            title: d.title,
+            eixo_id: d.eixo_id,
+            temporal_status: d.temporal_status,
+            file_url: d.file_url,
+            source_url: d.source_url,
+          })),
+          proposals: proposals.map(p => ({
+            id: p.id,
+            titulo: p.titulo,
+            eixo_id: p.eixo_id,
+            status: p.status,
+            anexos: p.anexos,
+          })),
+        });
+        
         // Set cross-ref stats respecting source toggles
         setCrossRefStats({
           sugestoes: filters.includeSugestoes ? (suggestionsRes.data?.length || 0) : 0,
@@ -245,6 +270,50 @@ const AdminPlanoGoverno = () => {
 
     fetchBalanceData();
   }, [user, isAuthorized, eixos, municipios, filters]);
+
+  // Get items for balance detail modal
+  const getItemsForCategory = (category: 'realizado' | 'em_andamento' | 'prometido' | 'nao_iniciado', eixoName?: string): BalanceItem[] => {
+    const statusMap = {
+      realizado: { docStatus: 'realizado', proposalStatus: 'aprovada' },
+      em_andamento: { docStatus: 'em_andamento', proposalStatus: 'consolidada' },
+      prometido: { docStatus: 'prometido', proposalStatus: 'validada' },
+      nao_iniciado: { docStatus: 'nao_iniciado', proposalStatus: 'rascunho' },
+    };
+    
+    const mapping = statusMap[category];
+    const selectedEixo = eixoName ? eixos.find(e => e.nome === eixoName || e.nome.startsWith(eixoName.replace('...', ''))) : null;
+    
+    const docItems: BalanceItem[] = balanceRawData.documents
+      .filter(d => d.temporal_status === mapping.docStatus)
+      .filter(d => !selectedEixo || d.eixo_id === selectedEixo.id)
+      .map(d => ({
+        id: d.id,
+        title: d.title,
+        sourceType: 'documento' as const,
+        sourceUrl: d.file_url || d.source_url || undefined,
+      }));
+      
+    const proposalItems: BalanceItem[] = balanceRawData.proposals
+      .filter(p => p.status === mapping.proposalStatus)
+      .filter(p => !selectedEixo || p.eixo_id === selectedEixo.id)
+      .map(p => ({
+        id: p.id,
+        title: p.titulo,
+        sourceType: 'proposta' as const,
+        internalPath: `/admin/propostas?id=${p.id}`,
+      }));
+    
+    return [...docItems, ...proposalItems];
+  };
+
+  // Handle balance category click
+  const handleBalanceCategoryClick = (category: 'realizado' | 'em_andamento' | 'prometido' | 'nao_iniciado', eixo?: string) => {
+    setBalanceDetailModal({
+      open: true,
+      category,
+      eixo,
+    });
+  };
 
   // Scroll to bottom when messages change
   useEffect(() => {
@@ -555,6 +624,7 @@ const AdminPlanoGoverno = () => {
                 <GovernmentBalanceChart
                   data={balanceData}
                   isLoading={loadingBalanceData}
+                  onCategoryClick={handleBalanceCategoryClick}
                 />
               )}
 
@@ -675,6 +745,15 @@ const AdminPlanoGoverno = () => {
           </Tabs>
         </div>
       </main>
+
+      {/* Balance Detail Modal */}
+      <BalanceDetailModal
+        open={balanceDetailModal.open}
+        onOpenChange={(open) => setBalanceDetailModal(prev => ({ ...prev, open }))}
+        category={balanceDetailModal.category}
+        items={balanceDetailModal.category ? getItemsForCategory(balanceDetailModal.category, balanceDetailModal.eixo) : []}
+        eixoFilter={balanceDetailModal.eixo}
+      />
     </div>
   );
 };
