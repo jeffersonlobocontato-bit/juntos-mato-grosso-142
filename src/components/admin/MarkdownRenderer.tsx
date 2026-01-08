@@ -1,6 +1,7 @@
-import React from 'react';
+import React, { useMemo } from 'react';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
+import { normalizeMarkdownTables } from '@/utils/markdownTableNormalizer';
 
 interface MarkdownRendererProps {
   content: string;
@@ -8,6 +9,11 @@ interface MarkdownRendererProps {
 }
 
 const MarkdownRenderer = ({ content, className = '' }: MarkdownRendererProps) => {
+  // Pre-process content to fix malformed tables
+  const normalizedContent = useMemo(() => {
+    return normalizeMarkdownTables(content);
+  }, [content]);
+
   return (
     <div className={`prose prose-sm dark:prose-invert max-w-none 
       prose-p:mb-2 prose-p:last:mb-0
@@ -30,7 +36,7 @@ const MarkdownRenderer = ({ content, className = '' }: MarkdownRendererProps) =>
       ${className}`}
     >
       <ReactMarkdown remarkPlugins={[remarkGfm]}>
-        {content}
+        {normalizedContent}
       </ReactMarkdown>
     </div>
   );

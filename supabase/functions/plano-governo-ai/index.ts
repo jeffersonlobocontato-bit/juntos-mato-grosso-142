@@ -437,15 +437,28 @@ IMPORTANTE: Seja específico nas avaliações. Cite qual documento de referênci
     // Use custom prompt if available, otherwise use default for mode
     const basePrompt = customPrompt || systemPrompts[mode] || systemPrompts.plano;
     
-    // Add formatting instructions
+    // Add formatting instructions with explicit table rules
     const formattingInstructions = `
 
-Use formatação limpa e profissional:
+FORMATAÇÃO DE TABELAS (CRÍTICO - SIGA EXATAMENTE):
+Quando criar tabelas, CADA LINHA deve estar em uma linha separada:
+
+| Coluna 1 | Coluna 2 | Coluna 3 |
+|----------|----------|----------|
+| Dado 1   | Dado 2   | Dado 3   |
+| Dado 4   | Dado 5   | Dado 6   |
+
+REGRAS OBRIGATÓRIAS PARA TABELAS:
+- Cada linha da tabela DEVE terminar com quebra de linha (\\n)
+- A linha separadora (|---|---|) DEVE estar imediatamente após o cabeçalho
+- NUNCA coloque múltiplas linhas da tabela em uma única linha
+- Use no máximo 5-6 colunas para legibilidade
+
+FORMATAÇÃO GERAL:
 - Use títulos claros com ## ou ###
 - Use listas com bullets (- ou •) ou números
 - Use **negrito** para destacar pontos importantes
 - Estruture respostas de forma organizada e fácil de ler
-- Use tabelas quando apropriado para comparações
 
 Responda em português brasileiro.`;
 
