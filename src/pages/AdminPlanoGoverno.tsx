@@ -194,18 +194,37 @@ const AdminPlanoGoverno = () => {
           suggestionsQuery
         ]);
 
-        const documents = documentsRes.data;
+        const documents = documentsRes.data || [];
+        const proposals = proposalsRes.data || [];
+
+        // Map proposal status to temporal categories
+        const statusToTemporal: Record<string, string> = {
+          'aprovada': 'realizado',
+          'consolidada': 'em_andamento',
+          'validada': 'prometido',
+          'rascunho': 'nao_iniciado',
+        };
 
         // Build balance data - if eixo filter is active, only show that eixo
         const eixosToShow = selectedEixo ? [selectedEixo] : eixos;
         const balanceByEixo = eixosToShow.map(eixo => {
-          const eixoDocs = documents?.filter(d => d.eixo_id === eixo.id) || [];
+          const eixoDocs = documents.filter(d => d.eixo_id === eixo.id);
+          const eixoProposals = proposals.filter(p => p.eixo_id === eixo.id);
+          
           return {
             eixo: eixo.nome.length > 15 ? eixo.nome.substring(0, 15) + '...' : eixo.nome,
-            realizado: eixoDocs.filter(d => d.temporal_status === 'realizado').length,
-            em_andamento: eixoDocs.filter(d => d.temporal_status === 'em_andamento').length,
-            prometido: eixoDocs.filter(d => d.temporal_status === 'prometido').length,
-            nao_iniciado: eixoDocs.filter(d => d.temporal_status === 'nao_iniciado').length,
+            realizado: 
+              eixoDocs.filter(d => d.temporal_status === 'realizado').length +
+              eixoProposals.filter(p => p.status === 'aprovada').length,
+            em_andamento: 
+              eixoDocs.filter(d => d.temporal_status === 'em_andamento').length +
+              eixoProposals.filter(p => p.status === 'consolidada').length,
+            prometido: 
+              eixoDocs.filter(d => d.temporal_status === 'prometido').length +
+              eixoProposals.filter(p => p.status === 'validada').length,
+            nao_iniciado: 
+              eixoDocs.filter(d => d.temporal_status === 'nao_iniciado').length +
+              eixoProposals.filter(p => p.status === 'rascunho').length,
           };
         });
 
@@ -532,7 +551,7 @@ const AdminPlanoGoverno = () => {
               />
 
               {/* Contextual Charts based on mode */}
-              {analysisMode === 'balanco' && (
+              {(analysisMode === 'balanco' || analysisMode === 'cruzamento') && (
                 <GovernmentBalanceChart
                   data={balanceData}
                   isLoading={loadingBalanceData}
