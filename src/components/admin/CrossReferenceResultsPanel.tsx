@@ -169,7 +169,7 @@ export function CrossReferenceResultsPanel({
               <Lightbulb className="h-4 w-4 text-primary" />
               Análise da IA
             </h4>
-            <ScrollArea className="h-48 rounded-lg border p-3 bg-muted/30">
+            <ScrollArea className="h-auto max-h-96 rounded-lg border p-4 bg-muted/30">
               <MarkdownRenderer content={aiAnalysis} />
             </ScrollArea>
           </div>

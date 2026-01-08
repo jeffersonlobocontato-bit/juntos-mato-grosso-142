@@ -1,4 +1,6 @@
+import React from 'react';
 import ReactMarkdown from 'react-markdown';
+import remarkGfm from 'remark-gfm';
 
 interface MarkdownRendererProps {
   content: string;
@@ -19,9 +21,15 @@ const MarkdownRenderer = ({ content, className = '' }: MarkdownRendererProps) =>
       prose-h3:text-sm prose-h3:mt-2 prose-h3:mb-1
       prose-blockquote:border-l-2 prose-blockquote:border-primary/50 prose-blockquote:pl-3
       prose-code:bg-muted prose-code:px-1 prose-code:py-0.5 prose-code:rounded prose-code:text-xs
+      prose-table:w-full prose-table:border-collapse prose-table:my-3
+      prose-thead:bg-muted/50 prose-thead:border-b-2 prose-thead:border-border
+      prose-th:px-3 prose-th:py-2 prose-th:text-left prose-th:font-semibold prose-th:text-xs prose-th:border prose-th:border-border
+      prose-td:px-3 prose-td:py-2 prose-td:border prose-td:border-border prose-td:text-xs
+      prose-tr:border-b prose-tr:border-border
+      prose-hr:border-border prose-hr:my-4 prose-hr:border-t-2
       ${className}`}
     >
-      <ReactMarkdown>
+      <ReactMarkdown remarkPlugins={[remarkGfm]}>
         {content}
       </ReactMarkdown>
     </div>
