@@ -86,6 +86,94 @@ export type Database = {
         }
         Relationships: []
       }
+      ai_documents: {
+        Row: {
+          content: string
+          created_at: string | null
+          description: string | null
+          doc_category: string
+          eixo_id: string | null
+          file_name: string | null
+          file_type: string | null
+          file_url: string | null
+          id: string
+          is_active: boolean | null
+          municipio_id: string | null
+          priority: number | null
+          published_at: string | null
+          regiao: string | null
+          source_url: string | null
+          temporal_status: string | null
+          title: string
+          updated_at: string | null
+          uploaded_by: string | null
+        }
+        Insert: {
+          content: string
+          created_at?: string | null
+          description?: string | null
+          doc_category: string
+          eixo_id?: string | null
+          file_name?: string | null
+          file_type?: string | null
+          file_url?: string | null
+          id?: string
+          is_active?: boolean | null
+          municipio_id?: string | null
+          priority?: number | null
+          published_at?: string | null
+          regiao?: string | null
+          source_url?: string | null
+          temporal_status?: string | null
+          title: string
+          updated_at?: string | null
+          uploaded_by?: string | null
+        }
+        Update: {
+          content?: string
+          created_at?: string | null
+          description?: string | null
+          doc_category?: string
+          eixo_id?: string | null
+          file_name?: string | null
+          file_type?: string | null
+          file_url?: string | null
+          id?: string
+          is_active?: boolean | null
+          municipio_id?: string | null
+          priority?: number | null
+          published_at?: string | null
+          regiao?: string | null
+          source_url?: string | null
+          temporal_status?: string | null
+          title?: string
+          updated_at?: string | null
+          uploaded_by?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ai_documents_eixo_id_fkey"
+            columns: ["eixo_id"]
+            isOneToOne: false
+            referencedRelation: "eixos_tematicos"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ai_documents_municipio_id_fkey"
+            columns: ["municipio_id"]
+            isOneToOne: false
+            referencedRelation: "municipios"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ai_documents_uploaded_by_fkey"
+            columns: ["uploaded_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       ai_knowledge_base: {
         Row: {
           content: string
