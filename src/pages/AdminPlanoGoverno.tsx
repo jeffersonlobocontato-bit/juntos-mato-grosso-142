@@ -284,6 +284,11 @@ const AdminPlanoGoverno = () => {
           }
         }
       }
+
+      // After streaming is complete, parse cross-reference results if in cruzamento mode
+      if (analysisMode === 'cruzamento' && assistantContent) {
+        parseCrossReferenceResults(assistantContent);
+      }
     } catch (error) {
       console.error('Error sending message:', error);
       toast({
@@ -295,6 +300,37 @@ const AdminPlanoGoverno = () => {
       setMessages(prev => prev.filter(m => m.content !== ''));
     } finally {
       setIsStreaming(false);
+    }
+  };
+
+  // Parse cross-reference JSON from AI response
+  const parseCrossReferenceResults = (content: string) => {
+    try {
+      // Look for JSON block in the response
+      const jsonMatch = content.match(/```json\s*([\s\S]*?)\s*```/);
+      if (jsonMatch && jsonMatch[1]) {
+        const parsed = JSON.parse(jsonMatch[1]);
+        if (parsed.discoveries && Array.isArray(parsed.discoveries)) {
+          const validDiscoveries = parsed.discoveries
+            .filter((d: any) => 
+              ['convergence', 'divergence', 'gap', 'opportunity'].includes(d.type) &&
+              ['high', 'medium', 'low'].includes(d.relevance) &&
+              d.title && d.description
+            )
+            .map((d: any) => ({
+              type: d.type as 'convergence' | 'divergence' | 'gap' | 'opportunity',
+              title: d.title,
+              description: d.description,
+              sources: Array.isArray(d.sources) ? d.sources : [],
+              relevance: d.relevance as 'high' | 'medium' | 'low',
+            }));
+          
+          setCrossRefResults(validDiscoveries);
+        }
+      }
+    } catch (error) {
+      console.error('Error parsing cross-reference results:', error);
+      // Don't show error to user - the text response is still displayed
     }
   };
 
@@ -318,6 +354,7 @@ const AdminPlanoGoverno = () => {
 
   const clearChat = () => {
     setMessages([]);
+    setCrossRefResults([]);
   };
 
   const getModeDescription = () => {
