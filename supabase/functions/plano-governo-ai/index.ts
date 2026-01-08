@@ -11,16 +11,27 @@ interface ChatMessage {
   content: string;
 }
 
+type AnalysisMode = "plano" | "brainstorm" | "cruzamento" | "balanco" | "conteudo" | "coerencia";
+
 interface RequestBody {
   messages: ChatMessage[];
-  mode: "plano" | "brainstorm";
+  mode: AnalysisMode;
   filters: {
-    scope?: "estadual" | "regional";
-    locationType?: "regiao" | "cidade";
+    // Data sources
+    includeSugestoes?: boolean;
+    includePropostas?: boolean;
+    includeDocumentos?: boolean;
+    // Location
     regiao?: string;
     cidade?: string;
+    // Thematic
     eixo?: string;
+    // Document specific
+    docCategory?: string;
+    temporalStatus?: string;
   };
+  // For content generation mode
+  contentType?: "release" | "discurso" | "nota_tecnica" | "proposta" | "relatorio";
 }
 
 serve(async (req) => {
@@ -72,7 +83,7 @@ serve(async (req) => {
     }
 
     const body: RequestBody = await req.json();
-    const { messages, mode, filters } = body;
+    const { messages, mode, filters, contentType } = body;
 
     // Validate input
     if (!messages || !Array.isArray(messages)) {
@@ -82,14 +93,14 @@ serve(async (req) => {
       });
     }
 
-    // Fetch custom agent config and knowledge base
-    const [configResult, knowledgeResult] = await Promise.all([
+    // Fetch custom agent config and legacy knowledge base
+    const [configResult, legacyKnowledgeResult] = await Promise.all([
       supabase
         .from("ai_agent_config")
         .select("system_prompt, config")
         .eq("agent_type", "plano_governo")
         .eq("is_active", true)
-        .single(),
+        .maybeSingle(),
       supabase
         .from("ai_knowledge_base")
         .select("title, content")
@@ -98,40 +109,32 @@ serve(async (req) => {
     ]);
 
     const customPrompt = configResult.data?.system_prompt || null;
-    const knowledgeDocs = knowledgeResult.data || [];
+    const legacyKnowledgeDocs = legacyKnowledgeResult.data || [];
 
-    // Build knowledge base context
-    let knowledgeContext = "";
-    if (knowledgeDocs.length > 0) {
-      knowledgeContext = "\n\n=== BASE DE CONHECIMENTO ===\n";
-      knowledgeDocs.forEach((doc, i) => {
-        knowledgeContext += `\n--- ${doc.title} ---\n${doc.content}\n`;
-      });
+    // Build context data based on filters and mode
+    let contextData = "";
+    
+    // Get municipalities for region filtering
+    let municipioNames: string[] = [];
+    if (filters.regiao) {
+      const { data: municipiosRegiao } = await supabase
+        .from("municipios")
+        .select("nome")
+        .eq("regiao", filters.regiao);
+      municipioNames = municipiosRegiao?.map(m => m.nome) || [];
     }
 
-    // Fetch context data based on filters
-    let contextData = "";
-
-    if (mode === "brainstorm") {
-      // Fetch suggestions based on filters
+    // 1. Fetch suggestions if enabled
+    if (filters.includeSugestoes !== false) {
       let suggestionsQuery = supabase
         .from("sugestoes_populares")
         .select("descricao, municipio, eixo")
-        .limit(30);
+        .limit(50);
 
-      if (filters.locationType === "cidade" && filters.cidade) {
+      if (filters.cidade) {
         suggestionsQuery = suggestionsQuery.eq("municipio", filters.cidade);
-      } else if (filters.locationType === "regiao" && filters.regiao) {
-        // Get municipalities in the region first
-        const { data: municipiosRegiao } = await supabase
-          .from("municipios")
-          .select("nome")
-          .eq("regiao", filters.regiao);
-        
-        if (municipiosRegiao && municipiosRegiao.length > 0) {
-          const municipioNames = municipiosRegiao.map(m => m.nome);
-          suggestionsQuery = suggestionsQuery.in("municipio", municipioNames);
-        }
+      } else if (municipioNames.length > 0) {
+        suggestionsQuery = suggestionsQuery.in("municipio", municipioNames);
       }
 
       if (filters.eixo) {
@@ -140,21 +143,33 @@ serve(async (req) => {
 
       const { data: suggestions } = await suggestionsQuery;
 
-      // Fetch proposals based on filters
+      if (suggestions && suggestions.length > 0) {
+        contextData += "\n\n=== SUGESTÕES POPULARES ===\n";
+        suggestions.forEach((s, i) => {
+          contextData += `${i + 1}. [${s.municipio}] ${s.eixo}: ${s.descricao}\n`;
+        });
+      }
+    }
+
+    // 2. Fetch technical proposals if enabled
+    if (filters.includePropostas !== false) {
       let proposalsQuery = supabase
         .from("propostas_tecnicas")
         .select(`
           titulo,
           descricao,
           status,
-          municipios!inner(nome, regiao),
-          eixos_tematicos!inner(nome)
+          etapa,
+          indicadores,
+          metas,
+          municipios(nome, regiao),
+          eixos_tematicos(nome)
         `)
-        .limit(20);
+        .limit(30);
 
-      if (filters.locationType === "cidade" && filters.cidade) {
+      if (filters.cidade) {
         proposalsQuery = proposalsQuery.eq("municipios.nome", filters.cidade);
-      } else if (filters.locationType === "regiao" && filters.regiao) {
+      } else if (filters.regiao) {
         proposalsQuery = proposalsQuery.eq("municipios.regiao", filters.regiao);
       }
 
@@ -164,98 +179,162 @@ serve(async (req) => {
 
       const { data: proposals } = await proposalsQuery;
 
-      // Build context
-      if (suggestions && suggestions.length > 0) {
-        contextData += "\n\n=== SUGESTÕES DA POPULAÇÃO ===\n";
-        suggestions.forEach((s, i) => {
-          contextData += `${i + 1}. [${s.municipio}] ${s.eixo}: ${s.descricao}\n`;
-        });
-      }
-
       if (proposals && proposals.length > 0) {
-        contextData += "\n\n=== PROPOSTAS TÉCNICAS EXISTENTES ===\n";
+        contextData += "\n\n=== PROPOSTAS TÉCNICAS ===\n";
         proposals.forEach((p: any, i: number) => {
-          contextData += `${i + 1}. [${p.status}] ${p.titulo}: ${p.descricao?.substring(0, 200)}...\n`;
+          const eixoNome = p.eixos_tematicos?.nome || 'N/A';
+          const municipioNome = p.municipios?.nome || 'Estadual';
+          contextData += `${i + 1}. [${p.status}] ${p.titulo}\n`;
+          contextData += `   Eixo: ${eixoNome} | Município: ${municipioNome} | Etapa: ${p.etapa}\n`;
+          contextData += `   Descrição: ${p.descricao?.substring(0, 300)}${p.descricao?.length > 300 ? '...' : ''}\n`;
+          if (p.metas) contextData += `   Metas: ${p.metas.substring(0, 150)}...\n`;
+          if (p.indicadores) contextData += `   Indicadores: ${p.indicadores.substring(0, 150)}...\n`;
+          contextData += '\n';
         });
       }
-    } else {
-      // Plan mode - fetch aggregated statistics
-      const { data: eixosData } = await supabase
-        .from("eixos_tematicos")
-        .select("nome, descricao");
+    }
 
-      if (filters.scope === "regional" && filters.regiao) {
-        // Get municipalities count
-        const { count: municipiosCount } = await supabase
-          .from("municipios")
-          .select("*", { count: "exact", head: true })
-          .eq("regiao", filters.regiao);
+    // 3. Fetch AI documents if enabled
+    if (filters.includeDocumentos !== false) {
+      let docsQuery = supabase
+        .from("ai_documents")
+        .select(`
+          title,
+          description,
+          content,
+          doc_category,
+          temporal_status,
+          regiao,
+          eixos_tematicos(nome),
+          municipios(nome)
+        `)
+        .eq("is_active", true)
+        .order("priority", { ascending: false })
+        .limit(20);
 
-        // Get suggestions count
-        const { data: municipiosRegiao } = await supabase
-          .from("municipios")
-          .select("nome")
-          .eq("regiao", filters.regiao);
-        
-        if (municipiosRegiao && municipiosRegiao.length > 0) {
-          const municipioNames = municipiosRegiao.map(m => m.nome);
-          const { count: suggestionsCount } = await supabase
-            .from("sugestoes_populares")
-            .select("*", { count: "exact", head: true })
-            .in("municipio", municipioNames);
-
-          contextData += `\n\n=== CONTEXTO REGIONAL: ${filters.regiao} ===\n`;
-          contextData += `- Municípios na região: ${municipiosCount}\n`;
-          contextData += `- Sugestões populares da região: ${suggestionsCount}\n`;
-        }
-      } else {
-        // State-wide stats
-        const { count: municipiosCount } = await supabase
-          .from("municipios")
-          .select("*", { count: "exact", head: true });
-
-        const { count: suggestionsCount } = await supabase
-          .from("sugestoes_populares")
-          .select("*", { count: "exact", head: true });
-
-        const { count: proposalsCount } = await supabase
-          .from("propostas_tecnicas")
-          .select("*", { count: "exact", head: true });
-
-        contextData += `\n\n=== CONTEXTO ESTADUAL ===\n`;
-        contextData += `- Total de municípios: ${municipiosCount}\n`;
-        contextData += `- Total de sugestões populares: ${suggestionsCount}\n`;
-        contextData += `- Total de propostas técnicas: ${proposalsCount}\n`;
+      if (filters.docCategory) {
+        docsQuery = docsQuery.eq("doc_category", filters.docCategory);
       }
 
-      if (eixosData) {
+      if (filters.temporalStatus) {
+        docsQuery = docsQuery.eq("temporal_status", filters.temporalStatus);
+      }
+
+      if (filters.regiao) {
+        docsQuery = docsQuery.eq("regiao", filters.regiao);
+      }
+
+      if (filters.eixo) {
+        // Need to filter by eixo name - get eixo id first
+        const { data: eixoData } = await supabase
+          .from("eixos_tematicos")
+          .select("id")
+          .eq("nome", filters.eixo)
+          .maybeSingle();
+        
+        if (eixoData?.id) {
+          docsQuery = docsQuery.eq("eixo_id", eixoData.id);
+        }
+      }
+
+      const { data: documents } = await docsQuery;
+
+      if (documents && documents.length > 0) {
+        const categoryLabels: Record<string, string> = {
+          plano_governo: "Plano de Governo",
+          documento_tecnico: "Documento Técnico",
+          noticia: "Notícia",
+          comprovacao: "Comprovação",
+          investimento: "Investimento",
+          promessa: "Promessa",
+          legislacao: "Legislação",
+          outro: "Outro"
+        };
+
+        const statusLabels: Record<string, string> = {
+          realizado: "✅ Realizado",
+          em_andamento: "🔄 Em Andamento",
+          prometido: "⏳ Prometido",
+          nao_iniciado: "○ Não Iniciado"
+        };
+
+        contextData += "\n\n=== DOCUMENTOS DA BASE DE CONHECIMENTO ===\n";
+        documents.forEach((doc: any, i: number) => {
+          const categoria = categoryLabels[doc.doc_category] || doc.doc_category;
+          const status = doc.temporal_status ? statusLabels[doc.temporal_status] || doc.temporal_status : '';
+          const eixo = doc.eixos_tematicos?.nome || '';
+          const municipio = doc.municipios?.nome || '';
+          const regiao = doc.regiao || '';
+
+          contextData += `\n--- ${doc.title} ---\n`;
+          contextData += `Categoria: ${categoria}`;
+          if (status) contextData += ` | Status: ${status}`;
+          if (eixo) contextData += ` | Eixo: ${eixo}`;
+          if (regiao) contextData += ` | Região: ${regiao}`;
+          if (municipio) contextData += ` | Município: ${municipio}`;
+          contextData += '\n';
+          if (doc.description) contextData += `Descrição: ${doc.description}\n`;
+          contextData += `Conteúdo:\n${doc.content.substring(0, 2000)}${doc.content.length > 2000 ? '\n[...]' : ''}\n`;
+        });
+      }
+    }
+
+    // 4. Fetch legacy knowledge base
+    if (legacyKnowledgeDocs.length > 0) {
+      contextData += "\n\n=== BASE DE CONHECIMENTO LEGADA ===\n";
+      legacyKnowledgeDocs.forEach((doc) => {
+        contextData += `\n--- ${doc.title} ---\n${doc.content}\n`;
+      });
+    }
+
+    // 5. Fetch summary statistics for certain modes
+    if (mode === "plano" || mode === "balanco") {
+      const [eixosRes, proposalsCountRes, suggestionsCountRes, docsCountRes] = await Promise.all([
+        supabase.from("eixos_tematicos").select("nome, descricao"),
+        supabase.from("propostas_tecnicas").select("*", { count: "exact", head: true }),
+        supabase.from("sugestoes_populares").select("*", { count: "exact", head: true }),
+        supabase.from("ai_documents").select("*", { count: "exact", head: true }).eq("is_active", true)
+      ]);
+
+      contextData += `\n\n=== ESTATÍSTICAS GERAIS ===\n`;
+      contextData += `- Total de propostas técnicas: ${proposalsCountRes.count || 0}\n`;
+      contextData += `- Total de sugestões populares: ${suggestionsCountRes.count || 0}\n`;
+      contextData += `- Total de documentos na base: ${docsCountRes.count || 0}\n`;
+
+      if (eixosRes.data) {
         contextData += "\n=== EIXOS TEMÁTICOS ===\n";
-        eixosData.forEach((e, i) => {
+        eixosRes.data.forEach((e, i) => {
           contextData += `${i + 1}. ${e.nome}: ${e.descricao || 'Sem descrição'}\n`;
         });
       }
     }
 
+    // 6. For balance mode, fetch temporal status counts
+    if (mode === "balanco") {
+      const { data: docsByStatus } = await supabase
+        .from("ai_documents")
+        .select("temporal_status, doc_category")
+        .eq("is_active", true)
+        .not("temporal_status", "is", null);
+
+      if (docsByStatus && docsByStatus.length > 0) {
+        const statusCounts = docsByStatus.reduce((acc: Record<string, number>, doc) => {
+          const status = doc.temporal_status || 'sem_status';
+          acc[status] = (acc[status] || 0) + 1;
+          return acc;
+        }, {});
+
+        contextData += "\n\n=== BALANÇO DE GOVERNO (DOCUMENTOS) ===\n";
+        contextData += `- Realizados: ${statusCounts.realizado || 0}\n`;
+        contextData += `- Em Andamento: ${statusCounts.em_andamento || 0}\n`;
+        contextData += `- Prometidos: ${statusCounts.prometido || 0}\n`;
+        contextData += `- Não Iniciados: ${statusCounts.nao_iniciado || 0}\n`;
+      }
+    }
+
     // Build system prompt based on mode
-    const defaultBrainstormPrompt = `Você é um especialista em políticas públicas e comunicação política, focado em ajudar na criação de propostas e discursos para o Estado do Paraná.
-
-Seu papel é:
-1. Analisar as sugestões populares e propostas técnicas disponíveis
-2. Sugerir ideias de propostas baseadas nas demandas reais da população
-3. Criar pontos de discurso que conectem as necessidades populares com soluções técnicas
-4. Ser criativo e inspiracional, mas fundamentado nos dados reais
-
-IMPORTANTE: Use os dados fornecidos como base para suas sugestões. Cite exemplos concretos quando disponíveis.
-
-Use formatação limpa e profissional:
-- Use títulos claros com ## ou ###
-- Use listas com bullets (- ou •) ou números
-- Use **negrito** para destacar pontos importantes
-- Estruture respostas de forma organizada e fácil de ler
-
-Responda em português brasileiro, de forma clara e estruturada.`;
-
-    const defaultPlanPrompt = `Você é um especialista em elaboração de planos de governo e políticas públicas para o Estado do Paraná.
+    const systemPrompts: Record<AnalysisMode, string> = {
+      plano: `Você é um especialista em elaboração de planos de governo e políticas públicas para o Estado do Paraná.
 
 Seu papel é:
 1. Criar planos de governo técnicos e profissionais
@@ -263,23 +342,82 @@ Seu papel é:
 3. Estruturar propostas com metas claras, indicadores e prazos
 4. Considerar os 8 eixos temáticos: Agricultura e Meio Ambiente, Desenvolvimento Social, Economia e Turismo, Educação, Infraestrutura, Saúde, Segurança Pública, Tecnologia e Inovação
 
-IMPORTANTE: Crie conteúdo técnico e institucional, com linguagem apropriada para documentos oficiais.
+IMPORTANTE: Crie conteúdo técnico e institucional, com linguagem apropriada para documentos oficiais.`,
+
+      brainstorm: `Você é um especialista em políticas públicas e comunicação política, focado em ajudar na criação de propostas e discursos para o Estado do Paraná.
+
+Seu papel é:
+1. Analisar as sugestões populares e propostas técnicas disponíveis
+2. Sugerir ideias de propostas baseadas nas demandas reais da população
+3. Criar pontos de discurso que conectem as necessidades populares com soluções técnicas
+4. Ser criativo e inspiracional, mas fundamentado nos dados reais
+
+IMPORTANTE: Use os dados fornecidos como base para suas sugestões. Cite exemplos concretos quando disponíveis.`,
+
+      cruzamento: `Você é um analista de políticas públicas especializado em cruzamento e análise comparativa de dados para o Estado do Paraná.
+
+Seu papel é:
+1. CRUZAR dados de diferentes fontes: sugestões populares, propostas técnicas e documentos oficiais
+2. Identificar SINERGIAS e LACUNAS entre o que a população pede, o que está sendo proposto e o que foi planejado/realizado
+3. Apontar DIVERGÊNCIAS entre propostas e documentos formais
+4. Classificar propostas por nível de ALINHAMENTO com diretrizes oficiais
+5. Sugerir CONEXÕES entre diferentes dados que podem não ser óbvias
+
+IMPORTANTE: Sempre que fizer uma análise comparativa, cite explicitamente as fontes (qual sugestão, qual proposta, qual documento). Use tabelas comparativas quando apropriado.`,
+
+      balanco: `Você é um analista especializado em avaliação de políticas públicas e balanço de governo para o Estado do Paraná.
+
+Seu papel é:
+1. Analisar o que foi REALIZADO vs. o que foi PROMETIDO
+2. Classificar ações por status: Realizado, Em Andamento, Prometido, Não Iniciado
+3. Calcular percentuais de cumprimento por eixo temático
+4. Identificar LACUNAS entre promessas e entregas
+5. Sugerir PRIORIDADES com base no que ainda precisa ser feito
+
+IMPORTANTE: Seja objetivo e factual. Use os dados dos documentos classificados por status temporal para embasar sua análise. Apresente estatísticas claras.`,
+
+      conteudo: `Você é um especialista em comunicação governamental e redação de conteúdo institucional para o Estado do Paraná.
+
+Seu papel é GERAR CONTEÚDO específico:
+- RELEASES DE IMPRENSA: Notícias jornalísticas sobre realizações
+- DISCURSOS POLÍTICOS: Textos para pronunciamentos com tom apropriado
+- NOTAS TÉCNICAS: Documentos técnicos para embasamento de decisões
+- PROPOSTAS CONSOLIDADAS: Sínteses de propostas para apresentação
+- RELATÓRIOS EXECUTIVOS: Resumos gerenciais para tomadores de decisão
+
+IMPORTANTE: Adapte o tom e formato ao tipo de conteúdo solicitado. Use dados reais disponíveis para fundamentar o conteúdo. Seja profissional e institucional.`,
+
+      coerencia: `Você é um analista especializado em avaliação de coerência e exequibilidade de políticas públicas para o Estado do Paraná.
+
+Seu papel é:
+1. AVALIAR a coerência entre propostas e documentos formais (planos, leis, diretrizes)
+2. CLASSIFICAR propostas por nível de alinhamento: Alto, Médio, Baixo
+3. Identificar PROPOSTAS DESALINHADAS que podem precisar de revisão
+4. Avaliar a EXEQUIBILIDADE técnica e orçamentária das propostas
+5. Atribuir PESOS/SCORES de prioridade baseados em coerência e viabilidade
+6. Sugerir AJUSTES para propostas que precisam de alinhamento
+
+IMPORTANTE: Seja específico nas avaliações. Cite qual documento de referência está sendo usado para avaliar cada proposta. Use escalas claras (ex: 0-100% de coerência).`
+    };
+
+    // Use custom prompt if available, otherwise use default for mode
+    const basePrompt = customPrompt || systemPrompts[mode] || systemPrompts.plano;
+    
+    // Add formatting instructions
+    const formattingInstructions = `
 
 Use formatação limpa e profissional:
 - Use títulos claros com ## ou ###
 - Use listas com bullets (- ou •) ou números
 - Use **negrito** para destacar pontos importantes
-- Estruture respostas com seções bem definidas
+- Estruture respostas de forma organizada e fácil de ler
+- Use tabelas quando apropriado para comparações
 
-Responda em português brasileiro. Estruture suas respostas com títulos, subtítulos, metas e indicadores quando apropriado.`;
+Responda em português brasileiro.`;
 
-    // Use custom prompt if available, otherwise use default
-    const basePrompt = customPrompt || (mode === "brainstorm" ? defaultBrainstormPrompt : defaultPlanPrompt);
-    
     // Build final system prompt with context
-    const systemPrompt = `${basePrompt}
-${knowledgeContext}
-${contextData ? `\nDADOS DISPONÍVEIS:${contextData}` : ''}`;
+    const systemPrompt = `${basePrompt}${formattingInstructions}
+${contextData ? `\n\nDADOS DISPONÍVEIS PARA ANÁLISE:${contextData}` : ''}`;
 
     // Prepare messages for API
     const apiMessages: ChatMessage[] = [
