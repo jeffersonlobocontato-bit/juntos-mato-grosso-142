@@ -19,6 +19,7 @@ import { EixoSummaryTable } from "@/components/admin/EixoSummaryTable";
 import { StaleProposalsAlertPanel } from "@/components/admin/StaleProposalsAlertPanel";
 import { ProposalAnalysisPanel } from "@/components/admin/ProposalAnalysisPanel";
 import { EixoComparisonPanel } from "@/components/admin/EixoComparisonPanel";
+import { GovernmentBalanceChart } from "@/components/admin/GovernmentBalanceChart";
 import ParanaMap from "@/components/admin/ParanaMap";
 import {
   FileText,
@@ -156,6 +157,16 @@ export default function AdminMeuPainel() {
       if (error) throw error;
       return data || [];
     },
+  });
+
+  const { data: aiDocuments, isLoading: loadingAiDocuments } = useQuery({
+    queryKey: ["meu-painel-ai-documents"],
+    queryFn: async () => {
+      const { data, error } = await supabase.from("ai_documents").select("eixo_id, temporal_status");
+      if (error) throw error;
+      return data || [];
+    },
+    enabled: isAdmin || isLider,
   });
 
   const { data: analytics, isLoading: loadingAnalytics } = useQuery({
@@ -346,6 +357,22 @@ export default function AdminMeuPainel() {
       };
     });
   }, [eixos, propostas, sugestoes]);
+
+  // Government balance data by eixo
+  const governmentBalanceData = useMemo(() => {
+    if (!eixos || !aiDocuments) return [];
+    
+    return eixos.map(eixo => {
+      const eixoDocs = aiDocuments.filter(d => d.eixo_id === eixo.id);
+      return {
+        eixo: eixo.nome.length > 15 ? eixo.nome.substring(0, 15) + '...' : eixo.nome,
+        realizado: eixoDocs.filter(d => d.temporal_status === 'realizado').length,
+        em_andamento: eixoDocs.filter(d => d.temporal_status === 'em_andamento').length,
+        prometido: eixoDocs.filter(d => d.temporal_status === 'prometido').length,
+        nao_iniciado: eixoDocs.filter(d => d.temporal_status === 'nao_iniciado').length,
+      };
+    });
+  }, [eixos, aiDocuments]);
 
   // Municipios ranking
   const municipiosRanking = useMemo(() => {
@@ -685,6 +712,14 @@ export default function AdminMeuPainel() {
         data={statusPorEixo}
         isLoading={loadingEixos || loadingPropostas}
       />
+
+      {/* Balanço de Governo por Eixo */}
+      {(isAdmin || isLider) && (
+        <GovernmentBalanceChart
+          data={governmentBalanceData}
+          isLoading={loadingAiDocuments || loadingEixos}
+        />
+      )}
 
       {/* Tabela Resumo por Eixo */}
       <EixoSummaryTable

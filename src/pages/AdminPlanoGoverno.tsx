@@ -14,6 +14,8 @@ import AIConfigPanel from '@/components/admin/AIConfigPanel';
 import AnalysisModeSelector, { type AnalysisMode } from '@/components/admin/AnalysisModeSelector';
 import DataSourceFilters, { type DataFilters } from '@/components/admin/DataSourceFilters';
 import DocumentLibrary from '@/components/admin/DocumentLibrary';
+import { GovernmentBalanceChart } from '@/components/admin/GovernmentBalanceChart';
+import { CrossReferenceResultsPanel } from '@/components/admin/CrossReferenceResultsPanel';
 import { 
   ArrowLeft, 
   Send, 
@@ -85,6 +87,28 @@ const AdminPlanoGoverno = () => {
   const [inputMessage, setInputMessage] = useState('');
   const [isStreaming, setIsStreaming] = useState(false);
 
+  // Balance and cross-reference data
+  const [balanceData, setBalanceData] = useState<{
+    eixo: string;
+    realizado: number;
+    em_andamento: number;
+    prometido: number;
+    nao_iniciado: number;
+  }[]>([]);
+  const [crossRefResults, setCrossRefResults] = useState<{
+    type: 'convergence' | 'divergence' | 'gap' | 'opportunity';
+    title: string;
+    description: string;
+    sources: string[];
+    relevance: 'high' | 'medium' | 'low';
+  }[]>([]);
+  const [crossRefStats, setCrossRefStats] = useState<{
+    sugestoes: number;
+    propostas: number;
+    documentos: number;
+  }>({ sugestoes: 0, propostas: 0, documentos: 0 });
+  const [loadingBalanceData, setLoadingBalanceData] = useState(false);
+
   // Check authorization
   const isAuthorized = isAdmin || hasRole('lider_tematico');
 
@@ -117,6 +141,52 @@ const AdminPlanoGoverno = () => {
       fetchData();
     }
   }, [user, isAuthorized]);
+
+  // Fetch balance and cross-reference data
+  useEffect(() => {
+    const fetchBalanceData = async () => {
+      if (!user || !isAuthorized || !eixos.length) return;
+      
+      setLoadingBalanceData(true);
+      try {
+        // Fetch documents with temporal status for balance chart
+        const { data: documents } = await supabase
+          .from('ai_documents')
+          .select('eixo_id, temporal_status');
+
+        // Fetch proposals and suggestions counts for cross-ref
+        const [proposalsRes, suggestionsRes] = await Promise.all([
+          supabase.from('propostas_tecnicas').select('eixo_id, status'),
+          supabase.from('sugestoes_populares').select('eixo')
+        ]);
+
+        // Build balance data by eixo
+        const balanceByEixo = eixos.map(eixo => {
+          const eixoDocs = documents?.filter(d => d.eixo_id === eixo.id) || [];
+          return {
+            eixo: eixo.nome.length > 15 ? eixo.nome.substring(0, 15) + '...' : eixo.nome,
+            realizado: eixoDocs.filter(d => d.temporal_status === 'realizado').length,
+            em_andamento: eixoDocs.filter(d => d.temporal_status === 'em_andamento').length,
+            prometido: eixoDocs.filter(d => d.temporal_status === 'prometido').length,
+            nao_iniciado: eixoDocs.filter(d => d.temporal_status === 'nao_iniciado').length,
+          };
+        });
+
+        setBalanceData(balanceByEixo);
+        setCrossRefStats({
+          sugestoes: suggestionsRes.data?.length || 0,
+          propostas: proposalsRes.data?.length || 0,
+          documentos: documents?.length || 0,
+        });
+      } catch (error) {
+        console.error('Error fetching balance data:', error);
+      } finally {
+        setLoadingBalanceData(false);
+      }
+    };
+
+    fetchBalanceData();
+  }, [user, isAuthorized, eixos]);
 
   // Scroll to bottom when messages change
   useEffect(() => {
@@ -400,6 +470,23 @@ const AdminPlanoGoverno = () => {
                 municipios={municipios}
                 eixos={eixos}
               />
+
+              {/* Contextual Charts based on mode */}
+              {analysisMode === 'balanco' && (
+                <GovernmentBalanceChart
+                  data={balanceData}
+                  isLoading={loadingBalanceData}
+                />
+              )}
+
+              {analysisMode === 'cruzamento' && (
+                <CrossReferenceResultsPanel
+                  results={crossRefResults}
+                  aiAnalysis={messages.filter(m => m.role === 'assistant').pop()?.content}
+                  isLoading={isStreaming}
+                  stats={crossRefStats}
+                />
+              )}
 
               {/* Chat Area */}
               <Card>
