@@ -173,6 +173,42 @@ export type Database = {
           },
         ]
       }
+      ai_agent_pesquisas: {
+        Row: {
+          agent_id: string
+          created_at: string | null
+          id: string
+          pesquisa_id: string
+        }
+        Insert: {
+          agent_id: string
+          created_at?: string | null
+          id?: string
+          pesquisa_id: string
+        }
+        Update: {
+          agent_id?: string
+          created_at?: string | null
+          id?: string
+          pesquisa_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ai_agent_pesquisas_agent_id_fkey"
+            columns: ["agent_id"]
+            isOneToOne: false
+            referencedRelation: "ai_agent_config"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ai_agent_pesquisas_pesquisa_id_fkey"
+            columns: ["pesquisa_id"]
+            isOneToOne: false
+            referencedRelation: "pesquisas_eleitorais"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       ai_documents: {
         Row: {
           content: string
@@ -551,6 +587,247 @@ export type Database = {
         }
         Relationships: []
       }
+      pesquisa_cruzamentos: {
+        Row: {
+          id: string
+          opcao: string
+          percentual: number | null
+          resultado_id: string
+          segmento_tipo: string
+          segmento_valor: string
+        }
+        Insert: {
+          id?: string
+          opcao: string
+          percentual?: number | null
+          resultado_id: string
+          segmento_tipo: string
+          segmento_valor: string
+        }
+        Update: {
+          id?: string
+          opcao?: string
+          percentual?: number | null
+          resultado_id?: string
+          segmento_tipo?: string
+          segmento_valor?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "pesquisa_cruzamentos_resultado_id_fkey"
+            columns: ["resultado_id"]
+            isOneToOne: false
+            referencedRelation: "pesquisa_resultados"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      pesquisa_qualitativa: {
+        Row: {
+          created_at: string
+          id: string
+          insight: string | null
+          pesquisa_id: string
+          relevancia: number | null
+          sentimento: string | null
+          tema: string
+          verbatim: string | null
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          insight?: string | null
+          pesquisa_id: string
+          relevancia?: number | null
+          sentimento?: string | null
+          tema: string
+          verbatim?: string | null
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          insight?: string | null
+          pesquisa_id?: string
+          relevancia?: number | null
+          sentimento?: string | null
+          tema?: string
+          verbatim?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "pesquisa_qualitativa_pesquisa_id_fkey"
+            columns: ["pesquisa_id"]
+            isOneToOne: false
+            referencedRelation: "pesquisas_eleitorais"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      pesquisa_respostas: {
+        Row: {
+          id: string
+          opcao: string
+          ordem: number | null
+          percentual: number | null
+          resultado_id: string
+          votos_absolutos: number | null
+        }
+        Insert: {
+          id?: string
+          opcao: string
+          ordem?: number | null
+          percentual?: number | null
+          resultado_id: string
+          votos_absolutos?: number | null
+        }
+        Update: {
+          id?: string
+          opcao?: string
+          ordem?: number | null
+          percentual?: number | null
+          resultado_id?: string
+          votos_absolutos?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "pesquisa_respostas_resultado_id_fkey"
+            columns: ["resultado_id"]
+            isOneToOne: false
+            referencedRelation: "pesquisa_resultados"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      pesquisa_resultados: {
+        Row: {
+          cenario_descricao: string | null
+          created_at: string
+          id: string
+          ordem: number | null
+          pergunta: string
+          pesquisa_id: string
+          tipo_pergunta: Database["public"]["Enums"]["pergunta_tipo"]
+        }
+        Insert: {
+          cenario_descricao?: string | null
+          created_at?: string
+          id?: string
+          ordem?: number | null
+          pergunta: string
+          pesquisa_id: string
+          tipo_pergunta?: Database["public"]["Enums"]["pergunta_tipo"]
+        }
+        Update: {
+          cenario_descricao?: string | null
+          created_at?: string
+          id?: string
+          ordem?: number | null
+          pergunta?: string
+          pesquisa_id?: string
+          tipo_pergunta?: Database["public"]["Enums"]["pergunta_tipo"]
+        }
+        Relationships: [
+          {
+            foreignKeyName: "pesquisa_resultados_pesquisa_id_fkey"
+            columns: ["pesquisa_id"]
+            isOneToOne: false
+            referencedRelation: "pesquisas_eleitorais"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      pesquisas_eleitorais: {
+        Row: {
+          abrangencia: string | null
+          amostra_total: number | null
+          content: string | null
+          created_at: string
+          data_campo_fim: string | null
+          data_campo_inicio: string | null
+          data_publicacao: string | null
+          file_name: string | null
+          file_type: string | null
+          file_url: string | null
+          id: string
+          instituto: string
+          is_active: boolean | null
+          margem_erro: number | null
+          metodologia: Json | null
+          municipio_id: string | null
+          nivel_confianca: number | null
+          regiao: string | null
+          registro_tse: string | null
+          status: Database["public"]["Enums"]["pesquisa_status"]
+          tipo_pesquisa: Database["public"]["Enums"]["pesquisa_tipo"]
+          titulo: string
+          universo: string | null
+          updated_at: string
+          uploaded_by: string | null
+        }
+        Insert: {
+          abrangencia?: string | null
+          amostra_total?: number | null
+          content?: string | null
+          created_at?: string
+          data_campo_fim?: string | null
+          data_campo_inicio?: string | null
+          data_publicacao?: string | null
+          file_name?: string | null
+          file_type?: string | null
+          file_url?: string | null
+          id?: string
+          instituto: string
+          is_active?: boolean | null
+          margem_erro?: number | null
+          metodologia?: Json | null
+          municipio_id?: string | null
+          nivel_confianca?: number | null
+          regiao?: string | null
+          registro_tse?: string | null
+          status?: Database["public"]["Enums"]["pesquisa_status"]
+          tipo_pesquisa?: Database["public"]["Enums"]["pesquisa_tipo"]
+          titulo: string
+          universo?: string | null
+          updated_at?: string
+          uploaded_by?: string | null
+        }
+        Update: {
+          abrangencia?: string | null
+          amostra_total?: number | null
+          content?: string | null
+          created_at?: string
+          data_campo_fim?: string | null
+          data_campo_inicio?: string | null
+          data_publicacao?: string | null
+          file_name?: string | null
+          file_type?: string | null
+          file_url?: string | null
+          id?: string
+          instituto?: string
+          is_active?: boolean | null
+          margem_erro?: number | null
+          metodologia?: Json | null
+          municipio_id?: string | null
+          nivel_confianca?: number | null
+          regiao?: string | null
+          registro_tse?: string | null
+          status?: Database["public"]["Enums"]["pesquisa_status"]
+          tipo_pesquisa?: Database["public"]["Enums"]["pesquisa_tipo"]
+          titulo?: string
+          universo?: string | null
+          updated_at?: string
+          uploaded_by?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "pesquisas_eleitorais_municipio_id_fkey"
+            columns: ["municipio_id"]
+            isOneToOne: false
+            referencedRelation: "municipios"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       profiles: {
         Row: {
           cargo: string | null
@@ -927,6 +1204,15 @@ export type Database = {
         | "especialista"
         | "admin_master"
       lead_origem: "formulario" | "chatbot" | "proposta"
+      pergunta_tipo:
+        | "intencao_espontanea"
+        | "intencao_estimulada"
+        | "rejeicao"
+        | "avaliacao_governo"
+        | "cenario"
+        | "outro"
+      pesquisa_status: "rascunho" | "processando" | "ativa" | "arquivada"
+      pesquisa_tipo: "quantitativa" | "qualitativa" | "mista"
       proposal_status: "rascunho" | "validada" | "consolidada" | "aprovada"
     }
     CompositeTypes: {
@@ -1063,6 +1349,16 @@ export const Constants = {
         "admin_master",
       ],
       lead_origem: ["formulario", "chatbot", "proposta"],
+      pergunta_tipo: [
+        "intencao_espontanea",
+        "intencao_estimulada",
+        "rejeicao",
+        "avaliacao_governo",
+        "cenario",
+        "outro",
+      ],
+      pesquisa_status: ["rascunho", "processando", "ativa", "arquivada"],
+      pesquisa_tipo: ["quantitativa", "qualitativa", "mista"],
       proposal_status: ["rascunho", "validada", "consolidada", "aprovada"],
     },
   },

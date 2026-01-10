@@ -16,7 +16,8 @@ import {
   ArrowRight,
   Bell,
   Sparkles,
-  Bot
+  Bot,
+  BarChart2
 } from 'lucide-react';
 
 const Admin = () => {
@@ -135,6 +136,14 @@ const Admin = () => {
       href: '/admin/analytics',
       color: 'secondary',
       roles: ['admin', 'lider_tematico']
+    },
+    { 
+      icon: BarChart2, 
+      title: 'Pesquisas Eleitorais', 
+      description: 'Gerenciar pesquisas de institutos',
+      href: '/admin/pesquisas',
+      color: 'primary',
+      roles: ['admin', 'admin_master', 'lider_tematico']
     },
   ];
 

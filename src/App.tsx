@@ -19,6 +19,7 @@ import AdminPlanoGoverno from "./pages/AdminPlanoGoverno";
 import AdminAnalytics from "./pages/AdminAnalytics";
 import AdminMeuPainel from "./pages/AdminMeuPainel";
 import AdminAIHub from "./pages/AdminAIHub";
+import AdminPesquisas from "./pages/AdminPesquisas";
 import Entrevista from "./pages/Entrevista";
 import NotFound from "./pages/NotFound";
 const queryClient = new QueryClient();
@@ -46,6 +47,7 @@ const App = () => (
             <Route path="/admin/analytics" element={<AdminAnalytics />} />
             <Route path="/admin/meu-painel" element={<AdminMeuPainel />} />
             <Route path="/admin/ai-hub" element={<AdminAIHub />} />
+            <Route path="/admin/pesquisas" element={<AdminPesquisas />} />
             <Route path="/entrevista" element={<Entrevista />} />
             {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
             <Route path="*" element={<NotFound />} />
