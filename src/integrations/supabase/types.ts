@@ -59,32 +59,83 @@ export type Database = {
       ai_agent_config: {
         Row: {
           agent_type: string
+          avatar_url: string | null
           config: Json | null
+          conversation_starters: Json | null
           created_at: string
+          description: string | null
           id: string
           is_active: boolean | null
+          name: string
           system_prompt: string
+          target_audience: string | null
           updated_at: string
         }
         Insert: {
           agent_type?: string
+          avatar_url?: string | null
           config?: Json | null
+          conversation_starters?: Json | null
           created_at?: string
+          description?: string | null
           id?: string
           is_active?: boolean | null
+          name?: string
           system_prompt: string
+          target_audience?: string | null
           updated_at?: string
         }
         Update: {
           agent_type?: string
+          avatar_url?: string | null
           config?: Json | null
+          conversation_starters?: Json | null
           created_at?: string
+          description?: string | null
           id?: string
           is_active?: boolean | null
+          name?: string
           system_prompt?: string
+          target_audience?: string | null
           updated_at?: string
         }
         Relationships: []
+      }
+      ai_agent_documents: {
+        Row: {
+          agent_id: string
+          created_at: string | null
+          document_id: string
+          id: string
+        }
+        Insert: {
+          agent_id: string
+          created_at?: string | null
+          document_id: string
+          id?: string
+        }
+        Update: {
+          agent_id?: string
+          created_at?: string | null
+          document_id?: string
+          id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ai_agent_documents_agent_id_fkey"
+            columns: ["agent_id"]
+            isOneToOne: false
+            referencedRelation: "ai_agent_config"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ai_agent_documents_document_id_fkey"
+            columns: ["document_id"]
+            isOneToOne: false
+            referencedRelation: "ai_documents"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       ai_documents: {
         Row: {

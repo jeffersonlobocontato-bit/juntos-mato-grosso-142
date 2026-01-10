@@ -15,12 +15,15 @@ import {
   UserCheck,
   ArrowRight,
   Bell,
-  Sparkles
+  Sparkles,
+  Bot
 } from 'lucide-react';
 
 const Admin = () => {
-  const { user, roles, isLoading, signOut, isAdmin } = useAuth();
+  const { user, roles, isLoading, signOut, isAdmin, hasRole } = useAuth();
   const navigate = useNavigate();
+  
+  const isAdminMaster = hasRole('admin_master');
 
   useEffect(() => {
     if (!isLoading && !user) {
@@ -198,7 +201,41 @@ const Admin = () => {
           )}
 
 
-          {/* Leads CTA Banner */}
+          {/* AI Hub CTA Banner - Exclusive for Admin Master */}
+          {isAdminMaster && (
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.5, delay: 0.1 }}
+              className="mb-8"
+            >
+              <Link to="/admin/ai-hub">
+                <Card className="bg-gradient-to-r from-violet-600/20 via-purple-600/20 to-indigo-600/20 border-violet-500/30 hover:shadow-xl hover:shadow-violet-500/10 transition-all duration-300 hover:-translate-y-1 cursor-pointer group overflow-hidden relative">
+                  <div className="absolute inset-0 bg-gradient-to-r from-violet-600/5 to-indigo-600/5 opacity-0 group-hover:opacity-100 transition-opacity" />
+                  <CardContent className="py-8 flex items-center gap-6 relative z-10">
+                    <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-violet-500 to-indigo-600 flex items-center justify-center group-hover:scale-110 transition-transform shadow-lg shadow-violet-500/30">
+                      <Bot className="w-8 h-8 text-white" />
+                    </div>
+                    <div className="flex-1">
+                      <div className="flex items-center gap-2 mb-1">
+                        <h3 className="text-xl font-display font-bold text-foreground group-hover:text-violet-400 transition-colors">
+                          HUB de IA
+                        </h3>
+                        <span className="px-2 py-0.5 bg-violet-500/20 rounded text-xs font-medium text-violet-300">
+                          Novo
+                        </span>
+                      </div>
+                      <p className="text-sm text-muted-foreground">
+                        Estratégias Políticas, Eleitorais e de MKT • Crie e gerencie agentes de IA personalizados
+                      </p>
+                    </div>
+                    <ArrowRight className="w-6 h-6 text-violet-400 group-hover:translate-x-1 transition-transform hidden sm:block" />
+                  </CardContent>
+                </Card>
+              </Link>
+            </motion.div>
+          )}
+
           {(isAdmin || roles.includes('lider_tematico') || roles.includes('curador_municipal')) && (
             <Link to="/admin/leads">
               <Card className="mb-8 bg-gradient-to-r from-primary/10 via-accent/10 to-primary/10 border-primary/20 hover:shadow-lg transition-all duration-300 hover:-translate-y-1 cursor-pointer group overflow-hidden relative">
