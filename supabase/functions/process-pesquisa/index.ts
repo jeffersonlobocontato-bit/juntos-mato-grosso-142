@@ -1,5 +1,5 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
-import { createClient } from "https://esm.sh/@supabase/supabase-js@2.89.0";
+import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -64,13 +64,6 @@ serve(async (req) => {
       );
     }
 
-    if (!file_url && !content_text) {
-      return new Response(
-        JSON.stringify({ error: "file_url ou content_text é obrigatório" }),
-        { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-      );
-    }
-
     const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
     if (!LOVABLE_API_KEY) {
       throw new Error("LOVABLE_API_KEY não configurada");
@@ -86,29 +79,99 @@ serve(async (req) => {
       .update({ status: "processando" })
       .eq("id", pesquisa_id);
 
-    let textContent = content_text || "";
+    // Priority: content_text > database content > file content
+    let textContent = "";
 
-    // If we have a file URL, fetch and extract text
-    if (file_url && !content_text) {
-      try {
-        const fileResponse = await fetch(file_url);
-        if (!fileResponse.ok) {
-          throw new Error("Falha ao baixar arquivo");
-        }
-        
-        const contentType = fileResponse.headers.get("content-type") || "";
-        
-        if (contentType.includes("text") || contentType.includes("csv")) {
-          textContent = await fileResponse.text();
-        } else {
-          // For PDF/Excel, we'll send the URL to AI for processing
-          textContent = `[Arquivo para análise: ${file_url}]`;
-        }
-      } catch (error) {
-        console.error("Error fetching file:", error);
-        textContent = `[Arquivo disponível em: ${file_url}]`;
+    // First, try to use provided content_text
+    if (content_text && content_text.trim().length > 50) {
+      console.log("Using provided content_text, length:", content_text.length);
+      textContent = content_text.trim();
+    } 
+    // If no content_text, try to get from database
+    else {
+      const { data: pesquisaData } = await supabase
+        .from("pesquisas_eleitorais")
+        .select("content")
+        .eq("id", pesquisa_id)
+        .single();
+
+      if (pesquisaData?.content && pesquisaData.content.trim().length > 50) {
+        console.log("Using database content, length:", pesquisaData.content.length);
+        textContent = pesquisaData.content.trim();
       }
     }
+
+    // If still no content and we have a file_url, try to download
+    if (!textContent && file_url) {
+      console.log("Attempting to download file from:", file_url);
+      
+      try {
+        // Extract file path from URL
+        const urlObj = new URL(file_url);
+        const pathMatch = urlObj.pathname.match(/\/storage\/v1\/object\/public\/pesquisas-eleitorais\/(.+)/);
+        
+        if (pathMatch) {
+          const filePath = decodeURIComponent(pathMatch[1]);
+          console.log("Extracted file path:", filePath);
+          
+          // Generate signed URL for private bucket access
+          const { data: signedUrlData, error: signedUrlError } = await supabase
+            .storage
+            .from('pesquisas-eleitorais')
+            .createSignedUrl(filePath, 3600);
+
+          if (signedUrlError) {
+            console.error("Error creating signed URL:", signedUrlError);
+          } else if (signedUrlData?.signedUrl) {
+            console.log("Signed URL created successfully");
+            
+            const fileResponse = await fetch(signedUrlData.signedUrl);
+            
+            if (fileResponse.ok) {
+              const contentType = fileResponse.headers.get("content-type") || "";
+              console.log("File content type:", contentType);
+              
+              // Only try to read text from text-based files
+              if (contentType.includes("text") || contentType.includes("csv")) {
+                textContent = await fileResponse.text();
+                console.log("Text content extracted, length:", textContent.length);
+              } else {
+                console.log("Binary file detected (PDF/Excel). Cannot extract text directly.");
+                // For PDF/Excel, we cannot extract text in edge function
+                // User must provide content manually
+              }
+            } else {
+              console.error("Failed to download file, status:", fileResponse.status);
+            }
+          }
+        } else {
+          console.error("Could not extract file path from URL:", file_url);
+        }
+      } catch (fileError) {
+        console.error("Error fetching file:", fileError);
+      }
+    }
+
+    // CRITICAL: If we don't have enough text content, fail early
+    if (!textContent || textContent.length < 100) {
+      console.error("Insufficient content. Length:", textContent?.length || 0);
+      
+      await supabase
+        .from("pesquisas_eleitorais")
+        .update({ status: "rascunho" })
+        .eq("id", pesquisa_id);
+
+      return new Response(
+        JSON.stringify({ 
+          error: "Conteúdo insuficiente para processamento. Por favor, cole o texto da pesquisa no campo 'Dados Manuais' antes de processar.",
+          hint: "Para arquivos PDF/Excel, copie e cole o conteúdo textual no campo apropriado."
+        }),
+        { status: 422, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
+    console.log("Processing content with AI. First 300 chars:", textContent.substring(0, 300));
+    console.log("Total content length:", textContent.length);
 
     const systemPrompt = `Você é um especialista em análise de pesquisas eleitorais brasileiras.
 Sua tarefa é extrair dados estruturados EXCLUSIVAMENTE do documento fornecido.
