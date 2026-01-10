@@ -6,27 +6,21 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { 
   LogOut, 
-  Home, 
   FileText, 
   Users, 
   MapPin, 
   Target, 
   BarChart3,
-  Settings,
   Shield,
   UserCheck,
   ArrowRight,
   Bell,
-  Sparkles,
-  ExternalLink,
-  Bot
+  Sparkles
 } from 'lucide-react';
 
 const Admin = () => {
-  const { user, roles, isLoading, signOut, isAdmin, hasRole } = useAuth();
+  const { user, roles, isLoading, signOut, isAdmin } = useAuth();
   const navigate = useNavigate();
-  
-  const isAdminMaster = hasRole('admin_master');
 
   useEffect(() => {
     if (!isLoading && !user) {
@@ -203,49 +197,6 @@ const Admin = () => {
             </Card>
           )}
 
-          {/* AI Agent Hub - Exclusive for Admin Master */}
-          {isAdminMaster && (
-            <motion.div
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.5, delay: 0.1 }}
-              className="mb-8"
-            >
-              <a 
-                href="https://biz-ai-partners.lovable.app/admin" 
-                target="_blank" 
-                rel="noopener noreferrer"
-                className="block"
-              >
-                <Card className="bg-gradient-to-r from-violet-600/20 via-purple-600/20 to-indigo-600/20 border-violet-500/30 hover:shadow-xl hover:shadow-violet-500/10 transition-all duration-300 hover:-translate-y-1 cursor-pointer group overflow-hidden relative">
-                  <div className="absolute inset-0 bg-gradient-to-r from-violet-600/5 to-indigo-600/5 opacity-0 group-hover:opacity-100 transition-opacity" />
-                  <div className="absolute top-3 right-3 px-2 py-1 bg-violet-500/20 rounded-full text-xs font-medium text-violet-300 flex items-center gap-1">
-                    <ExternalLink className="w-3 h-3" />
-                    Plataforma Externa
-                  </div>
-                  <CardContent className="py-8 flex items-center gap-6 relative z-10">
-                    <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-violet-500 to-indigo-600 flex items-center justify-center group-hover:scale-110 transition-transform shadow-lg shadow-violet-500/30">
-                      <Bot className="w-8 h-8 text-white" />
-                    </div>
-                    <div className="flex-1">
-                      <div className="flex items-center gap-2 mb-1">
-                        <h3 className="text-xl font-display font-bold text-foreground group-hover:text-violet-400 transition-colors">
-                          AI Agent Hub
-                        </h3>
-                        <span className="px-2 py-0.5 bg-violet-500/20 rounded text-xs font-medium text-violet-300">
-                          IA
-                        </span>
-                      </div>
-                      <p className="text-sm text-muted-foreground">
-                        Estratégias Eleitorais com Inteligência Artificial • Acesso Exclusivo Admin Master
-                      </p>
-                    </div>
-                    <ArrowRight className="w-6 h-6 text-violet-400 group-hover:translate-x-1 transition-transform hidden sm:block" />
-                  </CardContent>
-                </Card>
-              </a>
-            </motion.div>
-          )}
 
           {/* Leads CTA Banner */}
           {(isAdmin || roles.includes('lider_tematico') || roles.includes('curador_municipal')) && (
