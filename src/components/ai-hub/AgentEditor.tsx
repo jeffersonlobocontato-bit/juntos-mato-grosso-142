@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
-import { Bot, Plus, X, FileText, Users, Upload, Database, Loader2, Settings2 } from 'lucide-react';
+import { Bot, Plus, X, FileText, Users, Upload, Database, Loader2, Settings2, Maximize2, Minimize2 } from 'lucide-react';
 import type { Json } from '@/integrations/supabase/types';
 import {
   Dialog,
@@ -495,21 +495,34 @@ export const AgentEditor = ({ open, onOpenChange, agent, onSuccess, isAdminMaste
     }
   };
 
+  const [isFullscreen, setIsFullscreen] = useState(false);
+
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-2xl max-h-[90vh]">
-        <DialogHeader>
-          <DialogTitle className="flex items-center gap-2">
-            <Bot className="w-5 h-5 text-violet-500" />
-            {agent ? 'Editar Agente' : 'Criar Novo Agente'}
-          </DialogTitle>
-          <DialogDescription>
-            Configure as instruções e comportamento do agente de IA
-          </DialogDescription>
+      <DialogContent className={`transition-all duration-300 ${isFullscreen ? 'max-w-[95vw] w-[95vw] max-h-[95vh] h-[95vh]' : 'max-w-2xl max-h-[90vh]'}`}>
+        <DialogHeader className="flex flex-row items-start justify-between">
+          <div>
+            <DialogTitle className="flex items-center gap-2">
+              <Bot className="w-5 h-5 text-violet-500" />
+              {agent ? 'Editar Agente' : 'Criar Novo Agente'}
+            </DialogTitle>
+            <DialogDescription>
+              Configure as instruções e comportamento do agente de IA
+            </DialogDescription>
+          </div>
+          <Button
+            type="button"
+            variant="ghost"
+            size="icon"
+            onClick={() => setIsFullscreen(!isFullscreen)}
+            className="h-8 w-8 shrink-0"
+          >
+            {isFullscreen ? <Minimize2 className="h-4 w-4" /> : <Maximize2 className="h-4 w-4" />}
+          </Button>
         </DialogHeader>
 
         <form onSubmit={handleSubmit}>
-          <ScrollArea className="h-[calc(90vh-180px)] pr-4">
+          <ScrollArea className={`pr-4 ${isFullscreen ? 'h-[calc(95vh-180px)]' : 'h-[calc(90vh-180px)]'}`}>
             <div className="space-y-6 py-4">
               {/* Basic Info */}
               <div className="space-y-4">
