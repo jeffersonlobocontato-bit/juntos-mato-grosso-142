@@ -1,7 +1,8 @@
 import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
-import { Bot, Plus, X, FileText, Users } from 'lucide-react';
+import { Bot, Plus, X, FileText, Users, Upload, Database, Loader2, Settings2 } from 'lucide-react';
+import type { Json } from '@/integrations/supabase/types';
 import {
   Dialog,
   DialogContent,
@@ -23,6 +24,12 @@ import {
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Badge } from '@/components/ui/badge';
 import { Checkbox } from '@/components/ui/checkbox';
+import { Switch } from '@/components/ui/switch';
+import {
+  Collapsible,
+  CollapsibleContent,
+  CollapsibleTrigger,
+} from '@/components/ui/collapsible';
 
 interface AIAgent {
   id: string;
@@ -53,14 +60,55 @@ interface AIHubFunction {
   is_system: boolean;
 }
 
+interface ExtendedSearchConfig {
+  enabled: boolean;
+  sources: {
+    ai_documents: boolean;
+    propostas_tecnicas: boolean;
+    sugestoes_populares: boolean;
+  };
+  doc_categories: string[];
+  temporal_status: string[];
+}
+
 interface AgentEditorProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   agent: AIAgent | null;
   onSuccess: () => void;
+  isAdminMaster?: boolean;
 }
 
-export const AgentEditor = ({ open, onOpenChange, agent, onSuccess }: AgentEditorProps) => {
+const DOC_CATEGORIES = [
+  { value: 'plano_governo', label: 'Plano de Governo' },
+  { value: 'documento_tecnico', label: 'Documento Técnico' },
+  { value: 'noticia', label: 'Notícia/Publicação' },
+  { value: 'comprovacao', label: 'Comprovação de Obra' },
+  { value: 'investimento', label: 'Documento de Investimento' },
+  { value: 'promessa', label: 'Promessa/Compromisso' },
+  { value: 'legislacao', label: 'Legislação' },
+  { value: 'outro', label: 'Outro' },
+];
+
+const TEMPORAL_STATUS = [
+  { value: 'realizado', label: 'Realizado' },
+  { value: 'em_andamento', label: 'Em Andamento' },
+  { value: 'prometido', label: 'Prometido' },
+  { value: 'nao_iniciado', label: 'Não Iniciado' },
+];
+
+const DEFAULT_EXTENDED_SEARCH: ExtendedSearchConfig = {
+  enabled: false,
+  sources: {
+    ai_documents: false,
+    propostas_tecnicas: false,
+    sugestoes_populares: false,
+  },
+  doc_categories: [],
+  temporal_status: [],
+};
+
+export const AgentEditor = ({ open, onOpenChange, agent, onSuccess, isAdminMaster = false }: AgentEditorProps) => {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [documents, setDocuments] = useState<AIDocument[]>([]);
   const [linkedDocIds, setLinkedDocIds] = useState<string[]>([]);
@@ -75,6 +123,18 @@ export const AgentEditor = ({ open, onOpenChange, agent, onSuccess }: AgentEdito
   const [conversationStarters, setConversationStarters] = useState<string[]>([]);
   const [newStarter, setNewStarter] = useState('');
 
+  // File upload state
+  const [isUploadingFile, setIsUploadingFile] = useState(false);
+  const [showUploadForm, setShowUploadForm] = useState(false);
+  const [uploadTitle, setUploadTitle] = useState('');
+  const [uploadFile, setUploadFile] = useState<File | null>(null);
+  const [uploadContent, setUploadContent] = useState('');
+  const [uploadMode, setUploadMode] = useState<'file' | 'text'>('file');
+
+  // Extended search config (admin_master only)
+  const [extendedSearch, setExtendedSearch] = useState<ExtendedSearchConfig>(DEFAULT_EXTENDED_SEARCH);
+  const [advancedOpen, setAdvancedOpen] = useState(false);
+
   useEffect(() => {
     if (open) {
       fetchDocuments();
@@ -88,6 +148,24 @@ export const AgentEditor = ({ open, onOpenChange, agent, onSuccess }: AgentEdito
         setConversationStarters(Array.isArray(agent.conversation_starters) ? agent.conversation_starters : []);
         fetchLinkedDocuments(agent.id);
         fetchAllowedFunctions(agent.id);
+        
+        // Load extended search config
+        const agentConfig = agent.config || {};
+        const extSearch = agentConfig.extended_search as ExtendedSearchConfig | undefined;
+        if (extSearch) {
+          setExtendedSearch({
+            enabled: extSearch.enabled ?? false,
+            sources: {
+              ai_documents: extSearch.sources?.ai_documents ?? false,
+              propostas_tecnicas: extSearch.sources?.propostas_tecnicas ?? false,
+              sugestoes_populares: extSearch.sources?.sugestoes_populares ?? false,
+            },
+            doc_categories: extSearch.doc_categories || [],
+            temporal_status: extSearch.temporal_status || [],
+          });
+        } else {
+          setExtendedSearch(DEFAULT_EXTENDED_SEARCH);
+        }
       } else {
         // Creating new agent
         resetForm();
@@ -104,6 +182,13 @@ export const AgentEditor = ({ open, onOpenChange, agent, onSuccess }: AgentEdito
     setLinkedDocIds([]);
     setAllowedFunctionIds([]);
     setNewStarter('');
+    setShowUploadForm(false);
+    setUploadTitle('');
+    setUploadFile(null);
+    setUploadContent('');
+    setUploadMode('file');
+    setExtendedSearch(DEFAULT_EXTENDED_SEARCH);
+    setAdvancedOpen(false);
   };
 
   const fetchDocuments = async () => {
@@ -190,6 +275,117 @@ export const AgentEditor = ({ open, onOpenChange, agent, onSuccess }: AgentEdito
     );
   };
 
+  // File upload handler
+  const handleFileUpload = async () => {
+    if (!uploadTitle.trim()) {
+      toast.error('Título do documento é obrigatório');
+      return;
+    }
+
+    if (uploadMode === 'file' && !uploadFile) {
+      toast.error('Selecione um arquivo');
+      return;
+    }
+
+    if (uploadMode === 'text' && !uploadContent.trim()) {
+      toast.error('Conteúdo do documento é obrigatório');
+      return;
+    }
+
+    setIsUploadingFile(true);
+
+    try {
+      let fileUrl = null;
+      let fileName = null;
+      let fileType = null;
+      let documentContent = uploadContent;
+
+      // Handle file upload
+      if (uploadMode === 'file' && uploadFile) {
+        fileName = uploadFile.name;
+        fileType = uploadFile.type;
+        
+        const fileExt = uploadFile.name.split('.').pop();
+        const filePath = `${Date.now()}-${Math.random().toString(36).substring(7)}.${fileExt}`;
+        
+        const { error: uploadError } = await supabase.storage
+          .from('ai-documents')
+          .upload(filePath, uploadFile);
+
+        if (uploadError) throw uploadError;
+
+        const { data: { publicUrl } } = supabase.storage
+          .from('ai-documents')
+          .getPublicUrl(filePath);
+
+        fileUrl = publicUrl;
+
+        // For text files, read content
+        if (uploadFile.type === 'text/plain') {
+          documentContent = await uploadFile.text();
+        } else {
+          documentContent = `[Arquivo: ${uploadFile.name}]\n\nConteúdo disponível em: ${publicUrl}`;
+        }
+      }
+
+      // Get current user
+      const { data: { user } } = await supabase.auth.getUser();
+
+      // Insert document
+      const { data: newDoc, error: insertError } = await supabase
+        .from('ai_documents')
+        .insert({
+          title: uploadTitle.trim(),
+          content: documentContent,
+          file_url: fileUrl,
+          file_name: fileName,
+          file_type: fileType,
+          doc_category: 'outro',
+          uploaded_by: user?.id || null,
+          is_active: true,
+        })
+        .select()
+        .single();
+
+      if (insertError) throw insertError;
+
+      // Add to linked documents
+      if (newDoc) {
+        setLinkedDocIds(prev => [...prev, newDoc.id]);
+        setDocuments(prev => [...prev, { id: newDoc.id, title: newDoc.title, doc_category: newDoc.doc_category }]);
+      }
+
+      toast.success('Documento adicionado à base do agente');
+      setShowUploadForm(false);
+      setUploadTitle('');
+      setUploadFile(null);
+      setUploadContent('');
+    } catch (error) {
+      console.error('Error uploading document:', error);
+      toast.error('Erro ao adicionar documento');
+    } finally {
+      setIsUploadingFile(false);
+    }
+  };
+
+  const toggleDocCategory = (category: string) => {
+    setExtendedSearch(prev => ({
+      ...prev,
+      doc_categories: prev.doc_categories.includes(category)
+        ? prev.doc_categories.filter(c => c !== category)
+        : [...prev.doc_categories, category]
+    }));
+  };
+
+  const toggleTemporalStatus = (status: string) => {
+    setExtendedSearch(prev => ({
+      ...prev,
+      temporal_status: prev.temporal_status.includes(status)
+        ? prev.temporal_status.filter(s => s !== status)
+        : [...prev.temporal_status, status]
+    }));
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
@@ -203,6 +399,12 @@ export const AgentEditor = ({ open, onOpenChange, agent, onSuccess }: AgentEdito
     try {
       let agentId = agent?.id;
 
+      // Build config with extended search - using JSON.parse/stringify to ensure Json compatibility
+      const configData = JSON.parse(JSON.stringify({
+        ...(agent?.config || {}),
+        extended_search: extendedSearch,
+      })) as Json;
+
       if (agent) {
         // Update existing agent
         const { error } = await supabase
@@ -212,7 +414,8 @@ export const AgentEditor = ({ open, onOpenChange, agent, onSuccess }: AgentEdito
             description: description.trim() || null,
             system_prompt: systemPrompt.trim(),
             target_audience: targetAudience,
-            conversation_starters: conversationStarters,
+            conversation_starters: conversationStarters as unknown as Json,
+            config: configData,
             updated_at: new Date().toISOString(),
           })
           .eq('id', agent.id);
@@ -227,7 +430,8 @@ export const AgentEditor = ({ open, onOpenChange, agent, onSuccess }: AgentEdito
             description: description.trim() || null,
             system_prompt: systemPrompt.trim(),
             target_audience: targetAudience,
-            conversation_starters: conversationStarters,
+            conversation_starters: conversationStarters as unknown as Json,
+            config: configData,
             agent_type: 'custom',
             is_active: true,
           })
@@ -464,11 +668,141 @@ export const AgentEditor = ({ open, onOpenChange, agent, onSuccess }: AgentEdito
 
               {/* Document Links */}
               <div className="space-y-2">
-                <Label>Base de Conhecimento</Label>
+                <Label className="flex items-center gap-2">
+                  <FileText className="w-4 h-4" />
+                  Base de Conhecimento
+                </Label>
                 <p className="text-xs text-muted-foreground mb-2">
                   Vincule documentos que o agente deve usar como referência
                 </p>
                 
+                {/* Upload New Document Section */}
+                <div className="border rounded-lg p-3 bg-muted/30 space-y-3">
+                  {!showUploadForm ? (
+                    <Button
+                      type="button"
+                      variant="outline"
+                      className="w-full gap-2"
+                      onClick={() => setShowUploadForm(true)}
+                    >
+                      <Upload className="w-4 h-4" />
+                      Adicionar Novo Documento
+                    </Button>
+                  ) : (
+                    <div className="space-y-3">
+                      <div className="flex items-center justify-between">
+                        <p className="text-sm font-medium">Novo Documento</p>
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => {
+                            setShowUploadForm(false);
+                            setUploadTitle('');
+                            setUploadFile(null);
+                            setUploadContent('');
+                          }}
+                        >
+                          <X className="w-4 h-4" />
+                        </Button>
+                      </div>
+
+                      <Input
+                        value={uploadTitle}
+                        onChange={(e) => setUploadTitle(e.target.value)}
+                        placeholder="Título do documento"
+                      />
+
+                      <div className="flex gap-2">
+                        <Button
+                          type="button"
+                          variant={uploadMode === 'file' ? 'default' : 'outline'}
+                          size="sm"
+                          onClick={() => setUploadMode('file')}
+                        >
+                          <Upload className="w-4 h-4 mr-1" />
+                          Arquivo
+                        </Button>
+                        <Button
+                          type="button"
+                          variant={uploadMode === 'text' ? 'default' : 'outline'}
+                          size="sm"
+                          onClick={() => setUploadMode('text')}
+                        >
+                          <FileText className="w-4 h-4 mr-1" />
+                          Texto
+                        </Button>
+                      </div>
+
+                      {uploadMode === 'file' ? (
+                        <div className="border-2 border-dashed rounded-lg p-4 text-center">
+                          <input
+                            type="file"
+                            id="agent-file-upload"
+                            className="hidden"
+                            accept=".pdf,.doc,.docx,.txt,.xlsx,.xls"
+                            onChange={(e) => {
+                              const file = e.target.files?.[0];
+                              if (file) {
+                                setUploadFile(file);
+                                if (!uploadTitle) {
+                                  setUploadTitle(file.name.replace(/\.[^/.]+$/, ''));
+                                }
+                              }
+                            }}
+                          />
+                          <label htmlFor="agent-file-upload" className="cursor-pointer">
+                            {uploadFile ? (
+                              <div className="flex items-center justify-center gap-2 text-primary">
+                                <FileText className="w-6 h-6" />
+                                <div className="text-left">
+                                  <p className="font-medium text-sm">{uploadFile.name}</p>
+                                  <p className="text-xs text-muted-foreground">
+                                    {(uploadFile.size / 1024 / 1024).toFixed(2)} MB
+                                  </p>
+                                </div>
+                              </div>
+                            ) : (
+                              <div className="text-muted-foreground">
+                                <Upload className="w-6 h-6 mx-auto mb-1" />
+                                <p className="text-sm">Clique para selecionar</p>
+                                <p className="text-xs">PDF, DOC, TXT, XLS</p>
+                              </div>
+                            )}
+                          </label>
+                        </div>
+                      ) : (
+                        <Textarea
+                          value={uploadContent}
+                          onChange={(e) => setUploadContent(e.target.value)}
+                          placeholder="Cole o conteúdo do documento..."
+                          rows={4}
+                        />
+                      )}
+
+                      <Button
+                        type="button"
+                        onClick={handleFileUpload}
+                        disabled={isUploadingFile}
+                        className="w-full gap-2"
+                      >
+                        {isUploadingFile ? (
+                          <>
+                            <Loader2 className="w-4 h-4 animate-spin" />
+                            Salvando...
+                          </>
+                        ) : (
+                          <>
+                            <Plus className="w-4 h-4" />
+                            Adicionar à Base
+                          </>
+                        )}
+                      </Button>
+                    </div>
+                  )}
+                </div>
+
+                {/* Existing Documents */}
                 {documents.length === 0 ? (
                   <p className="text-sm text-muted-foreground py-4 text-center">
                     Nenhum documento disponível na biblioteca
@@ -478,7 +812,11 @@ export const AgentEditor = ({ open, onOpenChange, agent, onSuccess }: AgentEdito
                     {documents.map((doc) => (
                       <div 
                         key={doc.id}
-                        className="flex items-center gap-3 p-2 rounded-md hover:bg-muted/50 cursor-pointer"
+                        className={`flex items-center gap-3 p-2 rounded-md cursor-pointer transition-colors ${
+                          linkedDocIds.includes(doc.id) 
+                            ? 'bg-primary/10 border border-primary/30' 
+                            : 'hover:bg-muted/50 border border-transparent'
+                        }`}
                         onClick={() => toggleDocument(doc.id)}
                       >
                         <Checkbox 
@@ -501,6 +839,156 @@ export const AgentEditor = ({ open, onOpenChange, agent, onSuccess }: AgentEdito
                   </p>
                 )}
               </div>
+
+              {/* Advanced Settings - Admin Master Only */}
+              {isAdminMaster && (
+                <Collapsible open={advancedOpen} onOpenChange={setAdvancedOpen}>
+                  <CollapsibleTrigger asChild>
+                    <Button type="button" variant="outline" className="w-full justify-between gap-2">
+                      <span className="flex items-center gap-2">
+                        <Settings2 className="w-4 h-4" />
+                        Configurações Avançadas
+                      </span>
+                      <Badge variant={extendedSearch.enabled ? "default" : "secondary"}>
+                        {extendedSearch.enabled ? "Ativo" : "Inativo"}
+                      </Badge>
+                    </Button>
+                  </CollapsibleTrigger>
+                  <CollapsibleContent className="mt-3 space-y-4 border rounded-lg p-4 bg-muted/20">
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <Label className="flex items-center gap-2">
+                          <Database className="w-4 h-4" />
+                          Busca Expandida
+                        </Label>
+                        <p className="text-xs text-muted-foreground mt-1">
+                          Permite ao agente acessar bases de dados adicionais
+                        </p>
+                      </div>
+                      <Switch
+                        checked={extendedSearch.enabled}
+                        onCheckedChange={(checked) => 
+                          setExtendedSearch(prev => ({ ...prev, enabled: checked }))
+                        }
+                      />
+                    </div>
+
+                    {extendedSearch.enabled && (
+                      <div className="space-y-4 pt-2 border-t">
+                        {/* Data Sources */}
+                        <div className="space-y-2">
+                          <Label className="text-sm">Fontes de Dados</Label>
+                          <div className="space-y-2">
+                            <div 
+                              className={`flex items-center gap-3 p-3 rounded-lg cursor-pointer transition-colors ${
+                                extendedSearch.sources.ai_documents 
+                                  ? 'bg-blue-500/10 border border-blue-500/30' 
+                                  : 'bg-muted/50 hover:bg-muted'
+                              }`}
+                              onClick={() => setExtendedSearch(prev => ({
+                                ...prev,
+                                sources: { ...prev.sources, ai_documents: !prev.sources.ai_documents }
+                              }))}
+                            >
+                              <Checkbox checked={extendedSearch.sources.ai_documents} />
+                              <div>
+                                <p className="text-sm font-medium">Documentos Técnicos</p>
+                                <p className="text-xs text-muted-foreground">
+                                  Acessa todos os documentos ativos da biblioteca de IA
+                                </p>
+                              </div>
+                            </div>
+
+                            <div 
+                              className={`flex items-center gap-3 p-3 rounded-lg cursor-pointer transition-colors ${
+                                extendedSearch.sources.propostas_tecnicas 
+                                  ? 'bg-green-500/10 border border-green-500/30' 
+                                  : 'bg-muted/50 hover:bg-muted'
+                              }`}
+                              onClick={() => setExtendedSearch(prev => ({
+                                ...prev,
+                                sources: { ...prev.sources, propostas_tecnicas: !prev.sources.propostas_tecnicas }
+                              }))}
+                            >
+                              <Checkbox checked={extendedSearch.sources.propostas_tecnicas} />
+                              <div>
+                                <p className="text-sm font-medium">Propostas Técnicas</p>
+                                <p className="text-xs text-muted-foreground">
+                                  Acessa propostas técnicas aprovadas e em análise
+                                </p>
+                              </div>
+                            </div>
+
+                            <div 
+                              className={`flex items-center gap-3 p-3 rounded-lg cursor-pointer transition-colors ${
+                                extendedSearch.sources.sugestoes_populares 
+                                  ? 'bg-orange-500/10 border border-orange-500/30' 
+                                  : 'bg-muted/50 hover:bg-muted'
+                              }`}
+                              onClick={() => setExtendedSearch(prev => ({
+                                ...prev,
+                                sources: { ...prev.sources, sugestoes_populares: !prev.sources.sugestoes_populares }
+                              }))}
+                            >
+                              <Checkbox checked={extendedSearch.sources.sugestoes_populares} />
+                              <div>
+                                <p className="text-sm font-medium">Sugestões Populares</p>
+                                <p className="text-xs text-muted-foreground">
+                                  Acessa sugestões enviadas pelos cidadãos
+                                </p>
+                              </div>
+                            </div>
+                          </div>
+                        </div>
+
+                        {/* Category Filters (for ai_documents) */}
+                        {extendedSearch.sources.ai_documents && (
+                          <div className="space-y-2">
+                            <Label className="text-sm">Filtrar por Categoria</Label>
+                            <p className="text-xs text-muted-foreground">
+                              Deixe vazio para incluir todas as categorias
+                            </p>
+                            <div className="flex flex-wrap gap-2">
+                              {DOC_CATEGORIES.map((cat) => (
+                                <Badge
+                                  key={cat.value}
+                                  variant={extendedSearch.doc_categories.includes(cat.value) ? "default" : "outline"}
+                                  className="cursor-pointer"
+                                  onClick={() => toggleDocCategory(cat.value)}
+                                >
+                                  {cat.label}
+                                </Badge>
+                              ))}
+                            </div>
+                          </div>
+                        )}
+
+                        {/* Temporal Status Filter */}
+                        {extendedSearch.sources.ai_documents && (
+                          <div className="space-y-2">
+                            <Label className="text-sm">Filtrar por Status Temporal</Label>
+                            <p className="text-xs text-muted-foreground">
+                              Deixe vazio para incluir todos os status
+                            </p>
+                            <div className="flex flex-wrap gap-2">
+                              {TEMPORAL_STATUS.map((status) => (
+                                <Badge
+                                  key={status.value}
+                                  variant={extendedSearch.temporal_status.includes(status.value) ? "default" : "outline"}
+                                  className="cursor-pointer"
+                                  onClick={() => toggleTemporalStatus(status.value)}
+                                >
+                                  {status.label}
+                                </Badge>
+                              ))}
+                            </div>
+                          </div>
+                        )}
+                      </div>
+                    )}
+                  </CollapsibleContent>
+                </Collapsible>
+              )}
             </div>
           </ScrollArea>
 

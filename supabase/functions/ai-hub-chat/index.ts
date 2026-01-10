@@ -6,6 +6,17 @@ const corsHeaders = {
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
 };
 
+interface ExtendedSearchConfig {
+  enabled: boolean;
+  sources: {
+    ai_documents: boolean;
+    propostas_tecnicas: boolean;
+    sugestoes_populares: boolean;
+  };
+  doc_categories: string[];
+  temporal_status: string[];
+}
+
 serve(async (req) => {
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
@@ -64,11 +75,89 @@ serve(async (req) => {
         .eq("is_active", true);
 
       if (documents && documents.length > 0) {
-        knowledgeContext = "\n\n--- BASE DE CONHECIMENTO ---\n" +
+        knowledgeContext = "\n\n--- BASE DE CONHECIMENTO DO AGENTE ---\n" +
           documents.map((doc) => 
             `### ${doc.title} (${doc.doc_category})\n${doc.content}`
           ).join("\n\n");
       }
+    }
+
+    // Handle extended search if enabled
+    const extendedSearch = agent.config?.extended_search as ExtendedSearchConfig | undefined;
+    
+    if (extendedSearch?.enabled) {
+      let extendedContext = "\n\n--- BASES DE DADOS EXPANDIDAS ---\n";
+      
+      // Fetch from ai_documents (all active, with optional filters)
+      if (extendedSearch.sources.ai_documents) {
+        let query = supabase
+          .from("ai_documents")
+          .select("title, content, doc_category, temporal_status")
+          .eq("is_active", true)
+          .limit(50);
+
+        // Apply category filter if specified
+        if (extendedSearch.doc_categories && extendedSearch.doc_categories.length > 0) {
+          query = query.in("doc_category", extendedSearch.doc_categories);
+        }
+
+        // Apply temporal status filter if specified
+        if (extendedSearch.temporal_status && extendedSearch.temporal_status.length > 0) {
+          query = query.in("temporal_status", extendedSearch.temporal_status);
+        }
+
+        const { data: allDocs } = await query;
+
+        if (allDocs && allDocs.length > 0) {
+          // Exclude already linked documents to avoid duplication
+          const linkedIds = linkedDocs?.map(d => d.document_id) || [];
+          const newDocs = allDocs.filter(doc => !linkedIds.some(id => 
+            // Since we don't have IDs in the select, we check by title
+            allDocs.some(d => d.title === doc.title)
+          ));
+
+          if (newDocs.length > 0) {
+            extendedContext += "\n## Documentos Técnicos\n" +
+              newDocs.slice(0, 30).map((doc) => 
+                `### ${doc.title} (${doc.doc_category}${doc.temporal_status ? ` - ${doc.temporal_status}` : ''})\n${doc.content?.substring(0, 2000) || 'Sem conteúdo'}`
+              ).join("\n\n");
+          }
+        }
+      }
+
+      // Fetch from propostas_tecnicas
+      if (extendedSearch.sources.propostas_tecnicas) {
+        const { data: propostas } = await supabase
+          .from("propostas_tecnicas")
+          .select("titulo, descricao, problema, solucao, status")
+          .in("status", ["aprovada", "consolidada", "validada"])
+          .limit(30);
+
+        if (propostas && propostas.length > 0) {
+          extendedContext += "\n\n## Propostas Técnicas\n" +
+            propostas.map((p) => {
+              return `### ${p.titulo} (${p.status})\n**Problema:** ${p.problema || 'Não especificado'}\n**Solução:** ${p.solucao || p.descricao || 'Não especificada'}`;
+            }).join("\n\n");
+        }
+      }
+
+      // Fetch from sugestoes_populares
+      if (extendedSearch.sources.sugestoes_populares) {
+        const { data: sugestoes } = await supabase
+          .from("sugestoes_populares")
+          .select("titulo, descricao, categoria, municipio, created_at")
+          .order("created_at", { ascending: false })
+          .limit(50);
+
+        if (sugestoes && sugestoes.length > 0) {
+          extendedContext += "\n\n## Sugestões Populares (Cidadãos)\n" +
+            sugestoes.map((s) => 
+              `- **${s.titulo || 'Sugestão'}** (${s.categoria || 'Geral'}) - ${s.municipio || 'PR'}\n  ${s.descricao?.substring(0, 300) || ''}`
+            ).join("\n");
+        }
+      }
+
+      knowledgeContext += extendedContext;
     }
 
     // Build system prompt
