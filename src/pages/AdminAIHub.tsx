@@ -625,6 +625,7 @@ const AdminAIHub = () => {
         onOpenChange={setEditorOpen}
         agent={editingAgent}
         onSuccess={handleEditorSuccess}
+        isAdminMaster={isAdminMaster}
       />
     </div>
   );
