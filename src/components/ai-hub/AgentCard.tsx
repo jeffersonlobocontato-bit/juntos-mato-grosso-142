@@ -101,7 +101,7 @@ export const AgentCard = ({
         </p>
 
         {/* Conversation Starters Preview */}
-        {agent.conversation_starters.length > 0 && (
+        {Array.isArray(agent.conversation_starters) && agent.conversation_starters.length > 0 && (
           <div className="mb-4">
             <p className="text-xs text-muted-foreground mb-2">Sugestões de conversa:</p>
             <div className="flex flex-wrap gap-1">
