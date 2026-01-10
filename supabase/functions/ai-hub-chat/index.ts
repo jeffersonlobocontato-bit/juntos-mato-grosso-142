@@ -12,9 +12,11 @@ interface ExtendedSearchConfig {
     ai_documents: boolean;
     propostas_tecnicas: boolean;
     sugestoes_populares: boolean;
+    pesquisas_eleitorais: boolean;
   };
   doc_categories: string[];
   temporal_status: string[];
+  pesquisa_ids: string[];
 }
 
 serve(async (req) => {
@@ -154,6 +156,73 @@ serve(async (req) => {
             sugestoes.map((s) => 
               `- **${s.titulo || 'Sugestão'}** (${s.categoria || 'Geral'}) - ${s.municipio || 'PR'}\n  ${s.descricao?.substring(0, 300) || ''}`
             ).join("\n");
+        }
+      }
+
+      // Fetch from pesquisas_eleitorais
+      if (extendedSearch.sources.pesquisas_eleitorais) {
+        let pesquisaQuery = supabase
+          .from("pesquisas_eleitorais")
+          .select("id, titulo, instituto, tipo_pesquisa, data_publicacao, amostra_total, margem_erro, universo, content")
+          .eq("is_active", true)
+          .in("status", ["ativa"]);
+
+        // Filter by specific IDs if provided
+        if (extendedSearch.pesquisa_ids && extendedSearch.pesquisa_ids.length > 0) {
+          pesquisaQuery = pesquisaQuery.in("id", extendedSearch.pesquisa_ids);
+        } else {
+          pesquisaQuery = pesquisaQuery.limit(10);
+        }
+
+        const { data: pesquisas } = await pesquisaQuery;
+
+        if (pesquisas && pesquisas.length > 0) {
+          extendedContext += "\n\n## Pesquisas Eleitorais\n";
+          
+          for (const pesq of pesquisas) {
+            extendedContext += `\n### ${pesq.titulo} (${pesq.instituto})\n`;
+            extendedContext += `- Tipo: ${pesq.tipo_pesquisa}\n`;
+            if (pesq.data_publicacao) extendedContext += `- Publicação: ${pesq.data_publicacao}\n`;
+            if (pesq.amostra_total) extendedContext += `- Amostra: ${pesq.amostra_total} entrevistados\n`;
+            if (pesq.margem_erro) extendedContext += `- Margem de erro: ±${pesq.margem_erro}%\n`;
+            if (pesq.universo) extendedContext += `- Universo: ${pesq.universo}\n`;
+            
+            // Fetch resultados for this pesquisa
+            const { data: resultados } = await supabase
+              .from("pesquisa_resultados")
+              .select("id, tipo_pergunta, pergunta, cenario_descricao")
+              .eq("pesquisa_id", pesq.id)
+              .order("ordem")
+              .limit(10);
+
+            if (resultados && resultados.length > 0) {
+              for (const res of resultados) {
+                extendedContext += `\n#### ${res.pergunta}`;
+                if (res.cenario_descricao) extendedContext += ` (${res.cenario_descricao})`;
+                extendedContext += `\nTipo: ${res.tipo_pergunta}\n`;
+
+                // Fetch respostas
+                const { data: respostas } = await supabase
+                  .from("pesquisa_respostas")
+                  .select("opcao, percentual, votos_absolutos")
+                  .eq("resultado_id", res.id)
+                  .order("ordem");
+
+                if (respostas && respostas.length > 0) {
+                  respostas.forEach(resp => {
+                    extendedContext += `- ${resp.opcao}: ${resp.percentual}%`;
+                    if (resp.votos_absolutos) extendedContext += ` (${resp.votos_absolutos} votos)`;
+                    extendedContext += "\n";
+                  });
+                }
+              }
+            }
+
+            // Include raw content if available
+            if (pesq.content) {
+              extendedContext += `\n**Dados adicionais:**\n${pesq.content.substring(0, 2000)}\n`;
+            }
+          }
         }
       }
 
