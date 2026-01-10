@@ -10,7 +10,11 @@ import { Switch } from '@/components/ui/switch';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
-import { Upload, FileText, Keyboard, Loader2 } from 'lucide-react';
+import { Upload, FileText, Keyboard, Loader2, CheckCircle2 } from 'lucide-react';
+import * as pdfjsLib from 'pdfjs-dist';
+
+// Configure PDF.js worker
+pdfjsLib.GlobalWorkerOptions.workerSrc = `//cdnjs.cloudflare.com/ajax/libs/pdf.js/${pdfjsLib.version}/pdf.worker.min.js`;
 
 interface Pesquisa {
   id: string;
@@ -77,6 +81,8 @@ export const PesquisaUploadModal = ({
   // File upload state
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [isUploading, setIsUploading] = useState(false);
+  const [isExtractingText, setIsExtractingText] = useState(false);
+  const [extractionSuccess, setExtractionSuccess] = useState(false);
 
   useEffect(() => {
     if (pesquisa) {
@@ -119,17 +125,82 @@ export const PesquisaUploadModal = ({
     setContent('');
     setSelectedFile(null);
     setActiveTab('metadata');
+    setExtractionSuccess(false);
   };
 
-  const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (file) {
-      const validTypes = ['application/pdf', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet', 'application/vnd.ms-excel', 'text/csv'];
-      if (!validTypes.includes(file.type)) {
-        toast.error('Formato inválido. Aceitos: PDF, Excel, CSV');
-        return;
+  const extractTextFromPDF = async (file: File): Promise<string> => {
+    try {
+      const arrayBuffer = await file.arrayBuffer();
+      const pdf = await pdfjsLib.getDocument({ data: arrayBuffer }).promise;
+      
+      let fullText = '';
+      for (let i = 1; i <= pdf.numPages; i++) {
+        const page = await pdf.getPage(i);
+        const textContent = await page.getTextContent();
+        const pageText = textContent.items
+          .map((item: any) => item.str)
+          .join(' ');
+        fullText += pageText + '\n\n';
       }
-      setSelectedFile(file);
+      
+      return fullText.trim();
+    } catch (error) {
+      console.error('Error extracting PDF text:', error);
+      throw error;
+    }
+  };
+
+  const handleFileSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    
+    const validTypes = ['application/pdf', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet', 'application/vnd.ms-excel', 'text/csv'];
+    if (!validTypes.includes(file.type)) {
+      toast.error('Formato inválido. Aceitos: PDF, Excel, CSV');
+      return;
+    }
+    
+    setSelectedFile(file);
+    setExtractionSuccess(false);
+    
+    // Auto-extract text from PDF
+    if (file.type === 'application/pdf') {
+      setIsExtractingText(true);
+      toast.info('Extraindo texto do PDF...');
+      
+      try {
+        const extractedText = await extractTextFromPDF(file);
+        
+        if (extractedText.length > 50) {
+          setContent(extractedText);
+          setExtractionSuccess(true);
+          setActiveTab('manual'); // Switch to manual tab to show extracted content
+          toast.success(`Texto extraído com sucesso! ${extractedText.length.toLocaleString()} caracteres.`);
+        } else {
+          toast.warning('PDF parece ter pouco texto. Por favor, cole o conteúdo manualmente na aba "Dados Manuais".');
+        }
+      } catch (error) {
+        console.error('PDF extraction error:', error);
+        toast.error('Não foi possível extrair texto do PDF. Por favor, cole o conteúdo manualmente na aba "Dados Manuais".');
+      } finally {
+        setIsExtractingText(false);
+      }
+    } else if (file.type === 'text/csv') {
+      // For CSV, read as text
+      try {
+        const text = await file.text();
+        if (text.length > 50) {
+          setContent(text);
+          setExtractionSuccess(true);
+          setActiveTab('manual');
+          toast.success(`Conteúdo CSV carregado! ${text.length.toLocaleString()} caracteres.`);
+        }
+      } catch (error) {
+        toast.error('Erro ao ler arquivo CSV.');
+      }
+    } else {
+      // Excel files - inform user to paste manually
+      toast.info('Arquivo Excel detectado. Por favor, abra o arquivo e cole o conteúdo na aba "Dados Manuais".');
     }
   };
 
@@ -459,13 +530,31 @@ export const PesquisaUploadModal = ({
                   </label>
                 </Button>
                 
-                {selectedFile && (
+                {isExtractingText && (
+                  <div className="mt-4 p-3 bg-primary/10 rounded-lg flex items-center gap-3">
+                    <Loader2 className="w-5 h-5 animate-spin text-primary" />
+                    <span className="text-sm">Extraindo texto do PDF...</span>
+                  </div>
+                )}
+                
+                {selectedFile && !isExtractingText && (
                   <div className="mt-4 p-3 bg-muted rounded-lg flex items-center justify-between">
-                    <span className="text-sm">{selectedFile.name}</span>
+                    <div className="flex items-center gap-2">
+                      {extractionSuccess && <CheckCircle2 className="w-4 h-4 text-green-500" />}
+                      <span className="text-sm">{selectedFile.name}</span>
+                      {extractionSuccess && (
+                        <span className="text-xs text-green-600 bg-green-500/10 px-2 py-0.5 rounded">
+                          Texto extraído
+                        </span>
+                      )}
+                    </div>
                     <Button
                       variant="ghost"
                       size="sm"
-                      onClick={() => setSelectedFile(null)}
+                      onClick={() => {
+                        setSelectedFile(null);
+                        setExtractionSuccess(false);
+                      }}
                     >
                       Remover
                     </Button>
@@ -473,14 +562,23 @@ export const PesquisaUploadModal = ({
                 )}
               </div>
 
-              <div className="bg-amber-500/10 border border-amber-500/30 p-4 rounded-lg">
-                <h4 className="font-medium mb-2 text-amber-600">⚠️ Importante: Arquivos PDF/Excel</h4>
-                <p className="text-sm text-muted-foreground">
-                  Para arquivos PDF ou Excel, é necessário <strong>copiar e colar o texto da pesquisa</strong> na 
-                  aba "Dados Manuais" antes de processar. O sistema não consegue extrair texto 
-                  automaticamente desses formatos.
-                </p>
-              </div>
+              {extractionSuccess ? (
+                <div className="bg-green-500/10 border border-green-500/30 p-4 rounded-lg">
+                  <h4 className="font-medium mb-2 text-green-600">✅ Texto Extraído Automaticamente</h4>
+                  <p className="text-sm text-muted-foreground">
+                    O texto do PDF foi extraído e está disponível na aba "Dados Manuais". 
+                    Revise o conteúdo antes de salvar e processar com IA.
+                  </p>
+                </div>
+              ) : (
+                <div className="bg-amber-500/10 border border-amber-500/30 p-4 rounded-lg">
+                  <h4 className="font-medium mb-2 text-amber-600">📄 Extração Automática de PDF</h4>
+                  <p className="text-sm text-muted-foreground">
+                    Ao selecionar um arquivo PDF, o sistema tentará extrair o texto automaticamente. 
+                    Para arquivos Excel, é necessário copiar e colar na aba "Dados Manuais".
+                  </p>
+                </div>
+              )}
 
               <div className="bg-muted/50 p-4 rounded-lg">
                 <h4 className="font-medium mb-2">📊 Processamento com IA</h4>
