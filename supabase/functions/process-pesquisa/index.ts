@@ -111,9 +111,17 @@ serve(async (req) => {
     }
 
     const systemPrompt = `Você é um especialista em análise de pesquisas eleitorais brasileiras.
-Sua tarefa é extrair dados estruturados de pesquisas eleitorais.
+Sua tarefa é extrair dados estruturados EXCLUSIVAMENTE do documento fornecido.
 
-INSTRUÇÕES:
+REGRAS CRÍTICAS - OBRIGATÓRIO:
+1. EXTRAIA APENAS dados que estão EXPLICITAMENTE no documento fornecido
+2. NÃO INVENTE, NÃO PREENCHA, NÃO COMPLETE com dados de outras fontes
+3. Se um dado não estiver no documento, NÃO inclua - deixe vazio ou omita
+4. NÃO use conhecimento prévio sobre pesquisas eleitorais de outros estados ou períodos
+5. Se o documento for do Paraná, extraia APENAS candidatos e dados do Paraná
+6. Se não conseguir identificar claramente um dado, NÃO inclua
+
+INSTRUÇÕES DE EXTRAÇÃO:
 1. Extraia metadados: título, instituto, datas, registro TSE, amostra, margem de erro
 2. Extraia resultados: intenção de voto (espontânea/estimulada), rejeição, avaliação de governo
 3. Extraia cruzamentos: dados por sexo, idade, escolaridade, renda, região
@@ -125,19 +133,25 @@ FORMATOS DE DADOS COMUNS:
 - Avaliação: ótimo/bom, regular, ruim/péssimo
 - Cruzamentos: segmentação por demografia
 
-Use a função extract_pesquisa_data para retornar os dados estruturados.`;
+Use a função extract_pesquisa_data para retornar APENAS os dados encontrados no documento.`;
 
-    const userPrompt = `Analise o seguinte conteúdo de pesquisa eleitoral e extraia todos os dados estruturados:
+    const userPrompt = `ATENÇÃO: Extraia dados APENAS do documento abaixo. Não invente dados, não use conhecimento externo.
+Se um candidato ou percentual não estiver explícito no texto, NÃO inclua.
 
+DOCUMENTO PARA ANÁLISE:
+---
 ${textContent}
+---
 
-Extraia:
+Extraia SOMENTE o que está no documento acima:
 1. Metadados (título, instituto, datas, amostra, margem de erro, etc.)
-2. Resultados de intenção de voto (todos os cenários)
-3. Resultados de rejeição
-4. Avaliação de governo (se houver)
-5. Cruzamentos por segmento demográfico
-6. Insights qualitativos (se for pesquisa qualitativa)`;
+2. Resultados de intenção de voto (APENAS candidatos mencionados no documento)
+3. Resultados de rejeição (se houver no documento)
+4. Avaliação de governo (se houver no documento)
+5. Cruzamentos por segmento demográfico (se houver no documento)
+6. Insights qualitativos (se for pesquisa qualitativa)
+
+LEMBRE-SE: Retorne APENAS dados explícitos do documento. Dados não encontrados devem ser omitidos.`;
 
     const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
       method: "POST",
