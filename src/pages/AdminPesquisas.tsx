@@ -20,7 +20,9 @@ import {
   Filter,
   Eye,
   Trash2,
-  Edit
+  Edit,
+  Sparkles,
+  Loader2
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { PesquisaUploadModal } from '@/components/admin/PesquisaUploadModal';
@@ -43,6 +45,8 @@ interface Pesquisa {
   status: 'rascunho' | 'processando' | 'ativa' | 'arquivada';
   is_active: boolean;
   created_at: string;
+  file_url: string | null;
+  content: string | null;
 }
 
 const INSTITUTOS = [
@@ -133,6 +137,55 @@ const AdminPesquisas = () => {
   const handleEdit = (pesquisa: Pesquisa) => {
     setEditingPesquisa(pesquisa);
     setUploadModalOpen(true);
+  };
+
+  const [processingId, setProcessingId] = useState<string | null>(null);
+
+  const handleProcessWithAI = async (pesquisa: Pesquisa) => {
+    if (!pesquisa.file_url && !pesquisa.content) {
+      toast.error('A pesquisa não possui arquivo ou conteúdo para processar');
+      return;
+    }
+
+    setProcessingId(pesquisa.id);
+    try {
+      const response = await fetch(
+        `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/process-pesquisa`,
+        {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            Authorization: `Bearer ${import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY}`,
+          },
+          body: JSON.stringify({
+            pesquisa_id: pesquisa.id,
+            file_url: pesquisa.file_url,
+            content_text: pesquisa.content,
+          }),
+        }
+      );
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        if (response.status === 429) {
+          toast.error('Limite de requisições excedido. Tente novamente mais tarde.');
+        } else if (response.status === 402) {
+          toast.error('Créditos insuficientes. Adicione créditos ao workspace.');
+        } else {
+          toast.error(data.error || 'Erro ao processar pesquisa');
+        }
+        return;
+      }
+
+      toast.success(`Pesquisa processada! ${data.data.resultados_count} resultados extraídos.`);
+      fetchPesquisas();
+    } catch (error) {
+      console.error('Error processing pesquisa:', error);
+      toast.error('Erro ao processar pesquisa com IA');
+    } finally {
+      setProcessingId(null);
+    }
   };
 
   const filteredPesquisas = pesquisas.filter(p => {
@@ -392,6 +445,22 @@ const AdminPesquisas = () => {
                           </div>
                         </div>
                         <div className="flex items-center gap-2">
+                          {(pesquisa.file_url || pesquisa.content) && pesquisa.status !== 'ativa' && (
+                            <Button 
+                              variant="default" 
+                              size="sm"
+                              onClick={() => handleProcessWithAI(pesquisa)}
+                              disabled={processingId === pesquisa.id || pesquisa.status === 'processando'}
+                              className="bg-violet-600 hover:bg-violet-700"
+                            >
+                              {(processingId === pesquisa.id || pesquisa.status === 'processando') ? (
+                                <Loader2 className="w-4 h-4 mr-1 animate-spin" />
+                              ) : (
+                                <Sparkles className="w-4 h-4 mr-1" />
+                              )}
+                              Processar IA
+                            </Button>
+                          )}
                           <Button 
                             variant="outline" 
                             size="sm"
