@@ -14,6 +14,7 @@ interface CreateUserRequest {
   roles: string[];
   eixo_ids: string[];
   municipio_ids?: string[];
+  ai_hub_function_ids?: string[];
 }
 
 Deno.serve(async (req) => {
@@ -207,6 +208,25 @@ Deno.serve(async (req) => {
         // Non-fatal, continue
       } else {
         console.log("Municipios assigned:", body.municipio_ids);
+      }
+    }
+
+    // Insert AI Hub function relationships
+    if (body.ai_hub_function_ids && body.ai_hub_function_ids.length > 0) {
+      const hubFunctionInserts = body.ai_hub_function_ids.map(function_id => ({
+        user_id: newUser.user.id,
+        function_id,
+      }));
+
+      const { error: hubFunctionsError } = await supabaseAdmin
+        .from("user_ai_hub_functions")
+        .insert(hubFunctionInserts);
+
+      if (hubFunctionsError) {
+        console.error("Error inserting AI Hub functions:", hubFunctionsError);
+        // Non-fatal, continue
+      } else {
+        console.log("AI Hub functions assigned:", body.ai_hub_function_ids);
       }
     }
 

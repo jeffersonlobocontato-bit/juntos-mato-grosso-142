@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
-import { Bot, Plus, X, FileText } from 'lucide-react';
+import { Bot, Plus, X, FileText, Users } from 'lucide-react';
 import {
   Dialog,
   DialogContent,
@@ -45,6 +45,14 @@ interface AIDocument {
   doc_category: string;
 }
 
+interface AIHubFunction {
+  id: string;
+  name: string;
+  display_name: string;
+  description: string | null;
+  is_system: boolean;
+}
+
 interface AgentEditorProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
@@ -56,6 +64,8 @@ export const AgentEditor = ({ open, onOpenChange, agent, onSuccess }: AgentEdito
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [documents, setDocuments] = useState<AIDocument[]>([]);
   const [linkedDocIds, setLinkedDocIds] = useState<string[]>([]);
+  const [hubFunctions, setHubFunctions] = useState<AIHubFunction[]>([]);
+  const [allowedFunctionIds, setAllowedFunctionIds] = useState<string[]>([]);
   
   // Form state
   const [name, setName] = useState('');
@@ -68,6 +78,7 @@ export const AgentEditor = ({ open, onOpenChange, agent, onSuccess }: AgentEdito
   useEffect(() => {
     if (open) {
       fetchDocuments();
+      fetchHubFunctions();
       if (agent) {
         // Editing existing agent
         setName(agent.name);
@@ -76,6 +87,7 @@ export const AgentEditor = ({ open, onOpenChange, agent, onSuccess }: AgentEdito
         setTargetAudience(agent.target_audience || 'geral');
         setConversationStarters(agent.conversation_starters || []);
         fetchLinkedDocuments(agent.id);
+        fetchAllowedFunctions(agent.id);
       } else {
         // Creating new agent
         resetForm();
@@ -90,6 +102,7 @@ export const AgentEditor = ({ open, onOpenChange, agent, onSuccess }: AgentEdito
     setTargetAudience('geral');
     setConversationStarters([]);
     setLinkedDocIds([]);
+    setAllowedFunctionIds([]);
     setNewStarter('');
   };
 
@@ -108,6 +121,20 @@ export const AgentEditor = ({ open, onOpenChange, agent, onSuccess }: AgentEdito
     }
   };
 
+  const fetchHubFunctions = async () => {
+    try {
+      const { data, error } = await supabase
+        .from('ai_hub_functions')
+        .select('*')
+        .order('display_name');
+
+      if (error) throw error;
+      setHubFunctions(data || []);
+    } catch (error) {
+      console.error('Error fetching hub functions:', error);
+    }
+  };
+
   const fetchLinkedDocuments = async (agentId: string) => {
     try {
       const { data, error } = await supabase
@@ -119,6 +146,20 @@ export const AgentEditor = ({ open, onOpenChange, agent, onSuccess }: AgentEdito
       setLinkedDocIds((data || []).map(d => d.document_id));
     } catch (error) {
       console.error('Error fetching linked documents:', error);
+    }
+  };
+
+  const fetchAllowedFunctions = async (agentId: string) => {
+    try {
+      const { data, error } = await supabase
+        .from('ai_agent_allowed_functions')
+        .select('function_id')
+        .eq('agent_id', agentId);
+
+      if (error) throw error;
+      setAllowedFunctionIds((data || []).map(f => f.function_id));
+    } catch (error) {
+      console.error('Error fetching allowed functions:', error);
     }
   };
 
@@ -138,6 +179,14 @@ export const AgentEditor = ({ open, onOpenChange, agent, onSuccess }: AgentEdito
       prev.includes(docId) 
         ? prev.filter(id => id !== docId)
         : [...prev, docId]
+    );
+  };
+
+  const toggleFunction = (funcId: string) => {
+    setAllowedFunctionIds(prev =>
+      prev.includes(funcId)
+        ? prev.filter(id => id !== funcId)
+        : [...prev, funcId]
     );
   };
 
@@ -191,13 +240,13 @@ export const AgentEditor = ({ open, onOpenChange, agent, onSuccess }: AgentEdito
 
       // Update document links
       if (agentId) {
-        // Delete existing links
+        // Delete existing document links
         await supabase
           .from('ai_agent_documents')
           .delete()
           .eq('agent_id', agentId);
 
-        // Insert new links
+        // Insert new document links
         if (linkedDocIds.length > 0) {
           const { error: linkError } = await supabase
             .from('ai_agent_documents')
@@ -209,6 +258,26 @@ export const AgentEditor = ({ open, onOpenChange, agent, onSuccess }: AgentEdito
             );
 
           if (linkError) throw linkError;
+        }
+
+        // Delete existing function links
+        await supabase
+          .from('ai_agent_allowed_functions')
+          .delete()
+          .eq('agent_id', agentId);
+
+        // Insert new function links
+        if (allowedFunctionIds.length > 0) {
+          const { error: funcError } = await supabase
+            .from('ai_agent_allowed_functions')
+            .insert(
+              allowedFunctionIds.map(funcId => ({
+                agent_id: agentId,
+                function_id: funcId,
+              }))
+            );
+
+          if (funcError) throw funcError;
         }
       }
 
@@ -295,6 +364,55 @@ export const AgentEditor = ({ open, onOpenChange, agent, onSuccess }: AgentEdito
                 <p className="text-xs text-muted-foreground">
                   Estas instruções definem a personalidade e comportamento do agente.
                 </p>
+              </div>
+
+              {/* Allowed Functions (Permissions) */}
+              <div className="space-y-2">
+                <Label className="flex items-center gap-2">
+                  <Users className="w-4 h-4" />
+                  Acesso por Função Profissional
+                </Label>
+                <p className="text-xs text-muted-foreground mb-2">
+                  Selecione quais funções profissionais podem acessar este agente. 
+                  Se nenhuma for selecionada, apenas admin_master terá acesso.
+                </p>
+                
+                {hubFunctions.length === 0 ? (
+                  <p className="text-sm text-muted-foreground py-4 text-center border rounded-lg">
+                    Nenhuma função cadastrada. Crie funções na aba de gestão.
+                  </p>
+                ) : (
+                  <div className="border rounded-lg p-3 grid grid-cols-2 gap-2">
+                    {hubFunctions.map((func) => (
+                      <div 
+                        key={func.id}
+                        className={`flex items-center gap-3 p-2 rounded-md cursor-pointer transition-colors ${
+                          allowedFunctionIds.includes(func.id) 
+                            ? 'bg-primary/10 border border-primary/30' 
+                            : 'hover:bg-muted/50 border border-transparent'
+                        }`}
+                        onClick={() => toggleFunction(func.id)}
+                      >
+                        <Checkbox 
+                          checked={allowedFunctionIds.includes(func.id)}
+                          onCheckedChange={() => toggleFunction(func.id)}
+                        />
+                        <div className="flex-1 min-w-0">
+                          <p className="text-sm font-medium">{func.display_name}</p>
+                          {func.description && (
+                            <p className="text-xs text-muted-foreground truncate">{func.description}</p>
+                          )}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+                
+                {allowedFunctionIds.length > 0 && (
+                  <p className="text-xs text-muted-foreground">
+                    {allowedFunctionIds.length} função(ões) selecionada(s)
+                  </p>
+                )}
               </div>
 
               {/* Conversation Starters */}

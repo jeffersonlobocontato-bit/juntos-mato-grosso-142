@@ -4,7 +4,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
 import { useNavigate, Link } from 'react-router-dom';
 import { motion } from 'framer-motion';
-import { ArrowLeft, Users, Shield, UserCheck, MapPin, Briefcase, Plus, Trash2, UserPlus, Lock } from 'lucide-react';
+import { ArrowLeft, Users, Shield, UserCheck, MapPin, Briefcase, Plus, Trash2, UserPlus, Lock, Bot } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
@@ -66,6 +66,7 @@ const AdminUsuarios = () => {
   const [selectedRoles, setSelectedRoles] = useState<AppRole[]>([]);
   const [selectedEixos, setSelectedEixos] = useState<string[]>([]);
   const [selectedMunicipios, setSelectedMunicipios] = useState<string[]>([]);
+  const [selectedHubFunctions, setSelectedHubFunctions] = useState<string[]>([]);
 
   // Fetch all profiles
   const { data: profiles, isLoading: profilesLoading } = useQuery({
@@ -134,6 +135,34 @@ const AdminUsuarios = () => {
     },
     enabled: isAdminMaster,
   });
+
+  // Fetch AI Hub functions
+  const { data: aiHubFunctions } = useQuery({
+    queryKey: ['ai-hub-functions'],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('ai_hub_functions')
+        .select('*')
+        .order('display_name');
+      if (error) throw error;
+      return data;
+    },
+    enabled: isAdminMaster,
+  });
+
+  // Fetch user AI Hub functions
+  const { data: userHubFunctions } = useQuery({
+    queryKey: ['user-ai-hub-functions'],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('user_ai_hub_functions')
+        .select('*');
+      if (error) throw error;
+      return data;
+    },
+    enabled: isAdminMaster,
+  });
+
   const { data: userEixos } = useQuery({
     queryKey: ['user-eixos'],
     queryFn: async () => {
@@ -156,6 +185,7 @@ const AdminUsuarios = () => {
       roles: string[];
       eixo_ids: string[];
       municipio_ids?: string[];
+      ai_hub_function_ids?: string[];
     }) => {
       const { data: result, error } = await supabase.functions.invoke('admin-create-user', {
         body: data,
@@ -169,6 +199,7 @@ const AdminUsuarios = () => {
       queryClient.invalidateQueries({ queryKey: ['admin-user-roles'] });
       queryClient.invalidateQueries({ queryKey: ['user-eixos'] });
       queryClient.invalidateQueries({ queryKey: ['user-municipios'] });
+      queryClient.invalidateQueries({ queryKey: ['user-ai-hub-functions'] });
       toast({ title: 'Usuário criado com sucesso!' });
       resetCreateForm();
     },
@@ -239,6 +270,7 @@ const AdminUsuarios = () => {
     setSelectedRoles([]);
     setSelectedEixos([]);
     setSelectedMunicipios([]);
+    setSelectedHubFunctions([]);
   };
 
   const handleCreateUser = () => {
@@ -289,6 +321,7 @@ const AdminUsuarios = () => {
       roles: selectedRoles,
       eixo_ids: selectedEixos,
       municipio_ids: needsMunicipios ? selectedMunicipios : undefined,
+      ai_hub_function_ids: selectedHubFunctions.length > 0 ? selectedHubFunctions : undefined,
     });
   };
 
@@ -314,6 +347,21 @@ const AdminUsuarios = () => {
         ? prev.filter(m => m !== municipioId)
         : [...prev, municipioId]
     );
+  };
+
+  const toggleHubFunction = (funcId: string) => {
+    setSelectedHubFunctions(prev =>
+      prev.includes(funcId)
+        ? prev.filter(f => f !== funcId)
+        : [...prev, funcId]
+    );
+  };
+
+  const getUserHubFunctions = (userId: string): string[] => {
+    return userHubFunctions?.filter(uf => uf.user_id === userId).map(uf => {
+      const func = aiHubFunctions?.find(f => f.id === uf.function_id);
+      return func?.display_name || '';
+    }).filter(Boolean) || [];
   };
 
   if (authLoading) {
@@ -588,6 +636,43 @@ const AdminUsuarios = () => {
                   </div>
                 )}
 
+                {/* AI Hub Functions Selection */}
+                {aiHubFunctions && aiHubFunctions.length > 0 && (
+                  <div>
+                    <Label className="mb-3 flex items-center gap-2">
+                      <Bot className="h-4 w-4" />
+                      Funções do HUB de IA (opcional)
+                    </Label>
+                    <p className="text-sm text-muted-foreground mb-3">
+                      Selecione as funções profissionais para acesso aos agentes de IA.
+                    </p>
+                    <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+                      {aiHubFunctions.map((func) => (
+                        <div
+                          key={func.id}
+                          className={`flex items-center gap-2 p-3 rounded-lg border cursor-pointer transition-colors ${
+                            selectedHubFunctions.includes(func.id)
+                              ? 'border-violet-500 bg-violet-500/10'
+                              : 'border-border hover:border-violet-500/50'
+                          }`}
+                          onClick={() => toggleHubFunction(func.id)}
+                        >
+                          <Checkbox
+                            checked={selectedHubFunctions.includes(func.id)}
+                            onCheckedChange={() => toggleHubFunction(func.id)}
+                          />
+                          <span className="text-sm font-medium">{func.display_name}</span>
+                        </div>
+                      ))}
+                    </div>
+                    {selectedHubFunctions.length > 0 && (
+                      <p className="text-sm text-muted-foreground mt-2">
+                        {selectedHubFunctions.length} função(ões) selecionada(s)
+                      </p>
+                    )}
+                  </div>
+                )}
+
                 <div className="flex justify-end gap-3">
                   <Button variant="outline" onClick={resetCreateForm}>
                     Cancelar
@@ -743,6 +828,7 @@ const AdminUsuarios = () => {
                         <TableHead>Email</TableHead>
                         <TableHead>Roles</TableHead>
                         {isAdminMaster && <TableHead>Eixos</TableHead>}
+                        {isAdminMaster && <TableHead>Funções IA</TableHead>}
                         {isAdminMaster && <TableHead>Adicionar Role</TableHead>}
                       </TableRow>
                     </TableHeader>
@@ -786,6 +872,21 @@ const AdminUsuarios = () => {
                                   ) : (
                                     eixosNomes.map((nome) => (
                                       <Badge key={nome} variant="outline" className="text-xs">
+                                        {nome}
+                                      </Badge>
+                                    ))
+                                  )}
+                                </div>
+                              </TableCell>
+                            )}
+                            {isAdminMaster && (
+                              <TableCell>
+                                <div className="flex flex-wrap gap-1">
+                                  {getUserHubFunctions(profile.id).length === 0 ? (
+                                    <span className="text-muted-foreground text-sm">-</span>
+                                  ) : (
+                                    getUserHubFunctions(profile.id).map((nome) => (
+                                      <Badge key={nome} variant="outline" className="text-xs border-violet-500/50 text-violet-600">
                                         {nome}
                                       </Badge>
                                     ))
