@@ -892,28 +892,6 @@ export const AgentEditor = ({ open, onOpenChange, agent, onSuccess, isAdminMaste
                           <div className="space-y-2">
                             <label 
                               className={`flex items-center gap-3 p-3 rounded-lg cursor-pointer transition-colors ${
-                                extendedSearch.sources.ai_documents 
-                                  ? 'bg-blue-500/10 border border-blue-500/30' 
-                                  : 'bg-muted/50 hover:bg-muted'
-                              }`}
-                            >
-                              <Checkbox 
-                                checked={extendedSearch.sources.ai_documents}
-                                onCheckedChange={(checked) => setExtendedSearch(prev => ({
-                                  ...prev,
-                                  sources: { ...prev.sources, ai_documents: !!checked }
-                                }))}
-                              />
-                              <div>
-                                <p className="text-sm font-medium">Documentos Técnicos</p>
-                                <p className="text-xs text-muted-foreground">
-                                  Acessa todos os documentos ativos da biblioteca de IA
-                                </p>
-                              </div>
-                            </label>
-
-                            <label 
-                              className={`flex items-center gap-3 p-3 rounded-lg cursor-pointer transition-colors ${
                                 extendedSearch.sources.propostas_tecnicas 
                                   ? 'bg-green-500/10 border border-green-500/30' 
                                   : 'bg-muted/50 hover:bg-muted'
@@ -957,50 +935,6 @@ export const AgentEditor = ({ open, onOpenChange, agent, onSuccess, isAdminMaste
                             </label>
                           </div>
                         </div>
-
-                        {/* Category Filters (for ai_documents) */}
-                        {extendedSearch.sources.ai_documents && (
-                          <div className="space-y-2">
-                            <Label className="text-sm">Filtrar por Categoria</Label>
-                            <p className="text-xs text-muted-foreground">
-                              Deixe vazio para incluir todas as categorias
-                            </p>
-                            <div className="flex flex-wrap gap-2">
-                              {DOC_CATEGORIES.map((cat) => (
-                                <Badge
-                                  key={cat.value}
-                                  variant={extendedSearch.doc_categories.includes(cat.value) ? "default" : "outline"}
-                                  className="cursor-pointer"
-                                  onClick={() => toggleDocCategory(cat.value)}
-                                >
-                                  {cat.label}
-                                </Badge>
-                              ))}
-                            </div>
-                          </div>
-                        )}
-
-                        {/* Temporal Status Filter */}
-                        {extendedSearch.sources.ai_documents && (
-                          <div className="space-y-2">
-                            <Label className="text-sm">Filtrar por Status Temporal</Label>
-                            <p className="text-xs text-muted-foreground">
-                              Deixe vazio para incluir todos os status
-                            </p>
-                            <div className="flex flex-wrap gap-2">
-                              {TEMPORAL_STATUS.map((status) => (
-                                <Badge
-                                  key={status.value}
-                                  variant={extendedSearch.temporal_status.includes(status.value) ? "default" : "outline"}
-                                  className="cursor-pointer"
-                                  onClick={() => toggleTemporalStatus(status.value)}
-                                >
-                                  {status.label}
-                                </Badge>
-                              ))}
-                            </div>
-                          </div>
-                        )}
                       </div>
                     )}
                   </CollapsibleContent>
