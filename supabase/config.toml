@@ -20,3 +20,6 @@ verify_jwt = false
 
 [functions.ai-hub-chat]
 verify_jwt = false
+
+[functions.process-pesquisa]
+verify_jwt = false
