@@ -497,7 +497,7 @@ export const AgentEditor = ({ open, onOpenChange, agent, onSuccess, isAdminMaste
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-2xl max-h-[90vh] overflow-hidden flex flex-col">
+      <DialogContent className="max-w-2xl max-h-[90vh]">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             <Bot className="w-5 h-5 text-violet-500" />
@@ -508,8 +508,8 @@ export const AgentEditor = ({ open, onOpenChange, agent, onSuccess, isAdminMaste
           </DialogDescription>
         </DialogHeader>
 
-        <form onSubmit={handleSubmit} className="flex-1 overflow-hidden flex flex-col">
-          <ScrollArea className="flex-1 pr-4">
+        <form onSubmit={handleSubmit}>
+          <ScrollArea className="h-[calc(90vh-180px)] pr-4">
             <div className="space-y-6 py-4">
               {/* Basic Info */}
               <div className="space-y-4">
