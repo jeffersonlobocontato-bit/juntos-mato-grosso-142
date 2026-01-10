@@ -17,3 +17,6 @@ verify_jwt = false
 
 [functions.seed-test-users]
 verify_jwt = false
+
+[functions.ai-hub-chat]
+verify_jwt = false
