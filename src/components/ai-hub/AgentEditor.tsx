@@ -588,14 +588,13 @@ export const AgentEditor = ({ open, onOpenChange, agent, onSuccess, isAdminMaste
                 ) : (
                   <div className="border rounded-lg p-3 grid grid-cols-2 gap-2">
                     {hubFunctions.map((func) => (
-                      <div 
+                      <label 
                         key={func.id}
                         className={`flex items-center gap-3 p-2 rounded-md cursor-pointer transition-colors ${
                           allowedFunctionIds.includes(func.id) 
                             ? 'bg-primary/10 border border-primary/30' 
                             : 'hover:bg-muted/50 border border-transparent'
                         }`}
-                        onClick={() => toggleFunction(func.id)}
                       >
                         <Checkbox 
                           checked={allowedFunctionIds.includes(func.id)}
@@ -607,7 +606,7 @@ export const AgentEditor = ({ open, onOpenChange, agent, onSuccess, isAdminMaste
                             <p className="text-xs text-muted-foreground truncate">{func.description}</p>
                           )}
                         </div>
-                      </div>
+                      </label>
                     ))}
                   </div>
                 )}
@@ -810,14 +809,13 @@ export const AgentEditor = ({ open, onOpenChange, agent, onSuccess, isAdminMaste
                 ) : (
                   <div className="border rounded-lg p-3 max-h-48 overflow-y-auto space-y-2">
                     {documents.map((doc) => (
-                      <div 
+                      <label 
                         key={doc.id}
                         className={`flex items-center gap-3 p-2 rounded-md cursor-pointer transition-colors ${
                           linkedDocIds.includes(doc.id) 
                             ? 'bg-primary/10 border border-primary/30' 
                             : 'hover:bg-muted/50 border border-transparent'
                         }`}
-                        onClick={() => toggleDocument(doc.id)}
                       >
                         <Checkbox 
                           checked={linkedDocIds.includes(doc.id)}
@@ -828,7 +826,7 @@ export const AgentEditor = ({ open, onOpenChange, agent, onSuccess, isAdminMaste
                           <p className="text-sm truncate">{doc.title}</p>
                           <p className="text-xs text-muted-foreground">{doc.doc_category}</p>
                         </div>
-                      </div>
+                      </label>
                     ))}
                   </div>
                 )}
