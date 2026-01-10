@@ -66,9 +66,11 @@ interface ExtendedSearchConfig {
     ai_documents: boolean;
     propostas_tecnicas: boolean;
     sugestoes_populares: boolean;
+    pesquisas_eleitorais: boolean;
   };
   doc_categories: string[];
   temporal_status: string[];
+  pesquisa_ids: string[];
 }
 
 interface AgentEditorProps {
@@ -103,9 +105,11 @@ const DEFAULT_EXTENDED_SEARCH: ExtendedSearchConfig = {
     ai_documents: false,
     propostas_tecnicas: false,
     sugestoes_populares: false,
+    pesquisas_eleitorais: false,
   },
   doc_categories: [],
   temporal_status: [],
+  pesquisa_ids: [],
 };
 
 export const AgentEditor = ({ open, onOpenChange, agent, onSuccess, isAdminMaster = false }: AgentEditorProps) => {
@@ -134,11 +138,13 @@ export const AgentEditor = ({ open, onOpenChange, agent, onSuccess, isAdminMaste
   // Extended search config (admin_master only)
   const [extendedSearch, setExtendedSearch] = useState<ExtendedSearchConfig>(DEFAULT_EXTENDED_SEARCH);
   const [advancedOpen, setAdvancedOpen] = useState(false);
+  const [availablePesquisas, setAvailablePesquisas] = useState<{id: string; titulo: string; instituto: string}[]>([]);
 
   useEffect(() => {
     if (open) {
       fetchDocuments();
       fetchHubFunctions();
+      fetchAvailablePesquisas();
       if (agent) {
         // Editing existing agent
         setName(agent.name);
@@ -159,9 +165,11 @@ export const AgentEditor = ({ open, onOpenChange, agent, onSuccess, isAdminMaste
               ai_documents: extSearch.sources?.ai_documents ?? false,
               propostas_tecnicas: extSearch.sources?.propostas_tecnicas ?? false,
               sugestoes_populares: extSearch.sources?.sugestoes_populares ?? false,
+              pesquisas_eleitorais: extSearch.sources?.pesquisas_eleitorais ?? false,
             },
             doc_categories: extSearch.doc_categories || [],
             temporal_status: extSearch.temporal_status || [],
+            pesquisa_ids: extSearch.pesquisa_ids || [],
           });
         } else {
           setExtendedSearch(DEFAULT_EXTENDED_SEARCH);
@@ -172,6 +180,22 @@ export const AgentEditor = ({ open, onOpenChange, agent, onSuccess, isAdminMaste
       }
     }
   }, [open, agent?.id]);
+
+  const fetchAvailablePesquisas = async () => {
+    try {
+      const { data, error } = await supabase
+        .from('pesquisas_eleitorais')
+        .select('id, titulo, instituto')
+        .eq('is_active', true)
+        .in('status', ['ativa', 'processando'])
+        .order('created_at', { ascending: false });
+      
+      if (error) throw error;
+      setAvailablePesquisas(data || []);
+    } catch (error) {
+      console.error('Error fetching pesquisas:', error);
+    }
+  };
 
   const resetForm = () => {
     setName('');
@@ -933,8 +957,71 @@ export const AgentEditor = ({ open, onOpenChange, agent, onSuccess, isAdminMaste
                                 </p>
                               </div>
                             </label>
+
+                            <label 
+                              className={`flex items-center gap-3 p-3 rounded-lg cursor-pointer transition-colors ${
+                                extendedSearch.sources.pesquisas_eleitorais 
+                                  ? 'bg-violet-500/10 border border-violet-500/30' 
+                                  : 'bg-muted/50 hover:bg-muted'
+                              }`}
+                            >
+                              <Checkbox 
+                                checked={extendedSearch.sources.pesquisas_eleitorais}
+                                onCheckedChange={(checked) => setExtendedSearch(prev => ({
+                                  ...prev,
+                                  sources: { ...prev.sources, pesquisas_eleitorais: !!checked }
+                                }))}
+                              />
+                              <div>
+                                <p className="text-sm font-medium">Pesquisas Eleitorais</p>
+                                <p className="text-xs text-muted-foreground">
+                                  Acessa pesquisas de institutos (intenção de voto, rejeição, etc.)
+                                </p>
+                              </div>
+                            </label>
                           </div>
                         </div>
+
+                        {/* Pesquisas Selection */}
+                        {extendedSearch.sources.pesquisas_eleitorais && availablePesquisas.length > 0 && (
+                          <div className="space-y-2">
+                            <Label className="text-sm">Selecionar Pesquisas Específicas</Label>
+                            <p className="text-xs text-muted-foreground">
+                              Deixe vazio para incluir todas as pesquisas ativas
+                            </p>
+                            <div className="max-h-40 overflow-y-auto border rounded-lg p-2 space-y-1">
+                              {availablePesquisas.map((pesq) => (
+                                <label 
+                                  key={pesq.id}
+                                  className={`flex items-center gap-2 p-2 rounded cursor-pointer text-sm ${
+                                    extendedSearch.pesquisa_ids.includes(pesq.id)
+                                      ? 'bg-violet-500/10'
+                                      : 'hover:bg-muted'
+                                  }`}
+                                >
+                                  <Checkbox 
+                                    checked={extendedSearch.pesquisa_ids.includes(pesq.id)}
+                                    onCheckedChange={(checked) => {
+                                      setExtendedSearch(prev => ({
+                                        ...prev,
+                                        pesquisa_ids: checked
+                                          ? [...prev.pesquisa_ids, pesq.id]
+                                          : prev.pesquisa_ids.filter(id => id !== pesq.id)
+                                      }));
+                                    }}
+                                  />
+                                  <span className="flex-1 truncate">{pesq.titulo}</span>
+                                  <span className="text-xs text-muted-foreground">{pesq.instituto}</span>
+                                </label>
+                              ))}
+                            </div>
+                            {extendedSearch.pesquisa_ids.length > 0 && (
+                              <p className="text-xs text-violet-500">
+                                {extendedSearch.pesquisa_ids.length} pesquisa(s) selecionada(s)
+                              </p>
+                            )}
+                          </div>
+                        )}
                       </div>
                     )}
                   </CollapsibleContent>
