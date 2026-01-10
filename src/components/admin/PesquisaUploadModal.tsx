@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -8,9 +8,10 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Switch } from '@/components/ui/switch';
 import { ScrollArea } from '@/components/ui/scroll-area';
+import { Progress } from '@/components/ui/progress';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
-import { Upload, FileText, Keyboard, Loader2, CheckCircle2 } from 'lucide-react';
+import { Upload, FileText, Keyboard, Loader2, CheckCircle2, Sparkles, Brain } from 'lucide-react';
 
 // PDF.js types
 declare global {
@@ -85,6 +86,11 @@ export const PesquisaUploadModal = ({
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [isUploading, setIsUploading] = useState(false);
   const [isExtractingText, setIsExtractingText] = useState(false);
+  
+  // AI Processing state
+  const [isProcessingAI, setIsProcessingAI] = useState(false);
+  const [aiProgress, setAiProgress] = useState(0);
+  const [aiStep, setAiStep] = useState('');
   const [extractionSuccess, setExtractionSuccess] = useState(false);
 
   useEffect(() => {
@@ -129,6 +135,9 @@ export const PesquisaUploadModal = ({
     setSelectedFile(null);
     setActiveTab('metadata');
     setExtractionSuccess(false);
+    setIsProcessingAI(false);
+    setAiProgress(0);
+    setAiStep('');
   };
 
   const loadPdfJs = async (): Promise<any> => {
@@ -260,19 +269,23 @@ export const PesquisaUploadModal = ({
     }
   };
 
-  const handleSubmit = async () => {
+  const savePesquisa = async (processWithAI: boolean = false): Promise<string | null> => {
     if (!titulo.trim()) {
       toast.error('Título é obrigatório');
-      return;
+      return null;
     }
 
     const finalInstituto = instituto === 'Outro' ? institutoCustom : instituto;
     if (!finalInstituto.trim()) {
       toast.error('Instituto é obrigatório');
-      return;
+      return null;
     }
 
-    setIsSubmitting(true);
+    if (processWithAI && content.trim().length < 100) {
+      toast.error('Cole o texto da pesquisa na aba "Dados Manuais" antes de processar com IA');
+      setActiveTab('manual');
+      return null;
+    }
 
     try {
       let fileData = null;
@@ -293,7 +306,7 @@ export const PesquisaUploadModal = ({
         margem_erro: margemErro ? parseFloat(margemErro) : null,
         nivel_confianca: nivelConfianca ? parseFloat(nivelConfianca) : 95,
         abrangencia,
-        status,
+        status: processWithAI ? 'processando' as const : status,
         is_active: isActive,
         content: content.trim() || null,
         ...(fileData && {
@@ -310,22 +323,111 @@ export const PesquisaUploadModal = ({
           .eq('id', pesquisa.id);
 
         if (error) throw error;
-        toast.success('Pesquisa atualizada com sucesso');
+        return pesquisa.id;
       } else {
-        const { error } = await supabase
+        const { data, error } = await supabase
           .from('pesquisas_eleitorais')
-          .insert(pesquisaData);
+          .insert(pesquisaData)
+          .select('id')
+          .single();
 
         if (error) throw error;
-        toast.success('Pesquisa criada com sucesso');
+        return data.id;
       }
+    } catch (error) {
+      console.error('Error saving pesquisa:', error);
+      throw error;
+    }
+  };
 
-      onSuccess();
+  const processWithAI = async (pesquisaId: string) => {
+    setAiStep('Conectando à IA...');
+    setAiProgress(10);
+
+    const { data: { session } } = await supabase.auth.getSession();
+    if (!session?.access_token) {
+      throw new Error('Sessão expirada. Faça login novamente.');
+    }
+
+    setAiStep('Enviando dados para análise...');
+    setAiProgress(30);
+
+    const response = await supabase.functions.invoke('process-pesquisa', {
+      body: { 
+        pesquisa_id: pesquisaId,
+        content_text: content.trim()
+      }
+    });
+
+    if (response.error) {
+      throw new Error(response.error.message || 'Erro ao processar pesquisa');
+    }
+
+    setAiProgress(70);
+    setAiStep('Salvando resultados...');
+
+    const result = response.data;
+
+    // Update pesquisa status to ativa
+    await supabase
+      .from('pesquisas_eleitorais')
+      .update({ status: 'ativa' })
+      .eq('id', pesquisaId);
+
+    setAiProgress(100);
+    setAiStep('Concluído!');
+
+    return result;
+  };
+
+  const handleSubmit = async () => {
+    setIsSubmitting(true);
+    try {
+      const pesquisaId = await savePesquisa(false);
+      if (pesquisaId) {
+        toast.success(pesquisa ? 'Pesquisa atualizada' : 'Pesquisa criada');
+        onSuccess();
+      }
     } catch (error) {
       console.error('Error saving pesquisa:', error);
       toast.error('Erro ao salvar pesquisa');
     } finally {
       setIsSubmitting(false);
+    }
+  };
+
+  const handleSubmitAndProcess = async () => {
+    setIsSubmitting(true);
+    setIsProcessingAI(true);
+    setAiProgress(0);
+    setAiStep('Salvando pesquisa...');
+
+    try {
+      const pesquisaId = await savePesquisa(true);
+      if (!pesquisaId) {
+        setIsProcessingAI(false);
+        setIsSubmitting(false);
+        return;
+      }
+
+      toast.info('Pesquisa salva! Iniciando processamento com IA...');
+
+      const result = await processWithAI(pesquisaId);
+
+      const totalResults = (result.resultados_criados || 0) + (result.cruzamentos_criados || 0);
+      toast.success(`Processamento concluído! ${totalResults} resultados extraídos.`);
+      
+      onSuccess();
+    } catch (error: any) {
+      console.error('Error processing pesquisa:', error);
+      toast.error(error.message || 'Erro ao processar pesquisa com IA');
+      
+      // Revert status if processing failed
+      setAiStep('');
+      setAiProgress(0);
+    } finally {
+      setIsSubmitting(false);
+      setIsProcessingAI(false);
     }
   };
 
@@ -682,13 +784,40 @@ METODOLOGIA
           </ScrollArea>
         </Tabs>
 
+        {isProcessingAI && (
+          <div className="mt-4 p-4 bg-primary/5 border border-primary/20 rounded-lg">
+            <div className="flex items-center gap-3 mb-3">
+              <Brain className="w-5 h-5 text-primary animate-pulse" />
+              <span className="font-medium text-primary">Processando com IA</span>
+            </div>
+            <Progress value={aiProgress} className="h-2 mb-2" />
+            <p className="text-sm text-muted-foreground">{aiStep}</p>
+          </div>
+        )}
+
         <div className="flex justify-end gap-3 mt-4 pt-4 border-t">
-          <Button variant="outline" onClick={() => onOpenChange(false)}>
+          <Button variant="outline" onClick={() => onOpenChange(false)} disabled={isProcessingAI}>
             Cancelar
           </Button>
-          <Button onClick={handleSubmit} disabled={isSubmitting || isUploading}>
-            {(isSubmitting || isUploading) && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}
-            {pesquisa ? 'Salvar Alterações' : 'Criar Pesquisa'}
+          <Button 
+            variant="outline"
+            onClick={handleSubmit} 
+            disabled={isSubmitting || isUploading || isProcessingAI}
+          >
+            {(isSubmitting && !isProcessingAI) && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}
+            {pesquisa ? 'Salvar' : 'Criar Rascunho'}
+          </Button>
+          <Button 
+            onClick={handleSubmitAndProcess} 
+            disabled={isSubmitting || isUploading || isProcessingAI || content.trim().length < 100}
+            className="bg-gradient-to-r from-primary to-primary/80"
+          >
+            {isProcessingAI ? (
+              <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+            ) : (
+              <Sparkles className="w-4 h-4 mr-2" />
+            )}
+            Salvar e Processar IA
           </Button>
         </div>
       </DialogContent>
