@@ -473,43 +473,89 @@ export const PesquisaUploadModal = ({
                 )}
               </div>
 
-              <div className="bg-muted/50 p-4 rounded-lg">
-                <h4 className="font-medium mb-2">📊 Processamento Automático</h4>
+              <div className="bg-amber-500/10 border border-amber-500/30 p-4 rounded-lg">
+                <h4 className="font-medium mb-2 text-amber-600">⚠️ Importante: Arquivos PDF/Excel</h4>
                 <p className="text-sm text-muted-foreground">
-                  Após o upload, o sistema pode utilizar IA para extrair automaticamente 
-                  os dados da pesquisa (resultados, cruzamentos, metodologia). 
-                  Este processamento é opcional e pode ser acionado após salvar.
+                  Para arquivos PDF ou Excel, é necessário <strong>copiar e colar o texto da pesquisa</strong> na 
+                  aba "Dados Manuais" antes de processar. O sistema não consegue extrair texto 
+                  automaticamente desses formatos.
+                </p>
+              </div>
+
+              <div className="bg-muted/50 p-4 rounded-lg">
+                <h4 className="font-medium mb-2">📊 Processamento com IA</h4>
+                <p className="text-sm text-muted-foreground">
+                  Após salvar e preencher os dados manuais, o sistema utilizará IA para extrair 
+                  automaticamente os resultados estruturados (intenção de voto, rejeição, cruzamentos).
                 </p>
               </div>
             </TabsContent>
 
             <TabsContent value="manual" className="space-y-4 mt-0">
+              <div className="bg-primary/5 border border-primary/20 p-4 rounded-lg mb-4">
+                <h4 className="font-medium mb-2 text-primary">📋 Instruções para Processamento</h4>
+                <p className="text-sm text-muted-foreground">
+                  Cole abaixo <strong>todo o conteúdo textual</strong> da pesquisa (copie do PDF ou Excel). 
+                  A IA irá extrair APENAS os dados presentes neste texto, sem inventar informações.
+                </p>
+              </div>
+              
               <div>
-                <Label htmlFor="content">Dados da Pesquisa (Texto)</Label>
+                <Label htmlFor="content" className="flex items-center gap-2">
+                  Dados da Pesquisa (Texto) 
+                  <span className="text-xs text-muted-foreground">
+                    {content.length > 0 && `(${content.length.toLocaleString()} caracteres)`}
+                  </span>
+                </Label>
                 <Textarea
                   id="content"
                   value={content}
                   onChange={(e) => setContent(e.target.value)}
-                  placeholder="Cole aqui os resultados da pesquisa em formato texto...
+                  placeholder={`Cole aqui TODO o conteúdo da pesquisa copiado do PDF/Excel...
 
-Exemplo:
-INTENÇÃO DE VOTO ESTIMULADA - CENÁRIO 1
-- Candidato A: 35%
-- Candidato B: 28%
-- Candidato C: 15%
+EXEMPLO - PESQUISA PARANÁ PESQUISAS - JANEIRO 2026
+
+INTENÇÃO DE VOTO ESTIMULADA - GOVERNADOR PR
+- Candidato João Silva (PARTIDO): 35%
+- Candidato Maria Santos (PARTIDO): 28%
+- Candidato Pedro Oliveira (PARTIDO): 15%
 - Brancos/Nulos: 12%
-- Não sabem: 10%
+- Não sabem/Não responderam: 10%
 
 REJEIÇÃO
-- Candidato A: 25%
-- Candidato B: 32%
-..."
-                  className="min-h-[300px] font-mono text-sm"
+- João Silva: 25%
+- Maria Santos: 32%
+- Pedro Oliveira: 18%
+
+AVALIAÇÃO DO GOVERNO ATUAL
+- Ótimo/Bom: 28%
+- Regular: 35%
+- Ruim/Péssimo: 32%
+- Não sabem: 5%
+
+METODOLOGIA
+- Instituto: Paraná Pesquisas
+- Registro TSE: PR-00123/2026
+- Período de campo: 05 a 08 de janeiro de 2026
+- Amostra: 2.000 eleitores
+- Margem de erro: 2,2 pontos percentuais
+- Nível de confiança: 95%
+- Abrangência: Estado do Paraná`}
+                  className="min-h-[350px] font-mono text-sm"
                 />
               </div>
+              
+              {content.length > 0 && content.length < 200 && (
+                <div className="bg-amber-500/10 border border-amber-500/30 p-3 rounded-lg">
+                  <p className="text-sm text-amber-600">
+                    ⚠️ O conteúdo parece muito curto. Certifique-se de colar todos os dados da pesquisa.
+                  </p>
+                </div>
+              )}
+              
               <p className="text-xs text-muted-foreground">
-                💡 Dica: Você pode colar os resultados em formato livre. O sistema 
-                pode processar esses dados posteriormente para estruturar tabelas e gráficos.
+                💡 <strong>Importante:</strong> Cole o texto COMPLETO da pesquisa. Quanto mais informações você fornecer, 
+                mais precisa será a extração. A IA NÃO inventará dados - apenas extrairá o que está no texto acima.
               </p>
             </TabsContent>
           </ScrollArea>
