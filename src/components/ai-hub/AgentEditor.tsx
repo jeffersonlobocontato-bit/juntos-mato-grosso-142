@@ -85,7 +85,7 @@ export const AgentEditor = ({ open, onOpenChange, agent, onSuccess }: AgentEdito
         setDescription(agent.description || '');
         setSystemPrompt(agent.system_prompt);
         setTargetAudience(agent.target_audience || 'geral');
-        setConversationStarters(agent.conversation_starters || []);
+        setConversationStarters(Array.isArray(agent.conversation_starters) ? agent.conversation_starters : []);
         fetchLinkedDocuments(agent.id);
         fetchAllowedFunctions(agent.id);
       } else {
@@ -93,7 +93,7 @@ export const AgentEditor = ({ open, onOpenChange, agent, onSuccess }: AgentEdito
         resetForm();
       }
     }
-  }, [open, agent]);
+  }, [open, agent?.id]);
 
   const resetForm = () => {
     setName('');

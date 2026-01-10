@@ -242,7 +242,7 @@ export const AgentChat = ({ agent, onClose }: AgentChatProps) => {
               </p>
 
               {/* Conversation Starters */}
-              {agent.conversation_starters.length > 0 && (
+              {Array.isArray(agent.conversation_starters) && agent.conversation_starters.length > 0 && (
                 <div className="flex flex-wrap gap-2 justify-center max-w-lg">
                   {agent.conversation_starters.map((starter, idx) => (
                     <button
