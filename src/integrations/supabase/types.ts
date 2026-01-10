@@ -56,6 +56,42 @@ export type Database = {
         }
         Relationships: []
       }
+      ai_agent_allowed_functions: {
+        Row: {
+          agent_id: string
+          created_at: string | null
+          function_id: string
+          id: string
+        }
+        Insert: {
+          agent_id: string
+          created_at?: string | null
+          function_id: string
+          id?: string
+        }
+        Update: {
+          agent_id?: string
+          created_at?: string | null
+          function_id?: string
+          id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ai_agent_allowed_functions_agent_id_fkey"
+            columns: ["agent_id"]
+            isOneToOne: false
+            referencedRelation: "ai_agent_config"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ai_agent_allowed_functions_function_id_fkey"
+            columns: ["function_id"]
+            isOneToOne: false
+            referencedRelation: "ai_hub_functions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       ai_agent_config: {
         Row: {
           agent_type: string
@@ -224,6 +260,36 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      ai_hub_functions: {
+        Row: {
+          created_at: string | null
+          description: string | null
+          display_name: string
+          id: string
+          is_system: boolean | null
+          name: string
+          updated_at: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          description?: string | null
+          display_name: string
+          id?: string
+          is_system?: boolean | null
+          name: string
+          updated_at?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          description?: string | null
+          display_name?: string
+          id?: string
+          is_system?: boolean | null
+          name?: string
+          updated_at?: string | null
+        }
+        Relationships: []
       }
       ai_knowledge_base: {
         Row: {
@@ -700,6 +766,35 @@ export type Database = {
           user_id?: string
         }
         Relationships: []
+      }
+      user_ai_hub_functions: {
+        Row: {
+          created_at: string | null
+          function_id: string
+          id: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string | null
+          function_id: string
+          id?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string | null
+          function_id?: string
+          id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "user_ai_hub_functions_function_id_fkey"
+            columns: ["function_id"]
+            isOneToOne: false
+            referencedRelation: "ai_hub_functions"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       user_eixos: {
         Row: {
