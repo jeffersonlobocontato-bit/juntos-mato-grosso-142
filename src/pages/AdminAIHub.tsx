@@ -91,13 +91,24 @@ const AdminAIHub = () => {
 
       if (error) throw error;
 
-      const formattedAgents: AIAgent[] = (data || []).map(agent => ({
-        ...agent,
-        conversation_starters: Array.isArray(agent.conversation_starters) 
-          ? agent.conversation_starters as string[]
-          : [],
-        config: (agent.config as Record<string, unknown>) || {}
-      }));
+      const formattedAgents: AIAgent[] = (data || []).map(agent => {
+        let starters: string[] = [];
+        if (Array.isArray(agent.conversation_starters)) {
+          starters = agent.conversation_starters as string[];
+        } else if (typeof agent.conversation_starters === 'string') {
+          try {
+            starters = JSON.parse(agent.conversation_starters);
+          } catch {
+            starters = [];
+          }
+        }
+        
+        return {
+          ...agent,
+          conversation_starters: starters,
+          config: (agent.config as Record<string, unknown>) || {}
+        };
+      });
 
       setAgents(formattedAgents);
     } catch (error) {
