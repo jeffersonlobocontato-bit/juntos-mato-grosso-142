@@ -215,7 +215,47 @@ serve(async (req) => {
                     extendedContext += "\n";
                   });
                 }
+
+                // Fetch cruzamentos demográficos
+                const { data: cruzamentos } = await supabase
+                  .from("pesquisa_cruzamentos")
+                  .select("segmento_tipo, segmento_valor, opcao, percentual")
+                  .eq("resultado_id", res.id)
+                  .limit(50);
+
+                if (cruzamentos && cruzamentos.length > 0) {
+                  extendedContext += "\n**Cruzamentos Demográficos:**\n";
+                  
+                  // Agrupar por segmento_tipo
+                  const grouped = cruzamentos.reduce((acc: Record<string, typeof cruzamentos>, cruz) => {
+                    if (!acc[cruz.segmento_tipo]) acc[cruz.segmento_tipo] = [];
+                    acc[cruz.segmento_tipo].push(cruz);
+                    return acc;
+                  }, {});
+                  
+                  for (const [tipo, items] of Object.entries(grouped)) {
+                    extendedContext += `\n*${tipo}:*\n`;
+                    (items as typeof cruzamentos).forEach(item => {
+                      extendedContext += `- ${item.segmento_valor} → ${item.opcao}: ${item.percentual}%\n`;
+                    });
+                  }
+                }
               }
+            }
+
+            // Fetch insights qualitativos
+            const { data: qualitativos } = await supabase
+              .from("pesquisa_qualitativa")
+              .select("tema, insight, sentimento, relevancia")
+              .eq("pesquisa_id", pesq.id)
+              .order("relevancia", { ascending: false })
+              .limit(10);
+
+            if (qualitativos && qualitativos.length > 0) {
+              extendedContext += "\n**Insights Qualitativos:**\n";
+              qualitativos.forEach(q => {
+                extendedContext += `- [${q.sentimento || 'neutro'}] ${q.tema}: ${q.insight || 'Sem insight'}\n`;
+              });
             }
 
             // Include raw content if available
