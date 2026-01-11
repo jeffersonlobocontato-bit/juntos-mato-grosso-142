@@ -22,11 +22,13 @@ import {
   Trash2,
   Edit,
   Sparkles,
-  Loader2
+  Loader2,
+  Brain
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { PesquisaUploadModal } from '@/components/admin/PesquisaUploadModal';
 import { PesquisaDetailModal } from '@/components/admin/PesquisaDetailModal';
+import { ResearchAnalystChat } from '@/components/ai-hub/ResearchAnalystChat';
 
 interface Pesquisa {
   id: string;
@@ -74,6 +76,8 @@ const AdminPesquisas = () => {
   const [detailModalOpen, setDetailModalOpen] = useState(false);
   const [selectedPesquisa, setSelectedPesquisa] = useState<Pesquisa | null>(null);
   const [editingPesquisa, setEditingPesquisa] = useState<Pesquisa | null>(null);
+  const [showAnalystChat, setShowAnalystChat] = useState(false);
+  const [analystAgent, setAnalystAgent] = useState<any>(null);
 
   const isAdminMaster = hasRole('admin_master');
   const canAccess = isAdmin || isAdminMaster || hasRole('lider_tematico');
@@ -90,8 +94,36 @@ const AdminPesquisas = () => {
   useEffect(() => {
     if (user && canAccess) {
       fetchPesquisas();
+      fetchAnalystAgent();
     }
   }, [user, canAccess]);
+
+  const fetchAnalystAgent = async () => {
+    try {
+      const { data, error } = await supabase
+        .from('ai_agent_config')
+        .select('*')
+        .eq('agent_type', 'pesquisas')
+        .eq('is_active', true)
+        .single();
+      
+      if (data) {
+        // Parse conversation_starters if it's a string
+        const parsedAgent = {
+          ...data,
+          conversation_starters: Array.isArray(data.conversation_starters) 
+            ? data.conversation_starters 
+            : typeof data.conversation_starters === 'string'
+              ? JSON.parse(data.conversation_starters)
+              : [],
+          config: data.config || {}
+        };
+        setAnalystAgent(parsedAgent);
+      }
+    } catch (error) {
+      console.error('Error fetching analyst agent:', error);
+    }
+  };
 
   const fetchPesquisas = async () => {
     setIsLoading(true);
@@ -254,10 +286,22 @@ const AdminPesquisas = () => {
                 <span className="font-display font-bold">Pesquisas Eleitorais</span>
               </div>
             </div>
-            <Button onClick={() => { setEditingPesquisa(null); setUploadModalOpen(true); }}>
-              <Plus className="w-4 h-4 mr-2" />
-              Nova Pesquisa
-            </Button>
+            <div className="flex items-center gap-2">
+              {analystAgent && (
+                <Button 
+                  variant="outline" 
+                  onClick={() => setShowAnalystChat(true)}
+                  className="gap-2 border-emerald-500/50 text-emerald-600 hover:bg-emerald-500/10"
+                >
+                  <Brain className="w-4 h-4" />
+                  <span className="hidden sm:inline">Analisar com IA</span>
+                </Button>
+              )}
+              <Button onClick={() => { setEditingPesquisa(null); setUploadModalOpen(true); }}>
+                <Plus className="w-4 h-4 mr-2" />
+                Nova Pesquisa
+              </Button>
+            </div>
           </div>
         </div>
       </header>
@@ -516,6 +560,14 @@ const AdminPesquisas = () => {
         onOpenChange={setDetailModalOpen}
         pesquisa={selectedPesquisa}
       />
+
+      {/* AI Analyst Chat */}
+      {showAnalystChat && analystAgent && (
+        <ResearchAnalystChat 
+          agent={analystAgent}
+          onClose={() => setShowAnalystChat(false)}
+        />
+      )}
     </div>
   );
 };
