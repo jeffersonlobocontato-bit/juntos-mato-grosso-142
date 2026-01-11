@@ -1148,8 +1148,11 @@ export type Database = {
       tse_importacoes: {
         Row: {
           ano: number
+          batch_size: number | null
           created_at: string
+          current_batch: number | null
           erro_mensagem: string | null
+          file_path: string | null
           id: string
           iniciado_por: string | null
           registros_importados: number | null
@@ -1161,8 +1164,11 @@ export type Database = {
         }
         Insert: {
           ano: number
+          batch_size?: number | null
           created_at?: string
+          current_batch?: number | null
           erro_mensagem?: string | null
+          file_path?: string | null
           id?: string
           iniciado_por?: string | null
           registros_importados?: number | null
@@ -1174,8 +1180,11 @@ export type Database = {
         }
         Update: {
           ano?: number
+          batch_size?: number | null
           created_at?: string
+          current_batch?: number | null
           erro_mensagem?: string | null
+          file_path?: string | null
           id?: string
           iniciado_por?: string | null
           registros_importados?: number | null

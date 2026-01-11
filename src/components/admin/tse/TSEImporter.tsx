@@ -8,7 +8,8 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Progress } from "@/components/ui/progress";
 import { Badge } from "@/components/ui/badge";
 import { Alert, AlertDescription } from "@/components/ui/alert";
-import { Download, CheckCircle2, Clock, AlertCircle, Loader2, RefreshCw, Info } from "lucide-react";
+import { Download, CheckCircle2, Clock, AlertCircle, Loader2, RefreshCw, Info, Upload } from "lucide-react";
+import TSEUploadModal from "./TSEUploadModal";
 
 interface Estado {
   sigla: string;
@@ -53,6 +54,7 @@ export default function TSEImporter({
   const { toast } = useToast();
   const [selectedYears, setSelectedYears] = useState<number[]>([]);
   const [isImporting, setIsImporting] = useState(false);
+  const [showUploadModal, setShowUploadModal] = useState(false);
   const [importProgress, setImportProgress] = useState<{
     ano: number;
     progress: number;
@@ -189,10 +191,18 @@ export default function TSEImporter({
           <Alert className="mt-4">
             <Info className="h-4 w-4" />
             <AlertDescription className="text-sm">
-              Os dados são baixados diretamente do repositório oficial do TSE.
-              A importação pode levar alguns minutos dependendo do volume de dados.
+              Use o <strong>Upload Manual</strong> para importar arquivos CSV baixados do portal de dados abertos do TSE.
             </AlertDescription>
           </Alert>
+
+          <Button
+            variant="outline"
+            className="w-full mt-4"
+            onClick={() => setShowUploadModal(true)}
+          >
+            <Upload className="h-4 w-4 mr-2" />
+            Upload Manual de CSV
+          </Button>
         </CardContent>
       </Card>
 
@@ -294,6 +304,15 @@ export default function TSEImporter({
           </div>
         </CardContent>
       </Card>
+
+      {/* Upload Modal */}
+      <TSEUploadModal
+        open={showUploadModal}
+        onOpenChange={setShowUploadModal}
+        selectedUF={selectedUF}
+        onSuccess={onRefetch}
+        anosEleitorais={anosEleitorais}
+      />
     </div>
   );
 }
