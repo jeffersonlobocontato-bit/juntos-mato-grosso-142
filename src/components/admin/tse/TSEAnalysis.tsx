@@ -54,7 +54,7 @@ export default function TSEAnalysis({
   eleicoes,
 }: TSEAnalysisProps) {
   const [selectedEleicao, setSelectedEleicao] = useState<string>("");
-  const [selectedCargo, setSelectedCargo] = useState<string>("");
+  const [selectedCargo, setSelectedCargo] = useState<string>("all");
 
   // Fetch cargos
   const { data: cargos } = useQuery({
@@ -89,7 +89,7 @@ export default function TSEAnalysis({
         .eq("eleicao_id", selectedEleicao)
         .eq("uf", selectedUF);
 
-      if (selectedCargo) {
+      if (selectedCargo && selectedCargo !== "all") {
         candidatosQuery = candidatosQuery.eq("cargo_id", selectedCargo);
       }
 
@@ -245,7 +245,7 @@ export default function TSEAnalysis({
                   <SelectValue placeholder="Todos os cargos" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="">Todos os cargos</SelectItem>
+                  <SelectItem value="all">Todos os cargos</SelectItem>
                   {cargos?.map(cargo => (
                     <SelectItem key={cargo.id} value={cargo.id}>
                       {cargo.nome}
