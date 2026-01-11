@@ -48,7 +48,70 @@ export default function TSEUploadModal({
     locais: number;
   } | null>(null);
 
-  const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const [validationErrors, setValidationErrors] = useState<string[]>([]);
+
+  // Required columns for TSE CSV files
+  const REQUIRED_COLUMNS = [
+    "NR_TURNO", "CD_CARGO", "NR_PARTIDO", "SG_PARTIDO", 
+    "NR_VOTAVEL", "NM_VOTAVEL", "QT_VOTOS", "CD_MUNICIPIO",
+    "NR_ZONA", "SG_UF"
+  ];
+
+  const validateCSV = async (file: File): Promise<{ valid: boolean; errors: string[]; preview: string[] }> => {
+    return new Promise((resolve) => {
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        const text = e.target?.result as string;
+        const lines = text.split("\n");
+        const errors: string[] = [];
+
+        if (lines.length < 2) {
+          errors.push("Arquivo vazio ou sem dados");
+          resolve({ valid: false, errors, preview: [] });
+          return;
+        }
+
+        // Parse header (handle BOM and different encodings)
+        const headerLine = lines[0].replace(/^\ufeff/, "").trim();
+        const headers = headerLine.split(";").map(h => h.replace(/"/g, "").trim().toUpperCase());
+
+        // Check for required columns
+        const missingColumns = REQUIRED_COLUMNS.filter(col => !headers.includes(col));
+        if (missingColumns.length > 0) {
+          errors.push(`Colunas obrigatórias não encontradas: ${missingColumns.join(", ")}`);
+        }
+
+        // Validate first few data rows
+        const dataLines = lines.slice(1, 6).filter(l => l.trim());
+        if (dataLines.length === 0) {
+          errors.push("Nenhuma linha de dados encontrada");
+        } else {
+          // Check if delimiter is semicolon
+          const firstDataLine = dataLines[0];
+          const columnCount = firstDataLine.split(";").length;
+          if (columnCount < 5) {
+            errors.push("Formato inválido: verifique se o delimitador é ponto-e-vírgula (;)");
+          }
+        }
+
+        // Preview info
+        const preview = [
+          `Colunas encontradas: ${headers.length}`,
+          `Linhas de dados: ~${lines.length - 1}`,
+          `Tamanho: ${(file.size / 1024 / 1024).toFixed(2)} MB`,
+        ];
+
+        resolve({ valid: errors.length === 0, errors, preview });
+      };
+      reader.onerror = () => {
+        resolve({ valid: false, errors: ["Erro ao ler arquivo"], preview: [] });
+      };
+      // Read first 50KB for validation
+      reader.readAsText(file.slice(0, 50000));
+    });
+  };
+
+  const handleFileSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file) {
       if (!file.name.endsWith(".csv")) {
@@ -59,7 +122,25 @@ export default function TSEUploadModal({
         });
         return;
       }
+
       setSelectedFile(file);
+      setValidationErrors([]);
+
+      // Validate CSV structure
+      const validation = await validateCSV(file);
+      if (!validation.valid) {
+        setValidationErrors(validation.errors);
+        toast({
+          title: "Problemas no arquivo",
+          description: "Verifique os erros de validação antes de continuar.",
+          variant: "destructive",
+        });
+      } else {
+        toast({
+          title: "Arquivo válido",
+          description: validation.preview.join(" | "),
+        });
+      }
     }
   };
 
@@ -68,6 +149,15 @@ export default function TSEUploadModal({
       toast({
         title: "Dados incompletos",
         description: "Selecione o ano e o arquivo CSV.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    if (validationErrors.length > 0) {
+      toast({
+        title: "Arquivo com erros",
+        description: "Corrija os erros de validação antes de continuar.",
         variant: "destructive",
       });
       return;
@@ -136,6 +226,7 @@ export default function TSEUploadModal({
     setProgressMessage("");
     setErrorMessage("");
     setStats(null);
+    setValidationErrors([]);
     if (fileInputRef.current) {
       fileInputRef.current.value = "";
     }
@@ -233,13 +324,28 @@ export default function TSEUploadModal({
                 </div>
               </div>
 
+              {/* Validation Errors */}
+              {validationErrors.length > 0 && (
+                <Alert variant="destructive">
+                  <AlertCircle className="h-4 w-4" />
+                  <AlertDescription>
+                    <div className="font-medium mb-1">Erros de validação:</div>
+                    <ul className="list-disc list-inside text-sm">
+                      {validationErrors.map((error, index) => (
+                        <li key={index}>{error}</li>
+                      ))}
+                    </ul>
+                  </AlertDescription>
+                </Alert>
+              )}
+
               <div className="flex justify-end gap-2 pt-4">
                 <Button variant="outline" onClick={handleClose}>
                   Cancelar
                 </Button>
                 <Button
                   onClick={handleUpload}
-                  disabled={!selectedFile || !selectedAno}
+                  disabled={!selectedFile || !selectedAno || validationErrors.length > 0}
                 >
                   <Upload className="h-4 w-4 mr-2" />
                   Iniciar Importação

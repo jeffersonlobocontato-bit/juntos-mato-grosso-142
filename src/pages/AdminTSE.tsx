@@ -3,10 +3,11 @@ import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Database, MapPin, BarChart3, Download } from "lucide-react";
+import { Database, MapPin, BarChart3, Download, GitCompare } from "lucide-react";
 import TSEImporter from "@/components/admin/tse/TSEImporter";
 import TSEMap from "@/components/admin/tse/TSEMap";
 import TSEAnalysis from "@/components/admin/tse/TSEAnalysis";
+import TSEComparison from "@/components/admin/tse/TSEComparison";
 
 const ESTADOS_BRASIL = [
   { sigla: "AC", nome: "Acre" },
@@ -170,7 +171,7 @@ export default function AdminTSE() {
 
       {/* Main Tabs */}
       <Tabs value={activeTab} onValueChange={setActiveTab}>
-        <TabsList className="grid w-full grid-cols-3 lg:w-[400px]">
+        <TabsList className="grid w-full grid-cols-4 lg:w-[520px]">
           <TabsTrigger value="importar" className="flex items-center gap-2">
             <Download className="h-4 w-4" />
             Importar
@@ -182,6 +183,10 @@ export default function AdminTSE() {
           <TabsTrigger value="analise" className="flex items-center gap-2">
             <BarChart3 className="h-4 w-4" />
             Análise
+          </TabsTrigger>
+          <TabsTrigger value="comparar" className="flex items-center gap-2">
+            <GitCompare className="h-4 w-4" />
+            Comparar
           </TabsTrigger>
         </TabsList>
 
@@ -207,6 +212,15 @@ export default function AdminTSE() {
 
         <TabsContent value="analise" className="mt-6">
           <TSEAnalysis
+            estados={ESTADOS_BRASIL}
+            selectedUF={selectedUF}
+            onSelectUF={setSelectedUF}
+            eleicoes={eleicoes || []}
+          />
+        </TabsContent>
+
+        <TabsContent value="comparar" className="mt-6">
+          <TSEComparison
             estados={ESTADOS_BRASIL}
             selectedUF={selectedUF}
             onSelectUF={setSelectedUF}
