@@ -73,25 +73,47 @@ Deno.serve(async (req) => {
     const supabaseKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
     const supabase = createClient(supabaseUrl, supabaseKey);
 
-    // Create import record
-    const { data: importacao, error: importError } = await supabase
+    // Check if import already exists
+    const { data: existingImport } = await supabase
       .from("tse_importacoes")
-      .upsert({
-        ano,
-        uf,
-        tipo_arquivo: "votacao_secao",
-        status: "processando",
-        registros_importados: 0,
-      }, { onConflict: "ano,uf,tipo_arquivo" })
-      .select()
+      .select("id")
+      .eq("ano", ano)
+      .eq("uf", uf)
+      .eq("tipo_arquivo", "votacao_secao")
       .single();
 
-    if (importError) {
-      console.error("Error creating import record:", importError);
-      throw importError;
-    }
+    let importId: string;
 
-    const importId = importacao.id;
+    if (existingImport) {
+      // Update existing
+      const { error: updateError } = await supabase
+        .from("tse_importacoes")
+        .update({
+          status: "processando",
+          registros_importados: 0,
+          erro_mensagem: null,
+        })
+        .eq("id", existingImport.id);
+      
+      if (updateError) throw updateError;
+      importId = existingImport.id;
+    } else {
+      // Create new
+      const { data: newImport, error: insertError } = await supabase
+        .from("tse_importacoes")
+        .insert({
+          ano,
+          uf,
+          tipo_arquivo: "votacao_secao",
+          status: "processando",
+          registros_importados: 0,
+        })
+        .select()
+        .single();
+      
+      if (insertError) throw insertError;
+      importId = newImport.id;
+    }
     const url = getVotacaoSecaoUrl(ano, uf);
 
     console.log(`Downloading from TSE: ${url}`);
@@ -148,19 +170,29 @@ Deno.serve(async (req) => {
 
     // Create/update election record
     const tipoEleicao = ano % 4 === 0 ? "municipal" : "geral";
-    const { data: eleicao, error: eleicaoError } = await supabase
+    
+    // Check if election exists
+    const { data: existingEleicao } = await supabase
       .from("tse_eleicoes")
-      .upsert({
-        ano,
-        tipo: tipoEleicao,
-        turno: 1,
-        descricao: `Eleições ${tipoEleicao === "municipal" ? "Municipais" : "Gerais"} ${ano}`,
-      }, { onConflict: "ano,tipo,turno" })
-      .select()
+      .select("id")
+      .eq("ano", ano)
+      .eq("tipo", tipoEleicao)
+      .eq("turno", 1)
       .single();
 
-    if (eleicaoError) {
-      console.error("Error creating election:", eleicaoError);
+    if (!existingEleicao) {
+      const { error: eleicaoError } = await supabase
+        .from("tse_eleicoes")
+        .insert({
+          ano,
+          tipo: tipoEleicao,
+          turno: 1,
+          descricao: `Eleições ${tipoEleicao === "municipal" ? "Municipais" : "Gerais"} ${ano}`,
+        });
+
+      if (eleicaoError) {
+        console.error("Error creating election:", eleicaoError);
+      }
     }
 
     // Since Edge Functions have memory/timeout limits, we'll process
