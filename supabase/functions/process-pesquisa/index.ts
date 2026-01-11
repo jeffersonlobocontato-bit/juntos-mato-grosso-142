@@ -173,7 +173,7 @@ serve(async (req) => {
     console.log("Processing content with AI. First 300 chars:", textContent.substring(0, 300));
     console.log("Total content length:", textContent.length);
 
-    const systemPrompt = `Você é um especialista em análise de pesquisas eleitorais brasileiras.
+    const systemPrompt = `Você é um especialista em análise de pesquisas eleitorais brasileiras, especialmente do Estado do Paraná.
 Sua tarefa é extrair dados estruturados EXCLUSIVAMENTE do documento fornecido.
 
 REGRAS CRÍTICAS - OBRIGATÓRIO:
@@ -184,17 +184,42 @@ REGRAS CRÍTICAS - OBRIGATÓRIO:
 5. Se o documento for do Paraná, extraia APENAS candidatos e dados do Paraná
 6. Se não conseguir identificar claramente um dado, NÃO inclua
 
-INSTRUÇÕES DE EXTRAÇÃO:
-1. Extraia metadados: título, instituto, datas, registro TSE, amostra, margem de erro
-2. Extraia resultados: intenção de voto (espontânea/estimulada), rejeição, avaliação de governo
-3. Extraia cruzamentos: dados por sexo, idade, escolaridade, renda, região
-4. Para pesquisas qualitativas: extraia insights e verbatims
+INSTITUTOS CONHECIDOS NO PARANÁ:
+- Ágili Pesquisas
+- Neokemp 
+- Real Time Big Data
+- Paraná Pesquisas
+- Atlas Intel
+- Instituto Mapa
+- IPEC
+- Datafolha
+- Quaest
+- Veritá
 
-FORMATOS DE DADOS COMUNS:
-- Intenção de voto estimulada: lista de candidatos com percentuais
-- Rejeição: "em quem não votaria de jeito nenhum"
-- Avaliação: ótimo/bom, regular, ruim/péssimo
-- Cruzamentos: segmentação por demografia
+TIPOS DE PERGUNTAS A IDENTIFICAR:
+1. "intencao_estimulada": Quando mostra lista de candidatos para o eleitor escolher
+2. "intencao_espontanea": Quando pergunta "em quem votaria" sem mostrar opções
+3. "rejeicao": Perguntas como "em quem não votaria de jeito nenhum"
+4. "avaliacao_governo": Avaliação de governos (federal, estadual, municipal) - ótimo/bom, regular, ruim/péssimo
+5. "cenario": Cenários eleitorais com combinações específicas de candidatos
+6. "outro": Outras perguntas de opinião
+
+CRUZAMENTOS DEMOGRÁFICOS A EXTRAIR:
+- Sexo: masculino, feminino
+- Idade: 16-24, 25-34, 35-44, 45-59, 60+
+- Escolaridade: fundamental, médio, superior
+- Renda: até 2 SM, 2-5 SM, acima 5 SM
+- Região: Curitiba, RMC, Norte, Oeste, Sudoeste, Litoral, Campos Gerais, etc.
+
+FORMATO DE DATAS:
+- Sempre retorne datas no formato YYYY-MM-DD
+- Se a pesquisa foi realizada "de 05 a 08 de janeiro de 2025", retorne:
+  - data_campo_inicio: "2025-01-05"
+  - data_campo_fim: "2025-01-08"
+
+MÚLTIPLOS CENÁRIOS:
+- Se houver diferentes cenários de votação (ex: "Cenário 1", "Cenário 2"), extraia cada um como um resultado separado
+- Use cenario_descricao para descrever qual cenário é (ex: "Cenário com Candidato X", "Cenário sem Candidato Y")
 
 Use a função extract_pesquisa_data para retornar APENAS os dados encontrados no documento.`;
 
@@ -206,15 +231,31 @@ DOCUMENTO PARA ANÁLISE:
 ${textContent}
 ---
 
-Extraia SOMENTE o que está no documento acima:
-1. Metadados (título, instituto, datas, amostra, margem de erro, etc.)
-2. Resultados de intenção de voto (APENAS candidatos mencionados no documento)
-3. Resultados de rejeição (se houver no documento)
-4. Avaliação de governo (se houver no documento)
-5. Cruzamentos por segmento demográfico (se houver no documento)
-6. Insights qualitativos (se for pesquisa qualitativa)
+INSTRUÇÕES DE EXTRAÇÃO:
+
+1. METADADOS (se presentes no documento):
+   - Título da pesquisa
+   - Nome do instituto
+   - Datas de campo (formato YYYY-MM-DD)
+   - Registro TSE (ex: "PR-00123/2026")
+   - Tamanho da amostra (número de entrevistados)
+   - Margem de erro (em pontos percentuais)
+   - Nível de confiança (geralmente 95%)
+   - Universo pesquisado (ex: "Eleitores do Paraná com 16 anos ou mais")
+   - Metodologia (telefone, presencial, online)
+
+2. RESULTADOS (APENAS candidatos/opções mencionados):
+   - Intenção de voto estimulada (com lista de candidatos)
+   - Intenção de voto espontânea (se houver)
+   - Rejeição de candidatos (se houver)
+   - Avaliação de governo (federal, estadual - se houver)
+   - Diferentes cenários eleitorais (se houver múltiplos cenários)
+
+3. CRUZAMENTOS (se disponíveis):
+   - Dados por sexo, idade, escolaridade, renda, região
 
 LEMBRE-SE: Retorne APENAS dados explícitos do documento. Dados não encontrados devem ser omitidos.`;
+
 
     const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
       method: "POST",
