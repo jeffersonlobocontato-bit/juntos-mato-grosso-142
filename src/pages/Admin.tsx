@@ -17,7 +17,8 @@ import {
   Bell,
   Sparkles,
   Bot,
-  BarChart2
+  BarChart2,
+  Vote
 } from 'lucide-react';
 
 const Admin = () => {
@@ -143,6 +144,14 @@ const Admin = () => {
       description: 'Gerenciar pesquisas de institutos',
       href: '/admin/pesquisas',
       color: 'primary',
+      roles: ['admin', 'admin_master', 'lider_tematico']
+    },
+    { 
+      icon: Vote, 
+      title: 'Dados TSE', 
+      description: 'Histórico eleitoral e mapas de votos',
+      href: '/admin/tse',
+      color: 'accent',
       roles: ['admin', 'admin_master', 'lider_tematico']
     },
   ];
