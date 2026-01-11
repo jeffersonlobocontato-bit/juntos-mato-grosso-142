@@ -1,11 +1,12 @@
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, useCallback } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Label } from "@/components/ui/label";
 import { Skeleton } from "@/components/ui/skeleton";
-import { MapPin, AlertCircle } from "lucide-react";
+import { Switch } from "@/components/ui/switch";
+import { MapPin, AlertCircle, Flame } from "lucide-react";
 import mapboxgl from "mapbox-gl";
 import "mapbox-gl/dist/mapbox-gl.css";
 
@@ -48,11 +49,14 @@ export default function TSEMap({
 }: TSEMapProps) {
   const mapContainer = useRef<HTMLDivElement>(null);
   const map = useRef<mapboxgl.Map | null>(null);
+  const markersRef = useRef<mapboxgl.Marker[]>([]);
   const [selectedEleicao, setSelectedEleicao] = useState<string>("");
   const [selectedCargo, setSelectedCargo] = useState<string>("all");
   const [selectedCandidato, setSelectedCandidato] = useState<string>("all");
   const [mapError, setMapError] = useState<string | null>(null);
   const [mapLoading, setMapLoading] = useState(true);
+  const [showHeatmap, setShowHeatmap] = useState(false);
+  const [mapReady, setMapReady] = useState(false);
 
   // Fetch cargos
   const { data: cargos } = useQuery({
@@ -142,6 +146,155 @@ export default function TSEMap({
     enabled: !!selectedEleicao,
   });
 
+  // Clear all markers
+  const clearMarkers = useCallback(() => {
+    markersRef.current.forEach(marker => marker.remove());
+    markersRef.current = [];
+  }, []);
+
+  // Update heatmap layer
+  const updateHeatmap = useCallback(() => {
+    if (!map.current || !mapReady || !locaisVotacao?.length) return;
+
+    // Remove existing heatmap layer and source if they exist
+    if (map.current.getLayer("votes-heat")) {
+      map.current.removeLayer("votes-heat");
+    }
+    if (map.current.getSource("votes")) {
+      map.current.removeSource("votes");
+    }
+
+    if (!showHeatmap) return;
+
+    // Clear markers when showing heatmap
+    clearMarkers();
+
+    // Find max votes for normalization
+    const maxVotos = Math.max(...locaisVotacao.map(l => l.totalVotos), 1);
+
+    // Create GeoJSON features
+    const features = locaisVotacao
+      .filter(local => local.latitude && local.longitude && local.totalVotos > 0)
+      .map(local => ({
+        type: "Feature" as const,
+        properties: {
+          votes: local.totalVotos,
+          weight: local.totalVotos / maxVotos,
+        },
+        geometry: {
+          type: "Point" as const,
+          coordinates: [Number(local.longitude), Number(local.latitude)],
+        },
+      }));
+
+    // Add source
+    map.current.addSource("votes", {
+      type: "geojson",
+      data: {
+        type: "FeatureCollection",
+        features,
+      },
+    });
+
+    // Add heatmap layer
+    map.current.addLayer({
+      id: "votes-heat",
+      type: "heatmap",
+      source: "votes",
+      maxzoom: 15,
+      paint: {
+        // Increase the heatmap weight based on vote count
+        "heatmap-weight": [
+          "interpolate",
+          ["linear"],
+          ["get", "weight"],
+          0, 0,
+          1, 1
+        ],
+        // Increase the heatmap color weight by zoom level
+        "heatmap-intensity": [
+          "interpolate",
+          ["linear"],
+          ["zoom"],
+          0, 1,
+          15, 3
+        ],
+        // Color ramp for heatmap - blue to red
+        "heatmap-color": [
+          "interpolate",
+          ["linear"],
+          ["heatmap-density"],
+          0, "rgba(0, 0, 0, 0)",
+          0.1, "rgba(59, 130, 246, 0.4)",
+          0.3, "rgba(34, 197, 94, 0.6)",
+          0.5, "rgba(234, 179, 8, 0.8)",
+          0.7, "rgba(249, 115, 22, 0.9)",
+          1, "rgba(239, 68, 68, 1)"
+        ],
+        // Adjust the heatmap radius by zoom level
+        "heatmap-radius": [
+          "interpolate",
+          ["linear"],
+          ["zoom"],
+          0, 15,
+          10, 30,
+          15, 50
+        ],
+        // Transition from heatmap to circle layer by zoom level
+        "heatmap-opacity": [
+          "interpolate",
+          ["linear"],
+          ["zoom"],
+          12, 1,
+          15, 0.8
+        ],
+      },
+    });
+  }, [locaisVotacao, showHeatmap, mapReady, clearMarkers]);
+
+  // Add markers for voting locations
+  const updateMarkers = useCallback(() => {
+    if (!map.current || !mapReady || !locaisVotacao?.length || showHeatmap) return;
+
+    // Clear existing markers
+    clearMarkers();
+
+    // Find max votes for scaling
+    const maxVotos = Math.max(...locaisVotacao.map(l => l.totalVotos), 1);
+
+    // Add new markers
+    locaisVotacao.forEach(local => {
+      if (!local.latitude || !local.longitude) return;
+
+      const size = Math.max(8, Math.min(30, (local.totalVotos / maxVotos) * 30));
+      
+      const el = document.createElement("div");
+      el.className = "tse-marker";
+      el.style.width = `${size}px`;
+      el.style.height = `${size}px`;
+      el.style.borderRadius = "50%";
+      el.style.backgroundColor = local.totalVotos > 0 ? "rgba(59, 130, 246, 0.8)" : "rgba(100, 100, 100, 0.5)";
+      el.style.border = "2px solid rgba(255, 255, 255, 0.8)";
+      el.style.cursor = "pointer";
+
+      const popup = new mapboxgl.Popup({ offset: 25 }).setHTML(`
+        <div class="p-2">
+          <h3 class="font-bold text-sm">${local.local_nome || "Local de Votação"}</h3>
+          <p class="text-xs text-gray-600">${local.nome_municipio || ""}</p>
+          <p class="text-xs">Zona ${local.zona}${local.secao ? `, Seção ${local.secao}` : ""}</p>
+          <p class="text-sm font-bold mt-1">${local.totalVotos.toLocaleString("pt-BR")} votos</p>
+        </div>
+      `);
+
+      const marker = new mapboxgl.Marker(el)
+        .setLngLat([Number(local.longitude), Number(local.latitude)])
+        .setPopup(popup)
+        .addTo(map.current!);
+      
+      markersRef.current.push(marker);
+    });
+  }, [locaisVotacao, showHeatmap, mapReady, clearMarkers]);
+
   // Initialize map with delay to ensure container has dimensions
   useEffect(() => {
     if (map.current) return;
@@ -179,6 +332,7 @@ export default function TSEMap({
         map.current.on('load', () => {
           setMapLoading(false);
           setMapError(null);
+          setMapReady(true);
         });
 
         map.current.on('error', (e) => {
@@ -214,47 +368,23 @@ export default function TSEMap({
     map.current.flyTo({ center, zoom: 7 });
   }, [selectedUF]);
 
-  // Add markers for voting locations
+  // Update visualization when data or mode changes
   useEffect(() => {
-    if (!map.current || !locaisVotacao?.length) return;
-
-    // Remove existing markers
-    const markers = document.querySelectorAll(".mapboxgl-marker");
-    markers.forEach(m => m.remove());
-
-    // Find max votes for scaling
-    const maxVotos = Math.max(...locaisVotacao.map(l => l.totalVotos), 1);
-
-    // Add new markers
-    locaisVotacao.forEach(local => {
-      if (!local.latitude || !local.longitude) return;
-
-      const size = Math.max(8, Math.min(30, (local.totalVotos / maxVotos) * 30));
-      
-      const el = document.createElement("div");
-      el.className = "tse-marker";
-      el.style.width = `${size}px`;
-      el.style.height = `${size}px`;
-      el.style.borderRadius = "50%";
-      el.style.backgroundColor = local.totalVotos > 0 ? "rgba(59, 130, 246, 0.8)" : "rgba(100, 100, 100, 0.5)";
-      el.style.border = "2px solid rgba(255, 255, 255, 0.8)";
-      el.style.cursor = "pointer";
-
-      const popup = new mapboxgl.Popup({ offset: 25 }).setHTML(`
-        <div class="p-2">
-          <h3 class="font-bold text-sm">${local.local_nome || "Local de Votação"}</h3>
-          <p class="text-xs text-gray-600">${local.nome_municipio || ""}</p>
-          <p class="text-xs">Zona ${local.zona}${local.secao ? `, Seção ${local.secao}` : ""}</p>
-          <p class="text-sm font-bold mt-1">${local.totalVotos.toLocaleString("pt-BR")} votos</p>
-        </div>
-      `);
-
-      new mapboxgl.Marker(el)
-        .setLngLat([Number(local.longitude), Number(local.latitude)])
-        .setPopup(popup)
-        .addTo(map.current!);
-    });
-  }, [locaisVotacao]);
+    if (showHeatmap) {
+      updateHeatmap();
+    } else {
+      // Remove heatmap layer if exists
+      if (map.current && mapReady) {
+        if (map.current.getLayer("votes-heat")) {
+          map.current.removeLayer("votes-heat");
+        }
+        if (map.current.getSource("votes")) {
+          map.current.removeSource("votes");
+        }
+      }
+      updateMarkers();
+    }
+  }, [showHeatmap, locaisVotacao, mapReady, updateHeatmap, updateMarkers]);
 
   // Get filtered elections for selected state
   const filteredEleicoes = eleicoes.filter(() => {
@@ -342,6 +472,28 @@ export default function TSEMap({
             </Select>
           </div>
 
+          {/* Visualization Toggle */}
+          <div className="pt-4 border-t">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <Flame className="h-4 w-4 text-orange-500" />
+                <Label htmlFor="heatmap-toggle" className="text-sm font-medium">
+                  Mapa de Calor
+                </Label>
+              </div>
+              <Switch
+                id="heatmap-toggle"
+                checked={showHeatmap}
+                onCheckedChange={setShowHeatmap}
+              />
+            </div>
+            <p className="text-xs text-muted-foreground mt-1">
+              {showHeatmap 
+                ? "Exibindo densidade de votos" 
+                : "Exibindo marcadores por local"}
+            </p>
+          </div>
+
           {/* Stats */}
           {locaisVotacao && (
             <div className="pt-4 border-t">
@@ -366,9 +518,13 @@ export default function TSEMap({
       {/* Map */}
       <Card className="lg:col-span-3">
         <CardHeader>
-          <CardTitle className="text-lg">Mapa de Votos</CardTitle>
+          <CardTitle className="text-lg">
+            {showHeatmap ? "Mapa de Calor de Votos" : "Mapa de Votos"}
+          </CardTitle>
           <CardDescription>
-            Visualização geolocalizada dos votos por local de votação
+            {showHeatmap 
+              ? "Visualização da densidade de votos por região"
+              : "Visualização geolocalizada dos votos por local de votação"}
           </CardDescription>
         </CardHeader>
         <CardContent>
@@ -398,15 +554,31 @@ export default function TSEMap({
           )}
 
           {/* Legend */}
-          <div className="mt-4 flex items-center gap-4 text-sm">
-            <div className="flex items-center gap-2">
-              <div className="w-3 h-3 rounded-full bg-blue-500/80 border border-white" />
-              <span className="text-muted-foreground">Com votos (tamanho = volume)</span>
-            </div>
-            <div className="flex items-center gap-2">
-              <div className="w-3 h-3 rounded-full bg-gray-500/50 border border-white" />
-              <span className="text-muted-foreground">Sem votos registrados</span>
-            </div>
+          <div className="mt-4">
+            {showHeatmap ? (
+              <div className="space-y-2">
+                <p className="text-sm text-muted-foreground font-medium">Legenda - Densidade de Votos</p>
+                <div className="flex items-center gap-1 h-4 rounded overflow-hidden">
+                  <div className="flex-1 h-full bg-gradient-to-r from-blue-500/40 via-green-500/60 via-yellow-500/80 via-orange-500/90 to-red-500" />
+                </div>
+                <div className="flex justify-between text-xs text-muted-foreground">
+                  <span>Baixa</span>
+                  <span>Média</span>
+                  <span>Alta</span>
+                </div>
+              </div>
+            ) : (
+              <div className="flex items-center gap-4 text-sm">
+                <div className="flex items-center gap-2">
+                  <div className="w-3 h-3 rounded-full bg-blue-500/80 border border-white" />
+                  <span className="text-muted-foreground">Com votos (tamanho = volume)</span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <div className="w-3 h-3 rounded-full bg-gray-500/50 border border-white" />
+                  <span className="text-muted-foreground">Sem votos registrados</span>
+                </div>
+              </div>
+            )}
           </div>
         </CardContent>
       </Card>
