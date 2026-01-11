@@ -164,11 +164,19 @@ export default function TSEImporter({
       onRefetch();
     } catch (error) {
       console.error(`Error downloading ${ano}:`, error);
+      const errorMessage = error instanceof Error ? error.message : "Erro desconhecido";
+      const isTSEBlocked = errorMessage.includes("403") || errorMessage.includes("bloqueado");
+      
       toast({
-        title: "Erro no download",
-        description: `Falha ao baixar dados de ${ano}: ${error instanceof Error ? error.message : "Erro desconhecido"}`,
+        title: isTSEBlocked ? "Download bloqueado pelo TSE" : "Erro no download",
+        description: isTSEBlocked 
+          ? `O TSE bloqueia downloads automáticos de servidores. Use o botão "Upload CSV" para fazer upload manual do arquivo.`
+          : `Falha ao baixar dados de ${ano}: ${errorMessage}`,
         variant: "destructive",
       });
+      
+      // Refresh to show updated status with error message
+      onRefetch();
     } finally {
       setIsAutoDownloading(false);
       setAutoDownloadYear(null);
@@ -307,6 +315,24 @@ export default function TSEImporter({
                           {importData.registros_importados.toLocaleString("pt-BR")} registros
                         </p>
                       ) : null}
+                      {importData?.status === "erro" && importData?.erro_mensagem && (
+                        <p className="text-xs text-destructive mt-1">
+                          {importData.erro_mensagem.includes("bloqueado") ? (
+                            <>
+                              Bloqueado pelo TSE.{" "}
+                              <a 
+                                href={`https://dadosabertos.tse.jus.br/dataset/resultados-${anoData.ano}`}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="underline hover:text-destructive/80"
+                              >
+                                Baixe aqui
+                              </a>
+                              {" "}e use "Upload CSV".
+                            </>
+                          ) : importData.erro_mensagem}
+                        </p>
+                      )}
                     </div>
                   </div>
                   <div className="flex items-center gap-2">
