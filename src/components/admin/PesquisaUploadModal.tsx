@@ -550,8 +550,9 @@ export const PesquisaUploadModal = ({
       setProcessingStage('done');
       setAiStep('Concluído!');
 
+      const chunksInfo = result.data?.chunks_processed > 1 ? ` (${result.data.chunks_processed} partes)` : '';
       const totalResults = (result.data?.resultados_count || 0) + (result.data?.cruzamentos_count || 0);
-      toast.success(`✅ Processamento automático concluído! ${totalResults} resultados extraídos.`);
+      toast.success(`✅ Processamento automático concluído${chunksInfo}! ${totalResults} resultados extraídos.`);
       
       onSuccess();
     } catch (error: any) {

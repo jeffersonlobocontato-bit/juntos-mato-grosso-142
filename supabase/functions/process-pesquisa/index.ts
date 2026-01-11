@@ -6,6 +6,11 @@ const corsHeaders = {
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
 };
 
+// Configuration for chunking
+const CHUNK_SIZE = 25000; // ~25k chars per chunk
+const CHUNK_OVERLAP = 2000; // 2k overlap between chunks
+const MAX_CHUNKS = 5; // Maximum chunks to process (125k chars total coverage)
+
 interface ExtractedResult {
   tipo_pergunta: string;
   pergunta: string;
@@ -25,6 +30,13 @@ interface ExtractedCrosstab {
   percentual: number;
 }
 
+interface ExtractedQualitativo {
+  tema: string;
+  insight: string;
+  verbatim?: string;
+  sentimento?: string;
+}
+
 interface ExtractedData {
   metadata: {
     titulo?: string;
@@ -41,12 +53,334 @@ interface ExtractedData {
   };
   resultados: ExtractedResult[];
   cruzamentos: ExtractedCrosstab[];
-  qualitativo?: {
-    tema: string;
-    insight: string;
-    verbatim?: string;
-    sentimento?: string;
-  }[];
+  qualitativo?: ExtractedQualitativo[];
+}
+
+// Split content into overlapping chunks
+function splitIntoChunks(content: string): string[] {
+  if (content.length <= CHUNK_SIZE) {
+    return [content];
+  }
+
+  const chunks: string[] = [];
+  let start = 0;
+  
+  while (start < content.length && chunks.length < MAX_CHUNKS) {
+    const end = Math.min(start + CHUNK_SIZE, content.length);
+    chunks.push(content.substring(start, end));
+    start = end - CHUNK_OVERLAP;
+  }
+
+  console.log(`Split content into ${chunks.length} chunks. Sizes: ${chunks.map(c => c.length).join(', ')}`);
+  return chunks;
+}
+
+// Merge metadata from multiple chunks (first valid value wins)
+function mergeMetadata(metadataArray: ExtractedData['metadata'][]): ExtractedData['metadata'] {
+  const merged: ExtractedData['metadata'] = {};
+  
+  for (const meta of metadataArray) {
+    if (!meta) continue;
+    if (meta.titulo && !merged.titulo) merged.titulo = meta.titulo;
+    if (meta.instituto && !merged.instituto) merged.instituto = meta.instituto;
+    if (meta.data_campo_inicio && !merged.data_campo_inicio) merged.data_campo_inicio = meta.data_campo_inicio;
+    if (meta.data_campo_fim && !merged.data_campo_fim) merged.data_campo_fim = meta.data_campo_fim;
+    if (meta.data_publicacao && !merged.data_publicacao) merged.data_publicacao = meta.data_publicacao;
+    if (meta.registro_tse && !merged.registro_tse) merged.registro_tse = meta.registro_tse;
+    if (meta.universo && !merged.universo) merged.universo = meta.universo;
+    if (meta.amostra_total && !merged.amostra_total) merged.amostra_total = meta.amostra_total;
+    if (meta.margem_erro && !merged.margem_erro) merged.margem_erro = meta.margem_erro;
+    if (meta.nivel_confianca && !merged.nivel_confianca) merged.nivel_confianca = meta.nivel_confianca;
+    if (meta.metodologia && !merged.metodologia) merged.metodologia = meta.metodologia;
+  }
+  
+  return merged;
+}
+
+// Deduplicate results by question + scenario
+function mergeResultados(resultsArrays: ExtractedResult[][]): ExtractedResult[] {
+  const merged: ExtractedResult[] = [];
+  const seen = new Set<string>();
+  
+  for (const results of resultsArrays) {
+    if (!results) continue;
+    for (const result of results) {
+      // Create a unique key based on question type, question text (first 50 chars), and scenario
+      const key = `${result.tipo_pergunta}|${result.pergunta?.substring(0, 50)}|${result.cenario_descricao || ''}`;
+      
+      if (!seen.has(key)) {
+        seen.add(key);
+        merged.push(result);
+      }
+    }
+  }
+  
+  console.log(`Merged ${merged.length} unique results from chunks`);
+  return merged;
+}
+
+// Deduplicate crosstabs
+function mergeCruzamentos(cruzsArrays: ExtractedCrosstab[][]): ExtractedCrosstab[] {
+  const merged: ExtractedCrosstab[] = [];
+  const seen = new Set<string>();
+  
+  for (const cruzs of cruzsArrays) {
+    if (!cruzs) continue;
+    for (const cruz of cruzs) {
+      const key = `${cruz.pergunta?.substring(0, 30)}|${cruz.segmento_tipo}|${cruz.segmento_valor}|${cruz.opcao}`;
+      
+      if (!seen.has(key)) {
+        seen.add(key);
+        merged.push(cruz);
+      }
+    }
+  }
+  
+  console.log(`Merged ${merged.length} unique crosstabs from chunks`);
+  return merged;
+}
+
+// Deduplicate qualitative data
+function mergeQualitativo(qualiArrays: (ExtractedQualitativo[] | undefined)[]): ExtractedQualitativo[] {
+  const merged: ExtractedQualitativo[] = [];
+  const seen = new Set<string>();
+  
+  for (const qualis of qualiArrays) {
+    if (!qualis) continue;
+    for (const quali of qualis) {
+      const key = `${quali.tema}|${quali.insight?.substring(0, 50)}`;
+      
+      if (!seen.has(key)) {
+        seen.add(key);
+        merged.push(quali);
+      }
+    }
+  }
+  
+  return merged;
+}
+
+// Process a single chunk with AI
+async function processChunk(
+  chunk: string, 
+  chunkIndex: number, 
+  totalChunks: number,
+  apiKey: string
+): Promise<ExtractedData | null> {
+  console.log(`Processing chunk ${chunkIndex + 1}/${totalChunks}, length: ${chunk.length}`);
+
+  const systemPrompt = `Você é um especialista em análise de pesquisas eleitorais brasileiras, especialmente do Estado do Paraná.
+Sua tarefa é extrair dados estruturados EXCLUSIVAMENTE do documento fornecido.
+
+REGRAS CRÍTICAS - OBRIGATÓRIO:
+1. EXTRAIA APENAS dados que estão EXPLICITAMENTE no documento fornecido
+2. NÃO INVENTE, NÃO PREENCHA, NÃO COMPLETE com dados de outras fontes
+3. Se um dado não estiver no documento, NÃO inclua - deixe vazio ou omita
+4. NÃO use conhecimento prévio sobre pesquisas eleitorais de outros estados ou períodos
+5. Se o documento for do Paraná, extraia APENAS candidatos e dados do Paraná
+6. Se não conseguir identificar claramente um dado, NÃO inclua
+
+${totalChunks > 1 ? `IMPORTANTE: Este é o chunk ${chunkIndex + 1} de ${totalChunks} de um documento grande. Extraia apenas os dados presentes neste trecho.` : ''}
+
+INSTITUTOS CONHECIDOS NO PARANÁ:
+- Ágili Pesquisas
+- Neokemp 
+- Real Time Big Data
+- Paraná Pesquisas
+- Atlas Intel
+- Instituto Mapa
+- IPEC
+- Datafolha
+- Quaest
+- Veritá
+
+TIPOS DE PERGUNTAS A IDENTIFICAR:
+1. "intencao_estimulada": Quando mostra lista de candidatos para o eleitor escolher
+2. "intencao_espontanea": Quando pergunta "em quem votaria" sem mostrar opções
+3. "rejeicao": Perguntas como "em quem não votaria de jeito nenhum"
+4. "avaliacao_governo": Avaliação de governos (federal, estadual, municipal) - ótimo/bom, regular, ruim/péssimo
+5. "cenario": Cenários eleitorais com combinações específicas de candidatos
+6. "outro": Outras perguntas de opinião
+
+CRUZAMENTOS DEMOGRÁFICOS A EXTRAIR:
+- Sexo: masculino, feminino
+- Idade: 16-24, 25-34, 35-44, 45-59, 60+
+- Escolaridade: fundamental, médio, superior
+- Renda: até 2 SM, 2-5 SM, acima 5 SM
+- Região: Curitiba, RMC, Norte, Oeste, Sudoeste, Litoral, Campos Gerais, etc.
+
+FORMATO DE DATAS:
+- Sempre retorne datas no formato YYYY-MM-DD
+- Se a pesquisa foi realizada "de 05 a 08 de janeiro de 2025", retorne:
+  - data_campo_inicio: "2025-01-05"
+  - data_campo_fim: "2025-01-08"
+
+MÚLTIPLOS CENÁRIOS:
+- Se houver diferentes cenários de votação (ex: "Cenário 1", "Cenário 2"), extraia cada um como um resultado separado
+- Use cenario_descricao para descrever qual cenário é (ex: "Cenário com Candidato X", "Cenário sem Candidato Y")
+
+Use a função extract_pesquisa_data para retornar APENAS os dados encontrados no documento.`;
+
+  const userPrompt = `ATENÇÃO: Extraia dados APENAS do documento abaixo. Não invente dados, não use conhecimento externo.
+Se um candidato ou percentual não estiver explícito no texto, NÃO inclua.
+
+${totalChunks > 1 ? `[CHUNK ${chunkIndex + 1}/${totalChunks}]` : ''}
+DOCUMENTO PARA ANÁLISE:
+---
+${chunk}
+---
+
+INSTRUÇÕES DE EXTRAÇÃO:
+
+1. METADADOS (se presentes no documento):
+   - Título da pesquisa
+   - Nome do instituto
+   - Datas de campo (formato YYYY-MM-DD)
+   - Registro TSE (ex: "PR-00123/2026")
+   - Tamanho da amostra (número de entrevistados)
+   - Margem de erro (em pontos percentuais)
+   - Nível de confiança (geralmente 95%)
+   - Universo pesquisado (ex: "Eleitores do Paraná com 16 anos ou mais")
+   - Metodologia (telefone, presencial, online)
+
+2. RESULTADOS (APENAS candidatos/opções mencionados):
+   - Intenção de voto estimulada (com lista de candidatos)
+   - Intenção de voto espontânea (se houver)
+   - Rejeição de candidatos (se houver)
+   - Avaliação de governo (federal, estadual - se houver)
+   - Diferentes cenários eleitorais (se houver múltiplos cenários)
+
+3. CRUZAMENTOS (se disponíveis):
+   - Dados por sexo, idade, escolaridade, renda, região
+
+LEMBRE-SE: Retorne APENAS dados explícitos do documento. Dados não encontrados devem ser omitidos.`;
+
+  const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
+    method: "POST",
+    headers: {
+      Authorization: `Bearer ${apiKey}`,
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({
+      model: "google/gemini-2.5-flash",
+      messages: [
+        { role: "system", content: systemPrompt },
+        { role: "user", content: userPrompt },
+      ],
+      tools: [
+        {
+          type: "function",
+          function: {
+            name: "extract_pesquisa_data",
+            description: "Extrai dados estruturados de uma pesquisa eleitoral",
+            parameters: {
+              type: "object",
+              properties: {
+                metadata: {
+                  type: "object",
+                  properties: {
+                    titulo: { type: "string", description: "Título da pesquisa" },
+                    instituto: { type: "string", description: "Nome do instituto" },
+                    data_campo_inicio: { type: "string", description: "Data início do campo (YYYY-MM-DD)" },
+                    data_campo_fim: { type: "string", description: "Data fim do campo (YYYY-MM-DD)" },
+                    data_publicacao: { type: "string", description: "Data de publicação (YYYY-MM-DD)" },
+                    registro_tse: { type: "string", description: "Número de registro no TSE" },
+                    universo: { type: "string", description: "Descrição do universo pesquisado" },
+                    amostra_total: { type: "number", description: "Tamanho total da amostra" },
+                    margem_erro: { type: "number", description: "Margem de erro percentual" },
+                    nivel_confianca: { type: "number", description: "Nível de confiança percentual" },
+                    metodologia: { type: "string", description: "Descrição da metodologia" },
+                  },
+                },
+                resultados: {
+                  type: "array",
+                  items: {
+                    type: "object",
+                    properties: {
+                      tipo_pergunta: {
+                        type: "string",
+                        enum: ["intencao_espontanea", "intencao_estimulada", "rejeicao", "avaliacao_governo", "cenario", "outro"],
+                      },
+                      pergunta: { type: "string", description: "Texto da pergunta" },
+                      cenario_descricao: { type: "string", description: "Descrição do cenário (se aplicável)" },
+                      respostas: {
+                        type: "array",
+                        items: {
+                          type: "object",
+                          properties: {
+                            opcao: { type: "string", description: "Nome do candidato ou opção" },
+                            percentual: { type: "number", description: "Valor percentual" },
+                            votos_absolutos: { type: "number", description: "Número absoluto de votos" },
+                          },
+                          required: ["opcao", "percentual"],
+                        },
+                      },
+                    },
+                    required: ["tipo_pergunta", "pergunta", "respostas"],
+                  },
+                },
+                cruzamentos: {
+                  type: "array",
+                  items: {
+                    type: "object",
+                    properties: {
+                      pergunta: { type: "string", description: "Pergunta relacionada" },
+                      segmento_tipo: { type: "string", description: "Tipo do segmento (sexo, idade, escolaridade, renda, regiao)" },
+                      segmento_valor: { type: "string", description: "Valor do segmento (masculino, 25-34, etc)" },
+                      opcao: { type: "string", description: "Candidato ou opção" },
+                      percentual: { type: "number", description: "Valor percentual" },
+                    },
+                    required: ["pergunta", "segmento_tipo", "segmento_valor", "opcao", "percentual"],
+                  },
+                },
+                qualitativo: {
+                  type: "array",
+                  items: {
+                    type: "object",
+                    properties: {
+                      tema: { type: "string", description: "Tema discutido" },
+                      insight: { type: "string", description: "Insight identificado" },
+                      verbatim: { type: "string", description: "Citação direta dos participantes" },
+                      sentimento: { type: "string", enum: ["positivo", "negativo", "neutro", "misto"] },
+                    },
+                    required: ["tema", "insight"],
+                  },
+                },
+              },
+              required: ["metadata", "resultados"],
+            },
+          },
+        },
+      ],
+      tool_choice: { type: "function", function: { name: "extract_pesquisa_data" } },
+    }),
+  });
+
+  if (!response.ok) {
+    console.error(`Chunk ${chunkIndex + 1} failed with status:`, response.status);
+    if (response.status === 429 || response.status === 402) {
+      throw new Error(response.status === 429 
+        ? "Limite de requisições excedido. Tente novamente mais tarde."
+        : "Créditos insuficientes. Adicione créditos ao workspace.");
+    }
+    return null;
+  }
+
+  const aiResponse = await response.json();
+  const toolCall = aiResponse.choices?.[0]?.message?.tool_calls?.[0];
+  
+  if (toolCall?.function?.arguments) {
+    try {
+      const data = JSON.parse(toolCall.function.arguments);
+      console.log(`Chunk ${chunkIndex + 1} extracted: ${data.resultados?.length || 0} results, ${data.cruzamentos?.length || 0} crosstabs`);
+      return data;
+    } catch (e) {
+      console.error(`Failed to parse chunk ${chunkIndex + 1} response:`, e);
+      return null;
+    }
+  }
+  
+  return null;
 }
 
 serve(async (req) => {
@@ -137,8 +471,6 @@ serve(async (req) => {
                 console.log("Text content extracted, length:", textContent.length);
               } else {
                 console.log("Binary file detected (PDF/Excel). Cannot extract text directly.");
-                // For PDF/Excel, we cannot extract text in edge function
-                // User must provide content manually
               }
             } else {
               console.error("Failed to download file, status:", fileResponse.status);
@@ -170,244 +502,45 @@ serve(async (req) => {
       );
     }
 
-    // Limit content size to avoid timeouts (max ~35k chars to stay well under token limits)
-    const MAX_CONTENT_LENGTH = 35000;
-    let processedContent = textContent;
+    console.log("Total content length:", textContent.length);
+
+    // Split content into chunks
+    const chunks = splitIntoChunks(textContent);
+    console.log(`Processing ${chunks.length} chunk(s)`);
+
+    // Process all chunks
+    const chunkResults: (ExtractedData | null)[] = [];
     
-    if (textContent.length > MAX_CONTENT_LENGTH) {
-      console.log(`Content too long (${textContent.length}), truncating to ${MAX_CONTENT_LENGTH}`);
-      processedContent = textContent.substring(0, MAX_CONTENT_LENGTH);
-    }
-
-    console.log("Processing content with AI. First 300 chars:", processedContent.substring(0, 300));
-    console.log("Total content length:", processedContent.length);
-
-    const systemPrompt = `Você é um especialista em análise de pesquisas eleitorais brasileiras, especialmente do Estado do Paraná.
-Sua tarefa é extrair dados estruturados EXCLUSIVAMENTE do documento fornecido.
-
-REGRAS CRÍTICAS - OBRIGATÓRIO:
-1. EXTRAIA APENAS dados que estão EXPLICITAMENTE no documento fornecido
-2. NÃO INVENTE, NÃO PREENCHA, NÃO COMPLETE com dados de outras fontes
-3. Se um dado não estiver no documento, NÃO inclua - deixe vazio ou omita
-4. NÃO use conhecimento prévio sobre pesquisas eleitorais de outros estados ou períodos
-5. Se o documento for do Paraná, extraia APENAS candidatos e dados do Paraná
-6. Se não conseguir identificar claramente um dado, NÃO inclua
-
-INSTITUTOS CONHECIDOS NO PARANÁ:
-- Ágili Pesquisas
-- Neokemp 
-- Real Time Big Data
-- Paraná Pesquisas
-- Atlas Intel
-- Instituto Mapa
-- IPEC
-- Datafolha
-- Quaest
-- Veritá
-
-TIPOS DE PERGUNTAS A IDENTIFICAR:
-1. "intencao_estimulada": Quando mostra lista de candidatos para o eleitor escolher
-2. "intencao_espontanea": Quando pergunta "em quem votaria" sem mostrar opções
-3. "rejeicao": Perguntas como "em quem não votaria de jeito nenhum"
-4. "avaliacao_governo": Avaliação de governos (federal, estadual, municipal) - ótimo/bom, regular, ruim/péssimo
-5. "cenario": Cenários eleitorais com combinações específicas de candidatos
-6. "outro": Outras perguntas de opinião
-
-CRUZAMENTOS DEMOGRÁFICOS A EXTRAIR:
-- Sexo: masculino, feminino
-- Idade: 16-24, 25-34, 35-44, 45-59, 60+
-- Escolaridade: fundamental, médio, superior
-- Renda: até 2 SM, 2-5 SM, acima 5 SM
-- Região: Curitiba, RMC, Norte, Oeste, Sudoeste, Litoral, Campos Gerais, etc.
-
-FORMATO DE DATAS:
-- Sempre retorne datas no formato YYYY-MM-DD
-- Se a pesquisa foi realizada "de 05 a 08 de janeiro de 2025", retorne:
-  - data_campo_inicio: "2025-01-05"
-  - data_campo_fim: "2025-01-08"
-
-MÚLTIPLOS CENÁRIOS:
-- Se houver diferentes cenários de votação (ex: "Cenário 1", "Cenário 2"), extraia cada um como um resultado separado
-- Use cenario_descricao para descrever qual cenário é (ex: "Cenário com Candidato X", "Cenário sem Candidato Y")
-
-Use a função extract_pesquisa_data para retornar APENAS os dados encontrados no documento.`;
-
-    const userPrompt = `ATENÇÃO: Extraia dados APENAS do documento abaixo. Não invente dados, não use conhecimento externo.
-Se um candidato ou percentual não estiver explícito no texto, NÃO inclua.
-
-DOCUMENTO PARA ANÁLISE:
----
-${processedContent}
----
-
-INSTRUÇÕES DE EXTRAÇÃO:
-
-1. METADADOS (se presentes no documento):
-   - Título da pesquisa
-   - Nome do instituto
-   - Datas de campo (formato YYYY-MM-DD)
-   - Registro TSE (ex: "PR-00123/2026")
-   - Tamanho da amostra (número de entrevistados)
-   - Margem de erro (em pontos percentuais)
-   - Nível de confiança (geralmente 95%)
-   - Universo pesquisado (ex: "Eleitores do Paraná com 16 anos ou mais")
-   - Metodologia (telefone, presencial, online)
-
-2. RESULTADOS (APENAS candidatos/opções mencionados):
-   - Intenção de voto estimulada (com lista de candidatos)
-   - Intenção de voto espontânea (se houver)
-   - Rejeição de candidatos (se houver)
-   - Avaliação de governo (federal, estadual - se houver)
-   - Diferentes cenários eleitorais (se houver múltiplos cenários)
-
-3. CRUZAMENTOS (se disponíveis):
-   - Dados por sexo, idade, escolaridade, renda, região
-
-LEMBRE-SE: Retorne APENAS dados explícitos do documento. Dados não encontrados devem ser omitidos.`;
-
-
-    const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
-      method: "POST",
-      headers: {
-        Authorization: `Bearer ${LOVABLE_API_KEY}`,
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        model: "google/gemini-2.5-flash",
-        messages: [
-          { role: "system", content: systemPrompt },
-          { role: "user", content: userPrompt },
-        ],
-        tools: [
-          {
-            type: "function",
-            function: {
-              name: "extract_pesquisa_data",
-              description: "Extrai dados estruturados de uma pesquisa eleitoral",
-              parameters: {
-                type: "object",
-                properties: {
-                  metadata: {
-                    type: "object",
-                    properties: {
-                      titulo: { type: "string", description: "Título da pesquisa" },
-                      instituto: { type: "string", description: "Nome do instituto" },
-                      data_campo_inicio: { type: "string", description: "Data início do campo (YYYY-MM-DD)" },
-                      data_campo_fim: { type: "string", description: "Data fim do campo (YYYY-MM-DD)" },
-                      data_publicacao: { type: "string", description: "Data de publicação (YYYY-MM-DD)" },
-                      registro_tse: { type: "string", description: "Número de registro no TSE" },
-                      universo: { type: "string", description: "Descrição do universo pesquisado" },
-                      amostra_total: { type: "number", description: "Tamanho total da amostra" },
-                      margem_erro: { type: "number", description: "Margem de erro percentual" },
-                      nivel_confianca: { type: "number", description: "Nível de confiança percentual" },
-                      metodologia: { type: "string", description: "Descrição da metodologia" },
-                    },
-                  },
-                  resultados: {
-                    type: "array",
-                    items: {
-                      type: "object",
-                      properties: {
-                        tipo_pergunta: {
-                          type: "string",
-                          enum: ["intencao_espontanea", "intencao_estimulada", "rejeicao", "avaliacao_governo", "cenario", "outro"],
-                        },
-                        pergunta: { type: "string", description: "Texto da pergunta" },
-                        cenario_descricao: { type: "string", description: "Descrição do cenário (se aplicável)" },
-                        respostas: {
-                          type: "array",
-                          items: {
-                            type: "object",
-                            properties: {
-                              opcao: { type: "string", description: "Nome do candidato ou opção" },
-                              percentual: { type: "number", description: "Valor percentual" },
-                              votos_absolutos: { type: "number", description: "Número absoluto de votos" },
-                            },
-                            required: ["opcao", "percentual"],
-                          },
-                        },
-                      },
-                      required: ["tipo_pergunta", "pergunta", "respostas"],
-                    },
-                  },
-                  cruzamentos: {
-                    type: "array",
-                    items: {
-                      type: "object",
-                      properties: {
-                        pergunta: { type: "string", description: "Pergunta relacionada" },
-                        segmento_tipo: { type: "string", description: "Tipo do segmento (sexo, idade, escolaridade, renda, regiao)" },
-                        segmento_valor: { type: "string", description: "Valor do segmento (masculino, 25-34, etc)" },
-                        opcao: { type: "string", description: "Candidato ou opção" },
-                        percentual: { type: "number", description: "Valor percentual" },
-                      },
-                      required: ["pergunta", "segmento_tipo", "segmento_valor", "opcao", "percentual"],
-                    },
-                  },
-                  qualitativo: {
-                    type: "array",
-                    items: {
-                      type: "object",
-                      properties: {
-                        tema: { type: "string", description: "Tema discutido" },
-                        insight: { type: "string", description: "Insight identificado" },
-                        verbatim: { type: "string", description: "Citação direta dos participantes" },
-                        sentimento: { type: "string", enum: ["positivo", "negativo", "neutro", "misto"] },
-                      },
-                      required: ["tema", "insight"],
-                    },
-                  },
-                },
-                required: ["metadata", "resultados"],
-              },
-            },
-          },
-        ],
-        tool_choice: { type: "function", function: { name: "extract_pesquisa_data" } },
-      }),
-    });
-
-    if (!response.ok) {
-      if (response.status === 429) {
-        await supabase
-          .from("pesquisas_eleitorais")
-          .update({ status: "rascunho" })
-          .eq("id", pesquisa_id);
-        return new Response(
-          JSON.stringify({ error: "Limite de requisições excedido. Tente novamente mais tarde." }),
-          { status: 429, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-        );
-      }
-      if (response.status === 402) {
-        await supabase
-          .from("pesquisas_eleitorais")
-          .update({ status: "rascunho" })
-          .eq("id", pesquisa_id);
-        return new Response(
-          JSON.stringify({ error: "Créditos insuficientes. Adicione créditos ao workspace." }),
-          { status: 402, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-        );
-      }
-      const errorText = await response.text();
-      console.error("AI Gateway error:", response.status, errorText);
-      throw new Error(`AI Gateway error: ${response.status}`);
-    }
-
-    const aiResponse = await response.json();
-    
-    let extractedData: ExtractedData | null = null;
-
-    // Parse tool call response
-    const toolCall = aiResponse.choices?.[0]?.message?.tool_calls?.[0];
-    if (toolCall?.function?.arguments) {
+    for (let i = 0; i < chunks.length; i++) {
       try {
-        extractedData = JSON.parse(toolCall.function.arguments);
-      } catch (e) {
-        console.error("Failed to parse tool arguments:", e);
+        // Add small delay between chunks to avoid rate limiting
+        if (i > 0) {
+          await new Promise(resolve => setTimeout(resolve, 1000));
+        }
+        
+        const result = await processChunk(chunks[i], i, chunks.length, LOVABLE_API_KEY);
+        chunkResults.push(result);
+      } catch (error) {
+        console.error(`Error processing chunk ${i + 1}:`, error);
+        // If it's a rate limit or payment error, re-throw to handle at top level
+        if (error instanceof Error && (error.message.includes("Limite") || error.message.includes("Créditos"))) {
+          await supabase
+            .from("pesquisas_eleitorais")
+            .update({ status: "rascunho" })
+            .eq("id", pesquisa_id);
+          return new Response(
+            JSON.stringify({ error: error.message }),
+            { status: error.message.includes("Limite") ? 429 : 402, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+          );
+        }
+        chunkResults.push(null);
       }
     }
 
-    if (!extractedData) {
+    // Filter out null results
+    const validResults = chunkResults.filter((r): r is ExtractedData => r !== null);
+    
+    if (validResults.length === 0) {
       await supabase
         .from("pesquisas_eleitorais")
         .update({ status: "rascunho" })
@@ -417,6 +550,16 @@ LEMBRE-SE: Retorne APENAS dados explícitos do documento. Dados não encontrados
         { status: 422, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
+
+    // Merge results from all chunks
+    const extractedData: ExtractedData = {
+      metadata: mergeMetadata(validResults.map(r => r.metadata)),
+      resultados: mergeResultados(validResults.map(r => r.resultados)),
+      cruzamentos: mergeCruzamentos(validResults.map(r => r.cruzamentos)),
+      qualitativo: mergeQualitativo(validResults.map(r => r.qualitativo)),
+    };
+
+    console.log(`Final merged data: ${extractedData.resultados.length} results, ${extractedData.cruzamentos.length} crosstabs`);
 
     // Update pesquisa metadata if extracted
     if (extractedData.metadata) {
@@ -540,8 +683,9 @@ LEMBRE-SE: Retorne APENAS dados explícitos do documento. Dados não encontrados
     return new Response(
       JSON.stringify({
         success: true,
-        message: "Pesquisa processada com sucesso",
+        message: `Pesquisa processada com sucesso${chunks.length > 1 ? ` (${chunks.length} partes)` : ''}`,
         data: {
+          chunks_processed: chunks.length,
           resultados_count: extractedData.resultados?.length || 0,
           cruzamentos_count: extractedData.cruzamentos?.length || 0,
           qualitativo_count: extractedData.qualitativo?.length || 0,
