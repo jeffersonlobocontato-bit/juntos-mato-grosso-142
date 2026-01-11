@@ -55,7 +55,7 @@ export default function TSEComparison({
 }: TSEComparisonProps) {
   const [eleicao1, setEleicao1] = useState<string>("");
   const [eleicao2, setEleicao2] = useState<string>("");
-  const [selectedCargo, setSelectedCargo] = useState<string>("");
+  const [selectedCargo, setSelectedCargo] = useState<string>("all");
 
   // Fetch cargos
   const { data: cargos } = useQuery({
@@ -90,7 +90,7 @@ export default function TSEComparison({
           .eq("eleicao_id", eleicaoId)
           .eq("uf", selectedUF);
 
-        if (selectedCargo) {
+        if (selectedCargo && selectedCargo !== "all") {
           candidatosQuery = candidatosQuery.eq("cargo_id", selectedCargo);
         }
 
@@ -262,7 +262,7 @@ export default function TSEComparison({
                   <SelectValue placeholder="Todos" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="">Todos os cargos</SelectItem>
+                  <SelectItem value="all">Todos os cargos</SelectItem>
                   {cargos?.map(cargo => (
                     <SelectItem key={cargo.id} value={cargo.id}>
                       {cargo.nome}

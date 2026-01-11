@@ -8,7 +8,7 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Progress } from "@/components/ui/progress";
 import { Badge } from "@/components/ui/badge";
 import { Alert, AlertDescription } from "@/components/ui/alert";
-import { Download, CheckCircle2, Clock, AlertCircle, Loader2, RefreshCw, Info, Upload } from "lucide-react";
+import { Download, CheckCircle2, Clock, AlertCircle, Loader2, RefreshCw, Info, Upload, CloudDownload } from "lucide-react";
 import TSEUploadModal from "./TSEUploadModal";
 
 interface Estado {
@@ -60,6 +60,8 @@ export default function TSEImporter({
     progress: number;
     message: string;
   } | null>(null);
+  const [isAutoDownloading, setIsAutoDownloading] = useState(false);
+  const [autoDownloadYear, setAutoDownloadYear] = useState<number | null>(null);
 
   const getImportStatus = (ano: number) => {
     const importacao = importacoes.find(i => i.ano === ano);
@@ -131,6 +133,49 @@ export default function TSEImporter({
     setSelectedYears([]);
   };
 
+  const handleAutoDownload = async (ano: number) => {
+    setIsAutoDownloading(true);
+    setAutoDownloadYear(ano);
+    
+    try {
+      setImportProgress({
+        ano,
+        progress: 10,
+        message: `Conectando ao TSE para baixar dados de ${ano}...`,
+      });
+
+      const { data, error } = await supabase.functions.invoke("tse-auto-download", {
+        body: { ano, uf: selectedUF },
+      });
+
+      if (error) throw error;
+
+      setImportProgress({
+        ano,
+        progress: 100,
+        message: `Download de ${ano} concluído!`,
+      });
+
+      toast({
+        title: "Download concluído",
+        description: data.message || `Dados de ${ano} para ${selectedUF} baixados do TSE.`,
+      });
+
+      onRefetch();
+    } catch (error) {
+      console.error(`Error downloading ${ano}:`, error);
+      toast({
+        title: "Erro no download",
+        description: `Falha ao baixar dados de ${ano}: ${error instanceof Error ? error.message : "Erro desconhecido"}`,
+        variant: "destructive",
+      });
+    } finally {
+      setIsAutoDownloading(false);
+      setAutoDownloadYear(null);
+      setImportProgress(null);
+    }
+  };
+
   const getStatusBadge = (status: string) => {
     switch (status) {
       case "concluido":
@@ -191,18 +236,20 @@ export default function TSEImporter({
           <Alert className="mt-4">
             <Info className="h-4 w-4" />
             <AlertDescription className="text-sm">
-              Use o <strong>Upload Manual</strong> para importar arquivos CSV baixados do portal de dados abertos do TSE.
+              Use o <strong>Download Automático</strong> para baixar diretamente do TSE ou <strong>Upload Manual</strong> para arquivos CSV locais.
             </AlertDescription>
           </Alert>
 
-          <Button
-            variant="outline"
-            className="w-full mt-4"
-            onClick={() => setShowUploadModal(true)}
-          >
-            <Upload className="h-4 w-4 mr-2" />
-            Upload Manual de CSV
-          </Button>
+          <div className="space-y-2 mt-4">
+            <Button
+              variant="outline"
+              className="w-full"
+              onClick={() => setShowUploadModal(true)}
+            >
+              <Upload className="h-4 w-4 mr-2" />
+              Upload Manual de CSV
+            </Button>
+          </div>
         </CardContent>
       </Card>
 
@@ -246,7 +293,7 @@ export default function TSEImporter({
                       id={`ano-${anoData.ano}`}
                       checked={selectedYears.includes(anoData.ano)}
                       onCheckedChange={() => toggleYear(anoData.ano)}
-                      disabled={isDisabled}
+                      disabled={isDisabled || isAutoDownloading}
                     />
                     <div>
                       <label
@@ -255,14 +302,29 @@ export default function TSEImporter({
                       >
                         {anoData.ano} - {anoData.descricao}
                       </label>
-                      {importData?.registros_importados && (
+                      {importData?.registros_importados ? (
                         <p className="text-sm text-muted-foreground">
                           {importData.registros_importados.toLocaleString("pt-BR")} registros
                         </p>
-                      )}
+                      ) : null}
                     </div>
                   </div>
                   <div className="flex items-center gap-2">
+                    {status !== "concluido" && status !== "processando" && (
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => handleAutoDownload(anoData.ano)}
+                        disabled={isAutoDownloading || isImporting}
+                        title="Baixar automaticamente do TSE"
+                      >
+                        {isAutoDownloading && autoDownloadYear === anoData.ano ? (
+                          <Loader2 className="h-4 w-4 animate-spin" />
+                        ) : (
+                          <CloudDownload className="h-4 w-4" />
+                        )}
+                      </Button>
+                    )}
                     {getStatusBadge(status)}
                   </div>
                 </div>

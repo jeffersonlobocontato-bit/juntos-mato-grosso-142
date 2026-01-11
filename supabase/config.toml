@@ -23,3 +23,6 @@ verify_jwt = false
 
 [functions.process-pesquisa]
 verify_jwt = false
+
+[functions.tse-auto-download]
+verify_jwt = false
