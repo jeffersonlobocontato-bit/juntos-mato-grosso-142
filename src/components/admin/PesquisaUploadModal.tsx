@@ -277,22 +277,26 @@ export const PesquisaUploadModal = ({
     }
   };
 
-  const savePesquisa = async (processWithAI: boolean = false): Promise<string | null> => {
-    if (!titulo.trim()) {
-      toast.error('Título é obrigatório');
-      return null;
-    }
-
+  const savePesquisa = async (processWithAI: boolean = false, skipValidation: boolean = false): Promise<string | null> => {
     const finalInstituto = instituto === 'Outro' ? institutoCustom : instituto;
-    if (!finalInstituto.trim()) {
-      toast.error('Instituto é obrigatório');
-      return null;
-    }
+    
+    // Only validate título/instituto for manual save (not auto-process)
+    if (!skipValidation) {
+      if (!titulo.trim()) {
+        toast.error('Título é obrigatório para salvar manualmente');
+        return null;
+      }
 
-    if (processWithAI && content.trim().length < 100) {
-      toast.error('Cole o texto da pesquisa na aba "Dados Manuais" antes de processar com IA');
-      setActiveTab('manual');
-      return null;
+      if (!finalInstituto.trim()) {
+        toast.error('Instituto é obrigatório para salvar manualmente');
+        return null;
+      }
+
+      if (processWithAI && content.trim().length < 100) {
+        toast.error('Cole o texto da pesquisa na aba "Dados Manuais" antes de processar com IA');
+        setActiveTab('manual');
+        return null;
+      }
     }
 
     try {
@@ -302,8 +306,8 @@ export const PesquisaUploadModal = ({
       }
 
       const pesquisaData = {
-        titulo: titulo.trim(),
-        instituto: finalInstituto.trim(),
+        titulo: titulo.trim() || `Pesquisa - ${selectedFile?.name || 'Nova'}`,
+        instituto: finalInstituto.trim() || 'A identificar',
         tipo_pesquisa: tipoPesquisa,
         data_campo_inicio: dataCampoInicio || null,
         data_campo_fim: dataCampoFim || null,
@@ -587,20 +591,23 @@ export const PesquisaUploadModal = ({
             <TabsContent value="metadata" className="space-y-4 mt-0">
               <div className="grid grid-cols-2 gap-4">
                 <div className="col-span-2">
-                  <Label htmlFor="titulo">Título da Pesquisa *</Label>
+                  <Label htmlFor="titulo">Título da Pesquisa</Label>
                   <Input
                     id="titulo"
                     value={titulo}
                     onChange={(e) => setTitulo(e.target.value)}
-                    placeholder="Ex: Pesquisa Datafolha - Janeiro 2026"
+                    placeholder="Preenchido automaticamente pela IA"
                   />
+                  <p className="text-xs text-muted-foreground mt-1">
+                    💡 Deixe em branco - será extraído automaticamente do PDF
+                  </p>
                 </div>
 
                 <div>
-                  <Label htmlFor="instituto">Instituto *</Label>
+                  <Label htmlFor="instituto">Instituto</Label>
                   <Select value={instituto} onValueChange={setInstituto}>
                     <SelectTrigger>
-                      <SelectValue placeholder="Selecione o instituto" />
+                      <SelectValue placeholder="Identificado automaticamente" />
                     </SelectTrigger>
                     <SelectContent>
                       {INSTITUTOS.map(inst => (
@@ -608,6 +615,9 @@ export const PesquisaUploadModal = ({
                       ))}
                     </SelectContent>
                   </Select>
+                  <p className="text-xs text-muted-foreground mt-1">
+                    💡 Opcional - será identificado automaticamente do PDF
+                  </p>
                 </div>
 
                 {instituto === 'Outro' && (
