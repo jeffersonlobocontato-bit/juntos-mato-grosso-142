@@ -1017,6 +1017,317 @@ export type Database = {
         }
         Relationships: []
       }
+      tse_candidatos: {
+        Row: {
+          cargo_id: string | null
+          created_at: string
+          eleicao_id: string
+          foto_url: string | null
+          id: string
+          municipio_id: string | null
+          nome_completo: string | null
+          nome_urna: string
+          numero_urna: number
+          partido_id: string | null
+          situacao: string | null
+          uf: string
+        }
+        Insert: {
+          cargo_id?: string | null
+          created_at?: string
+          eleicao_id: string
+          foto_url?: string | null
+          id?: string
+          municipio_id?: string | null
+          nome_completo?: string | null
+          nome_urna: string
+          numero_urna: number
+          partido_id?: string | null
+          situacao?: string | null
+          uf: string
+        }
+        Update: {
+          cargo_id?: string | null
+          created_at?: string
+          eleicao_id?: string
+          foto_url?: string | null
+          id?: string
+          municipio_id?: string | null
+          nome_completo?: string | null
+          nome_urna?: string
+          numero_urna?: number
+          partido_id?: string | null
+          situacao?: string | null
+          uf?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "tse_candidatos_cargo_id_fkey"
+            columns: ["cargo_id"]
+            isOneToOne: false
+            referencedRelation: "tse_cargos"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "tse_candidatos_eleicao_id_fkey"
+            columns: ["eleicao_id"]
+            isOneToOne: false
+            referencedRelation: "tse_eleicoes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "tse_candidatos_municipio_id_fkey"
+            columns: ["municipio_id"]
+            isOneToOne: false
+            referencedRelation: "municipios"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "tse_candidatos_partido_id_fkey"
+            columns: ["partido_id"]
+            isOneToOne: false
+            referencedRelation: "tse_partidos"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      tse_cargos: {
+        Row: {
+          abrangencia: string
+          codigo_tse: number
+          created_at: string
+          id: string
+          nome: string
+        }
+        Insert: {
+          abrangencia: string
+          codigo_tse: number
+          created_at?: string
+          id?: string
+          nome: string
+        }
+        Update: {
+          abrangencia?: string
+          codigo_tse?: number
+          created_at?: string
+          id?: string
+          nome?: string
+        }
+        Relationships: []
+      }
+      tse_eleicoes: {
+        Row: {
+          ano: number
+          created_at: string
+          data_eleicao: string | null
+          descricao: string | null
+          id: string
+          tipo: string
+          turno: number
+        }
+        Insert: {
+          ano: number
+          created_at?: string
+          data_eleicao?: string | null
+          descricao?: string | null
+          id?: string
+          tipo: string
+          turno?: number
+        }
+        Update: {
+          ano?: number
+          created_at?: string
+          data_eleicao?: string | null
+          descricao?: string | null
+          id?: string
+          tipo?: string
+          turno?: number
+        }
+        Relationships: []
+      }
+      tse_importacoes: {
+        Row: {
+          ano: number
+          created_at: string
+          erro_mensagem: string | null
+          id: string
+          iniciado_por: string | null
+          registros_importados: number | null
+          status: string
+          tipo_arquivo: string
+          total_registros: number | null
+          uf: string
+          updated_at: string
+        }
+        Insert: {
+          ano: number
+          created_at?: string
+          erro_mensagem?: string | null
+          id?: string
+          iniciado_por?: string | null
+          registros_importados?: number | null
+          status?: string
+          tipo_arquivo: string
+          total_registros?: number | null
+          uf: string
+          updated_at?: string
+        }
+        Update: {
+          ano?: number
+          created_at?: string
+          erro_mensagem?: string | null
+          id?: string
+          iniciado_por?: string | null
+          registros_importados?: number | null
+          status?: string
+          tipo_arquivo?: string
+          total_registros?: number | null
+          uf?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      tse_locais_votacao: {
+        Row: {
+          codigo_municipio_tse: number | null
+          created_at: string
+          endereco: string | null
+          id: string
+          latitude: number | null
+          local_nome: string | null
+          longitude: number | null
+          municipio_id: string | null
+          nome_municipio: string | null
+          secao: number | null
+          uf: string
+          zona: number
+        }
+        Insert: {
+          codigo_municipio_tse?: number | null
+          created_at?: string
+          endereco?: string | null
+          id?: string
+          latitude?: number | null
+          local_nome?: string | null
+          longitude?: number | null
+          municipio_id?: string | null
+          nome_municipio?: string | null
+          secao?: number | null
+          uf: string
+          zona: number
+        }
+        Update: {
+          codigo_municipio_tse?: number | null
+          created_at?: string
+          endereco?: string | null
+          id?: string
+          latitude?: number | null
+          local_nome?: string | null
+          longitude?: number | null
+          municipio_id?: string | null
+          nome_municipio?: string | null
+          secao?: number | null
+          uf?: string
+          zona?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "tse_locais_votacao_municipio_id_fkey"
+            columns: ["municipio_id"]
+            isOneToOne: false
+            referencedRelation: "municipios"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      tse_partidos: {
+        Row: {
+          cor_hex: string | null
+          created_at: string
+          id: string
+          nome: string | null
+          numero: number
+          sigla: string
+        }
+        Insert: {
+          cor_hex?: string | null
+          created_at?: string
+          id?: string
+          nome?: string | null
+          numero: number
+          sigla: string
+        }
+        Update: {
+          cor_hex?: string | null
+          created_at?: string
+          id?: string
+          nome?: string | null
+          numero?: number
+          sigla?: string
+        }
+        Relationships: []
+      }
+      tse_votos: {
+        Row: {
+          candidato_id: string
+          codigo_municipio_tse: number | null
+          created_at: string
+          eleicao_id: string
+          id: string
+          local_id: string | null
+          quantidade: number
+          secao: number | null
+          uf: string
+          zona: number | null
+        }
+        Insert: {
+          candidato_id: string
+          codigo_municipio_tse?: number | null
+          created_at?: string
+          eleicao_id: string
+          id?: string
+          local_id?: string | null
+          quantidade?: number
+          secao?: number | null
+          uf: string
+          zona?: number | null
+        }
+        Update: {
+          candidato_id?: string
+          codigo_municipio_tse?: number | null
+          created_at?: string
+          eleicao_id?: string
+          id?: string
+          local_id?: string | null
+          quantidade?: number
+          secao?: number | null
+          uf?: string
+          zona?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "tse_votos_candidato_id_fkey"
+            columns: ["candidato_id"]
+            isOneToOne: false
+            referencedRelation: "tse_candidatos"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "tse_votos_eleicao_id_fkey"
+            columns: ["eleicao_id"]
+            isOneToOne: false
+            referencedRelation: "tse_eleicoes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "tse_votos_local_id_fkey"
+            columns: ["local_id"]
+            isOneToOne: false
+            referencedRelation: "tse_locais_votacao"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       user_activity: {
         Row: {
           activity_type: string
