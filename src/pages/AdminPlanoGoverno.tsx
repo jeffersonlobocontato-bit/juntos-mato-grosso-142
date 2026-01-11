@@ -25,8 +25,16 @@ import {
   Loader2,
   BookOpen,
   MessageSquare,
-  Settings
+  Settings,
+  Maximize2,
+  Minimize2
 } from 'lucide-react';
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 import { parseCrossReferenceContent } from '@/utils/crossReferenceParser';
 
 type Message = {
@@ -108,6 +116,9 @@ const AdminPlanoGoverno = () => {
     documentos: number;
   }>({ sugestoes: 0, propostas: 0, documentos: 0 });
   const [loadingBalanceData, setLoadingBalanceData] = useState(false);
+  
+  // Fullscreen chat state
+  const [isFullscreen, setIsFullscreen] = useState(false);
   
   // Balance detail modal state
   const [balanceDetailModal, setBalanceDetailModal] = useState<{
@@ -639,6 +650,21 @@ const AdminPlanoGoverno = () => {
 
               {/* Chat Area */}
               <Card>
+                <CardHeader className="flex flex-row items-center justify-between py-2 px-4 border-b">
+                  <CardTitle className="text-sm font-medium flex items-center gap-2">
+                    <MessageSquare className="w-4 h-4" />
+                    Conversa
+                  </CardTitle>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => setIsFullscreen(true)}
+                    title="Expandir chat"
+                  >
+                    <Maximize2 className="h-4 w-4" />
+                    <span className="ml-1 hidden sm:inline">Expandir</span>
+                  </Button>
+                </CardHeader>
                 <CardContent className="p-0">
                   <ScrollArea className="h-[400px] p-4">
                     {messages.length === 0 ? (
@@ -754,6 +780,100 @@ const AdminPlanoGoverno = () => {
         items={balanceDetailModal.category ? getItemsForCategory(balanceDetailModal.category, balanceDetailModal.eixo) : []}
         eixoFilter={balanceDetailModal.eixo}
       />
+
+      {/* Fullscreen Chat Dialog */}
+      <Dialog open={isFullscreen} onOpenChange={setIsFullscreen}>
+        <DialogContent className="max-w-[95vw] w-[95vw] h-[90vh] max-h-[90vh] flex flex-col">
+          <DialogHeader className="flex flex-row items-center justify-between shrink-0">
+            <DialogTitle className="flex items-center gap-2">
+              <Sparkles className="w-5 h-5 text-primary" />
+              Chat Expandido - Modo: {analysisMode.charAt(0).toUpperCase() + analysisMode.slice(1)}
+            </DialogTitle>
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => setIsFullscreen(false)}
+              className="mr-8"
+            >
+              <Minimize2 className="h-4 w-4" />
+              <span className="ml-1">Reduzir</span>
+            </Button>
+          </DialogHeader>
+          
+          <div className="flex-1 flex flex-col min-h-0">
+            <ScrollArea className="flex-1">
+              <div className="space-y-4 p-4">
+                {messages.length === 0 ? (
+                  <div className="h-full flex flex-col items-center justify-center text-center text-muted-foreground py-12">
+                    <Sparkles className="w-12 h-12 mb-4 text-primary/30" />
+                    <h3 className="text-lg font-medium mb-2">
+                      {getModeDescription()}
+                    </h3>
+                    <div className="mt-4 text-sm">
+                      <p className="font-medium text-foreground mb-2">Exemplos de perguntas:</p>
+                      <ul className="space-y-1">
+                        {getExamplePrompts().map((prompt, i) => (
+                          <li key={i}>• {prompt}</li>
+                        ))}
+                      </ul>
+                    </div>
+                  </div>
+                ) : (
+                  messages.map((message, index) => (
+                    <motion.div
+                      key={index}
+                      initial={{ opacity: 0, y: 10 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      className={`flex ${message.role === 'user' ? 'justify-end' : 'justify-start'}`}
+                    >
+                      <div
+                        className={`max-w-[80%] rounded-lg px-4 py-3 ${
+                          message.role === 'user'
+                            ? 'bg-primary text-primary-foreground'
+                            : 'bg-muted'
+                        }`}
+                      >
+                        {message.role === 'assistant' ? (
+                          message.content ? (
+                            <MarkdownRenderer content={message.content} />
+                          ) : (
+                            <span className="flex items-center gap-2 text-muted-foreground text-sm">
+                              <Loader2 className="w-4 h-4 animate-spin" />
+                              Pensando...
+                            </span>
+                          )
+                        ) : (
+                          <div className="whitespace-pre-wrap text-sm">{message.content}</div>
+                        )}
+                      </div>
+                    </motion.div>
+                  ))
+                )}
+                <div ref={messagesEndRef} />
+              </div>
+            </ScrollArea>
+            
+            <div className="flex gap-2 p-4 border-t shrink-0">
+              <Input
+                value={inputMessage}
+                onChange={(e) => setInputMessage(e.target.value)}
+                onKeyDown={handleKeyPress}
+                placeholder={`Faça uma pergunta no modo ${analysisMode}...`}
+                disabled={isStreaming}
+                className="flex-1"
+              />
+              {messages.some(m => m.role === 'assistant' && m.content) && (
+                <Button variant="outline" size="icon" onClick={handleCopyLastResponse} title="Copiar">
+                  <Copy className="w-4 h-4" />
+                </Button>
+              )}
+              <Button onClick={handleSendMessage} disabled={!inputMessage.trim() || isStreaming}>
+                {isStreaming ? <Loader2 className="w-4 h-4 animate-spin" /> : <Send className="w-4 h-4" />}
+              </Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };
