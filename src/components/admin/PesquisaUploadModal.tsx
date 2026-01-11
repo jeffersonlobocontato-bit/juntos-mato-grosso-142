@@ -11,7 +11,7 @@ import { ScrollArea } from '@/components/ui/scroll-area';
 import { Progress } from '@/components/ui/progress';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
-import { Upload, FileText, Keyboard, Loader2, CheckCircle2, Sparkles, Brain } from 'lucide-react';
+import { Upload, FileText, Keyboard, Loader2, CheckCircle2, Sparkles, Brain, Zap } from 'lucide-react';
 
 // PDF.js types
 declare global {
@@ -52,6 +52,10 @@ const INSTITUTOS = [
   'Real Time Big Data',
   'Paraná Pesquisas',
   'Atlas Intel',
+  'Ágili Pesquisas',
+  'Neokemp',
+  'Instituto Mapa',
+  'Veritá',
   'Outro'
 ];
 
@@ -92,6 +96,9 @@ export const PesquisaUploadModal = ({
   const [aiProgress, setAiProgress] = useState(0);
   const [aiStep, setAiStep] = useState('');
   const [extractionSuccess, setExtractionSuccess] = useState(false);
+  
+  // Auto-process flow state
+  const [processingStage, setProcessingStage] = useState<'idle' | 'uploading' | 'extracting' | 'saving' | 'ai' | 'done'>('idle');
 
   useEffect(() => {
     if (pesquisa) {
@@ -138,6 +145,7 @@ export const PesquisaUploadModal = ({
     setIsProcessingAI(false);
     setAiProgress(0);
     setAiStep('');
+    setProcessingStage('idle');
   };
 
   const loadPdfJs = async (): Promise<any> => {
@@ -400,6 +408,7 @@ export const PesquisaUploadModal = ({
     setIsSubmitting(true);
     setIsProcessingAI(true);
     setAiProgress(0);
+    setProcessingStage('saving');
     setAiStep('Salvando pesquisa...');
 
     try {
@@ -407,14 +416,18 @@ export const PesquisaUploadModal = ({
       if (!pesquisaId) {
         setIsProcessingAI(false);
         setIsSubmitting(false);
+        setProcessingStage('idle');
         return;
       }
 
+      setAiProgress(20);
+      setProcessingStage('ai');
       toast.info('Pesquisa salva! Iniciando processamento com IA...');
 
       const result = await processWithAI(pesquisaId);
 
-      const totalResults = (result.resultados_criados || 0) + (result.cruzamentos_criados || 0);
+      setProcessingStage('done');
+      const totalResults = (result.resultados_count || 0) + (result.cruzamentos_count || 0);
       toast.success(`Processamento concluído! ${totalResults} resultados extraídos.`);
       
       onSuccess();
@@ -425,6 +438,120 @@ export const PesquisaUploadModal = ({
       // Revert status if processing failed
       setAiStep('');
       setAiProgress(0);
+      setProcessingStage('idle');
+    } finally {
+      setIsSubmitting(false);
+      setIsProcessingAI(false);
+    }
+  };
+
+  // Fully automated flow: Upload → Extract → Save → Process AI
+  const handleAutoProcess = async () => {
+    if (!selectedFile) {
+      toast.error('Selecione um arquivo PDF primeiro');
+      return;
+    }
+
+    setIsSubmitting(true);
+    setIsProcessingAI(true);
+    setAiProgress(0);
+
+    try {
+      // Step 1: Extract text (if not already done)
+      let textToProcess = content;
+      
+      if (!textToProcess || textToProcess.length < 100) {
+        if (selectedFile.type === 'application/pdf') {
+          setProcessingStage('extracting');
+          setAiStep('Extraindo texto do PDF...');
+          setAiProgress(10);
+          
+          const extractedText = await extractTextFromPDF(selectedFile);
+          if (extractedText.length < 100) {
+            throw new Error('Não foi possível extrair texto suficiente do PDF. O arquivo pode estar escaneado ou protegido.');
+          }
+          textToProcess = extractedText;
+          setContent(extractedText);
+        } else {
+          throw new Error('Para arquivos não-PDF, cole o conteúdo na aba "Dados Manuais" primeiro.');
+        }
+      }
+
+      setAiProgress(25);
+      setProcessingStage('uploading');
+      setAiStep('Fazendo upload do arquivo...');
+
+      // Step 2: Upload file
+      const fileData = await uploadFile();
+
+      setAiProgress(40);
+      setProcessingStage('saving');
+      setAiStep('Salvando pesquisa...');
+
+      // Step 3: Save pesquisa with content
+      const finalInstituto = instituto === 'Outro' ? institutoCustom : instituto;
+      const pesquisaData = {
+        titulo: titulo.trim() || `Pesquisa - ${selectedFile.name}`,
+        instituto: finalInstituto.trim() || 'A identificar',
+        tipo_pesquisa: tipoPesquisa,
+        data_campo_inicio: dataCampoInicio || null,
+        data_campo_fim: dataCampoFim || null,
+        data_publicacao: dataPublicacao || null,
+        registro_tse: registroTse.trim() || null,
+        universo: universo.trim() || null,
+        amostra_total: amostraTotal ? parseInt(amostraTotal) : null,
+        margem_erro: margemErro ? parseFloat(margemErro) : null,
+        nivel_confianca: nivelConfianca ? parseFloat(nivelConfianca) : 95,
+        abrangencia,
+        status: 'processando' as const,
+        is_active: isActive,
+        content: textToProcess,
+        ...(fileData && {
+          file_url: fileData.url,
+          file_name: fileData.name,
+          file_type: fileData.type
+        })
+      };
+
+      let pesquisaId: string;
+      if (pesquisa) {
+        const { error } = await supabase
+          .from('pesquisas_eleitorais')
+          .update(pesquisaData)
+          .eq('id', pesquisa.id);
+        if (error) throw error;
+        pesquisaId = pesquisa.id;
+      } else {
+        const { data, error } = await supabase
+          .from('pesquisas_eleitorais')
+          .insert(pesquisaData)
+          .select('id')
+          .single();
+        if (error) throw error;
+        pesquisaId = data.id;
+      }
+
+      setAiProgress(55);
+      setProcessingStage('ai');
+      setAiStep('Processando com Inteligência Artificial...');
+
+      // Step 4: Process with AI
+      const result = await processWithAI(pesquisaId);
+
+      setAiProgress(100);
+      setProcessingStage('done');
+      setAiStep('Concluído!');
+
+      const totalResults = (result.data?.resultados_count || 0) + (result.data?.cruzamentos_count || 0);
+      toast.success(`✅ Processamento automático concluído! ${totalResults} resultados extraídos.`);
+      
+      onSuccess();
+    } catch (error: any) {
+      console.error('Auto-process error:', error);
+      toast.error(error.message || 'Erro no processamento automático');
+      setProcessingStage('idle');
+      setAiProgress(0);
+      setAiStep('');
     } finally {
       setIsSubmitting(false);
       setIsProcessingAI(false);
@@ -788,8 +915,33 @@ METODOLOGIA
           <div className="mt-4 p-4 bg-primary/5 border border-primary/20 rounded-lg">
             <div className="flex items-center gap-3 mb-3">
               <Brain className="w-5 h-5 text-primary animate-pulse" />
-              <span className="font-medium text-primary">Processando com IA</span>
+              <span className="font-medium text-primary">Processamento Automático</span>
             </div>
+            
+            {/* Progress steps */}
+            <div className="flex items-center justify-between mb-3 text-xs">
+              <div className={`flex items-center gap-1 ${processingStage === 'extracting' || aiProgress >= 10 ? 'text-primary' : 'text-muted-foreground'}`}>
+                <div className={`w-2 h-2 rounded-full ${processingStage === 'extracting' ? 'bg-primary animate-pulse' : aiProgress >= 10 ? 'bg-green-500' : 'bg-muted'}`} />
+                Extração
+              </div>
+              <div className={`flex items-center gap-1 ${processingStage === 'uploading' || aiProgress >= 25 ? 'text-primary' : 'text-muted-foreground'}`}>
+                <div className={`w-2 h-2 rounded-full ${processingStage === 'uploading' ? 'bg-primary animate-pulse' : aiProgress >= 25 ? 'bg-green-500' : 'bg-muted'}`} />
+                Upload
+              </div>
+              <div className={`flex items-center gap-1 ${processingStage === 'saving' || aiProgress >= 40 ? 'text-primary' : 'text-muted-foreground'}`}>
+                <div className={`w-2 h-2 rounded-full ${processingStage === 'saving' ? 'bg-primary animate-pulse' : aiProgress >= 40 ? 'bg-green-500' : 'bg-muted'}`} />
+                Salvando
+              </div>
+              <div className={`flex items-center gap-1 ${processingStage === 'ai' || aiProgress >= 55 ? 'text-primary' : 'text-muted-foreground'}`}>
+                <div className={`w-2 h-2 rounded-full ${processingStage === 'ai' ? 'bg-primary animate-pulse' : aiProgress >= 55 ? 'bg-green-500' : 'bg-muted'}`} />
+                IA
+              </div>
+              <div className={`flex items-center gap-1 ${processingStage === 'done' ? 'text-green-600' : 'text-muted-foreground'}`}>
+                <div className={`w-2 h-2 rounded-full ${processingStage === 'done' ? 'bg-green-500' : 'bg-muted'}`} />
+                Concluído
+              </div>
+            </div>
+            
             <Progress value={aiProgress} className="h-2 mb-2" />
             <p className="text-sm text-muted-foreground">{aiStep}</p>
           </div>
@@ -807,18 +959,38 @@ METODOLOGIA
             {(isSubmitting && !isProcessingAI) && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}
             {pesquisa ? 'Salvar' : 'Criar Rascunho'}
           </Button>
-          <Button 
-            onClick={handleSubmitAndProcess} 
-            disabled={isSubmitting || isUploading || isProcessingAI || content.trim().length < 100}
-            className="bg-gradient-to-r from-primary to-primary/80"
-          >
-            {isProcessingAI ? (
-              <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-            ) : (
-              <Sparkles className="w-4 h-4 mr-2" />
-            )}
-            Salvar e Processar IA
-          </Button>
+          
+          {/* Auto-process button - for PDF files */}
+          {selectedFile?.type === 'application/pdf' && (
+            <Button 
+              onClick={handleAutoProcess} 
+              disabled={isSubmitting || isUploading || isProcessingAI}
+              className="bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700"
+            >
+              {isProcessingAI ? (
+                <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+              ) : (
+                <Zap className="w-4 h-4 mr-2" />
+              )}
+              Processar PDF Automaticamente
+            </Button>
+          )}
+          
+          {/* Manual process button - when content is available */}
+          {(!selectedFile || selectedFile.type !== 'application/pdf') && (
+            <Button 
+              onClick={handleSubmitAndProcess} 
+              disabled={isSubmitting || isUploading || isProcessingAI || content.trim().length < 100}
+              className="bg-gradient-to-r from-primary to-primary/80"
+            >
+              {isProcessingAI ? (
+                <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+              ) : (
+                <Sparkles className="w-4 h-4 mr-2" />
+              )}
+              Salvar e Processar IA
+            </Button>
+          )}
         </div>
       </DialogContent>
     </Dialog>
