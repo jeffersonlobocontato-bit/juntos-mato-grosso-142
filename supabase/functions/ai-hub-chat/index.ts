@@ -25,7 +25,7 @@ serve(async (req) => {
   }
 
   try {
-    const { agent_id, messages } = await req.json();
+    const { agent_id, messages, selected_pesquisa_ids } = await req.json();
 
     if (!agent_id) {
       return new Response(
@@ -167,8 +167,11 @@ serve(async (req) => {
           .eq("is_active", true)
           .in("status", ["ativa"]);
 
-        // Filter by specific IDs if provided
-        if (extendedSearch.pesquisa_ids && extendedSearch.pesquisa_ids.length > 0) {
+        // PRIORITY: User selection from frontend takes precedence
+        if (selected_pesquisa_ids && Array.isArray(selected_pesquisa_ids) && selected_pesquisa_ids.length > 0) {
+          pesquisaQuery = pesquisaQuery.in("id", selected_pesquisa_ids);
+        } else if (extendedSearch.pesquisa_ids && extendedSearch.pesquisa_ids.length > 0) {
+          // Fall back to agent config
           pesquisaQuery = pesquisaQuery.in("id", extendedSearch.pesquisa_ids);
         } else {
           pesquisaQuery = pesquisaQuery.limit(10);

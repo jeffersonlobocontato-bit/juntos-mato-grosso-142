@@ -9,6 +9,8 @@ import { toast } from 'sonner';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import { ResearchChartRenderer, ChartData, parseChartDataFromMessage } from './ResearchChartRenderer';
+import { PesquisaSelector } from './PesquisaSelector';
+import { supabase } from '@/integrations/supabase/client';
 
 interface AIAgent {
   id: string;
@@ -32,6 +34,14 @@ interface ParsedMessage {
   charts: ChartData[];
 }
 
+interface Pesquisa {
+  id: string;
+  titulo: string;
+  instituto: string;
+  data_publicacao: string | null;
+  tipo_pesquisa: string;
+}
+
 interface ResearchAnalystChatProps {
   agent: AIAgent;
   onClose: () => void;
@@ -43,8 +53,37 @@ export const ResearchAnalystChat = ({ agent, onClose }: ResearchAnalystChatProps
   const [messages, setMessages] = useState<ParsedMessage[]>([]);
   const [input, setInput] = useState('');
   const [isLoading, setIsLoading] = useState(false);
+  const [availablePesquisas, setAvailablePesquisas] = useState<Pesquisa[]>([]);
+  const [selectedPesquisaIds, setSelectedPesquisaIds] = useState<string[]>([]);
+  const [loadingPesquisas, setLoadingPesquisas] = useState(true);
   const scrollRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
+
+  // Fetch available pesquisas on mount
+  useEffect(() => {
+    const fetchPesquisas = async () => {
+      try {
+        const { data, error } = await supabase
+          .from('pesquisas_eleitorais')
+          .select('id, titulo, instituto, data_publicacao, tipo_pesquisa')
+          .eq('is_active', true)
+          .eq('status', 'ativa')
+          .order('data_publicacao', { ascending: false });
+
+        if (error) throw error;
+
+        setAvailablePesquisas(data || []);
+        // Select all by default
+        setSelectedPesquisaIds(data?.map(p => p.id) || []);
+      } catch (error) {
+        console.error('Error fetching pesquisas:', error);
+      } finally {
+        setLoadingPesquisas(false);
+      }
+    };
+
+    fetchPesquisas();
+  }, []);
 
   useEffect(() => {
     inputRef.current?.focus();
@@ -81,6 +120,7 @@ export const ResearchAnalystChat = ({ agent, onClose }: ResearchAnalystChatProps
         body: JSON.stringify({
           agent_id: agent.id,
           messages: messages.map(m => ({ role: m.role, content: m.content })).concat([{ role: 'user', content: content.trim() }]),
+          selected_pesquisa_ids: selectedPesquisaIds,
         }),
       });
 
@@ -235,6 +275,14 @@ export const ResearchAnalystChat = ({ agent, onClose }: ResearchAnalystChatProps
             <X className="h-5 w-5" />
           </Button>
         </header>
+
+        {/* Pesquisa Selector Toolbar */}
+        <PesquisaSelector
+          pesquisas={availablePesquisas}
+          selectedIds={selectedPesquisaIds}
+          onSelectionChange={setSelectedPesquisaIds}
+          isLoading={loadingPesquisas}
+        />
 
         {/* Chat Area */}
         <div className="flex-1 flex flex-col overflow-hidden">
