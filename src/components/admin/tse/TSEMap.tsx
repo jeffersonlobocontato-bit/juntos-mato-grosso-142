@@ -4,8 +4,8 @@ import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Label } from "@/components/ui/label";
-import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
+import { MapPin, AlertCircle } from "lucide-react";
 import mapboxgl from "mapbox-gl";
 import "mapbox-gl/dist/mapbox-gl.css";
 
@@ -38,7 +38,6 @@ const STATE_CENTERS: Record<string, [number, number]> = {
   RS: [-51.2177, -30.0346],
   SC: [-48.5480, -27.5954],
   BA: [-38.5016, -12.9714],
-  // Add more as needed
 };
 
 export default function TSEMap({
@@ -50,8 +49,10 @@ export default function TSEMap({
   const mapContainer = useRef<HTMLDivElement>(null);
   const map = useRef<mapboxgl.Map | null>(null);
   const [selectedEleicao, setSelectedEleicao] = useState<string>("");
-  const [selectedCargo, setSelectedCargo] = useState<string>("");
-  const [selectedCandidato, setSelectedCandidato] = useState<string>("");
+  const [selectedCargo, setSelectedCargo] = useState<string>("all");
+  const [selectedCandidato, setSelectedCandidato] = useState<string>("all");
+  const [mapError, setMapError] = useState<string | null>(null);
+  const [mapLoading, setMapLoading] = useState(true);
 
   // Fetch cargos
   const { data: cargos } = useQuery({
@@ -82,7 +83,7 @@ export default function TSEMap({
         .eq("eleicao_id", selectedEleicao)
         .eq("uf", selectedUF);
 
-      if (selectedCargo) {
+      if (selectedCargo && selectedCargo !== "all") {
         query = query.eq("cargo_id", selectedCargo);
       }
 
@@ -117,7 +118,7 @@ export default function TSEMap({
         .eq("eleicao_id", selectedEleicao)
         .eq("uf", selectedUF);
 
-      if (selectedCandidato) {
+      if (selectedCandidato && selectedCandidato !== "all") {
         votosQuery = votosQuery.eq("candidato_id", selectedCandidato);
       }
 
@@ -141,34 +142,70 @@ export default function TSEMap({
     enabled: !!selectedEleicao,
   });
 
-  // Initialize map
+  // Initialize map with delay to ensure container has dimensions
   useEffect(() => {
-    if (!mapContainer.current || map.current) return;
+    if (map.current) return;
+    
+    const initializeMap = () => {
+      if (!mapContainer.current) return;
+      
+      // Check container dimensions
+      const container = mapContainer.current;
+      if (container.offsetWidth === 0 || container.offsetHeight === 0) {
+        // Retry after a short delay
+        setTimeout(initializeMap, 100);
+        return;
+      }
 
-    const token = import.meta.env.VITE_MAPBOX_PUBLIC_TOKEN;
-    if (!token) {
-      console.warn("Mapbox token not found");
-      return;
-    }
+      const token = import.meta.env.VITE_MAPBOX_PUBLIC_TOKEN;
+      if (!token) {
+        setMapError("Token do Mapbox não configurado. Configure a variável VITE_MAPBOX_PUBLIC_TOKEN.");
+        setMapLoading(false);
+        return;
+      }
 
-    mapboxgl.accessToken = token;
+      try {
+        mapboxgl.accessToken = token;
 
-    const center = STATE_CENTERS[selectedUF] || [-51.4166, -25.2521];
+        const center = STATE_CENTERS[selectedUF] || [-51.4166, -25.2521];
 
-    map.current = new mapboxgl.Map({
-      container: mapContainer.current,
-      style: "mapbox://styles/mapbox/dark-v11",
-      center,
-      zoom: 7,
-    });
+        map.current = new mapboxgl.Map({
+          container: container,
+          style: "mapbox://styles/mapbox/dark-v11",
+          center,
+          zoom: 7,
+        });
 
-    map.current.addControl(new mapboxgl.NavigationControl(), "top-right");
+        map.current.on('load', () => {
+          setMapLoading(false);
+          setMapError(null);
+        });
+
+        map.current.on('error', (e) => {
+          console.error('Mapbox error:', e);
+          setMapError("Erro ao carregar o mapa. Verifique sua conexão.");
+          setMapLoading(false);
+        });
+
+        map.current.addControl(new mapboxgl.NavigationControl(), "top-right");
+      } catch (error) {
+        console.error('Map initialization error:', error);
+        setMapError("Erro ao inicializar o mapa. Tente recarregar a página.");
+        setMapLoading(false);
+      }
+    };
+
+    // Small delay to ensure DOM is ready
+    const timeout = setTimeout(initializeMap, 150);
 
     return () => {
-      map.current?.remove();
-      map.current = null;
+      clearTimeout(timeout);
+      if (map.current) {
+        map.current.remove();
+        map.current = null;
+      }
     };
-  }, []);
+  }, [selectedUF]);
 
   // Update map center when state changes
   useEffect(() => {
@@ -220,8 +257,7 @@ export default function TSEMap({
   }, [locaisVotacao]);
 
   // Get filtered elections for selected state
-  const filteredEleicoes = eleicoes.filter(e => {
-    // Check if there's data for this election in the selected state
+  const filteredEleicoes = eleicoes.filter(() => {
     return true; // For now, show all elections
   });
 
@@ -275,7 +311,7 @@ export default function TSEMap({
                 <SelectValue placeholder="Todos os cargos" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="">Todos os cargos</SelectItem>
+                <SelectItem value="all">Todos os cargos</SelectItem>
                 {cargos?.map(cargo => (
                   <SelectItem key={cargo.id} value={cargo.id}>
                     {cargo.nome}
@@ -296,7 +332,7 @@ export default function TSEMap({
                 <SelectValue placeholder="Todos os candidatos" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="">Todos os candidatos</SelectItem>
+                <SelectItem value="all">Todos os candidatos</SelectItem>
                 {candidatos?.map(candidato => (
                   <SelectItem key={candidato.id} value={candidato.id}>
                     {candidato.nome_urna} ({candidato.partido?.sigla || candidato.numero_urna})
@@ -336,8 +372,24 @@ export default function TSEMap({
           </CardDescription>
         </CardHeader>
         <CardContent>
-          {isLoadingLocais ? (
-            <Skeleton className="h-[500px] w-full rounded-lg" />
+          {mapError ? (
+            <div className="h-[500px] w-full rounded-lg bg-muted flex items-center justify-center">
+              <div className="text-center text-muted-foreground p-8">
+                <AlertCircle className="h-12 w-12 mx-auto mb-4 text-destructive opacity-70" />
+                <p className="text-lg font-medium">Não foi possível carregar o mapa</p>
+                <p className="text-sm mt-2">{mapError}</p>
+              </div>
+            </div>
+          ) : isLoadingLocais || mapLoading ? (
+            <div className="relative">
+              <Skeleton className="h-[500px] w-full rounded-lg" />
+              <div className="absolute inset-0 flex items-center justify-center">
+                <div className="text-center text-muted-foreground">
+                  <MapPin className="h-8 w-8 mx-auto mb-2 animate-pulse" />
+                  <p className="text-sm">Carregando mapa...</p>
+                </div>
+              </div>
+            </div>
           ) : (
             <div
               ref={mapContainer}
