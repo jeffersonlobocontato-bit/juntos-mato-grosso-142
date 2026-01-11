@@ -352,7 +352,7 @@ export const PesquisaUploadModal = ({
     }
   };
 
-  const processWithAI = async (pesquisaId: string) => {
+  const processWithAI = async (pesquisaId: string, textContent?: string) => {
     setAiStep('Conectando à IA...');
     setAiProgress(10);
 
@@ -364,10 +364,14 @@ export const PesquisaUploadModal = ({
     setAiStep('Enviando dados para análise...');
     setAiProgress(30);
 
+    // Use provided textContent or fall back to state content
+    const contentToSend = (textContent || content).trim();
+    console.log('Sending to AI, content length:', contentToSend.length);
+
     const response = await supabase.functions.invoke('process-pesquisa', {
       body: { 
         pesquisa_id: pesquisaId,
-        content_text: content.trim()
+        content_text: contentToSend
       }
     });
 
@@ -539,8 +543,8 @@ export const PesquisaUploadModal = ({
       setProcessingStage('ai');
       setAiStep('Processando com Inteligência Artificial...');
 
-      // Step 4: Process with AI
-      const result = await processWithAI(pesquisaId);
+      // Step 4: Process with AI - pass the extracted text directly
+      const result = await processWithAI(pesquisaId, textToProcess);
 
       setAiProgress(100);
       setProcessingStage('done');

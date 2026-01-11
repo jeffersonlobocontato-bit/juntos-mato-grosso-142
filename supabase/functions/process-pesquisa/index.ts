@@ -170,8 +170,17 @@ serve(async (req) => {
       );
     }
 
-    console.log("Processing content with AI. First 300 chars:", textContent.substring(0, 300));
-    console.log("Total content length:", textContent.length);
+    // Limit content size to avoid timeouts (max ~35k chars to stay well under token limits)
+    const MAX_CONTENT_LENGTH = 35000;
+    let processedContent = textContent;
+    
+    if (textContent.length > MAX_CONTENT_LENGTH) {
+      console.log(`Content too long (${textContent.length}), truncating to ${MAX_CONTENT_LENGTH}`);
+      processedContent = textContent.substring(0, MAX_CONTENT_LENGTH);
+    }
+
+    console.log("Processing content with AI. First 300 chars:", processedContent.substring(0, 300));
+    console.log("Total content length:", processedContent.length);
 
     const systemPrompt = `Você é um especialista em análise de pesquisas eleitorais brasileiras, especialmente do Estado do Paraná.
 Sua tarefa é extrair dados estruturados EXCLUSIVAMENTE do documento fornecido.
@@ -228,7 +237,7 @@ Se um candidato ou percentual não estiver explícito no texto, NÃO inclua.
 
 DOCUMENTO PARA ANÁLISE:
 ---
-${textContent}
+${processedContent}
 ---
 
 INSTRUÇÕES DE EXTRAÇÃO:
