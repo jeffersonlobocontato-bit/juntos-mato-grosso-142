@@ -13,6 +13,7 @@ import { toast } from 'sonner';
 import { AgentCard } from '@/components/ai-hub/AgentCard';
 import { AgentEditor } from '@/components/ai-hub/AgentEditor';
 import { AgentChat } from '@/components/ai-hub/AgentChat';
+import { ResearchAnalystChat } from '@/components/ai-hub/ResearchAnalystChat';
 
 interface AIAgent {
   id: string;
@@ -303,6 +304,16 @@ const AdminAIHub = () => {
 
   // If chat is open, show chat interface
   if (chatAgent) {
+    // Use specialized ResearchAnalystChat for pesquisas agents
+    if (chatAgent.agent_type === 'pesquisas') {
+      return (
+        <ResearchAnalystChat 
+          agent={chatAgent} 
+          onClose={() => setChatAgent(null)} 
+        />
+      );
+    }
+    
     return (
       <AgentChat 
         agent={chatAgent} 

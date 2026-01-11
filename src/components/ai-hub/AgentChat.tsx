@@ -5,8 +5,9 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Card } from '@/components/ui/card';
-import { Badge } from '@/components/ui/badge';
 import { toast } from 'sonner';
+import ReactMarkdown from 'react-markdown';
+import remarkGfm from 'remark-gfm';
 
 interface AIAgent {
   id: string;
@@ -274,13 +275,42 @@ export const AgentChat = ({ agent, onClose }: AgentChatProps) => {
                       </div>
                     )}
                     
-                    <Card className={`max-w-[80%] p-3 ${
+                    <Card className={`max-w-[80%] p-4 ${
                       message.role === 'user' 
                         ? 'bg-primary text-primary-foreground' 
                         : 'bg-muted'
                     }`}>
                       {message.content ? (
-                        <p className="text-sm whitespace-pre-wrap">{message.content}</p>
+                        message.role === 'assistant' ? (
+                          <div className="prose prose-sm dark:prose-invert max-w-none">
+                            <ReactMarkdown 
+                              remarkPlugins={[remarkGfm]}
+                              components={{
+                                table: ({ children }) => (
+                                  <div className="overflow-x-auto my-2">
+                                    <table className="min-w-full border-collapse text-xs">{children}</table>
+                                  </div>
+                                ),
+                                th: ({ children }) => (
+                                  <th className="border border-border bg-muted px-2 py-1 text-left font-medium">{children}</th>
+                                ),
+                                td: ({ children }) => (
+                                  <td className="border border-border px-2 py-1">{children}</td>
+                                ),
+                                p: ({ children }) => (
+                                  <p className="mb-2 last:mb-0">{children}</p>
+                                ),
+                                strong: ({ children }) => (
+                                  <strong className="font-semibold text-foreground">{children}</strong>
+                                ),
+                              }}
+                            >
+                              {message.content}
+                            </ReactMarkdown>
+                          </div>
+                        ) : (
+                          <p className="text-sm whitespace-pre-wrap">{message.content}</p>
+                        )
                       ) : (
                         <div className="flex items-center gap-2">
                           <Loader2 className="w-4 h-4 animate-spin" />

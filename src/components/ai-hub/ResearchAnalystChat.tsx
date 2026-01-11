@@ -282,7 +282,7 @@ export const ResearchAnalystChat = ({ agent, onClose }: ResearchAnalystChatProps
                         </div>
                       )}
                       
-                      <div className={`max-w-[85%] ${message.role === 'user' ? '' : 'flex-1'}`}>
+                      <div className={`${message.role === 'user' ? 'max-w-[75%]' : 'flex-1 min-w-0'}`}>
                         <Card className={`p-4 ${
                           message.role === 'user' 
                             ? 'bg-primary text-primary-foreground' 
