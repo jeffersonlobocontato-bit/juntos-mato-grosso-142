@@ -18,7 +18,8 @@ import {
   Sparkles,
   Bot,
   BarChart2,
-  Vote
+  Vote,
+  ScrollText
 } from 'lucide-react';
 
 const Admin = () => {
@@ -73,6 +74,14 @@ const Admin = () => {
       href: '/admin/propostas',
       color: 'primary',
       roles: ['admin', 'lider_tematico', 'curador_municipal', 'especialista']
+    },
+    { 
+      icon: ScrollText, 
+      title: 'Propostas Políticas', 
+      description: 'Propostas finais para plano de governo',
+      href: '/admin/propostas-politicas',
+      color: 'accent',
+      roles: ['admin', 'admin_master', 'lider_tematico']
     },
     { 
       icon: Users, 

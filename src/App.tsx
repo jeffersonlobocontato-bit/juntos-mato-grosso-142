@@ -9,6 +9,7 @@ import Dashboard from "./pages/Dashboard";
 import Auth from "./pages/Auth";
 import Admin from "./pages/Admin";
 import AdminPropostas from "./pages/AdminPropostas";
+import AdminPropostasPoliticas from "./pages/AdminPropostasPoliticas";
 import AdminSugestoes from "./pages/AdminSugestoes";
 import AdminEixos from "./pages/AdminEixos";
 import AdminMunicipios from "./pages/AdminMunicipios";
@@ -38,6 +39,7 @@ const App = () => (
             <Route path="/auth" element={<Auth />} />
             <Route path="/admin" element={<Admin />} />
             <Route path="/admin/propostas" element={<AdminPropostas />} />
+            <Route path="/admin/propostas-politicas" element={<AdminPropostasPoliticas />} />
             <Route path="/admin/sugestoes" element={<AdminSugestoes />} />
             <Route path="/admin/eixos" element={<AdminEixos />} />
             <Route path="/admin/municipios" element={<AdminMunicipios />} />
