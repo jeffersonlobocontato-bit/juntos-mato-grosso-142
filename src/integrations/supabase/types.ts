@@ -902,6 +902,69 @@ export type Database = {
           },
         ]
       }
+      proposal_evaluations: {
+        Row: {
+          created_at: string | null
+          evaluated_at: string | null
+          evaluated_by: string | null
+          fontes_cruzadas: Json | null
+          id: string
+          is_stale: boolean | null
+          justificativa: string | null
+          pontos_atencao: string[] | null
+          pontos_fortes: string[] | null
+          proposta_id: string
+          score_total: number
+          scores: Json
+          updated_at: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          evaluated_at?: string | null
+          evaluated_by?: string | null
+          fontes_cruzadas?: Json | null
+          id?: string
+          is_stale?: boolean | null
+          justificativa?: string | null
+          pontos_atencao?: string[] | null
+          pontos_fortes?: string[] | null
+          proposta_id: string
+          score_total: number
+          scores?: Json
+          updated_at?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          evaluated_at?: string | null
+          evaluated_by?: string | null
+          fontes_cruzadas?: Json | null
+          id?: string
+          is_stale?: boolean | null
+          justificativa?: string | null
+          pontos_atencao?: string[] | null
+          pontos_fortes?: string[] | null
+          proposta_id?: string
+          score_total?: number
+          scores?: Json
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "proposal_evaluations_evaluated_by_fkey"
+            columns: ["evaluated_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "proposal_evaluations_proposta_id_fkey"
+            columns: ["proposta_id"]
+            isOneToOne: false
+            referencedRelation: "propostas_tecnicas"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       propostas_tecnicas: {
         Row: {
           anexos: string[] | null
