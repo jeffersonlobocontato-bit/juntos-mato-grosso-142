@@ -1226,15 +1226,25 @@ const EntrevistaForm = () => {
                   return (
                     <button
                       key={index}
-                      onClick={() => index < currentStep && setCurrentStep(index)}
-                      disabled={index > currentStep}
+                      onClick={() => {
+                        // Admin Master pode navegar livremente para qualquer aba
+                        if (isAdminMaster) {
+                          setCurrentStep(index);
+                        } else if (index < currentStep) {
+                          // Usuários normais só podem voltar para passos anteriores
+                          setCurrentStep(index);
+                        }
+                      }}
+                      disabled={!isAdminMaster && index > currentStep}
                       className={`
                         flex items-center gap-2 px-3 py-2 rounded-lg text-sm font-medium transition-all
                         ${isActive 
                           ? "bg-primary text-black" 
                           : isCompleted 
                             ? "bg-primary/20 text-primary cursor-pointer hover:bg-primary/30" 
-                            : "bg-gray-800 text-gray-500 cursor-not-allowed"
+                            : isAdminMaster
+                              ? "bg-gray-700 text-gray-300 cursor-pointer hover:bg-gray-600"
+                              : "bg-gray-800 text-gray-500 cursor-not-allowed"
                         }
                       `}
                     >
