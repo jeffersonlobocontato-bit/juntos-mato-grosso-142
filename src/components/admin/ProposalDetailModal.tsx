@@ -241,6 +241,56 @@ export const ProposalDetailModal = ({
     return municipios.find(m => m.id === municipioId)?.nome || 'N/A';
   };
 
+  // Helper to render any value (handles nested objects)
+  const renderValue = (value: unknown): React.ReactNode => {
+    if (value === null || value === undefined) return null;
+    
+    if (typeof value === 'string') {
+      return <p className="text-sm whitespace-pre-wrap">{value}</p>;
+    }
+    
+    if (typeof value === 'number' || typeof value === 'boolean') {
+      return <p className="text-sm">{String(value)}</p>;
+    }
+    
+    if (Array.isArray(value)) {
+      return (
+        <ul className="list-disc pl-4 space-y-1">
+          {value.map((item, idx) => (
+            <li key={idx} className="text-sm">
+              {typeof item === 'object' ? JSON.stringify(item) : String(item)}
+            </li>
+          ))}
+        </ul>
+      );
+    }
+    
+    if (typeof value === 'object') {
+      // Render nested object as key-value pairs
+      return (
+        <div className="space-y-2 pl-2 border-l-2 border-muted">
+          {Object.entries(value as Record<string, unknown>).map(([k, v]) => {
+            if (v === null || v === undefined || v === '') return null;
+            const nestedLabel = k.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase());
+            return (
+              <div key={k}>
+                <span className="text-xs font-medium text-muted-foreground">{nestedLabel}:</span>
+                <div className="ml-2">
+                  {typeof v === 'object' && v !== null 
+                    ? <pre className="text-xs bg-muted p-2 rounded overflow-x-auto">{JSON.stringify(v, null, 2)}</pre>
+                    : <span className="text-sm">{String(v)}</span>
+                  }
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      );
+    }
+    
+    return <p className="text-sm">{String(value)}</p>;
+  };
+
   const renderQuestionario = () => {
     if (!proposal?.questionario) {
       return (
@@ -250,12 +300,13 @@ export const ProposalDetailModal = ({
       );
     }
 
-    const questionario = proposal.questionario as Record<string, string | string[]>;
+    const questionario = proposal.questionario as Record<string, unknown>;
     
     return (
       <div className="space-y-4">
         {Object.entries(questionario).map(([key, value]) => {
-          if (!value || (Array.isArray(value) && value.length === 0)) return null;
+          if (value === null || value === undefined || value === '') return null;
+          if (Array.isArray(value) && value.length === 0) return null;
           
           const label = questionarioLabels[key] || key.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase());
           
@@ -267,15 +318,7 @@ export const ProposalDetailModal = ({
                 </CardTitle>
               </CardHeader>
               <CardContent className="pt-0">
-                {Array.isArray(value) ? (
-                  <ul className="list-disc pl-4 space-y-1">
-                    {value.map((item, idx) => (
-                      <li key={idx} className="text-sm">{item}</li>
-                    ))}
-                  </ul>
-                ) : (
-                  <p className="text-sm whitespace-pre-wrap">{value}</p>
-                )}
+                {renderValue(value)}
               </CardContent>
             </Card>
           );
