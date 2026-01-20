@@ -215,7 +215,7 @@ IMPORTANTE:
     console.log('Calling Lovable AI for evaluation...');
 
     // Call Lovable AI API
-    const aiResponse = await fetch('https://ai.lovable.dev/v1/chat/completions', {
+    const aiResponse = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
