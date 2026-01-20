@@ -1,9 +1,11 @@
 import { useState, useEffect } from "react";
 import { motion } from "framer-motion";
+import { Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
+import { Card, CardContent } from "@/components/ui/card";
 import {
   Select,
   SelectContent,
@@ -11,11 +13,12 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Send, CheckCircle, Share2 } from "lucide-react";
+import { Send, CheckCircle, Share2, MapPin, FileText, Tag, ExternalLink } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { toast } from "sonner";
 import SocialShareButtons from "@/components/landing/SocialShareButtons";
+import ProposalConfirmationMap from "./ProposalConfirmationMap";
 
 interface Eixo {
   id: string;
@@ -25,12 +28,24 @@ interface Eixo {
 interface Municipio {
   id: string;
   nome: string;
+  latitude: number | null;
+  longitude: number | null;
+}
+
+interface SubmittedData {
+  titulo: string;
+  resumo: string;
+  eixoNome: string;
+  municipioNome: string;
+  municipioLat: number;
+  municipioLng: number;
 }
 
 const LiderancasForm = () => {
   const { user } = useAuth();
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isSubmitted, setIsSubmitted] = useState(false);
+  const [submittedData, setSubmittedData] = useState<SubmittedData | null>(null);
 
   // Identificação
   const [nome, setNome] = useState("");
@@ -70,7 +85,7 @@ const LiderancasForm = () => {
   const fetchMunicipios = async () => {
     const { data, error } = await supabase
       .from("municipios")
-      .select("id, nome")
+      .select("id, nome, latitude, longitude")
       .order("nome");
     if (!error && data) setMunicipios(data);
   };
@@ -167,6 +182,19 @@ const LiderancasForm = () => {
         throw propostaError;
       }
 
+      // Store submitted data for confirmation screen
+      const selectedMunicipio = municipios.find(m => m.id === municipioId);
+      const selectedEixo = eixos.find(e => e.id === eixoId);
+      
+      setSubmittedData({
+        titulo,
+        resumo: resumo || conteudoCompleto.slice(0, 150) + "...",
+        eixoNome: selectedEixo?.nome || "Proposta",
+        municipioNome: selectedMunicipio?.nome || "Paraná",
+        municipioLat: Number(selectedMunicipio?.latitude) || -25.4284,
+        municipioLng: Number(selectedMunicipio?.longitude) || -49.2733,
+      });
+
       setIsSubmitted(true);
       toast.success("Proposta enviada com sucesso!");
     } catch (error) {
@@ -184,8 +212,103 @@ const LiderancasForm = () => {
     setPublicoAlvo("");
     setImpactoEsperado("");
     setEixoId("");
+    setMunicipioId("");
+    setSubmittedData(null);
     setIsSubmitted(false);
   };
+
+  if (isSubmitted && submittedData) {
+    return (
+      <section id="formulario" className="py-20 bg-muted/30">
+        <div className="container mx-auto px-4">
+          <motion.div
+            initial={{ opacity: 0, scale: 0.95 }}
+            animate={{ opacity: 1, scale: 1 }}
+            className="max-w-2xl mx-auto"
+          >
+            <div className="bg-card rounded-2xl p-8 md:p-12 shadow-xl border border-border">
+              <div className="w-20 h-20 rounded-full bg-emerald-500/20 flex items-center justify-center mx-auto mb-6">
+                <CheckCircle className="w-10 h-10 text-emerald-500" />
+              </div>
+              <h2 className="font-display text-3xl font-bold text-foreground mb-4 text-center">
+                Parabéns! Você faz parte de um movimento coletivo!
+              </h2>
+              <p className="text-muted-foreground mb-8 max-w-md mx-auto text-center">
+                Sua voz será ouvida. Juntos estamos construindo um Paraná que respeita todos os seus 399 municípios.
+              </p>
+
+              {/* Proposal Summary Card */}
+              <Card className="mb-6 bg-muted/50 border-border">
+                <CardContent className="pt-6">
+                  <h3 className="font-semibold text-lg text-foreground mb-4 flex items-center gap-2">
+                    <FileText className="w-5 h-5 text-emerald-500" />
+                    Resumo da Sua Proposta
+                  </h3>
+                  <div className="space-y-3">
+                    <div className="flex items-start gap-3">
+                      <Tag className="w-4 h-4 text-muted-foreground mt-1" />
+                      <div>
+                        <p className="text-xs text-muted-foreground">Título</p>
+                        <p className="font-medium text-foreground">{submittedData.titulo}</p>
+                      </div>
+                    </div>
+                    <div className="flex items-start gap-3">
+                      <div className="w-4 h-4 rounded-full bg-emerald-500 mt-1" />
+                      <div>
+                        <p className="text-xs text-muted-foreground">Eixo Temático</p>
+                        <p className="font-medium text-foreground">{submittedData.eixoNome}</p>
+                      </div>
+                    </div>
+                    <div className="flex items-start gap-3">
+                      <MapPin className="w-4 h-4 text-muted-foreground mt-1" />
+                      <div>
+                        <p className="text-xs text-muted-foreground">Município</p>
+                        <p className="font-medium text-foreground">{submittedData.municipioNome}</p>
+                      </div>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+
+              {/* Map */}
+              <div className="mb-6">
+                <ProposalConfirmationMap
+                  municipioNome={submittedData.municipioNome}
+                  latitude={submittedData.municipioLat}
+                  longitude={submittedData.municipioLng}
+                  eixoNome={submittedData.eixoNome}
+                  titulo={submittedData.titulo}
+                />
+              </div>
+
+              {/* CTA to Dashboard */}
+              <Link to="/dashboard" className="block mb-6">
+                <Button
+                  size="lg"
+                  className="w-full bg-emerald-600 hover:bg-emerald-500 gap-2"
+                >
+                  <ExternalLink className="w-5 h-5" />
+                  Veja o Paraná Todo
+                </Button>
+              </Link>
+
+              <div className="mb-6">
+                <p className="text-sm text-muted-foreground mb-4 flex items-center justify-center gap-2">
+                  <Share2 className="w-4 h-4" />
+                  Compartilhe com outras lideranças:
+                </p>
+                <SocialShareButtons />
+              </div>
+
+              <Button onClick={resetForm} variant="outline" size="lg" className="w-full">
+                Enviar Outra Proposta
+              </Button>
+            </div>
+          </motion.div>
+        </div>
+      </section>
+    );
+  }
 
   if (isSubmitted) {
     return (

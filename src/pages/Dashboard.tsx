@@ -32,6 +32,7 @@ import {
   Line,
   Legend,
 } from "recharts";
+import PublicParanaHeatmap from "@/components/dashboard/PublicParanaHeatmap";
 
 const proposalsByEixo = [
   { name: "Educação", propostas: 124, sugestoes: 456 },
@@ -288,6 +289,16 @@ const Dashboard = () => {
             </Card>
           </motion.div>
         </div>
+
+        {/* Heatmap Section */}
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.4, delay: 0.8 }}
+          className="mb-8"
+        >
+          <PublicParanaHeatmap />
+        </motion.div>
 
         {/* Charts Row 2 */}
         <div className="grid lg:grid-cols-3 gap-6">
