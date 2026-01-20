@@ -26,3 +26,12 @@ verify_jwt = false
 
 [functions.tse-auto-download]
 verify_jwt = false
+
+[functions.tse-import]
+verify_jwt = false
+
+[functions.tse-process-csv]
+verify_jwt = false
+
+[functions.evaluate-proposal]
+verify_jwt = false

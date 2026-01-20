@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { useAuth } from '@/hooks/useAuth';
@@ -37,14 +37,16 @@ import {
   Plus, 
   Search, 
   FileText,
-  Edit,
+  Eye,
   Trash2,
   Filter,
-  PieChart as PieChartIcon
+  MapPin
 } from 'lucide-react';
 import AdminPieChart from '@/components/admin/AdminPieChart';
 import ParanaMap from '@/components/admin/ParanaMap';
 import TimelineChart from '@/components/admin/TimelineChart';
+import { ProposalDetailModal } from '@/components/admin/ProposalDetailModal';
+import { ScoreBadge } from '@/components/admin/ScoreBadge';
 
 type ProposalStatus = 'rascunho' | 'validada' | 'consolidada' | 'aprovada';
 
@@ -79,7 +81,28 @@ interface Municipio {
   nome: string;
   latitude: number | null;
   longitude: number | null;
+  regiao: string | null;
 }
+
+interface ProposalEvaluation {
+  proposta_id: string;
+  score_total: number;
+  scores: Record<string, number>;
+  is_stale: boolean;
+}
+
+const REGIOES = [
+  'Campos Gerais',
+  'Centro Ocidental',
+  'Centro-Sul',
+  'Litoral',
+  'Metropolitana de Curitiba',
+  'Noroeste',
+  'Norte Central',
+  'Norte Pioneiro',
+  'Oeste',
+  'Sudoeste',
+];
 
 const statusColors: Record<ProposalStatus, string> = {
   rascunho: 'bg-muted text-muted-foreground',
@@ -100,6 +123,7 @@ const AdminPropostas = () => {
   const navigate = useNavigate();
   
   const [proposals, setProposals] = useState<Proposal[]>([]);
+  const [evaluations, setEvaluations] = useState<ProposalEvaluation[]>([]);
   const [eixos, setEixos] = useState<Eixo[]>([]);
   const [municipios, setMunicipios] = useState<Municipio[]>([]);
   const [lideresTecnicos, setLideresTecnicos] = useState<LiderTecnico[]>([]);
@@ -107,6 +131,12 @@ const AdminPropostas = () => {
   const [searchTerm, setSearchTerm] = useState('');
   const [filterStatus, setFilterStatus] = useState<string>('all');
   const [filterEixo, setFilterEixo] = useState<string>('all');
+  const [filterRegiao, setFilterRegiao] = useState<string>('all');
+  const [filterMunicipio, setFilterMunicipio] = useState<string>('all');
+  
+  // Modal state
+  const [selectedProposalId, setSelectedProposalId] = useState<string | null>(null);
+  const [isDetailModalOpen, setIsDetailModalOpen] = useState(false);
   
   // Form state
   const [isDialogOpen, setIsDialogOpen] = useState(false);
@@ -136,8 +166,14 @@ const AdminPropostas = () => {
       fetchEixos();
       fetchMunicipios();
       fetchLideresTecnicos();
+      fetchEvaluations();
     }
   }, [user]);
+
+  // Reset municipio filter when regiao changes
+  useEffect(() => {
+    setFilterMunicipio('all');
+  }, [filterRegiao]);
 
   const fetchProposals = async () => {
     setIsLoading(true);
@@ -155,6 +191,27 @@ const AdminPropostas = () => {
     setIsLoading(false);
   };
 
+  const fetchEvaluations = async () => {
+    const { data, error } = await supabase
+      .from('proposal_evaluations')
+      .select('proposta_id, score_total, scores, is_stale')
+      .order('created_at', { ascending: false });
+    
+    if (!error && data) {
+      // Get latest evaluation per proposal
+      const latestEvals = new Map<string, ProposalEvaluation>();
+      data.forEach(ev => {
+        if (!latestEvals.has(ev.proposta_id)) {
+          latestEvals.set(ev.proposta_id, {
+            ...ev,
+            scores: (ev.scores || {}) as Record<string, number>,
+          });
+        }
+      });
+      setEvaluations(Array.from(latestEvals.values()));
+    }
+  };
+
   const fetchEixos = async () => {
     const { data, error } = await supabase
       .from('eixos_tematicos')
@@ -168,7 +225,7 @@ const AdminPropostas = () => {
   const fetchMunicipios = async () => {
     const { data, error } = await supabase
       .from('municipios')
-      .select('id, nome, latitude, longitude');
+      .select('id, nome, latitude, longitude, regiao');
     
     if (!error && data) {
       setMunicipios(data);
@@ -176,7 +233,6 @@ const AdminPropostas = () => {
   };
 
   const fetchLideresTecnicos = async () => {
-    // Buscar usuários com role 'lider_tematico' ou 'admin'
     const { data: rolesData, error: rolesError } = await supabase
       .from('user_roles')
       .select('user_id')
@@ -196,6 +252,12 @@ const AdminPropostas = () => {
       setLideresTecnicos(profilesData);
     }
   };
+
+  // Filtered municipios based on selected region
+  const filteredMunicipioOptions = useMemo(() => {
+    if (filterRegiao === 'all') return municipios;
+    return municipios.filter(m => m.regiao === filterRegiao);
+  }, [municipios, filterRegiao]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -229,6 +291,7 @@ const AdminPropostas = () => {
         toast.success('Proposta atualizada com sucesso');
         setIsDialogOpen(false);
         fetchProposals();
+        fetchEvaluations();
       }
     } else {
       const { error } = await supabase
@@ -260,21 +323,9 @@ const AdminPropostas = () => {
     resetForm();
   };
 
-  const handleEdit = (proposal: Proposal) => {
-    setEditingProposal(proposal);
-    setFormData({
-      titulo: proposal.titulo,
-      descricao: proposal.descricao,
-      eixo_id: proposal.eixo_id,
-      municipio_id: proposal.municipio_id || '',
-      metas: proposal.metas || '',
-      indicadores: proposal.indicadores || '',
-      status: proposal.status,
-      etapa: proposal.etapa,
-      entrevistado: proposal.entrevistado || '',
-      lider_responsavel_id: proposal.lider_responsavel_id || '',
-    });
-    setIsDialogOpen(true);
+  const handleOpenDetail = (proposalId: string) => {
+    setSelectedProposalId(proposalId);
+    setIsDetailModalOpen(true);
   };
 
   const handleDelete = async (id: string) => {
@@ -309,13 +360,25 @@ const AdminPropostas = () => {
     });
   };
 
-  const filteredProposals = proposals.filter(p => {
-    const matchesSearch = p.titulo.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                          p.descricao.toLowerCase().includes(searchTerm.toLowerCase());
-    const matchesStatus = filterStatus === 'all' || p.status === filterStatus;
-    const matchesEixo = filterEixo === 'all' || p.eixo_id === filterEixo;
-    return matchesSearch && matchesStatus && matchesEixo;
-  });
+  const filteredProposals = useMemo(() => {
+    return proposals.filter(p => {
+      const matchesSearch = p.titulo.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                            p.descricao.toLowerCase().includes(searchTerm.toLowerCase());
+      const matchesStatus = filterStatus === 'all' || p.status === filterStatus;
+      const matchesEixo = filterEixo === 'all' || p.eixo_id === filterEixo;
+      
+      // Geographic filters
+      let matchesGeography = true;
+      if (filterMunicipio !== 'all') {
+        matchesGeography = p.municipio_id === filterMunicipio;
+      } else if (filterRegiao !== 'all') {
+        const municipio = municipios.find(m => m.id === p.municipio_id);
+        matchesGeography = municipio?.regiao === filterRegiao;
+      }
+      
+      return matchesSearch && matchesStatus && matchesEixo && matchesGeography;
+    });
+  }, [proposals, searchTerm, filterStatus, filterEixo, filterRegiao, filterMunicipio, municipios]);
 
   const getEixoNome = (eixoId: string) => {
     return eixos.find(e => e.id === eixoId)?.nome || 'N/A';
@@ -325,23 +388,35 @@ const AdminPropostas = () => {
     return municipios.find(m => m.id === municipioId);
   };
 
-  // Preparar dados do mapa
-  const mapMarkers = filteredProposals
-    .map(p => {
-      const municipio = getMunicipio(p.municipio_id);
-      if (!municipio?.latitude || !municipio?.longitude) return null;
-      return {
-        id: p.id,
-        latitude: municipio.latitude,
-        longitude: municipio.longitude,
-        title: p.titulo,
-        description: p.descricao,
-        status: p.status,
-        eixo: getEixoNome(p.eixo_id),
-        municipio: municipio.nome,
-      };
-    })
-    .filter((m): m is NonNullable<typeof m> => m !== null);
+  const getEvaluation = (proposalId: string) => {
+    return evaluations.find(e => e.proposta_id === proposalId);
+  };
+
+  // Prepare map markers
+  const mapMarkers = useMemo(() => {
+    return filteredProposals
+      .map(p => {
+        const municipio = getMunicipio(p.municipio_id);
+        if (!municipio?.latitude || !municipio?.longitude) return null;
+        const evaluation = getEvaluation(p.id);
+        return {
+          id: p.id,
+          latitude: municipio.latitude,
+          longitude: municipio.longitude,
+          title: p.titulo,
+          description: p.descricao,
+          status: p.status,
+          eixo: getEixoNome(p.eixo_id),
+          municipio: municipio.nome,
+          score: evaluation?.score_total,
+        };
+      })
+      .filter((m): m is NonNullable<typeof m> => m !== null);
+  }, [filteredProposals, municipios, eixos, evaluations]);
+
+  const handleMarkerClick = (markerId: string) => {
+    handleOpenDetail(markerId);
+  };
 
   if (authLoading || isLoading) {
     return (
@@ -559,42 +634,90 @@ const AdminPropostas = () => {
           {/* Filters */}
           <Card className="mb-6">
             <CardContent className="py-4">
-              <div className="flex flex-col md:flex-row gap-4">
-                <div className="flex-1 relative">
-                  <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-                  <Input
-                    placeholder="Buscar propostas..."
-                    value={searchTerm}
-                    onChange={(e) => setSearchTerm(e.target.value)}
-                    className="pl-10"
-                  />
+              <div className="flex flex-col gap-4">
+                {/* First row: search and status/eixo filters */}
+                <div className="flex flex-col md:flex-row gap-4">
+                  <div className="flex-1 relative">
+                    <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+                    <Input
+                      placeholder="Buscar propostas..."
+                      value={searchTerm}
+                      onChange={(e) => setSearchTerm(e.target.value)}
+                      className="pl-10"
+                    />
+                  </div>
+                  <Select value={filterStatus} onValueChange={setFilterStatus}>
+                    <SelectTrigger className="w-full md:w-[180px]">
+                      <Filter className="w-4 h-4 mr-2" />
+                      <SelectValue placeholder="Status" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="all">Todos os status</SelectItem>
+                      <SelectItem value="rascunho">Rascunho</SelectItem>
+                      <SelectItem value="validada">Validada</SelectItem>
+                      <SelectItem value="consolidada">Consolidada</SelectItem>
+                      <SelectItem value="aprovada">Aprovada</SelectItem>
+                    </SelectContent>
+                  </Select>
+                  <Select value={filterEixo} onValueChange={setFilterEixo}>
+                    <SelectTrigger className="w-full md:w-[200px]">
+                      <SelectValue placeholder="Eixo temático" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="all">Todos os eixos</SelectItem>
+                      {eixos.map(eixo => (
+                        <SelectItem key={eixo.id} value={eixo.id}>
+                          {eixo.nome}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
                 </div>
-                <Select value={filterStatus} onValueChange={setFilterStatus}>
-                  <SelectTrigger className="w-full md:w-[180px]">
-                    <Filter className="w-4 h-4 mr-2" />
-                    <SelectValue placeholder="Status" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="all">Todos os status</SelectItem>
-                    <SelectItem value="rascunho">Rascunho</SelectItem>
-                    <SelectItem value="validada">Validada</SelectItem>
-                    <SelectItem value="consolidada">Consolidada</SelectItem>
-                    <SelectItem value="aprovada">Aprovada</SelectItem>
-                  </SelectContent>
-                </Select>
-                <Select value={filterEixo} onValueChange={setFilterEixo}>
-                  <SelectTrigger className="w-full md:w-[200px]">
-                    <SelectValue placeholder="Eixo temático" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="all">Todos os eixos</SelectItem>
-                    {eixos.map(eixo => (
-                      <SelectItem key={eixo.id} value={eixo.id}>
-                        {eixo.nome}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
+                
+                {/* Second row: geographic filters */}
+                <div className="flex flex-col md:flex-row gap-4">
+                  <Select value={filterRegiao} onValueChange={setFilterRegiao}>
+                    <SelectTrigger className="w-full md:w-[220px]">
+                      <MapPin className="w-4 h-4 mr-2" />
+                      <SelectValue placeholder="Região" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="all">Todas as regiões</SelectItem>
+                      {REGIOES.map(regiao => (
+                        <SelectItem key={regiao} value={regiao}>
+                          {regiao}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                  <Select value={filterMunicipio} onValueChange={setFilterMunicipio}>
+                    <SelectTrigger className="w-full md:w-[220px]">
+                      <SelectValue placeholder="Município" />
+                    </SelectTrigger>
+                    <SelectContent className="max-h-[300px]">
+                      <SelectItem value="all">Todos os municípios</SelectItem>
+                      {filteredMunicipioOptions
+                        .sort((a, b) => a.nome.localeCompare(b.nome))
+                        .map(m => (
+                          <SelectItem key={m.id} value={m.id}>
+                            {m.nome}
+                          </SelectItem>
+                        ))}
+                    </SelectContent>
+                  </Select>
+                  {(filterRegiao !== 'all' || filterMunicipio !== 'all') && (
+                    <Button 
+                      variant="ghost" 
+                      size="sm"
+                      onClick={() => {
+                        setFilterRegiao('all');
+                        setFilterMunicipio('all');
+                      }}
+                    >
+                      Limpar filtros geográficos
+                    </Button>
+                  )}
+                </div>
               </div>
             </CardContent>
           </Card>
@@ -604,6 +727,7 @@ const AdminPropostas = () => {
             <ParanaMap
               markers={mapMarkers}
               title="Mapa de Propostas por Município"
+              onMarkerClick={handleMarkerClick}
             />
           </div>
 
@@ -675,49 +799,72 @@ const AdminPropostas = () => {
                       <TableRow>
                         <TableHead>Título</TableHead>
                         <TableHead>Eixo</TableHead>
+                        <TableHead>Município</TableHead>
                         <TableHead>Status</TableHead>
+                        <TableHead>Score IA</TableHead>
                         <TableHead>Etapa</TableHead>
                         <TableHead>Data</TableHead>
                         <TableHead className="text-right">Ações</TableHead>
                       </TableRow>
                     </TableHeader>
                     <TableBody>
-                      {filteredProposals.map(proposal => (
-                        <TableRow key={proposal.id}>
-                          <TableCell className="font-medium max-w-[200px] truncate">
-                            {proposal.titulo}
-                          </TableCell>
-                          <TableCell>{getEixoNome(proposal.eixo_id)}</TableCell>
-                          <TableCell>
-                            <Badge className={statusColors[proposal.status]}>
-                              {statusLabels[proposal.status]}
-                            </Badge>
-                          </TableCell>
-                          <TableCell>Etapa {proposal.etapa}</TableCell>
-                          <TableCell>
-                            {new Date(proposal.created_at).toLocaleDateString('pt-BR')}
-                          </TableCell>
-                          <TableCell className="text-right">
-                            <div className="flex justify-end gap-2">
-                              <Button
-                                variant="ghost"
-                                size="sm"
-                                onClick={() => handleEdit(proposal)}
-                              >
-                                <Edit className="w-4 h-4" />
-                              </Button>
-                              <Button
-                                variant="ghost"
-                                size="sm"
-                                onClick={() => handleDelete(proposal.id)}
-                                className="text-destructive hover:text-destructive"
-                              >
-                                <Trash2 className="w-4 h-4" />
-                              </Button>
-                            </div>
-                          </TableCell>
-                        </TableRow>
-                      ))}
+                      {filteredProposals.map(proposal => {
+                        const evaluation = getEvaluation(proposal.id);
+                        const municipio = getMunicipio(proposal.municipio_id);
+                        return (
+                          <TableRow 
+                            key={proposal.id} 
+                            className="cursor-pointer hover:bg-muted/50"
+                            onClick={() => handleOpenDetail(proposal.id)}
+                          >
+                            <TableCell className="font-medium max-w-[200px] truncate">
+                              {proposal.titulo}
+                            </TableCell>
+                            <TableCell>{getEixoNome(proposal.eixo_id)}</TableCell>
+                            <TableCell>{municipio?.nome || 'Estadual'}</TableCell>
+                            <TableCell>
+                              <Badge className={statusColors[proposal.status]}>
+                                {statusLabels[proposal.status]}
+                              </Badge>
+                            </TableCell>
+                            <TableCell>
+                              {evaluation ? (
+                                <ScoreBadge 
+                                  score={evaluation.score_total}
+                                  scores={evaluation.scores as any}
+                                  isStale={evaluation.is_stale}
+                                  size="sm"
+                                />
+                              ) : (
+                                <span className="text-muted-foreground text-sm">—</span>
+                              )}
+                            </TableCell>
+                            <TableCell>Etapa {proposal.etapa}</TableCell>
+                            <TableCell>
+                              {new Date(proposal.created_at).toLocaleDateString('pt-BR')}
+                            </TableCell>
+                            <TableCell className="text-right">
+                              <div className="flex justify-end gap-2" onClick={(e) => e.stopPropagation()}>
+                                <Button
+                                  variant="ghost"
+                                  size="sm"
+                                  onClick={() => handleOpenDetail(proposal.id)}
+                                >
+                                  <Eye className="w-4 h-4" />
+                                </Button>
+                                <Button
+                                  variant="ghost"
+                                  size="sm"
+                                  onClick={() => handleDelete(proposal.id)}
+                                  className="text-destructive hover:text-destructive"
+                                >
+                                  <Trash2 className="w-4 h-4" />
+                                </Button>
+                              </div>
+                            </TableCell>
+                          </TableRow>
+                        );
+                      })}
                     </TableBody>
                   </Table>
                 </div>
@@ -726,6 +873,19 @@ const AdminPropostas = () => {
           </Card>
         </motion.div>
       </main>
+
+      {/* Proposal Detail Modal */}
+      <ProposalDetailModal
+        open={isDetailModalOpen}
+        onOpenChange={setIsDetailModalOpen}
+        proposalId={selectedProposalId}
+        eixos={eixos}
+        municipios={municipios}
+        onProposalUpdated={() => {
+          fetchProposals();
+          fetchEvaluations();
+        }}
+      />
     </div>
   );
 };
