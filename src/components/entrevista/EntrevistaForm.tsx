@@ -21,7 +21,6 @@ import {
   Settings,
   MapPin,
   BarChart3,
-  Award,
   ChevronRight,
   ChevronLeft,
   Check,
@@ -78,11 +77,6 @@ interface QuestionarioData {
     metas_4_anos: string;
     frequencia_monitoramento: string;
   };
-  legado: {
-    mudanca_permanente: string;
-    limites_tecnicos: string;
-    observacoes_adicionais: string;
-  };
 }
 
 const initialQuestionario: QuestionarioData = {
@@ -113,15 +107,10 @@ const initialQuestionario: QuestionarioData = {
     diferencas_regionais: "",
   },
   indicadores: {
-    indicadores_sucesso: ["", "", "", ""],
+    indicadores_sucesso: [],
     situacao_atual: "",
     metas_4_anos: "",
     frequencia_monitoramento: "",
-  },
-  legado: {
-    mudanca_permanente: "",
-    limites_tecnicos: "",
-    observacoes_adicionais: "",
   },
 };
 
@@ -133,7 +122,6 @@ const steps = [
   { label: "Implementação", icon: Settings },
   { label: "Territorialização", icon: MapPin },
   { label: "Indicadores", icon: BarChart3 },
-  { label: "Legado", icon: Award },
 ];
 
 const caracterizacaoOptions = [
@@ -172,6 +160,116 @@ const frequenciaOptions = [
   { value: "semestral", label: "Semestral" },
   { value: "anual", label: "Anual" },
 ];
+
+// Indicadores pré-definidos por eixo temático
+const indicadoresPorEixo: Record<string, Array<{ value: string; label: string }>> = {
+  // Segurança Pública
+  "50826d24-2b92-4f3b-8bf9-a3c5b7360349": [
+    { value: "taxa_homicidios", label: "Taxa de homicídios por 100 mil habitantes" },
+    { value: "tempo_resposta_policial", label: "Tempo médio de resposta policial (minutos)" },
+    { value: "indice_resolucao_crimes", label: "Índice de resolução de crimes (%)" },
+    { value: "taxa_reincidencia", label: "Taxa de reincidência criminal (%)" },
+    { value: "cobertura_videomonitoramento", label: "Cobertura de videomonitoramento urbano (%)" },
+    { value: "efetivo_policial", label: "Efetivo policial por 10 mil habitantes" },
+    { value: "ocorrencias_roubo_furto", label: "Taxa de roubos e furtos por 100 mil hab." },
+    { value: "feminicidios", label: "Taxa de feminicídios por 100 mil mulheres" },
+    { value: "apreensoes_drogas", label: "Volume de apreensões de drogas (kg)" },
+    { value: "presos_provisorios", label: "Percentual de presos provisórios (%)" },
+  ],
+  // Saúde
+  "4bd229a4-69c2-4849-8314-0aaf5e0047e9": [
+    { value: "leitos_uti", label: "Leitos UTI por 100 mil habitantes" },
+    { value: "tempo_espera_consulta", label: "Tempo médio de espera para consulta (dias)" },
+    { value: "mortalidade_infantil", label: "Taxa de mortalidade infantil" },
+    { value: "cobertura_vacinal", label: "Cobertura vacinal infantil (%)" },
+    { value: "tempo_atendimento_upa", label: "Tempo médio atendimento UPA (minutos)" },
+    { value: "cobertura_aps", label: "Cobertura da Atenção Primária (%)" },
+    { value: "fila_exames_imagem", label: "Fila de espera exames de imagem" },
+    { value: "mortalidade_materna", label: "Taxa de mortalidade materna" },
+    { value: "fila_cirurgias_eletivas", label: "Fila de cirurgias eletivas" },
+    { value: "dispensacao_medicamentos", label: "Taxa de dispensação de medicamentos (%)" },
+  ],
+  // Educação
+  "221a18d4-fbb7-49e8-9969-6c7549a55259": [
+    { value: "ideb_fundamental", label: "IDEB Ensino Fundamental" },
+    { value: "ideb_medio", label: "IDEB Ensino Médio" },
+    { value: "taxa_evasao", label: "Taxa de evasão escolar (%)" },
+    { value: "alunos_por_turma", label: "Média de alunos por turma" },
+    { value: "escolas_internet", label: "Escolas com internet de alta velocidade (%)" },
+    { value: "alfabetizacao_3ano", label: "Taxa de alfabetização no 3º ano (%)" },
+    { value: "professores_qualificados", label: "Professores com pós-graduação (%)" },
+    { value: "cobertura_creches", label: "Cobertura de creches (%)" },
+    { value: "ensino_integral", label: "Alunos em ensino integral (%)" },
+    { value: "escolas_acessiveis", label: "Escolas com acessibilidade (%)" },
+  ],
+  // Infraestrutura
+  "b5f244a1-3669-4d8d-9295-42353b85c7b4": [
+    { value: "rodovias_pavimentadas", label: "Km de rodovias pavimentadas" },
+    { value: "saneamento_basico", label: "Cobertura de saneamento básico (%)" },
+    { value: "obras_prazo", label: "Obras concluídas dentro do prazo (%)" },
+    { value: "acidentes_rodovias", label: "Taxa de acidentes em rodovias" },
+    { value: "agua_tratada", label: "Cobertura de água tratada (%)" },
+    { value: "fim_congestionamentos", label: "Redução de congestionamentos urbanos (%)" },
+    { value: "valorizacao_imobiliaria", label: "Índice de valorização imobiliária (%)" },
+    { value: "desvio_trafego_urbano", label: "Desvio de tráfego pesado do perímetro urbano (%)" },
+    { value: "transporte_publico", label: "Cobertura do transporte público (%)" },
+    { value: "ciclovia_urbana", label: "Km de ciclovias urbanas" },
+    { value: "pontes_viadutos", label: "Pontes e viadutos em bom estado (%)" },
+    { value: "iluminacao_publica", label: "Cobertura de iluminação pública LED (%)" },
+  ],
+  // Economia e Turismo
+  "1cb21b1b-fd78-4785-a631-88b7c66d46df": [
+    { value: "pib_per_capita", label: "PIB per capita (R$)" },
+    { value: "taxa_desemprego", label: "Taxa de desemprego (%)" },
+    { value: "empresas_formais", label: "Número de empresas formais" },
+    { value: "receita_turistica", label: "Receita turística anual (R$)" },
+    { value: "exportacoes", label: "Volume de exportações (US$)" },
+    { value: "empregos_formais", label: "Saldo de empregos formais" },
+    { value: "microcredito", label: "Operações de microcrédito" },
+    { value: "parques_industriais", label: "Ocupação de parques industriais (%)" },
+    { value: "eventos_turisticos", label: "Eventos turísticos realizados" },
+    { value: "leitos_hoteleiros", label: "Taxa de ocupação hoteleira (%)" },
+  ],
+  // Agricultura e Meio Ambiente
+  "4deea637-1f75-44b9-a297-9bfc3848d2a1": [
+    { value: "area_preservada", label: "Área preservada (hectares)" },
+    { value: "producao_agricola", label: "Produção agrícola (toneladas)" },
+    { value: "emissoes_co2", label: "Emissões de CO2 per capita" },
+    { value: "coleta_seletiva", label: "Cobertura de coleta seletiva (%)" },
+    { value: "licencas_ambientais", label: "Licenças ambientais emitidas" },
+    { value: "desmatamento", label: "Taxa de desmatamento (%)" },
+    { value: "recursos_hidricos", label: "Qualidade dos recursos hídricos (IQA)" },
+    { value: "agricultura_familiar", label: "Famílias na agricultura familiar" },
+    { value: "producao_organicos", label: "Produção de orgânicos (toneladas)" },
+    { value: "reflorestamento", label: "Área reflorestada (hectares)" },
+  ],
+  // Desenvolvimento Social
+  "e255035c-79b6-4543-96d7-933dc95f7feb": [
+    { value: "indice_gini", label: "Índice de Gini" },
+    { value: "familias_cadunico", label: "Famílias no CadÚnico" },
+    { value: "extrema_pobreza", label: "Taxa de extrema pobreza (%)" },
+    { value: "cobertura_cras", label: "Cobertura CRAS (%)" },
+    { value: "beneficiarios_bpc", label: "Beneficiários BPC" },
+    { value: "habitacao_popular", label: "Unidades habitacionais entregues" },
+    { value: "seguranca_alimentar", label: "Famílias em segurança alimentar (%)" },
+    { value: "jovens_programas", label: "Jovens em programas sociais" },
+    { value: "idosos_atendidos", label: "Idosos atendidos em centros-dia" },
+    { value: "mulheres_assistidas", label: "Mulheres em situação de violência assistidas" },
+  ],
+  // Tecnologia e Inovação
+  "cdf5fbb1-8257-4a88-8fe1-5b0ac535c5f8": [
+    { value: "internet_fibra", label: "Cobertura de internet fibra (%)" },
+    { value: "patentes", label: "Patentes registradas" },
+    { value: "startups", label: "Startups ativas" },
+    { value: "investimento_pd", label: "Investimento em P&D (R$)" },
+    { value: "empregos_tech", label: "Empregos no setor de tecnologia" },
+    { value: "governo_digital", label: "Serviços públicos digitalizados (%)" },
+    { value: "cobertura_5g", label: "Cobertura 5G (%)" },
+    { value: "incubadoras", label: "Empresas em incubadoras" },
+    { value: "hackathons", label: "Hackathons e eventos de inovação" },
+    { value: "cursos_ti", label: "Alunos em cursos de TI" },
+  ],
+};
 
 const EntrevistaForm = () => {
   const { user } = useAuth();
@@ -220,6 +318,19 @@ const EntrevistaForm = () => {
       }));
     }
   }, [questionario.propostas.propostas_estruturantes]);
+
+  // Reset indicadores when eixo changes
+  useEffect(() => {
+    if (eixoId) {
+      setQuestionario(prev => ({
+        ...prev,
+        indicadores: {
+          ...prev.indicadores,
+          indicadores_sucesso: [],
+        },
+      }));
+    }
+  }, [eixoId]);
 
   const fetchEixos = async () => {
     const { data, error } = await supabase
@@ -322,20 +433,12 @@ const EntrevistaForm = () => {
         return true;
 
       case 6: // Indicadores
-        const indicadoresPreenchidos = questionario.indicadores.indicadores_sucesso.filter(i => i.trim()).length;
-        if (indicadoresPreenchidos < 2) {
-          toast.error("Informe ao menos 2 indicadores de sucesso");
+        if (questionario.indicadores.indicadores_sucesso.length < 2) {
+          toast.error("Selecione ao menos 2 indicadores de sucesso");
           return false;
         }
         if (!questionario.indicadores.frequencia_monitoramento) {
           toast.error("Selecione a frequência de monitoramento");
-          return false;
-        }
-        return true;
-
-      case 7: // Legado
-        if (!questionario.legado.mudanca_permanente.trim()) {
-          toast.error("Descreva a mudança permanente esperada");
           return false;
         }
         return true;
@@ -358,7 +461,12 @@ const EntrevistaForm = () => {
       const titulo = questionario.objetivos.objetivo_estrategico.substring(0, 200);
       const descricao = questionario.diagnostico.problema_estrutural;
       const metas = questionario.indicadores.metas_4_anos;
-      const indicadores = questionario.indicadores.indicadores_sucesso.filter(i => i.trim()).join("\n");
+      
+      // Convert selected indicator values to labels for storage
+      const indicadoresDisponiveis = indicadoresPorEixo[eixoId] || [];
+      const indicadoresLabels = questionario.indicadores.indicadores_sucesso
+        .map(value => indicadoresDisponiveis.find(i => i.value === value)?.label || value)
+        .join("\n");
 
       const questionarioCompleto = {
         ...questionario,
@@ -377,7 +485,7 @@ const EntrevistaForm = () => {
         titulo,
         descricao,
         metas,
-        indicadores,
+        indicadores: indicadoresLabels,
         questionario: JSON.parse(JSON.stringify(questionarioCompleto)),
         status: "rascunho" as const,
         etapa: 1,
@@ -458,6 +566,27 @@ const EntrevistaForm = () => {
         },
       };
     });
+  };
+
+  const selectAllIndicadores = () => {
+    const indicadoresDisponiveis = indicadoresPorEixo[eixoId] || [];
+    setQuestionario(prev => ({
+      ...prev,
+      indicadores: {
+        ...prev.indicadores,
+        indicadores_sucesso: indicadoresDisponiveis.map(i => i.value),
+      },
+    }));
+  };
+
+  const clearAllIndicadores = () => {
+    setQuestionario(prev => ({
+      ...prev,
+      indicadores: {
+        ...prev.indicadores,
+        indicadores_sucesso: [],
+      },
+    }));
   };
 
   if (isSubmitted) {
@@ -918,26 +1047,68 @@ const EntrevistaForm = () => {
         );
 
       case 6:
+        const indicadoresDisponiveis = indicadoresPorEixo[eixoId] || [];
         return (
           <div className="space-y-6">
             <div>
               <Label className="text-white mb-2 block">
-                <span className="text-primary font-semibold">Q17.</span> Quais indicadores simples podem medir o sucesso deste eixo? *
+                <span className="text-primary font-semibold">Q17.</span> Quais indicadores podem medir o sucesso deste eixo? *
               </Label>
-              <p className="text-xs text-gray-400 mb-2">Liste de 2 a 4 indicadores.</p>
-              <div className="space-y-3">
-                {[0, 1, 2, 3].map((index) => (
-                  <div key={index} className="flex gap-2 items-center">
-                    <span className="text-primary font-semibold w-24">Indicador {index + 1}:</span>
-                    <Input
-                      value={questionario.indicadores.indicadores_sucesso[index]}
-                      onChange={(e) => updateArrayItem("indicadores", "indicadores_sucesso", index, e.target.value)}
-                      placeholder={index < 2 ? `Indicador ${index + 1} *` : `Indicador ${index + 1} (opcional)`}
-                      className="bg-gray-900 border-gray-700 text-white flex-1"
-                    />
+              <p className="text-xs text-gray-400 mb-3">
+                Selecione os indicadores mencionados pelo entrevistado (mínimo 2).
+              </p>
+
+              {indicadoresDisponiveis.length > 0 ? (
+                <>
+                  <div className="flex gap-2 mb-4">
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      onClick={selectAllIndicadores}
+                      className="border-gray-600 text-gray-300 hover:bg-gray-800"
+                    >
+                      Selecionar Todos
+                    </Button>
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      onClick={clearAllIndicadores}
+                      className="border-gray-600 text-gray-300 hover:bg-gray-800"
+                    >
+                      Limpar Seleção
+                    </Button>
                   </div>
-                ))}
-              </div>
+
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-2 max-h-[300px] overflow-y-auto p-2 bg-gray-800/30 rounded-lg border border-gray-700">
+                    {indicadoresDisponiveis.map((ind) => (
+                      <div key={ind.value} className="flex items-start gap-2 py-1">
+                        <Checkbox
+                          id={`ind-${ind.value}`}
+                          checked={questionario.indicadores.indicadores_sucesso.includes(ind.value)}
+                          onCheckedChange={() => toggleCheckbox("indicadores", "indicadores_sucesso", ind.value)}
+                          className="border-gray-600 mt-0.5"
+                        />
+                        <Label
+                          htmlFor={`ind-${ind.value}`}
+                          className="text-gray-300 cursor-pointer text-sm leading-tight"
+                        >
+                          {ind.label}
+                        </Label>
+                      </div>
+                    ))}
+                  </div>
+
+                  <p className="text-sm text-gray-500 mt-2">
+                    {questionario.indicadores.indicadores_sucesso.length} indicador(es) selecionado(s)
+                  </p>
+                </>
+              ) : (
+                <div className="p-4 bg-gray-800/50 rounded-lg border border-gray-700 text-gray-400 text-sm">
+                  Selecione um eixo temático na etapa de Identificação para ver os indicadores disponíveis.
+                </div>
+              )}
             </div>
 
             <div>
@@ -988,50 +1159,6 @@ const EntrevistaForm = () => {
                   </div>
                 ))}
               </RadioGroup>
-            </div>
-          </div>
-        );
-
-      case 7:
-        return (
-          <div className="space-y-6">
-            <div>
-              <Label className="text-white mb-2 block">
-                <span className="text-primary font-semibold">Q21.</span> O que muda de forma permanente no Estado se este eixo for bem executado? *
-              </Label>
-              <p className="text-xs text-gray-400 mb-2">Descreva o legado institucional e estrutural.</p>
-              <Textarea
-                value={questionario.legado.mudanca_permanente}
-                onChange={(e) => updateQuestionario("legado", "mudanca_permanente", e.target.value)}
-                placeholder="Mudança permanente esperada..."
-                className="bg-gray-900 border-gray-700 text-white min-h-[100px]"
-              />
-            </div>
-
-            <div>
-              <Label className="text-white mb-2 block">
-                <span className="text-primary font-semibold">Q22.</span> O que não deve ser feito neste eixo, mesmo sob pressão política?
-              </Label>
-              <p className="text-xs text-gray-400 mb-2">Limites técnicos, legais ou estratégicos.</p>
-              <Textarea
-                value={questionario.legado.limites_tecnicos}
-                onChange={(e) => updateQuestionario("legado", "limites_tecnicos", e.target.value)}
-                placeholder="Limites e restrições..."
-                className="bg-gray-900 border-gray-700 text-white min-h-[100px]"
-              />
-            </div>
-
-            <div>
-              <Label className="text-white mb-2 block">
-                <span className="text-primary font-semibold">Q23.</span> Há alguma observação técnica adicional relevante?
-              </Label>
-              <p className="text-xs text-gray-400 mb-2">Campo livre para complementar informações importantes.</p>
-              <Textarea
-                value={questionario.legado.observacoes_adicionais}
-                onChange={(e) => updateQuestionario("legado", "observacoes_adicionais", e.target.value)}
-                placeholder="Observações adicionais..."
-                className="bg-gray-900 border-gray-700 text-white min-h-[100px]"
-              />
             </div>
           </div>
         );
@@ -1165,7 +1292,7 @@ const EntrevistaForm = () => {
                 <ul className="space-y-3 text-sm text-gray-400">
                   <li className="flex gap-2">
                     <Check className="w-4 h-4 text-primary mt-0.5 flex-shrink-0" />
-                    <span>23 perguntas estruturadas para análise comparativa</span>
+                    <span>20 perguntas estruturadas para análise comparativa</span>
                   </li>
                   <li className="flex gap-2">
                     <Check className="w-4 h-4 text-primary mt-0.5 flex-shrink-0" />
@@ -1193,8 +1320,7 @@ const EntrevistaForm = () => {
                   {currentStep === 3 && "Propostas estruturantes são aquelas que promovem mudança sistêmica, não apenas ações pontuais."}
                   {currentStep === 4 && "Seja específico sobre ações e dependências. Identifique riscos reais, não genéricos."}
                   {currentStep === 5 && "Considere as diferenças entre regiões do Paraná na implementação das propostas."}
-                  {currentStep === 6 && "Indicadores devem ser simples de medir e comunicar. Evite métricas complexas."}
-                  {currentStep === 7 && "Pense no legado: o que permanece após o mandato? Quais são os limites éticos e técnicos?"}
+                  {currentStep === 6 && "Selecione os indicadores que o entrevistado mencionou como relevantes para medir o sucesso."}
                 </p>
               </div>
 
