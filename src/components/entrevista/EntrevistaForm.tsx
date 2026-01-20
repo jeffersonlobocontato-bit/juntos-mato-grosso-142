@@ -73,6 +73,7 @@ interface QuestionarioData {
   };
   indicadores: {
     indicadores_sucesso: string[];
+    outros_indicadores: string;
     situacao_atual: string;
     metas_4_anos: string;
     frequencia_monitoramento: string;
@@ -108,6 +109,7 @@ const initialQuestionario: QuestionarioData = {
   },
   indicadores: {
     indicadores_sucesso: [],
+    outros_indicadores: "",
     situacao_atual: "",
     metas_4_anos: "",
     frequencia_monitoramento: "",
@@ -464,9 +466,14 @@ const EntrevistaForm = () => {
       
       // Convert selected indicator values to labels for storage
       const indicadoresDisponiveis = indicadoresPorEixo[eixoId] || [];
-      const indicadoresLabels = questionario.indicadores.indicadores_sucesso
+      let indicadoresLabels = questionario.indicadores.indicadores_sucesso
         .map(value => indicadoresDisponiveis.find(i => i.value === value)?.label || value)
         .join("\n");
+      
+      // Append custom indicators if provided
+      if (questionario.indicadores.outros_indicadores.trim()) {
+        indicadoresLabels += (indicadoresLabels ? "\n" : "") + questionario.indicadores.outros_indicadores.trim();
+      }
 
       const questionarioCompleto = {
         ...questionario,
@@ -1109,6 +1116,18 @@ const EntrevistaForm = () => {
                   Selecione um eixo temático na etapa de Identificação para ver os indicadores disponíveis.
                 </div>
               )}
+            </div>
+
+            <div className="mt-4">
+              <Label className="text-gray-300 mb-2 block text-sm">
+                Outros indicadores (não listados acima):
+              </Label>
+              <Textarea
+                value={questionario.indicadores.outros_indicadores}
+                onChange={(e) => updateQuestionario("indicadores", "outros_indicadores", e.target.value)}
+                placeholder="Digite indicadores adicionais mencionados pelo entrevistado, separados por vírgula..."
+                className="bg-gray-900 border-gray-700 text-white min-h-[60px]"
+              />
             </div>
 
             <div>
