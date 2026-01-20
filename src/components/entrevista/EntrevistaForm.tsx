@@ -274,7 +274,7 @@ const indicadoresPorEixo: Record<string, Array<{ value: string; label: string }>
 };
 
 const EntrevistaForm = () => {
-  const { user } = useAuth();
+  const { user, isAdminMaster } = useAuth();
   const [currentStep, setCurrentStep] = useState(0);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isSubmitted, setIsSubmitted] = useState(false);
@@ -371,6 +371,11 @@ const EntrevistaForm = () => {
   };
 
   const validateCurrentStep = (): boolean => {
+    // Admin Master pode avançar sem preencher campos obrigatórios (para visualização do formulário completo)
+    if (isAdminMaster) {
+      return true;
+    }
+    
     switch (currentStep) {
       case 0: // Identificação
         if (!entrevistado.trim()) {
