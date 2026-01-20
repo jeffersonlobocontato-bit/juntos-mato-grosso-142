@@ -58,7 +58,7 @@ Deno.serve(async (req) => {
       );
     }
 
-    const { proposalId } = await req.json();
+    const { proposalId, sources } = await req.json();
 
     if (!proposalId) {
       return new Response(
@@ -68,6 +68,7 @@ Deno.serve(async (req) => {
     }
 
     console.log(`Evaluating proposal: ${proposalId}`);
+    console.log('Source filters:', sources ? JSON.stringify(sources) : 'all sources');
 
     // 1. Fetch proposal with relations
     const { data: proposal, error: proposalError } = await supabase
@@ -88,46 +89,80 @@ Deno.serve(async (req) => {
       );
     }
 
-    // 2. Fetch technical documents (PELTI, studies, etc.)
-    const { data: documents } = await supabase
-      .from('ai_documents')
-      .select('id, title, content, doc_category, description')
-      .eq('is_active', true)
-      .in('doc_category', ['documento_tecnico', 'plano_governo', 'promessa'])
-      .limit(10);
-
-    // 3. Fetch popular suggestions related to the same eixo/municipio
-    let suggestionsQuery = supabase
-      .from('sugestoes_populares')
-      .select('descricao, eixo, municipio')
-      .limit(20);
-
-    if (proposal.eixos_tematicos?.nome) {
-      suggestionsQuery = suggestionsQuery.ilike('eixo', `%${proposal.eixos_tematicos.nome}%`);
+    // 2. Fetch technical documents based on source filter
+    let documents: any[] = [];
+    if (!sources || !sources.documentIds || sources.documentIds.length > 0) {
+      let docsQuery = supabase
+        .from('ai_documents')
+        .select('id, title, content, doc_category, description')
+        .eq('is_active', true);
+      
+      if (sources?.documentIds && sources.documentIds.length > 0) {
+        // Filter by specific document IDs
+        docsQuery = docsQuery.in('id', sources.documentIds);
+      } else {
+        // Default: get all relevant categories
+        docsQuery = docsQuery
+          .in('doc_category', ['documento_tecnico', 'plano_governo', 'promessa'])
+          .limit(10);
+      }
+      
+      const { data: docsData } = await docsQuery;
+      documents = docsData || [];
     }
+    console.log(`Fetched ${documents.length} documents`);
 
-    const { data: suggestions } = await suggestionsQuery;
+    // 3. Fetch popular suggestions based on source filter
+    let suggestions: any[] = [];
+    if (!sources || sources.includeSugestoes !== false) {
+      let suggestionsQuery = supabase
+        .from('sugestoes_populares')
+        .select('descricao, eixo, municipio')
+        .limit(20);
 
-    // 4. Fetch electoral research data
-    const { data: pesquisas } = await supabase
-      .from('pesquisas_eleitorais')
-      .select('titulo, instituto, content, abrangencia')
-      .eq('is_active', true)
-      .eq('status', 'ativa')
-      .limit(5);
+      if (proposal.eixos_tematicos?.nome) {
+        suggestionsQuery = suggestionsQuery.ilike('eixo', `%${proposal.eixos_tematicos.nome}%`);
+      }
+
+      const { data: suggestionsData } = await suggestionsQuery;
+      suggestions = suggestionsData || [];
+    }
+    console.log(`Fetched ${suggestions.length} suggestions (includeSugestoes: ${sources?.includeSugestoes ?? true})`);
+
+    // 4. Fetch electoral research based on source filter
+    let pesquisas: any[] = [];
+    if (!sources || !sources.pesquisaIds || sources.pesquisaIds.length > 0) {
+      let pesquisasQuery = supabase
+        .from('pesquisas_eleitorais')
+        .select('titulo, instituto, content, abrangencia')
+        .eq('is_active', true)
+        .eq('status', 'ativa');
+      
+      if (sources?.pesquisaIds && sources.pesquisaIds.length > 0) {
+        // Filter by specific pesquisa IDs
+        pesquisasQuery = pesquisasQuery.in('id', sources.pesquisaIds);
+      } else {
+        // Default: limit to 5
+        pesquisasQuery = pesquisasQuery.limit(5);
+      }
+      
+      const { data: pesquisasData } = await pesquisasQuery;
+      pesquisas = pesquisasData || [];
+    }
+    console.log(`Fetched ${pesquisas.length} pesquisas`);
 
     // Build context for AI
-    const documentContext = documents?.map(d => 
+    const documentContext = documents.map(d => 
       `### ${d.title} (${d.doc_category})\n${d.content?.substring(0, 2000) || d.description || ''}`
-    ).join('\n\n') || 'Nenhum documento técnico disponível.';
+    ).join('\n\n') || 'Nenhum documento técnico selecionado.';
 
-    const suggestionsContext = suggestions?.map(s => 
+    const suggestionsContext = suggestions.map(s => 
       `- [${s.eixo}/${s.municipio}]: ${s.descricao}`
-    ).join('\n') || 'Nenhuma sugestão popular encontrada.';
+    ).join('\n') || 'Sugestões populares não incluídas nesta análise.';
 
-    const pesquisasContext = pesquisas?.map(p => 
+    const pesquisasContext = pesquisas.map(p => 
       `### ${p.titulo} (${p.instituto})\n${p.content?.substring(0, 1000) || p.abrangencia || ''}`
-    ).join('\n\n') || 'Nenhuma pesquisa disponível.';
+    ).join('\n\n') || 'Nenhuma pesquisa eleitoral selecionada.';
 
     const questionarioText = proposal.questionario 
       ? JSON.stringify(proposal.questionario, null, 2)

@@ -11,9 +11,10 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { ScoreBadge } from "./ScoreBadge";
 import { EvaluationBreakdown } from "./EvaluationBreakdown";
+import { EvaluationSourceSelector, SourceSelection } from "./EvaluationSourceSelector";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
-import { Edit, Save, X, FileText, Brain, Info } from "lucide-react";
+import { Edit, Save, X, FileText, Brain, Info, Settings2 } from "lucide-react";
 import type { Json } from "@/integrations/supabase/types";
 
 interface Proposal {
@@ -131,6 +132,12 @@ export const ProposalDetailModal = ({
   const [isLoading, setIsLoading] = useState(false);
   const [isEvaluating, setIsEvaluating] = useState(false);
   const [editData, setEditData] = useState<Partial<Proposal>>({});
+  const [showSourceSelector, setShowSourceSelector] = useState(false);
+  const [sourceSelection, setSourceSelection] = useState<SourceSelection>({
+    documentIds: [],
+    includeSugestoes: true,
+    pesquisaIds: [],
+  });
 
   useEffect(() => {
     if (open && proposalId) {
@@ -216,13 +223,30 @@ export const ProposalDetailModal = ({
     setIsEvaluating(true);
 
     try {
+      const hasSourcesSelected = 
+        sourceSelection.documentIds.length > 0 || 
+        sourceSelection.includeSugestoes || 
+        sourceSelection.pesquisaIds.length > 0;
+
+      const body: Record<string, unknown> = { proposalId };
+      
+      // Only send sources if user has configured the selector
+      if (showSourceSelector && hasSourcesSelected) {
+        body.sources = {
+          documentIds: sourceSelection.documentIds,
+          includeSugestoes: sourceSelection.includeSugestoes,
+          pesquisaIds: sourceSelection.pesquisaIds,
+        };
+      }
+
       const { data, error } = await supabase.functions.invoke('evaluate-proposal', {
-        body: { proposalId },
+        body,
       });
 
       if (error) throw error;
 
       toast.success('Avaliação gerada com sucesso');
+      setShowSourceSelector(false);
       fetchEvaluation();
     } catch (error) {
       console.error('Erro ao avaliar:', error);
@@ -554,31 +578,77 @@ export const ProposalDetailModal = ({
 
           <TabsContent value="avaliacao" className="m-0 mt-4 data-[state=active]:block hidden">
             <ScrollArea className="h-[calc(90vh-180px)]">
-              <div className="pr-4">
-                {evaluation ? (
-                  <EvaluationBreakdown
-                    scoreTotal={evaluation.score_total}
-                    scores={evaluation.scores}
-                    justificativa={evaluation.justificativa || undefined}
-                    pontosFortes={evaluation.pontos_fortes || undefined}
-                    pontosAtencao={evaluation.pontos_atencao || undefined}
-                    fontesCruzadas={evaluation.fontes_cruzadas || undefined}
-                    isStale={evaluation.is_stale}
-                    evaluatedAt={evaluation.evaluated_at}
-                    onRefresh={handleEvaluate}
-                    isLoading={isEvaluating}
-                  />
-                ) : (
+              <div className="pr-4 space-y-4">
+                {/* Source Selector Toggle */}
+                {(showSourceSelector || !evaluation) && (
+                  <Card>
+                    <CardHeader className="py-3">
+                      <CardTitle className="text-sm font-medium flex items-center gap-2">
+                        <Settings2 className="h-4 w-4" />
+                        Configurar Fontes para Cruzamento
+                      </CardTitle>
+                    </CardHeader>
+                    <CardContent className="pt-0">
+                      <EvaluationSourceSelector
+                        eixoId={proposal?.eixo_id}
+                        selection={sourceSelection}
+                        onSelectionChange={setSourceSelection}
+                      />
+                      <div className="flex gap-2 mt-4">
+                        <Button 
+                          onClick={handleEvaluate} 
+                          disabled={isEvaluating}
+                          className="flex-1"
+                        >
+                          <Brain className="h-4 w-4 mr-2" />
+                          {isEvaluating ? 'Avaliando...' : 'Gerar Avaliação'}
+                        </Button>
+                        {evaluation && (
+                          <Button 
+                            variant="outline" 
+                            onClick={() => setShowSourceSelector(false)}
+                          >
+                            Cancelar
+                          </Button>
+                        )}
+                      </div>
+                    </CardContent>
+                  </Card>
+                )}
+
+                {/* Existing Evaluation */}
+                {evaluation && !showSourceSelector ? (
+                  <>
+                    <div className="flex justify-end">
+                      <Button 
+                        variant="outline" 
+                        size="sm"
+                        onClick={() => setShowSourceSelector(true)}
+                      >
+                        <Settings2 className="h-4 w-4 mr-2" />
+                        Nova Avaliação com Fontes Personalizadas
+                      </Button>
+                    </div>
+                    <EvaluationBreakdown
+                      scoreTotal={evaluation.score_total}
+                      scores={evaluation.scores}
+                      justificativa={evaluation.justificativa || undefined}
+                      pontosFortes={evaluation.pontos_fortes || undefined}
+                      pontosAtencao={evaluation.pontos_atencao || undefined}
+                      fontesCruzadas={evaluation.fontes_cruzadas || undefined}
+                      isStale={evaluation.is_stale}
+                      evaluatedAt={evaluation.evaluated_at}
+                      onRefresh={handleEvaluate}
+                      isLoading={isEvaluating}
+                    />
+                  </>
+                ) : !showSourceSelector && (
                   <div className="text-center py-12">
                     <Brain className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
                     <h3 className="text-lg font-medium mb-2">Nenhuma avaliação encontrada</h3>
                     <p className="text-muted-foreground mb-4">
-                      Gere uma avaliação de IA para analisar a relevância técnica desta proposta.
+                      Configure as fontes acima e gere uma avaliação de IA.
                     </p>
-                    <Button onClick={handleEvaluate} disabled={isEvaluating}>
-                      <Brain className="h-4 w-4 mr-2" />
-                      {isEvaluating ? 'Avaliando...' : 'Gerar Avaliação'}
-                    </Button>
                   </div>
                 )}
               </div>
