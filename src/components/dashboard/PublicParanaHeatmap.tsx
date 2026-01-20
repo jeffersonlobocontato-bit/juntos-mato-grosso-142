@@ -230,18 +230,93 @@ const PublicParanaHeatmap = () => {
       },
     });
 
+    // Add marker styles once
+    if (!document.getElementById("heatmap-marker-style")) {
+      const markerStyle = document.createElement("style");
+      markerStyle.id = "heatmap-marker-style";
+      markerStyle.textContent = `
+        .heatmap-marker-inner {
+          width: 100%;
+          height: 100%;
+          position: relative;
+          transition: transform 0.2s ease;
+        }
+        .heatmap-marker-pulse {
+          position: absolute;
+          top: 50%;
+          left: 50%;
+          width: 100%;
+          height: 100%;
+          border-radius: 50%;
+          background-color: rgba(16, 185, 129, 0.4);
+          transform: translate(-50%, -50%);
+          animation: heatmap-pulse 2s ease-in-out infinite;
+          pointer-events: none;
+        }
+        .heatmap-marker-dot {
+          position: absolute;
+          top: 50%;
+          left: 50%;
+          width: 60%;
+          height: 60%;
+          border-radius: 50%;
+          background-color: rgba(16, 185, 129, 0.8);
+          border: 2px solid rgba(255, 255, 255, 0.6);
+          transform: translate(-50%, -50%);
+          pointer-events: none;
+        }
+        .heatmap-marker-inner:hover .heatmap-marker-dot {
+          background-color: rgba(16, 185, 129, 1);
+        }
+        @keyframes heatmap-pulse {
+          0%, 100% {
+            transform: translate(-50%, -50%) scale(1);
+            opacity: 0.6;
+          }
+          50% {
+            transform: translate(-50%, -50%) scale(1.5);
+            opacity: 0.2;
+          }
+        }
+        .heatmap-popup .mapboxgl-popup-content {
+          background: rgba(0, 0, 0, 0.9);
+          border: 1px solid rgba(255, 255, 255, 0.1);
+          border-radius: 10px;
+          padding: 0;
+          box-shadow: 0 10px 40px rgba(0, 0, 0, 0.5);
+        }
+        .heatmap-popup .mapboxgl-popup-tip {
+          border-top-color: rgba(0, 0, 0, 0.9);
+        }
+      `;
+      document.head.appendChild(markerStyle);
+    }
+
     // Add markers on top for hover tooltips
     aggregatedMarkers.forEach((marker) => {
-      const size = Math.min(12 + marker.total * 2, 30);
+      const size = Math.min(16 + marker.total * 3, 40);
       
+      // Container element (Mapbox controls this)
       const el = document.createElement("div");
       el.style.width = `${size}px`;
       el.style.height = `${size}px`;
-      el.style.borderRadius = "50%";
-      el.style.backgroundColor = "rgba(16, 185, 129, 0.6)";
-      el.style.border = "2px solid rgba(255, 255, 255, 0.5)";
-      el.style.cursor = "default";
-      el.style.transition = "transform 0.2s, background-color 0.2s";
+      el.style.cursor = "pointer";
+
+      // Inner element (we control this for animations)
+      const inner = document.createElement("div");
+      inner.className = "heatmap-marker-inner";
+
+      // Pulse ring
+      const pulseRing = document.createElement("div");
+      pulseRing.className = "heatmap-marker-pulse";
+
+      // Center dot
+      const dot = document.createElement("div");
+      dot.className = "heatmap-marker-dot";
+
+      inner.appendChild(pulseRing);
+      inner.appendChild(dot);
+      el.appendChild(inner);
 
       // Create popup content
       const eixosList = marker.eixos
@@ -281,43 +356,21 @@ const PublicParanaHeatmap = () => {
         anchor: "center",
       })
         .setLngLat([marker.longitude, marker.latitude])
-        .setPopup(popup)
         .addTo(map);
 
-      // Show popup on hover
+      // Show popup on hover - apply transform to inner element only
       el.addEventListener("mouseenter", () => {
-        el.style.transform = "scale(1.3)";
-        el.style.backgroundColor = "rgba(16, 185, 129, 0.9)";
-        mapboxMarker.togglePopup();
+        inner.style.transform = "scale(1.3)";
+        popup.setLngLat([marker.longitude, marker.latitude]).addTo(map);
       });
 
       el.addEventListener("mouseleave", () => {
-        el.style.transform = "scale(1)";
-        el.style.backgroundColor = "rgba(16, 185, 129, 0.6)";
-        mapboxMarker.togglePopup();
+        inner.style.transform = "scale(1)";
+        popup.remove();
       });
 
       markersRef.current.push(mapboxMarker);
     });
-
-    // Add popup styling
-    const popupStyle = document.createElement("style");
-    popupStyle.id = "heatmap-popup-style";
-    if (!document.getElementById("heatmap-popup-style")) {
-      popupStyle.textContent = `
-        .heatmap-popup .mapboxgl-popup-content {
-          background: rgba(0, 0, 0, 0.9);
-          border: 1px solid rgba(255, 255, 255, 0.1);
-          border-radius: 10px;
-          padding: 0;
-          box-shadow: 0 10px 40px rgba(0, 0, 0, 0.5);
-        }
-        .heatmap-popup .mapboxgl-popup-tip {
-          border-top-color: rgba(0, 0, 0, 0.9);
-        }
-      `;
-      document.head.appendChild(popupStyle);
-    }
   }, [isMapLoaded, aggregatedMarkers]);
 
   if (!MAPBOX_TOKEN) {
