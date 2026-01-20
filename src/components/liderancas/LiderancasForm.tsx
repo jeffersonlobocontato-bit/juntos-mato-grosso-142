@@ -217,7 +217,7 @@ const LiderancasForm = () => {
     setIsSubmitted(false);
   };
 
-  if (isSubmitted && submittedData) {
+  if (isSubmitted) {
     return (
       <section id="formulario" className="py-20 bg-muted/30">
         <div className="container mx-auto px-4">
@@ -238,48 +238,52 @@ const LiderancasForm = () => {
               </p>
 
               {/* Proposal Summary Card */}
-              <Card className="mb-6 bg-muted/50 border-border">
-                <CardContent className="pt-6">
-                  <h3 className="font-semibold text-lg text-foreground mb-4 flex items-center gap-2">
-                    <FileText className="w-5 h-5 text-emerald-500" />
-                    Resumo da Sua Proposta
-                  </h3>
-                  <div className="space-y-3">
-                    <div className="flex items-start gap-3">
-                      <Tag className="w-4 h-4 text-muted-foreground mt-1" />
-                      <div>
-                        <p className="text-xs text-muted-foreground">Título</p>
-                        <p className="font-medium text-foreground">{submittedData.titulo}</p>
+              {submittedData && (
+                <>
+                  <Card className="mb-6 bg-muted/50 border-border">
+                    <CardContent className="pt-6">
+                      <h3 className="font-semibold text-lg text-foreground mb-4 flex items-center gap-2">
+                        <FileText className="w-5 h-5 text-emerald-500" />
+                        Resumo da Sua Proposta
+                      </h3>
+                      <div className="space-y-3">
+                        <div className="flex items-start gap-3">
+                          <Tag className="w-4 h-4 text-muted-foreground mt-1" />
+                          <div>
+                            <p className="text-xs text-muted-foreground">Título</p>
+                            <p className="font-medium text-foreground">{submittedData.titulo}</p>
+                          </div>
+                        </div>
+                        <div className="flex items-start gap-3">
+                          <div className="w-4 h-4 rounded-full bg-emerald-500 mt-1" />
+                          <div>
+                            <p className="text-xs text-muted-foreground">Eixo Temático</p>
+                            <p className="font-medium text-foreground">{submittedData.eixoNome}</p>
+                          </div>
+                        </div>
+                        <div className="flex items-start gap-3">
+                          <MapPin className="w-4 h-4 text-muted-foreground mt-1" />
+                          <div>
+                            <p className="text-xs text-muted-foreground">Município</p>
+                            <p className="font-medium text-foreground">{submittedData.municipioNome}</p>
+                          </div>
+                        </div>
                       </div>
-                    </div>
-                    <div className="flex items-start gap-3">
-                      <div className="w-4 h-4 rounded-full bg-emerald-500 mt-1" />
-                      <div>
-                        <p className="text-xs text-muted-foreground">Eixo Temático</p>
-                        <p className="font-medium text-foreground">{submittedData.eixoNome}</p>
-                      </div>
-                    </div>
-                    <div className="flex items-start gap-3">
-                      <MapPin className="w-4 h-4 text-muted-foreground mt-1" />
-                      <div>
-                        <p className="text-xs text-muted-foreground">Município</p>
-                        <p className="font-medium text-foreground">{submittedData.municipioNome}</p>
-                      </div>
-                    </div>
-                  </div>
-                </CardContent>
-              </Card>
+                    </CardContent>
+                  </Card>
 
-              {/* Map */}
-              <div className="mb-6">
-                <ProposalConfirmationMap
-                  municipioNome={submittedData.municipioNome}
-                  latitude={submittedData.municipioLat}
-                  longitude={submittedData.municipioLng}
-                  eixoNome={submittedData.eixoNome}
-                  titulo={submittedData.titulo}
-                />
-              </div>
+                  {/* Map */}
+                  <div className="mb-6">
+                    <ProposalConfirmationMap
+                      municipioNome={submittedData.municipioNome}
+                      latitude={submittedData.municipioLat}
+                      longitude={submittedData.municipioLng}
+                      eixoNome={submittedData.eixoNome}
+                      titulo={submittedData.titulo}
+                    />
+                  </div>
+                </>
+              )}
 
               {/* CTA to Dashboard */}
               <Link to="/dashboard" className="block mb-6">
@@ -303,58 +307,6 @@ const LiderancasForm = () => {
               <Button onClick={resetForm} variant="outline" size="lg" className="w-full">
                 Enviar Outra Proposta
               </Button>
-            </div>
-          </motion.div>
-        </div>
-      </section>
-    );
-  }
-
-  if (isSubmitted) {
-    return (
-      <section id="formulario" className="py-20 bg-muted/30">
-        <div className="container mx-auto px-4">
-          <motion.div
-            initial={{ opacity: 0, scale: 0.95 }}
-            animate={{ opacity: 1, scale: 1 }}
-            className="max-w-2xl mx-auto text-center"
-          >
-            <div className="bg-card rounded-2xl p-8 md:p-12 shadow-xl border border-border">
-              <div className="w-20 h-20 rounded-full bg-emerald-500/20 flex items-center justify-center mx-auto mb-6">
-                <CheckCircle className="w-10 h-10 text-emerald-500" />
-              </div>
-              <h2 className="font-display text-3xl font-bold text-foreground mb-4">
-                Proposta Enviada!
-              </h2>
-              <p className="text-muted-foreground mb-8 max-w-md mx-auto">
-                Obrigado por sua contribuição! Sua proposta será analisada pela equipe técnica 
-                e você receberá um retorno em breve.
-              </p>
-
-              <div className="mb-8">
-                <p className="text-sm text-muted-foreground mb-4 flex items-center justify-center gap-2">
-                  <Share2 className="w-4 h-4" />
-                  Compartilhe a iniciativa com outras lideranças:
-                </p>
-                <SocialShareButtons />
-              </div>
-
-              <div className="flex flex-col sm:flex-row gap-4 justify-center">
-                <Button
-                  onClick={resetForm}
-                  variant="outline"
-                  size="lg"
-                >
-                  Enviar Outra Proposta
-                </Button>
-                <Button
-                  onClick={() => window.location.href = "/"}
-                  size="lg"
-                  className="bg-emerald-600 hover:bg-emerald-500"
-                >
-                  Voltar à Página Inicial
-                </Button>
-              </div>
             </div>
           </motion.div>
         </div>
