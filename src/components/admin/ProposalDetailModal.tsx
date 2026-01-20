@@ -333,7 +333,7 @@ export const ProposalDetailModal = ({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-4xl max-h-[90vh] overflow-hidden flex flex-col">
+      <DialogContent className="max-w-4xl h-[90vh] overflow-hidden flex flex-col">
         <DialogHeader className="flex-shrink-0">
           <div className="flex items-center justify-between gap-4">
             <DialogTitle className="text-xl font-bold truncate flex-1">
@@ -370,8 +370,8 @@ export const ProposalDetailModal = ({
             </TabsTrigger>
           </TabsList>
 
-          <TabsContent value="dados" className="flex-1 overflow-hidden m-0 mt-4">
-            <ScrollArea className="h-full">
+          <TabsContent value="dados" className="m-0 mt-4 data-[state=active]:block hidden">
+            <ScrollArea className="h-[calc(90vh-180px)]">
               <div className="space-y-4 pr-4">
               <div className="flex justify-end">
                 {isEditing ? (
@@ -544,16 +544,16 @@ export const ProposalDetailModal = ({
             </ScrollArea>
           </TabsContent>
 
-          <TabsContent value="questionario" className="flex-1 overflow-hidden m-0 mt-4">
-            <ScrollArea className="h-full">
+          <TabsContent value="questionario" className="m-0 mt-4 data-[state=active]:block hidden">
+            <ScrollArea className="h-[calc(90vh-180px)]">
               <div className="pr-4">
                 {renderQuestionario()}
               </div>
             </ScrollArea>
           </TabsContent>
 
-          <TabsContent value="avaliacao" className="flex-1 overflow-hidden m-0 mt-4">
-            <ScrollArea className="h-full">
+          <TabsContent value="avaliacao" className="m-0 mt-4 data-[state=active]:block hidden">
+            <ScrollArea className="h-[calc(90vh-180px)]">
               <div className="pr-4">
                 {evaluation ? (
                   <EvaluationBreakdown
