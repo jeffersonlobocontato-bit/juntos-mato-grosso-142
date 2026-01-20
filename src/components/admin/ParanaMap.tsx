@@ -23,6 +23,7 @@ interface ParanaMapProps {
   title: string;
   statusColors?: Record<string, string>;
   eixoColors?: Record<string, string>;
+  onMarkerClick?: (markerId: string) => void;
 }
 
 const defaultStatusColors: Record<string, string> = {
@@ -55,6 +56,7 @@ const ParanaMap: React.FC<ParanaMapProps> = ({
   title,
   statusColors = defaultStatusColors,
   eixoColors = defaultEixoColors,
+  onMarkerClick,
 }) => {
   const mapContainer = useRef<HTMLDivElement>(null);
   const fullscreenMapContainer = useRef<HTMLDivElement>(null);
@@ -168,12 +170,24 @@ const ParanaMap: React.FC<ParanaMapProps> = ({
 
       const el = createBicolorMarker(statusColor, eixoColor, group.count || 1);
 
+      // Add click handler for single items
+      if (onMarkerClick && group.count === 1) {
+        el.addEventListener('click', (e) => {
+          e.stopPropagation();
+          onMarkerClick(group.id);
+        });
+      }
+
       const popupContent = `
         <div style="max-width: 280px; padding: 10px;">
           <h3 style="font-weight: bold; margin-bottom: 6px; font-size: 14px;">${group.municipio}</h3>
           <p style="color: #666; font-size: 12px; margin-bottom: 10px;">${group.count || 1} item(ns)</p>
-          ${group.items.slice(0, 3).map(item => `
-            <div style="background: #f5f5f5; padding: 8px; border-radius: 6px; margin-bottom: 6px; font-size: 11px; border-left: 4px solid ${getStatusColor(item.status)};">
+          ${group.items.slice(0, 5).map(item => `
+            <div 
+              style="background: #f5f5f5; padding: 8px; border-radius: 6px; margin-bottom: 6px; font-size: 11px; border-left: 4px solid ${getStatusColor(item.status)}; cursor: pointer;"
+              class="popup-item"
+              data-id="${item.id}"
+            >
               <strong>${item.title}</strong>
               <div style="display: flex; gap: 8px; margin-top: 4px;">
                 <span style="background: ${getStatusColor(item.status)}; color: white; padding: 2px 6px; border-radius: 3px; font-size: 10px;">${item.status || 'N/A'}</span>
@@ -181,11 +195,31 @@ const ParanaMap: React.FC<ParanaMapProps> = ({
               </div>
             </div>
           `).join('')}
-          ${(group.count || 1) > 3 ? `<p style="color: #666; font-size: 11px; font-style: italic;">+ ${(group.count || 1) - 3} mais...</p>` : ''}
+          ${(group.count || 1) > 5 ? `<p style="color: #666; font-size: 11px; font-style: italic;">+ ${(group.count || 1) - 5} mais...</p>` : ''}
         </div>
       `;
 
       const popup = new mapboxgl.Popup({ offset: 25 }).setHTML(popupContent);
+
+      // Add click handlers to popup items after popup opens
+      popup.on('open', () => {
+        setTimeout(() => {
+          const popupEl = popup.getElement();
+          if (popupEl && onMarkerClick) {
+            const items = popupEl.querySelectorAll('.popup-item');
+            items.forEach((item) => {
+              item.addEventListener('click', (e) => {
+                e.stopPropagation();
+                const id = (item as HTMLElement).dataset.id;
+                if (id) {
+                  popup.remove();
+                  onMarkerClick(id);
+                }
+              });
+            });
+          }
+        }, 10);
+      });
 
       const marker = new mapboxgl.Marker(el)
         .setLngLat([group.longitude, group.latitude])
@@ -240,7 +274,7 @@ const ParanaMap: React.FC<ParanaMapProps> = ({
   useEffect(() => {
     if (!map.current || !mapLoaded || !isVisible || isFullscreen) return;
     addMarkersToMap(map.current);
-  }, [markers, mapLoaded, isVisible, isFullscreen]);
+  }, [markers, mapLoaded, isVisible, isFullscreen, onMarkerClick]);
 
   // Mapa fullscreen
   useEffect(() => {
