@@ -965,6 +965,62 @@ export type Database = {
           },
         ]
       }
+      propostas_politicas: {
+        Row: {
+          autor_id: string
+          conteudo_completo: string
+          created_at: string
+          eixo_id: string | null
+          id: string
+          impacto_esperado: string | null
+          ordem_exibicao: number
+          publico_alvo: string | null
+          resumo: string | null
+          status: Database["public"]["Enums"]["proposal_politica_status"]
+          titulo: string
+          updated_at: string
+          visivel_publico: boolean
+        }
+        Insert: {
+          autor_id: string
+          conteudo_completo: string
+          created_at?: string
+          eixo_id?: string | null
+          id?: string
+          impacto_esperado?: string | null
+          ordem_exibicao?: number
+          publico_alvo?: string | null
+          resumo?: string | null
+          status?: Database["public"]["Enums"]["proposal_politica_status"]
+          titulo: string
+          updated_at?: string
+          visivel_publico?: boolean
+        }
+        Update: {
+          autor_id?: string
+          conteudo_completo?: string
+          created_at?: string
+          eixo_id?: string | null
+          id?: string
+          impacto_esperado?: string | null
+          ordem_exibicao?: number
+          publico_alvo?: string | null
+          resumo?: string | null
+          status?: Database["public"]["Enums"]["proposal_politica_status"]
+          titulo?: string
+          updated_at?: string
+          visivel_publico?: boolean
+        }
+        Relationships: [
+          {
+            foreignKeyName: "propostas_politicas_eixo_id_fkey"
+            columns: ["eixo_id"]
+            isOneToOne: false
+            referencedRelation: "eixos_tematicos"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       propostas_tecnicas: {
         Row: {
           anexos: string[] | null
@@ -1596,6 +1652,12 @@ export type Database = {
         | "outro"
       pesquisa_status: "rascunho" | "processando" | "ativa" | "arquivada"
       pesquisa_tipo: "quantitativa" | "qualitativa" | "mista"
+      proposal_politica_status:
+        | "rascunho"
+        | "revisao"
+        | "aprovada"
+        | "publicada"
+        | "arquivada"
       proposal_status: "rascunho" | "validada" | "consolidada" | "aprovada"
     }
     CompositeTypes: {
@@ -1742,6 +1804,13 @@ export const Constants = {
       ],
       pesquisa_status: ["rascunho", "processando", "ativa", "arquivada"],
       pesquisa_tipo: ["quantitativa", "qualitativa", "mista"],
+      proposal_politica_status: [
+        "rascunho",
+        "revisao",
+        "aprovada",
+        "publicada",
+        "arquivada",
+      ],
       proposal_status: ["rascunho", "validada", "consolidada", "aprovada"],
     },
   },
