@@ -175,13 +175,24 @@ const PublicParanaHeatmap = () => {
   // Add markers when data is ready
   useEffect(() => {
     if (!isMapLoaded || !mapRef.current || aggregatedMarkers.length === 0) return;
+    
+    const map = mapRef.current;
+    
+    // Wait for style to be fully loaded before adding sources
+    if (!map.isStyleLoaded()) {
+      const onStyleLoad = () => {
+        map.off("style.load", onStyleLoad);
+        // Re-trigger this effect by forcing a state update
+        setIsMapLoaded(false);
+        setTimeout(() => setIsMapLoaded(true), 50);
+      };
+      map.on("style.load", onStyleLoad);
+      return;
+    }
 
     // Clear existing markers
     markersRef.current.forEach((m) => m.remove());
     markersRef.current = [];
-
-    // Add heatmap layer
-    const map = mapRef.current;
 
     // Create GeoJSON for heatmap
     const geojsonData = {
