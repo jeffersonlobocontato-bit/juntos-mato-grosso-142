@@ -23,6 +23,7 @@ import AdminAIHub from "./pages/AdminAIHub";
 import AdminPesquisas from "./pages/AdminPesquisas";
 import AdminTSE from "./pages/AdminTSE";
 import Entrevista from "./pages/Entrevista";
+import Liderancas from "./pages/Liderancas";
 import NotFound from "./pages/NotFound";
 const queryClient = new QueryClient();
 
@@ -53,6 +54,7 @@ const App = () => (
             <Route path="/admin/pesquisas" element={<AdminPesquisas />} />
             <Route path="/admin/tse" element={<AdminTSE />} />
             <Route path="/entrevista" element={<Entrevista />} />
+            <Route path="/liderancas" element={<Liderancas />} />
             {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
             <Route path="*" element={<NotFound />} />
           </Routes>
