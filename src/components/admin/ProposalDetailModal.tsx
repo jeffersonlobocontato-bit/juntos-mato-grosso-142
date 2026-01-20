@@ -370,8 +370,9 @@ export const ProposalDetailModal = ({
             </TabsTrigger>
           </TabsList>
 
-          <ScrollArea className="flex-1 mt-4">
-            <TabsContent value="dados" className="m-0 space-y-4">
+          <TabsContent value="dados" className="flex-1 overflow-hidden m-0 mt-4">
+            <ScrollArea className="h-full">
+              <div className="space-y-4 pr-4">
               <div className="flex justify-end">
                 {isEditing ? (
                   <div className="flex gap-2">
@@ -539,41 +540,50 @@ export const ProposalDetailModal = ({
                 <span>Criado em: {new Date(proposal.created_at).toLocaleString('pt-BR')}</span>
                 <span>Atualizado em: {new Date(proposal.updated_at).toLocaleString('pt-BR')}</span>
               </div>
-            </TabsContent>
+              </div>
+            </ScrollArea>
+          </TabsContent>
 
-            <TabsContent value="questionario" className="m-0">
-              {renderQuestionario()}
-            </TabsContent>
+          <TabsContent value="questionario" className="flex-1 overflow-hidden m-0 mt-4">
+            <ScrollArea className="h-full">
+              <div className="pr-4">
+                {renderQuestionario()}
+              </div>
+            </ScrollArea>
+          </TabsContent>
 
-            <TabsContent value="avaliacao" className="m-0">
-              {evaluation ? (
-                <EvaluationBreakdown
-                  scoreTotal={evaluation.score_total}
-                  scores={evaluation.scores}
-                  justificativa={evaluation.justificativa || undefined}
-                  pontosFortes={evaluation.pontos_fortes || undefined}
-                  pontosAtencao={evaluation.pontos_atencao || undefined}
-                  fontesCruzadas={evaluation.fontes_cruzadas || undefined}
-                  isStale={evaluation.is_stale}
-                  evaluatedAt={evaluation.evaluated_at}
-                  onRefresh={handleEvaluate}
-                  isLoading={isEvaluating}
-                />
-              ) : (
-                <div className="text-center py-12">
-                  <Brain className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
-                  <h3 className="text-lg font-medium mb-2">Nenhuma avaliação encontrada</h3>
-                  <p className="text-muted-foreground mb-4">
-                    Gere uma avaliação de IA para analisar a relevância técnica desta proposta.
-                  </p>
-                  <Button onClick={handleEvaluate} disabled={isEvaluating}>
-                    <Brain className="h-4 w-4 mr-2" />
-                    {isEvaluating ? 'Avaliando...' : 'Gerar Avaliação'}
-                  </Button>
-                </div>
-              )}
-            </TabsContent>
-          </ScrollArea>
+          <TabsContent value="avaliacao" className="flex-1 overflow-hidden m-0 mt-4">
+            <ScrollArea className="h-full">
+              <div className="pr-4">
+                {evaluation ? (
+                  <EvaluationBreakdown
+                    scoreTotal={evaluation.score_total}
+                    scores={evaluation.scores}
+                    justificativa={evaluation.justificativa || undefined}
+                    pontosFortes={evaluation.pontos_fortes || undefined}
+                    pontosAtencao={evaluation.pontos_atencao || undefined}
+                    fontesCruzadas={evaluation.fontes_cruzadas || undefined}
+                    isStale={evaluation.is_stale}
+                    evaluatedAt={evaluation.evaluated_at}
+                    onRefresh={handleEvaluate}
+                    isLoading={isEvaluating}
+                  />
+                ) : (
+                  <div className="text-center py-12">
+                    <Brain className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
+                    <h3 className="text-lg font-medium mb-2">Nenhuma avaliação encontrada</h3>
+                    <p className="text-muted-foreground mb-4">
+                      Gere uma avaliação de IA para analisar a relevância técnica desta proposta.
+                    </p>
+                    <Button onClick={handleEvaluate} disabled={isEvaluating}>
+                      <Brain className="h-4 w-4 mr-2" />
+                      {isEvaluating ? 'Avaliando...' : 'Gerar Avaliação'}
+                    </Button>
+                  </div>
+                )}
+              </div>
+            </ScrollArea>
+          </TabsContent>
         </Tabs>
       </DialogContent>
     </Dialog>
