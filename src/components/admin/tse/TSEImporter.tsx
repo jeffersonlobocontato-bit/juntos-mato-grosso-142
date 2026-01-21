@@ -60,8 +60,6 @@ export default function TSEImporter({
     progress: number;
     message: string;
   } | null>(null);
-  const [isAutoDownloading, setIsAutoDownloading] = useState(false);
-  const [autoDownloadYear, setAutoDownloadYear] = useState<number | null>(null);
 
   const getImportStatus = (ano: number) => {
     const importacao = importacoes.find(i => i.ano === ano);
@@ -134,54 +132,24 @@ export default function TSEImporter({
   };
 
   const handleAutoDownload = async (ano: number) => {
-    setIsAutoDownloading(true);
-    setAutoDownloadYear(ano);
+    // Auto-download is disabled due to memory limits in Edge Functions
+    // TSE files are often 100MB+ which exceeds the ~150MB limit
+    toast({
+      title: "Download Automático Indisponível",
+      description: (
+        <div className="space-y-2">
+          <p>Os arquivos do TSE são muito grandes (100MB+) para download automático.</p>
+          <p className="font-medium">Use o "Upload Manual" com arquivo baixado diretamente do TSE.</p>
+        </div>
+      ),
+      variant: "destructive",
+    });
     
-    try {
-      setImportProgress({
-        ano,
-        progress: 10,
-        message: `Conectando ao TSE para baixar dados de ${ano}...`,
-      });
-
-      const { data, error } = await supabase.functions.invoke("tse-auto-download", {
-        body: { ano, uf: selectedUF },
-      });
-
-      if (error) throw error;
-
-      setImportProgress({
-        ano,
-        progress: 100,
-        message: `Download de ${ano} concluído!`,
-      });
-
-      toast({
-        title: "Download concluído",
-        description: data.message || `Dados de ${ano} para ${selectedUF} baixados do TSE.`,
-      });
-
-      onRefetch();
-    } catch (error) {
-      console.error(`Error downloading ${ano}:`, error);
-      const errorMessage = error instanceof Error ? error.message : "Erro desconhecido";
-      const isTSEBlocked = errorMessage.includes("403") || errorMessage.includes("bloqueado");
-      
-      toast({
-        title: isTSEBlocked ? "Download bloqueado pelo TSE" : "Erro no download",
-        description: isTSEBlocked 
-          ? `O TSE bloqueia downloads automáticos de servidores. Use o botão "Upload CSV" para fazer upload manual do arquivo.`
-          : `Falha ao baixar dados de ${ano}: ${errorMessage}`,
-        variant: "destructive",
-      });
-      
-      // Refresh to show updated status with error message
-      onRefetch();
-    } finally {
-      setIsAutoDownloading(false);
-      setAutoDownloadYear(null);
-      setImportProgress(null);
-    }
+    // Open the TSE portal in a new tab for manual download
+    window.open(
+      `https://dadosabertos.tse.jus.br/dataset/resultados-${ano}`,
+      "_blank"
+    );
   };
 
   const getStatusBadge = (status: string) => {
@@ -244,7 +212,7 @@ export default function TSEImporter({
           <Alert className="mt-4">
             <Info className="h-4 w-4" />
             <AlertDescription className="text-sm">
-              Use o <strong>Download Automático</strong> para baixar diretamente do TSE ou <strong>Upload Manual</strong> para arquivos CSV locais.
+              <strong>Fluxo recomendado:</strong> Clique no ícone <CloudDownload className="h-3 w-3 inline mx-1" /> para abrir o portal TSE, baixe o arquivo CSV, e depois use <strong>Upload Manual</strong>.
             </AlertDescription>
           </Alert>
 
@@ -301,7 +269,7 @@ export default function TSEImporter({
                       id={`ano-${anoData.ano}`}
                       checked={selectedYears.includes(anoData.ano)}
                       onCheckedChange={() => toggleYear(anoData.ano)}
-                      disabled={isDisabled || isAutoDownloading}
+                      disabled={isDisabled}
                     />
                     <div>
                       <label
@@ -341,14 +309,10 @@ export default function TSEImporter({
                         variant="ghost"
                         size="sm"
                         onClick={() => handleAutoDownload(anoData.ano)}
-                        disabled={isAutoDownloading || isImporting}
-                        title="Baixar automaticamente do TSE"
+                        disabled={isImporting}
+                        title="Abrir portal TSE para download manual"
                       >
-                        {isAutoDownloading && autoDownloadYear === anoData.ano ? (
-                          <Loader2 className="h-4 w-4 animate-spin" />
-                        ) : (
-                          <CloudDownload className="h-4 w-4" />
-                        )}
+                        <CloudDownload className="h-4 w-4" />
                       </Button>
                     )}
                     {getStatusBadge(status)}
