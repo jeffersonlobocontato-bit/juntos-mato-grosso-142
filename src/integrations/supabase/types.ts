@@ -360,6 +360,45 @@ export type Database = {
         }
         Relationships: []
       }
+      audit_logs: {
+        Row: {
+          action: string
+          created_at: string
+          id: string
+          ip_address: string | null
+          new_data: Json | null
+          old_data: Json | null
+          record_id: string | null
+          table_name: string
+          user_agent: string | null
+          user_id: string | null
+        }
+        Insert: {
+          action: string
+          created_at?: string
+          id?: string
+          ip_address?: string | null
+          new_data?: Json | null
+          old_data?: Json | null
+          record_id?: string | null
+          table_name: string
+          user_agent?: string | null
+          user_id?: string | null
+        }
+        Update: {
+          action?: string
+          created_at?: string
+          id?: string
+          ip_address?: string | null
+          new_data?: Json | null
+          old_data?: Json | null
+          record_id?: string | null
+          table_name?: string
+          user_agent?: string | null
+          user_id?: string | null
+        }
+        Relationships: []
+      }
       eixos_tematicos: {
         Row: {
           created_at: string
@@ -472,6 +511,13 @@ export type Database = {
             columns: ["sugestao_id"]
             isOneToOne: false
             referencedRelation: "sugestoes_populares"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "leads_sugestao_id_fkey"
+            columns: ["sugestao_id"]
+            isOneToOne: false
+            referencedRelation: "sugestoes_publicas"
             referencedColumns: ["id"]
           },
         ]
@@ -1593,7 +1639,33 @@ export type Database = {
       }
     }
     Views: {
-      [_ in never]: never
+      sugestoes_publicas: {
+        Row: {
+          created_at: string | null
+          descricao: string | null
+          eixo: string | null
+          id: string | null
+          municipio: string | null
+          publico: boolean | null
+        }
+        Insert: {
+          created_at?: string | null
+          descricao?: string | null
+          eixo?: string | null
+          id?: string | null
+          municipio?: string | null
+          publico?: boolean | null
+        }
+        Update: {
+          created_at?: string | null
+          descricao?: string | null
+          eixo?: string | null
+          id?: string | null
+          municipio?: string | null
+          publico?: boolean | null
+        }
+        Relationships: []
+      }
     }
     Functions: {
       get_inactive_users: {
