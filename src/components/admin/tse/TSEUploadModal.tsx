@@ -1,6 +1,7 @@
-import { useState, useRef } from "react";
+import { useState, useRef, useEffect, useCallback } from "react";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
+import { unzipSync, strFromU8 } from "fflate";
 import {
   Dialog,
   DialogContent,
@@ -14,7 +15,7 @@ import { Label } from "@/components/ui/label";
 import { Progress } from "@/components/ui/progress";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Upload, FileText, Loader2, CheckCircle2, AlertCircle, Info } from "lucide-react";
+import { Upload, FileText, Loader2, CheckCircle2, AlertCircle, Info, FileArchive } from "lucide-react";
 
 interface TSEUploadModalProps {
   open: boolean;
@@ -24,7 +25,14 @@ interface TSEUploadModalProps {
   anosEleitorais: { ano: number; tipo: string; descricao: string }[];
 }
 
-type UploadStep = "select" | "uploading" | "processing" | "complete" | "error";
+type UploadStep = "select" | "extracting" | "uploading" | "processing" | "complete" | "error";
+
+interface ExtractedFile {
+  name: string;
+  content: string;
+  originalSize: number;
+  extractedSize: number;
+}
 
 export default function TSEUploadModal({
   open,
@@ -38,6 +46,8 @@ export default function TSEUploadModal({
   
   const [selectedAno, setSelectedAno] = useState<string>("");
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
+  const [extractedFile, setExtractedFile] = useState<ExtractedFile | null>(null);
+  const [isZipFile, setIsZipFile] = useState(false);
   const [step, setStep] = useState<UploadStep>("select");
   const [progress, setProgress] = useState(0);
   const [progressMessage, setProgressMessage] = useState("");
@@ -47,8 +57,8 @@ export default function TSEUploadModal({
     votos: number;
     locais: number;
   } | null>(null);
-
   const [validationErrors, setValidationErrors] = useState<string[]>([]);
+  const [pollingInterval, setPollingInterval] = useState<NodeJS.Timeout | null>(null);
 
   // Required columns for TSE CSV files
   const REQUIRED_COLUMNS = [
@@ -57,51 +67,133 @@ export default function TSEUploadModal({
     "NR_ZONA", "SG_UF"
   ];
 
-  const validateCSV = async (file: File): Promise<{ valid: boolean; errors: string[]; preview: string[] }> => {
+  // Cleanup polling on unmount
+  useEffect(() => {
+    return () => {
+      if (pollingInterval) {
+        clearInterval(pollingInterval);
+      }
+    };
+  }, [pollingInterval]);
+
+  // Convert Latin-1 (ISO-8859-1) bytes to UTF-8 string
+  const decodeLatinToUtf8 = (bytes: Uint8Array): string => {
+    // Try UTF-8 first (some newer TSE files might be UTF-8)
+    try {
+      const utf8Decoder = new TextDecoder('utf-8', { fatal: true });
+      const result = utf8Decoder.decode(bytes);
+      // If it contains the expected characters, it's likely UTF-8
+      if (result.includes('NR_TURNO') || result.includes('VOTACAO')) {
+        console.log("[TSE] File detected as UTF-8");
+        return result;
+      }
+    } catch {
+      // Not valid UTF-8, try Latin-1
+    }
+    
+    // Decode as Latin-1 (ISO-8859-1)
+    const latin1Decoder = new TextDecoder('iso-8859-1');
+    const result = latin1Decoder.decode(bytes);
+    console.log("[TSE] File decoded as Latin-1 (ISO-8859-1)");
+    return result;
+  };
+
+  // Extract CSV from ZIP file
+  const extractZipFile = async (file: File): Promise<ExtractedFile> => {
+    console.log("[TSE] Starting ZIP extraction:", file.name, file.size);
+    
+    const arrayBuffer = await file.arrayBuffer();
+    const uint8Array = new Uint8Array(arrayBuffer);
+    
+    // Decompress the ZIP
+    const unzipped = unzipSync(uint8Array);
+    
+    // Find the main CSV file (usually votacao_secao*.csv or similar)
+    const fileNames = Object.keys(unzipped);
+    console.log("[TSE] Files in ZIP:", fileNames);
+    
+    // Priority: votacao_secao, then any CSV
+    let targetFile = fileNames.find(name => 
+      name.toLowerCase().includes('votacao_secao') && name.endsWith('.csv')
+    );
+    
+    if (!targetFile) {
+      targetFile = fileNames.find(name => name.endsWith('.csv'));
+    }
+    
+    if (!targetFile) {
+      throw new Error("Nenhum arquivo CSV encontrado no ZIP");
+    }
+    
+    console.log("[TSE] Extracting file:", targetFile);
+    
+    const csvBytes = unzipped[targetFile];
+    const csvContent = decodeLatinToUtf8(csvBytes);
+    
+    return {
+      name: targetFile,
+      content: csvContent,
+      originalSize: file.size,
+      extractedSize: csvBytes.length,
+    };
+  };
+
+  // Validate CSV content (works with both file and string)
+  const validateCSVContent = (content: string, fileName: string): { valid: boolean; errors: string[]; preview: string[] } => {
+    const lines = content.split("\n");
+    const errors: string[] = [];
+
+    if (lines.length < 2) {
+      errors.push("Arquivo vazio ou sem dados");
+      return { valid: false, errors, preview: [] };
+    }
+
+    // Parse header (handle BOM and different encodings)
+    const headerLine = lines[0].replace(/^\ufeff/, "").trim();
+    const headers = headerLine.split(";").map(h => h.replace(/"/g, "").trim().toUpperCase());
+
+    // Check for required columns
+    const missingColumns = REQUIRED_COLUMNS.filter(col => !headers.includes(col));
+    if (missingColumns.length > 0) {
+      errors.push(`Colunas obrigatórias não encontradas: ${missingColumns.join(", ")}`);
+    }
+
+    // Validate first few data rows
+    const dataLines = lines.slice(1, 6).filter(l => l.trim());
+    if (dataLines.length === 0) {
+      errors.push("Nenhuma linha de dados encontrada");
+    } else {
+      // Check if delimiter is semicolon
+      const firstDataLine = dataLines[0];
+      const columnCount = firstDataLine.split(";").length;
+      if (columnCount < 5) {
+        errors.push("Formato inválido: verifique se o delimitador é ponto-e-vírgula (;)");
+      }
+    }
+
+    // Calculate size in MB
+    const sizeInMB = (new TextEncoder().encode(content).length / 1024 / 1024).toFixed(2);
+
+    // Preview info
+    const preview = [
+      `Arquivo: ${fileName}`,
+      `Colunas: ${headers.length}`,
+      `Linhas: ~${(lines.length - 1).toLocaleString("pt-BR")}`,
+      `Tamanho: ${sizeInMB} MB`,
+    ];
+
+    return { valid: errors.length === 0, errors, preview };
+  };
+
+  const validateCSVFile = async (file: File): Promise<{ valid: boolean; errors: string[]; preview: string[] }> => {
     return new Promise((resolve) => {
       const reader = new FileReader();
       reader.onload = (e) => {
         const text = e.target?.result as string;
-        const lines = text.split("\n");
-        const errors: string[] = [];
-
-        if (lines.length < 2) {
-          errors.push("Arquivo vazio ou sem dados");
-          resolve({ valid: false, errors, preview: [] });
-          return;
-        }
-
-        // Parse header (handle BOM and different encodings)
-        const headerLine = lines[0].replace(/^\ufeff/, "").trim();
-        const headers = headerLine.split(";").map(h => h.replace(/"/g, "").trim().toUpperCase());
-
-        // Check for required columns
-        const missingColumns = REQUIRED_COLUMNS.filter(col => !headers.includes(col));
-        if (missingColumns.length > 0) {
-          errors.push(`Colunas obrigatórias não encontradas: ${missingColumns.join(", ")}`);
-        }
-
-        // Validate first few data rows
-        const dataLines = lines.slice(1, 6).filter(l => l.trim());
-        if (dataLines.length === 0) {
-          errors.push("Nenhuma linha de dados encontrada");
-        } else {
-          // Check if delimiter is semicolon
-          const firstDataLine = dataLines[0];
-          const columnCount = firstDataLine.split(";").length;
-          if (columnCount < 5) {
-            errors.push("Formato inválido: verifique se o delimitador é ponto-e-vírgula (;)");
-          }
-        }
-
-        // Preview info
-        const preview = [
-          `Colunas encontradas: ${headers.length}`,
-          `Linhas de dados: ~${lines.length - 1}`,
-          `Tamanho: ${(file.size / 1024 / 1024).toFixed(2)} MB`,
-        ];
-
-        resolve({ valid: errors.length === 0, errors, preview });
+        const result = validateCSVContent(text, file.name);
+        // Update size info with actual file size
+        result.preview[3] = `Tamanho: ${(file.size / 1024 / 1024).toFixed(2)} MB`;
+        resolve(result);
       };
       reader.onerror = () => {
         resolve({ valid: false, errors: ["Erro ao ler arquivo"], preview: [] });
@@ -113,21 +205,64 @@ export default function TSEUploadModal({
 
   const handleFileSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
-    if (file) {
-      if (!file.name.endsWith(".csv")) {
+    if (!file) return;
+
+    const isZip = file.name.toLowerCase().endsWith(".zip");
+    const isCsv = file.name.toLowerCase().endsWith(".csv");
+
+    if (!isZip && !isCsv) {
+      toast({
+        title: "Formato inválido",
+        description: "Por favor, selecione um arquivo CSV ou ZIP.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    setSelectedFile(file);
+    setIsZipFile(isZip);
+    setExtractedFile(null);
+    setValidationErrors([]);
+
+    if (isZip) {
+      // Extract and validate ZIP
+      try {
+        setStep("extracting");
+        setProgressMessage("Extraindo arquivo ZIP...");
+        
+        const extracted = await extractZipFile(file);
+        setExtractedFile(extracted);
+        
+        // Validate extracted CSV content
+        const validation = validateCSVContent(extracted.content, extracted.name);
+        setStep("select");
+        
+        if (!validation.valid) {
+          setValidationErrors(validation.errors);
+          toast({
+            title: "Problemas no arquivo",
+            description: "Verifique os erros de validação antes de continuar.",
+            variant: "destructive",
+          });
+        } else {
+          toast({
+            title: "ZIP extraído com sucesso",
+            description: validation.preview.join(" | "),
+          });
+        }
+      } catch (error) {
+        console.error("[TSE] ZIP extraction error:", error);
+        setStep("select");
+        setValidationErrors([error instanceof Error ? error.message : "Erro ao extrair ZIP"]);
         toast({
-          title: "Formato inválido",
-          description: "Por favor, selecione um arquivo CSV.",
+          title: "Erro ao extrair ZIP",
+          description: error instanceof Error ? error.message : "Erro desconhecido",
           variant: "destructive",
         });
-        return;
       }
-
-      setSelectedFile(file);
-      setValidationErrors([]);
-
-      // Validate CSV structure
-      const validation = await validateCSV(file);
+    } else {
+      // Validate CSV directly
+      const validation = await validateCSVFile(file);
       if (!validation.valid) {
         setValidationErrors(validation.errors);
         toast({
@@ -144,11 +279,67 @@ export default function TSEUploadModal({
     }
   };
 
+  // Poll for processing progress
+  const startProgressPolling = useCallback((ano: string, uf: string) => {
+    console.log("[TSE] Starting progress polling for", ano, uf);
+    
+    const interval = setInterval(async () => {
+      try {
+        const { data, error } = await supabase
+          .from("tse_importacoes")
+          .select("registros_importados, total_registros, status, erro_mensagem")
+          .eq("ano", parseInt(ano))
+          .eq("uf", uf)
+          .eq("tipo_arquivo", "votacao_secao")
+          .single();
+        
+        if (error) {
+          console.log("[TSE] Polling error:", error);
+          return;
+        }
+        
+        if (data) {
+          console.log("[TSE] Progress update:", data);
+          
+          if (data.status === "erro") {
+            setStep("error");
+            setErrorMessage(data.erro_mensagem || "Erro no processamento");
+            clearInterval(interval);
+            setPollingInterval(null);
+            return;
+          }
+          
+          if (data.status === "concluido") {
+            setProgress(100);
+            setProgressMessage("Importação concluída!");
+            clearInterval(interval);
+            setPollingInterval(null);
+            return;
+          }
+          
+          // Calculate progress based on records
+          if (data.total_registros && data.total_registros > 0) {
+            const pct = Math.min(95, Math.round((data.registros_importados / data.total_registros) * 100));
+            setProgress(30 + (pct * 0.65)); // 30-95% range for processing
+            setProgressMessage(`Processando: ${data.registros_importados.toLocaleString("pt-BR")} de ${data.total_registros.toLocaleString("pt-BR")} registros`);
+          } else if (data.registros_importados > 0) {
+            setProgressMessage(`Processando: ${data.registros_importados.toLocaleString("pt-BR")} registros...`);
+          }
+        }
+      } catch (err) {
+        console.error("[TSE] Polling exception:", err);
+      }
+    }, 3000); // Poll every 3 seconds
+    
+    setPollingInterval(interval);
+    return interval;
+  }, []);
+
   const handleUpload = async () => {
     if (!selectedFile || !selectedAno) {
       toast({
         title: "Dados incompletos",
-        description: "Selecione o ano e o arquivo CSV.",
+        description: "Selecione o ano e o arquivo.",
         variant: "destructive",
       });
       return;
@@ -166,27 +357,43 @@ export default function TSEUploadModal({
     try {
       setStep("uploading");
       setProgress(10);
-      setProgressMessage("Enviando arquivo para o servidor...");
+      setProgressMessage("Preparando arquivo para upload...");
+
+      // Prepare file content - use extracted CSV for ZIP files
+      let fileToUpload: Blob;
+      let fileName: string;
+      
+      if (isZipFile && extractedFile) {
+        // Create blob from extracted UTF-8 content
+        fileToUpload = new Blob([extractedFile.content], { type: "text/csv;charset=utf-8" });
+        fileName = extractedFile.name;
+        setProgressMessage("Enviando CSV extraído...");
+      } else {
+        fileToUpload = selectedFile;
+        fileName = selectedFile.name;
+        setProgressMessage("Enviando arquivo CSV...");
+      }
+
+      setProgress(15);
 
       // Upload file to storage
-      const filePath = `${selectedUF}/${selectedAno}/${Date.now()}_${selectedFile.name}`;
-      console.log("[TSE Upload] Iniciando upload:", { filePath, size: selectedFile.size });
+      const filePath = `${selectedUF}/${selectedAno}/${Date.now()}_${fileName}`;
+      console.log("[TSE Upload] Iniciando upload:", { filePath, size: fileToUpload.size });
       
       const { data: uploadData, error: uploadError } = await supabase.storage
         .from("tse-csv")
-        .upload(filePath, selectedFile);
+        .upload(filePath, fileToUpload);
 
       if (uploadError) {
         console.error("[TSE Upload] Erro no storage:", uploadError);
         
-        // Provide more specific error messages
         let errorMsg = uploadError.message;
         if (uploadError.message.includes("row-level security") || uploadError.message.includes("RLS")) {
           errorMsg = "Erro de permissão: você não tem acesso para fazer upload. Contate o administrador.";
         } else if (uploadError.message.includes("bucket")) {
           errorMsg = "Bucket de armazenamento não encontrado. Verifique a configuração.";
         } else if (uploadError.message.includes("size")) {
-          errorMsg = "Arquivo muito grande. Tente um arquivo menor.";
+          errorMsg = "Arquivo muito grande. O limite é 50MB por arquivo.";
         }
         
         throw new Error(errorMsg);
@@ -194,14 +401,14 @@ export default function TSEUploadModal({
 
       console.log("[TSE Upload] Upload concluído:", uploadData);
 
-      // Verify file exists in storage before proceeding
-      setProgress(20);
+      // Verify file exists
+      setProgress(25);
       setProgressMessage("Verificando arquivo no servidor...");
       
       const { data: fileCheck, error: fileCheckError } = await supabase.storage
         .from("tse-csv")
         .list(`${selectedUF}/${selectedAno}`, { 
-          search: selectedFile.name.substring(0, 20) 
+          search: fileName.substring(0, 20) 
         });
 
       if (fileCheckError || !fileCheck || fileCheck.length === 0) {
@@ -214,6 +421,9 @@ export default function TSEUploadModal({
       setProgressMessage("Arquivo enviado. Iniciando processamento dos dados...");
       setStep("processing");
 
+      // Start progress polling
+      const interval = startProgressPolling(selectedAno, selectedUF);
+
       // Call edge function to process
       const { data, error } = await supabase.functions.invoke("tse-process-csv", {
         body: {
@@ -222,6 +432,12 @@ export default function TSEUploadModal({
           filePath,
         },
       });
+
+      // Stop polling
+      if (interval) {
+        clearInterval(interval);
+        setPollingInterval(null);
+      }
 
       console.log("[TSE Upload] Resposta da Edge Function:", { data, error });
 
@@ -249,6 +465,13 @@ export default function TSEUploadModal({
       }
     } catch (error) {
       console.error("[TSE Upload] Erro completo:", error);
+      
+      // Stop polling if still running
+      if (pollingInterval) {
+        clearInterval(pollingInterval);
+        setPollingInterval(null);
+      }
+      
       setStep("error");
       
       const errorMsg = error instanceof Error ? error.message : "Erro ao processar arquivo";
@@ -263,7 +486,15 @@ export default function TSEUploadModal({
   };
 
   const resetModal = () => {
+    // Stop any active polling
+    if (pollingInterval) {
+      clearInterval(pollingInterval);
+      setPollingInterval(null);
+    }
+    
     setSelectedFile(null);
+    setExtractedFile(null);
+    setIsZipFile(false);
     setSelectedAno("");
     setStep("select");
     setProgress(0);
@@ -287,10 +518,10 @@ export default function TSEUploadModal({
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             <Upload className="h-5 w-5" />
-            Upload de CSV do TSE
+            Upload de Arquivo TSE
           </DialogTitle>
           <DialogDescription>
-            Faça upload de arquivos CSV baixados diretamente do repositório do TSE
+            Faça upload de arquivos CSV ou ZIP baixados diretamente do repositório do TSE
           </DialogDescription>
         </DialogHeader>
 
@@ -309,7 +540,7 @@ export default function TSEUploadModal({
                   >
                     dadosabertos.tse.jus.br
                   </a>
-                  . Selecione "Votação por Seção Eleitoral".
+                  . Selecione "Votação por Seção Eleitoral". Aceita arquivos <strong>CSV</strong> ou <strong>ZIP</strong>.
                 </AlertDescription>
               </Alert>
 
@@ -335,7 +566,7 @@ export default function TSEUploadModal({
               </div>
 
               <div className="space-y-2">
-                <Label>Arquivo CSV</Label>
+                <Label>Arquivo CSV ou ZIP</Label>
                 <div
                   className={`border-2 border-dashed rounded-lg p-6 text-center cursor-pointer transition-colors ${
                     selectedFile ? "border-primary bg-primary/5" : "border-border hover:border-primary/50"
@@ -345,23 +576,42 @@ export default function TSEUploadModal({
                   <input
                     ref={fileInputRef}
                     type="file"
-                    accept=".csv"
+                    accept=".csv,.zip"
                     className="hidden"
                     onChange={handleFileSelect}
                   />
                   {selectedFile ? (
-                    <div className="flex items-center justify-center gap-2">
-                      <FileText className="h-5 w-5 text-primary" />
-                      <span className="font-medium">{selectedFile.name}</span>
-                      <span className="text-sm text-muted-foreground">
-                        ({(selectedFile.size / 1024 / 1024).toFixed(2)} MB)
-                      </span>
+                    <div className="space-y-2">
+                      <div className="flex items-center justify-center gap-2">
+                        {isZipFile ? (
+                          <FileArchive className="h-5 w-5 text-primary" />
+                        ) : (
+                          <FileText className="h-5 w-5 text-primary" />
+                        )}
+                        <span className="font-medium">{selectedFile.name}</span>
+                        <span className="text-sm text-muted-foreground">
+                          ({(selectedFile.size / 1024 / 1024).toFixed(2)} MB)
+                        </span>
+                      </div>
+                      {extractedFile && (
+                        <div className="text-xs text-muted-foreground border-t pt-2 mt-2">
+                          <CheckCircle2 className="h-3 w-3 inline mr-1 text-green-500" />
+                          CSV extraído: <strong>{extractedFile.name}</strong>
+                          {" "}({(extractedFile.extractedSize / 1024 / 1024).toFixed(2)} MB)
+                        </div>
+                      )}
                     </div>
                   ) : (
                     <>
-                      <Upload className="h-8 w-8 mx-auto text-muted-foreground mb-2" />
+                      <div className="flex items-center justify-center gap-2 mb-2">
+                        <FileText className="h-6 w-6 text-muted-foreground" />
+                        <FileArchive className="h-6 w-6 text-muted-foreground" />
+                      </div>
                       <p className="text-sm text-muted-foreground">
-                        Clique para selecionar ou arraste o arquivo CSV
+                        Clique para selecionar ou arraste o arquivo
+                      </p>
+                      <p className="text-xs text-muted-foreground mt-1">
+                        Formatos aceitos: CSV ou ZIP
                       </p>
                     </>
                   )}
@@ -389,13 +639,24 @@ export default function TSEUploadModal({
                 </Button>
                 <Button
                   onClick={handleUpload}
-                  disabled={!selectedFile || !selectedAno || validationErrors.length > 0}
+                  disabled={!selectedFile || !selectedAno || validationErrors.length > 0 || (isZipFile && !extractedFile)}
                 >
                   <Upload className="h-4 w-4 mr-2" />
                   Iniciar Importação
                 </Button>
               </div>
             </>
+          )}
+
+          {step === "extracting" && (
+            <div className="py-8 text-center">
+              <Loader2 className="h-12 w-12 animate-spin mx-auto text-primary mb-4" />
+              <h3 className="font-semibold mb-2">Extraindo arquivo ZIP...</h3>
+              <p className="text-sm text-muted-foreground">{progressMessage}</p>
+              <p className="text-xs text-muted-foreground mt-2">
+                Convertendo encoding Latin-1 para UTF-8...
+              </p>
+            </div>
           )}
 
           {(step === "uploading" || step === "processing") && (
@@ -407,7 +668,9 @@ export default function TSEUploadModal({
               <Progress value={progress} className="mb-2" />
               <p className="text-sm text-muted-foreground">{progressMessage}</p>
               <p className="text-xs text-muted-foreground mt-2">
-                Isso pode levar alguns minutos dependendo do tamanho do arquivo.
+                {step === "processing" 
+                  ? "Atualizando a cada 3 segundos..." 
+                  : "Isso pode levar alguns minutos dependendo do tamanho do arquivo."}
               </p>
             </div>
           )}
