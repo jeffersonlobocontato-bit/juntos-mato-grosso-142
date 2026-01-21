@@ -72,15 +72,16 @@ export default function TSEUploadModal({
   const INVALID_FILE_PATTERNS = ["bu_imgbu", "logjez", "rdv", "imgbu", "_jez_", "vscmr"];
   
   // Required columns for TSE CSV files - votacao_secao
+  // Based on actual TSE file structure (votacao_secao_YYYY_UF.csv)
   const REQUIRED_COLUMNS_VOTACAO = [
-    "NR_TURNO", "CD_CARGO", "NR_PARTIDO", "SG_PARTIDO", 
-    "NR_VOTAVEL", "NM_VOTAVEL", "QT_VOTOS", "CD_MUNICIPIO",
-    "NR_ZONA", "SG_UF"
+    "NR_TURNO", "CD_CARGO", "NR_VOTAVEL", "NM_VOTAVEL", 
+    "QT_VOTOS", "CD_MUNICIPIO", "NR_ZONA", "SG_UF"
   ];
 
   // Required columns for TSE CSV files - totalizacao
+  // Based on actual TSE file structure (Resultado_Totalizacao_YYYY_UF.csv)
   const REQUIRED_COLUMNS_TOTALIZACAO = [
-    "NR_TURNO", "CD_CARGO", "NR_CANDIDATO", "SG_PARTIDO", 
+    "NR_TURNO", "CD_CARGO", "NR_VOTAVEL", 
     "QT_VOTOS", "CD_MUNICIPIO", "SG_UF"
   ];
 
