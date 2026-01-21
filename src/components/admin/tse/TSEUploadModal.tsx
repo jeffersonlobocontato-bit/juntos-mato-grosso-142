@@ -60,6 +60,12 @@ export default function TSEUploadModal({
   const [validationErrors, setValidationErrors] = useState<string[]>([]);
   const [pollingInterval, setPollingInterval] = useState<NodeJS.Timeout | null>(null);
 
+  // File size limit (500MB) - larger files can crash the browser
+  const MAX_FILE_SIZE = 500 * 1024 * 1024;
+  
+  // Patterns indicating incorrect file types
+  const INVALID_FILE_PATTERNS = ["bu_imgbu", "logjez", "rdv", "imgbu", "_jez_", "vscmr"];
+  
   // Required columns for TSE CSV files
   const REQUIRED_COLUMNS = [
     "NR_TURNO", "CD_CARGO", "NR_PARTIDO", "SG_PARTIDO", 
@@ -209,6 +215,7 @@ export default function TSEUploadModal({
 
     const isZip = file.name.toLowerCase().endsWith(".zip");
     const isCsv = file.name.toLowerCase().endsWith(".csv");
+    const fileName = file.name.toLowerCase();
 
     if (!isZip && !isCsv) {
       toast({
@@ -219,10 +226,50 @@ export default function TSEUploadModal({
       return;
     }
 
-    setSelectedFile(file);
-    setIsZipFile(isZip);
+    // Reset state
+    setSelectedFile(null);
+    setIsZipFile(false);
     setExtractedFile(null);
     setValidationErrors([]);
+
+    // Check for invalid file patterns (BU, logs, etc.)
+    const invalidPattern = INVALID_FILE_PATTERNS.find(pattern => fileName.includes(pattern));
+    if (invalidPattern) {
+      const errors = [
+        "Este arquivo contém dados de Boletim de Urna (BU), logs ou outros arquivos auxiliares.",
+        "Esses dados NÃO contêm resultados de votação por seção.",
+        "Baixe o arquivo correto: votacao_secao_YYYY_UF.zip",
+      ];
+      setValidationErrors(errors);
+      toast({
+        title: "Arquivo incorreto",
+        description: "Este não é o arquivo de votação por seção. Veja as instruções.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    // Check file size
+    if (file.size > MAX_FILE_SIZE) {
+      const sizeInMB = (file.size / 1024 / 1024).toFixed(0);
+      const limitInMB = (MAX_FILE_SIZE / 1024 / 1024).toFixed(0);
+      const errors = [
+        `Arquivo muito grande: ${sizeInMB}MB (limite: ${limitInMB}MB)`,
+        "Arquivos maiores que 500MB podem travar o navegador.",
+        "Verifique se você baixou o arquivo correto: votacao_secao_YYYY_UF.zip",
+        "Arquivos de BU (bu_imgbu) são muito maiores e contêm dados diferentes.",
+      ];
+      setValidationErrors(errors);
+      toast({
+        title: "Arquivo muito grande",
+        description: `O limite é ${limitInMB}MB. Verifique se baixou o arquivo correto.`,
+        variant: "destructive",
+      });
+      return;
+    }
+
+    setSelectedFile(file);
+    setIsZipFile(isZip);
 
     if (isZip) {
       // Extract and validate ZIP
@@ -530,17 +577,25 @@ export default function TSEUploadModal({
             <>
               <Alert>
                 <Info className="h-4 w-4" />
-                <AlertDescription className="text-sm">
-                  Baixe os arquivos em{" "}
-                  <a
-                    href="https://dadosabertos.tse.jus.br/dataset/?groups=resultados"
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="text-primary underline"
-                  >
-                    dadosabertos.tse.jus.br
-                  </a>
-                  . Selecione "Votação por Seção Eleitoral". Aceita arquivos <strong>CSV</strong> ou <strong>ZIP</strong>.
+                <AlertDescription className="text-sm space-y-2">
+                  <p>
+                    <strong>Arquivo correto:</strong> <code className="bg-muted px-1 rounded">votacao_secao_YYYY_UF.zip</code>
+                  </p>
+                  <p>
+                    Baixe em{" "}
+                    <a
+                      href="https://dadosabertos.tse.jus.br/dataset/?groups=resultados"
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="text-primary underline"
+                    >
+                      dadosabertos.tse.jus.br
+                    </a>
+                    {" "}→ "Votação por Seção Eleitoral" → Selecione o estado (UF).
+                  </p>
+                  <p className="text-xs text-muted-foreground">
+                    ⚠️ NÃO use arquivos de Boletim de Urna (bu_imgbu), pois são muito grandes e contêm dados diferentes.
+                  </p>
                 </AlertDescription>
               </Alert>
 
