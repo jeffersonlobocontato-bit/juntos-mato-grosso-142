@@ -166,18 +166,52 @@ export default function TSEUploadModal({
     try {
       setStep("uploading");
       setProgress(10);
-      setProgressMessage("Enviando arquivo...");
+      setProgressMessage("Enviando arquivo para o servidor...");
 
       // Upload file to storage
       const filePath = `${selectedUF}/${selectedAno}/${Date.now()}_${selectedFile.name}`;
-      const { error: uploadError } = await supabase.storage
+      console.log("[TSE Upload] Iniciando upload:", { filePath, size: selectedFile.size });
+      
+      const { data: uploadData, error: uploadError } = await supabase.storage
         .from("tse-csv")
         .upload(filePath, selectedFile);
 
-      if (uploadError) throw uploadError;
+      if (uploadError) {
+        console.error("[TSE Upload] Erro no storage:", uploadError);
+        
+        // Provide more specific error messages
+        let errorMsg = uploadError.message;
+        if (uploadError.message.includes("row-level security") || uploadError.message.includes("RLS")) {
+          errorMsg = "Erro de permissão: você não tem acesso para fazer upload. Contate o administrador.";
+        } else if (uploadError.message.includes("bucket")) {
+          errorMsg = "Bucket de armazenamento não encontrado. Verifique a configuração.";
+        } else if (uploadError.message.includes("size")) {
+          errorMsg = "Arquivo muito grande. Tente um arquivo menor.";
+        }
+        
+        throw new Error(errorMsg);
+      }
 
+      console.log("[TSE Upload] Upload concluído:", uploadData);
+
+      // Verify file exists in storage before proceeding
+      setProgress(20);
+      setProgressMessage("Verificando arquivo no servidor...");
+      
+      const { data: fileCheck, error: fileCheckError } = await supabase.storage
+        .from("tse-csv")
+        .list(`${selectedUF}/${selectedAno}`, { 
+          search: selectedFile.name.substring(0, 20) 
+        });
+
+      if (fileCheckError || !fileCheck || fileCheck.length === 0) {
+        console.error("[TSE Upload] Arquivo não encontrado após upload:", fileCheckError);
+        throw new Error("Arquivo não foi salvo corretamente. Tente novamente.");
+      }
+
+      console.log("[TSE Upload] Arquivo verificado, iniciando processamento");
       setProgress(30);
-      setProgressMessage("Arquivo enviado. Iniciando processamento...");
+      setProgressMessage("Arquivo enviado. Iniciando processamento dos dados...");
       setStep("processing");
 
       // Call edge function to process
@@ -189,7 +223,12 @@ export default function TSEUploadModal({
         },
       });
 
-      if (error) throw error;
+      console.log("[TSE Upload] Resposta da Edge Function:", { data, error });
+
+      if (error) {
+        console.error("[TSE Upload] Erro na Edge Function:", error);
+        throw new Error(`Erro no processamento: ${error.message}`);
+      }
 
       if (data?.success) {
         setProgress(100);
@@ -204,15 +243,20 @@ export default function TSEUploadModal({
         
         onSuccess();
       } else {
-        throw new Error(data?.error || "Erro desconhecido");
+        const errorDetail = data?.error || data?.message || "Erro desconhecido no processamento";
+        console.error("[TSE Upload] Processamento falhou:", data);
+        throw new Error(errorDetail);
       }
     } catch (error) {
-      console.error("Upload error:", error);
+      console.error("[TSE Upload] Erro completo:", error);
       setStep("error");
-      setErrorMessage(error instanceof Error ? error.message : "Erro ao processar arquivo");
+      
+      const errorMsg = error instanceof Error ? error.message : "Erro ao processar arquivo";
+      setErrorMessage(errorMsg);
+      
       toast({
         title: "Erro na importação",
-        description: error instanceof Error ? error.message : "Erro desconhecido",
+        description: errorMsg,
         variant: "destructive",
       });
     }
