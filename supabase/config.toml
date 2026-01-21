@@ -35,3 +35,6 @@ verify_jwt = false
 
 [functions.evaluate-proposal]
 verify_jwt = false
+
+[functions.tse-process-totalizacao]
+verify_jwt = false

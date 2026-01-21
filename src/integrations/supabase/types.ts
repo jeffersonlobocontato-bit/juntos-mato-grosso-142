@@ -1441,6 +1441,104 @@ export type Database = {
         }
         Relationships: []
       }
+      tse_resultados_totalizacao: {
+        Row: {
+          candidato_id: string | null
+          cargo_id: string | null
+          codigo_municipio_tse: number | null
+          created_at: string
+          eleicao_id: string
+          id: string
+          nome_candidato: string | null
+          nome_municipio: string | null
+          nome_urna: string | null
+          numero_candidato: number
+          partido_id: string | null
+          qt_abstencoes: number | null
+          qt_aptos: number | null
+          qt_comparecimento: number | null
+          qt_votos: number
+          sigla_partido: string | null
+          situacao_totalizacao: string | null
+          turno: number
+          uf: string
+          zona: number | null
+        }
+        Insert: {
+          candidato_id?: string | null
+          cargo_id?: string | null
+          codigo_municipio_tse?: number | null
+          created_at?: string
+          eleicao_id: string
+          id?: string
+          nome_candidato?: string | null
+          nome_municipio?: string | null
+          nome_urna?: string | null
+          numero_candidato: number
+          partido_id?: string | null
+          qt_abstencoes?: number | null
+          qt_aptos?: number | null
+          qt_comparecimento?: number | null
+          qt_votos?: number
+          sigla_partido?: string | null
+          situacao_totalizacao?: string | null
+          turno?: number
+          uf: string
+          zona?: number | null
+        }
+        Update: {
+          candidato_id?: string | null
+          cargo_id?: string | null
+          codigo_municipio_tse?: number | null
+          created_at?: string
+          eleicao_id?: string
+          id?: string
+          nome_candidato?: string | null
+          nome_municipio?: string | null
+          nome_urna?: string | null
+          numero_candidato?: number
+          partido_id?: string | null
+          qt_abstencoes?: number | null
+          qt_aptos?: number | null
+          qt_comparecimento?: number | null
+          qt_votos?: number
+          sigla_partido?: string | null
+          situacao_totalizacao?: string | null
+          turno?: number
+          uf?: string
+          zona?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "tse_resultados_totalizacao_candidato_id_fkey"
+            columns: ["candidato_id"]
+            isOneToOne: false
+            referencedRelation: "tse_candidatos"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "tse_resultados_totalizacao_cargo_id_fkey"
+            columns: ["cargo_id"]
+            isOneToOne: false
+            referencedRelation: "tse_cargos"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "tse_resultados_totalizacao_eleicao_id_fkey"
+            columns: ["eleicao_id"]
+            isOneToOne: false
+            referencedRelation: "tse_eleicoes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "tse_resultados_totalizacao_partido_id_fkey"
+            columns: ["partido_id"]
+            isOneToOne: false
+            referencedRelation: "tse_partidos"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       tse_votos: {
         Row: {
           candidato_id: string

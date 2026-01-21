@@ -45,6 +45,7 @@ export default function TSEUploadModal({
   const fileInputRef = useRef<HTMLInputElement>(null);
   
   const [selectedAno, setSelectedAno] = useState<string>("");
+  const [selectedTipoArquivo, setSelectedTipoArquivo] = useState<"votacao_secao" | "totalizacao">("votacao_secao");
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [extractedFile, setExtractedFile] = useState<ExtractedFile | null>(null);
   const [isZipFile, setIsZipFile] = useState(false);
@@ -53,9 +54,11 @@ export default function TSEUploadModal({
   const [progressMessage, setProgressMessage] = useState("");
   const [errorMessage, setErrorMessage] = useState("");
   const [stats, setStats] = useState<{
-    candidatos: number;
-    votos: number;
-    locais: number;
+    candidatos?: number;
+    votos?: number;
+    locais?: number;
+    resultados?: number;
+    partidos?: number;
   } | null>(null);
   const [validationErrors, setValidationErrors] = useState<string[]>([]);
   const [pollingInterval, setPollingInterval] = useState<NodeJS.Timeout | null>(null);
@@ -66,12 +69,25 @@ export default function TSEUploadModal({
   // Patterns indicating incorrect file types
   const INVALID_FILE_PATTERNS = ["bu_imgbu", "logjez", "rdv", "imgbu", "_jez_", "vscmr"];
   
-  // Required columns for TSE CSV files
-  const REQUIRED_COLUMNS = [
+  // Required columns for TSE CSV files - votacao_secao
+  const REQUIRED_COLUMNS_VOTACAO = [
     "NR_TURNO", "CD_CARGO", "NR_PARTIDO", "SG_PARTIDO", 
     "NR_VOTAVEL", "NM_VOTAVEL", "QT_VOTOS", "CD_MUNICIPIO",
     "NR_ZONA", "SG_UF"
   ];
+
+  // Required columns for TSE CSV files - totalizacao
+  const REQUIRED_COLUMNS_TOTALIZACAO = [
+    "NR_TURNO", "CD_CARGO", "NR_CANDIDATO", "SG_PARTIDO", 
+    "QT_VOTOS", "CD_MUNICIPIO", "SG_UF"
+  ];
+
+  // Get required columns based on file type
+  const getRequiredColumns = () => {
+    return selectedTipoArquivo === "totalizacao" 
+      ? REQUIRED_COLUMNS_TOTALIZACAO 
+      : REQUIRED_COLUMNS_VOTACAO;
+  };
 
   // Cleanup polling on unmount
   useEffect(() => {
@@ -83,12 +99,18 @@ export default function TSEUploadModal({
   }, [pollingInterval]);
 
   // Generate direct download URL for TSE files
-  const getDirectDownloadUrl = (ano: string, uf: string): string => {
-    // TSE CDN URL pattern for votacao_secao files
+  const getDirectDownloadUrl = (ano: string, uf: string, tipo: "votacao_secao" | "totalizacao"): string => {
+    if (tipo === "totalizacao") {
+      return `https://cdn.tse.jus.br/estatistica/sead/odsele/relatorio_resultado_totalizacao/Relatorio_Resultado_Totalizacao_${ano}_${uf}.zip`;
+    }
+    // votacao_secao
     return `https://cdn.tse.jus.br/estatistica/sead/odsele/votacao_secao/votacao_secao_${ano}_${uf}.zip`;
   };
 
-  const getExpectedFileName = (ano: string, uf: string): string => {
+  const getExpectedFileName = (ano: string, uf: string, tipo: "votacao_secao" | "totalizacao"): string => {
+    if (tipo === "totalizacao") {
+      return `Relatorio_Resultado_Totalizacao_${ano}_${uf}.zip`;
+    }
     return `votacao_secao_${ano}_${uf}.zip`;
   };
 
@@ -169,7 +191,8 @@ export default function TSEUploadModal({
     const headers = headerLine.split(";").map(h => h.replace(/"/g, "").trim().toUpperCase());
 
     // Check for required columns
-    const missingColumns = REQUIRED_COLUMNS.filter(col => !headers.includes(col));
+    const requiredCols = getRequiredColumns();
+    const missingColumns = requiredCols.filter(col => !headers.includes(col));
     if (missingColumns.length > 0) {
       errors.push(`Colunas obrigatórias não encontradas: ${missingColumns.join(", ")}`);
     }
@@ -337,8 +360,8 @@ export default function TSEUploadModal({
   };
 
   // Poll for processing progress
-  const startProgressPolling = useCallback((ano: string, uf: string) => {
-    console.log("[TSE] Starting progress polling for", ano, uf);
+  const startProgressPolling = useCallback((ano: string, uf: string, tipoArquivo: string) => {
+    console.log("[TSE] Starting progress polling for", ano, uf, tipoArquivo);
     
     const interval = setInterval(async () => {
       try {
@@ -347,7 +370,7 @@ export default function TSEUploadModal({
           .select("registros_importados, total_registros, status, erro_mensagem")
           .eq("ano", parseInt(ano))
           .eq("uf", uf)
-          .eq("tipo_arquivo", "votacao_secao")
+          .eq("tipo_arquivo", tipoArquivo)
           .single();
         
         if (error) {
@@ -479,10 +502,14 @@ export default function TSEUploadModal({
       setStep("processing");
 
       // Start progress polling
-      const interval = startProgressPolling(selectedAno, selectedUF);
+      const interval = startProgressPolling(selectedAno, selectedUF, selectedTipoArquivo);
 
-      // Call edge function to process
-      const { data, error } = await supabase.functions.invoke("tse-process-csv", {
+      // Call appropriate edge function based on file type
+      const edgeFunctionName = selectedTipoArquivo === "totalizacao" 
+        ? "tse-process-totalizacao" 
+        : "tse-process-csv";
+      
+      const { data, error } = await supabase.functions.invoke(edgeFunctionName, {
         body: {
           ano: parseInt(selectedAno),
           uf: selectedUF,
@@ -553,6 +580,7 @@ export default function TSEUploadModal({
     setExtractedFile(null);
     setIsZipFile(false);
     setSelectedAno("");
+    setSelectedTipoArquivo("votacao_secao");
     setStep("select");
     setProgress(0);
     setProgressMessage("");
@@ -609,23 +637,42 @@ export default function TSEUploadModal({
                 </AlertDescription>
               </Alert>
 
-              <div className="space-y-2">
-                <Label>Estado</Label>
-                <Input value={selectedUF} disabled />
+              <div className="grid grid-cols-2 gap-3">
+                <div className="space-y-2">
+                  <Label>Estado</Label>
+                  <Input value={selectedUF} disabled />
+                </div>
+
+                <div className="space-y-2">
+                  <Label>Ano da Eleição</Label>
+                  <Select value={selectedAno} onValueChange={setSelectedAno}>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Selecione o ano" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {anosEleitorais.map(ano => (
+                        <SelectItem key={ano.ano} value={ano.ano.toString()}>
+                          {ano.ano} - {ano.descricao}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
               </div>
 
               <div className="space-y-2">
-                <Label>Ano da Eleição</Label>
-                <Select value={selectedAno} onValueChange={setSelectedAno}>
+                <Label>Tipo de Arquivo</Label>
+                <Select value={selectedTipoArquivo} onValueChange={(v) => setSelectedTipoArquivo(v as "votacao_secao" | "totalizacao")}>
                   <SelectTrigger>
-                    <SelectValue placeholder="Selecione o ano" />
+                    <SelectValue placeholder="Selecione o tipo" />
                   </SelectTrigger>
                   <SelectContent>
-                    {anosEleitorais.map(ano => (
-                      <SelectItem key={ano.ano} value={ano.ano.toString()}>
-                        {ano.ano} - {ano.descricao}
-                      </SelectItem>
-                    ))}
+                    <SelectItem value="votacao_secao">
+                      Votação por Seção (dados detalhados por seção eleitoral)
+                    </SelectItem>
+                    <SelectItem value="totalizacao">
+                      Resultado/Totalização (dados agregados por município)
+                    </SelectItem>
                   </SelectContent>
                 </Select>
               </div>
@@ -640,13 +687,13 @@ export default function TSEUploadModal({
                         Baixe o arquivo correto:
                       </p>
                       <a
-                        href={getDirectDownloadUrl(selectedAno, selectedUF)}
+                        href={getDirectDownloadUrl(selectedAno, selectedUF, selectedTipoArquivo)}
                         target="_blank"
                         rel="noopener noreferrer"
                         className="inline-flex items-center gap-2 text-primary hover:underline font-mono text-xs bg-background px-2 py-1.5 rounded border"
                       >
                         <Download className="h-3 w-3" />
-                        {getExpectedFileName(selectedAno, selectedUF)}
+                        {getExpectedFileName(selectedAno, selectedUF, selectedTipoArquivo)}
                         <ExternalLink className="h-3 w-3 ml-auto" />
                       </a>
                       <p className="text-xs text-muted-foreground">
@@ -769,22 +816,35 @@ export default function TSEUploadModal({
 
           {step === "complete" && (
             <div className="py-8 text-center">
-              <CheckCircle2 className="h-12 w-12 mx-auto text-green-500 mb-4" />
+              <CheckCircle2 className="h-12 w-12 mx-auto text-emerald-500 mb-4" />
               <h3 className="font-semibold mb-2 text-lg">Importação Concluída!</h3>
               
-              {stats && (
+              {stats && selectedTipoArquivo === "votacao_secao" && (
                 <div className="grid grid-cols-3 gap-4 mt-4 mb-6">
                   <div className="p-3 bg-muted/50 rounded-lg">
-                    <div className="text-xl font-bold">{stats.candidatos.toLocaleString("pt-BR")}</div>
+                    <div className="text-xl font-bold">{(stats.candidatos || 0).toLocaleString("pt-BR")}</div>
                     <div className="text-xs text-muted-foreground">Candidatos</div>
                   </div>
                   <div className="p-3 bg-muted/50 rounded-lg">
-                    <div className="text-xl font-bold">{stats.locais.toLocaleString("pt-BR")}</div>
+                    <div className="text-xl font-bold">{(stats.locais || 0).toLocaleString("pt-BR")}</div>
                     <div className="text-xs text-muted-foreground">Locais</div>
                   </div>
                   <div className="p-3 bg-muted/50 rounded-lg">
-                    <div className="text-xl font-bold">{stats.votos.toLocaleString("pt-BR")}</div>
+                    <div className="text-xl font-bold">{(stats.votos || 0).toLocaleString("pt-BR")}</div>
                     <div className="text-xs text-muted-foreground">Votos</div>
+                  </div>
+                </div>
+              )}
+
+              {stats && selectedTipoArquivo === "totalizacao" && (
+                <div className="grid grid-cols-2 gap-4 mt-4 mb-6">
+                  <div className="p-3 bg-muted/50 rounded-lg">
+                    <div className="text-xl font-bold">{(stats.partidos || 0).toLocaleString("pt-BR")}</div>
+                    <div className="text-xs text-muted-foreground">Novos Partidos</div>
+                  </div>
+                  <div className="p-3 bg-muted/50 rounded-lg">
+                    <div className="text-xl font-bold">{(stats.resultados || 0).toLocaleString("pt-BR")}</div>
+                    <div className="text-xs text-muted-foreground">Resultados</div>
                   </div>
                 </div>
               )}
