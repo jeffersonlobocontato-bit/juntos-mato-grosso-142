@@ -177,11 +177,54 @@ export default function TSEUploadModal({
   };
 
   // Validate CSV content (works with both file and string)
+  // OPTIMIZED: For large files, only validates first portion to avoid memory crash
   const validateCSVContent = (content: string, fileName: string): { valid: boolean; errors: string[]; preview: string[] } => {
-    const lines = content.split("\n");
     const errors: string[] = [];
+    const contentLength = content.length;
+    const isLargeFile = contentLength > 100 * 1024 * 1024; // > 100MB
+    
+    console.log(`[TSE Validation] Content length: ${contentLength}, isLarge: ${isLargeFile}`);
+    
+    // For large files, only validate first 100KB to avoid memory issues with split()
+    const contentToValidate = isLargeFile ? content.substring(0, 100000) : content;
+    const lines = contentToValidate.split("\n");
 
+    // Check if we have at least header + 1 data line
     if (lines.length < 2) {
+      // For large files, the split on partial content should still work
+      // But let's double check with raw content
+      if (contentLength > 1000) {
+        const firstNewline = content.indexOf('\n');
+        if (firstNewline > 0) {
+          // We have content but lines array is weird - try manual parsing
+          const headerLine = content.substring(0, firstNewline).replace(/^\ufeff/, "").trim();
+          const headers = headerLine.split(";").map(h => h.replace(/"/g, "").trim().toUpperCase());
+          
+          console.log(`[TSE Validation] Large file fallback - headers found: ${headers.length}`);
+          
+          // Validate headers
+          const requiredCols = getRequiredColumns();
+          const missingColumns = requiredCols.filter(col => !headers.includes(col));
+          if (missingColumns.length > 0) {
+            errors.push(`Colunas obrigatórias não encontradas: ${missingColumns.join(", ")}`);
+          }
+          
+          // Estimate line count from file size (avg ~80 bytes per line for TSE files)
+          const estimatedLines = Math.round(contentLength / 80);
+          const sizeInMB = (contentLength / 1024 / 1024).toFixed(2);
+          
+          return {
+            valid: errors.length === 0,
+            errors,
+            preview: [
+              `Arquivo: ${fileName}`,
+              `Colunas: ${headers.length}`,
+              `Linhas: ~${estimatedLines.toLocaleString("pt-BR")} (estimado)`,
+              `Tamanho: ${sizeInMB} MB`,
+            ]
+          };
+        }
+      }
       errors.push("Arquivo vazio ou sem dados");
       return { valid: false, errors, preview: [] };
     }
@@ -210,14 +253,24 @@ export default function TSEUploadModal({
       }
     }
 
-    // Calculate size in MB
-    const sizeInMB = (new TextEncoder().encode(content).length / 1024 / 1024).toFixed(2);
+    // Calculate size in MB - for large files use length estimate
+    let sizeInMB: string;
+    let lineCount: number;
+    
+    if (isLargeFile) {
+      sizeInMB = (contentLength / 1024 / 1024).toFixed(2);
+      // Estimate lines from content length
+      lineCount = Math.round(contentLength / 80);
+    } else {
+      sizeInMB = (new TextEncoder().encode(content).length / 1024 / 1024).toFixed(2);
+      lineCount = lines.length - 1;
+    }
 
     // Preview info
     const preview = [
       `Arquivo: ${fileName}`,
       `Colunas: ${headers.length}`,
-      `Linhas: ~${(lines.length - 1).toLocaleString("pt-BR")}`,
+      `Linhas: ~${lineCount.toLocaleString("pt-BR")}${isLargeFile ? ' (estimado)' : ''}`,
       `Tamanho: ${sizeInMB} MB`,
     ];
 
