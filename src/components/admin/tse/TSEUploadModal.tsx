@@ -15,7 +15,7 @@ import { Label } from "@/components/ui/label";
 import { Progress } from "@/components/ui/progress";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Upload, FileText, Loader2, CheckCircle2, AlertCircle, Info, FileArchive } from "lucide-react";
+import { Upload, FileText, Loader2, CheckCircle2, AlertCircle, Info, FileArchive, Download, ExternalLink } from "lucide-react";
 
 interface TSEUploadModalProps {
   open: boolean;
@@ -81,6 +81,16 @@ export default function TSEUploadModal({
       }
     };
   }, [pollingInterval]);
+
+  // Generate direct download URL for TSE files
+  const getDirectDownloadUrl = (ano: string, uf: string): string => {
+    // TSE CDN URL pattern for votacao_secao files
+    return `https://cdn.tse.jus.br/estatistica/sead/odsele/votacao_secao/votacao_secao_${ano}_${uf}.zip`;
+  };
+
+  const getExpectedFileName = (ano: string, uf: string): string => {
+    return `votacao_secao_${ano}_${uf}.zip`;
+  };
 
   // Convert Latin-1 (ISO-8859-1) bytes to UTF-8 string
   const decodeLatinToUtf8 = (bytes: Uint8Array): string => {
@@ -619,6 +629,33 @@ export default function TSEUploadModal({
                   </SelectContent>
                 </Select>
               </div>
+
+              {/* Direct download link when year is selected */}
+              {selectedAno && (
+                <Alert className="border-primary/30 bg-primary/5">
+                  <Download className="h-4 w-4 text-primary" />
+                  <AlertDescription className="text-sm">
+                    <div className="flex flex-col gap-2">
+                      <p className="font-medium">
+                        Baixe o arquivo correto:
+                      </p>
+                      <a
+                        href={getDirectDownloadUrl(selectedAno, selectedUF)}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="inline-flex items-center gap-2 text-primary hover:underline font-mono text-xs bg-background px-2 py-1.5 rounded border"
+                      >
+                        <Download className="h-3 w-3" />
+                        {getExpectedFileName(selectedAno, selectedUF)}
+                        <ExternalLink className="h-3 w-3 ml-auto" />
+                      </a>
+                      <p className="text-xs text-muted-foreground">
+                        Clique para baixar diretamente do portal TSE (~50-150MB)
+                      </p>
+                    </div>
+                  </AlertDescription>
+                </Alert>
+              )}
 
               <div className="space-y-2">
                 <Label>Arquivo CSV ou ZIP</Label>
