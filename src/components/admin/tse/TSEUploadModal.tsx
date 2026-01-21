@@ -30,8 +30,10 @@ type UploadStep = "select" | "extracting" | "uploading" | "processing" | "comple
 interface ExtractedFile {
   name: string;
   content: string;
+  rawBytes?: Uint8Array;      // For large files - keep original bytes for upload
   originalSize: number;
   extractedSize: number;
+  isPartialContent?: boolean; // True if content is only a preview (large files)
 }
 
 export default function TSEUploadModal({
@@ -137,6 +139,8 @@ export default function TSEUploadModal({
   };
 
   // Extract CSV from ZIP file
+  // OPTIMIZED: For large files (>100MB), only decode first 100KB for validation
+  // and keep raw bytes for direct upload to avoid browser memory crash
   const extractZipFile = async (file: File): Promise<ExtractedFile> => {
     console.log("[TSE] Starting ZIP extraction:", file.name, file.size);
     
@@ -150,10 +154,16 @@ export default function TSEUploadModal({
     const fileNames = Object.keys(unzipped);
     console.log("[TSE] Files in ZIP:", fileNames);
     
-    // Priority: votacao_secao, then any CSV
+    // Priority: votacao_secao, then any CSV, or totalizacao files
     let targetFile = fileNames.find(name => 
       name.toLowerCase().includes('votacao_secao') && name.endsWith('.csv')
     );
+    
+    if (!targetFile) {
+      targetFile = fileNames.find(name => 
+        name.toLowerCase().includes('resultado_totalizacao') && name.endsWith('.csv')
+      );
+    }
     
     if (!targetFile) {
       targetFile = fileNames.find(name => name.endsWith('.csv'));
@@ -166,13 +176,40 @@ export default function TSEUploadModal({
     console.log("[TSE] Extracting file:", targetFile);
     
     const csvBytes = unzipped[targetFile];
+    const isLargeFile = csvBytes.length > 100 * 1024 * 1024; // > 100MB
+    
+    console.log(`[TSE] CSV bytes: ${csvBytes.length}, isLarge: ${isLargeFile}`);
+    
+    if (isLargeFile) {
+      // For large files: only decode first 100KB for header validation
+      // Keep raw bytes for direct upload to Storage
+      console.log("[TSE] Large file detected - using partial decode strategy");
+      
+      const headerBytes = csvBytes.slice(0, 100000);
+      const headerContent = decodeLatinToUtf8(headerBytes);
+      
+      console.log(`[TSE] Header preview length: ${headerContent.length}`);
+      
+      return {
+        name: targetFile,
+        content: headerContent,      // Only first 100KB for validation
+        rawBytes: csvBytes,          // Keep full bytes for upload
+        originalSize: file.size,
+        extractedSize: csvBytes.length,
+        isPartialContent: true,
+      };
+    }
+    
+    // Normal decode for smaller files
     const csvContent = decodeLatinToUtf8(csvBytes);
+    console.log(`[TSE] Full content length: ${csvContent.length}`);
     
     return {
       name: targetFile,
       content: csvContent,
       originalSize: file.size,
       extractedSize: csvBytes.length,
+      isPartialContent: false,
     };
   };
 
@@ -497,10 +534,21 @@ export default function TSEUploadModal({
       let fileName: string;
       
       if (isZipFile && extractedFile) {
-        // Create blob from extracted UTF-8 content
-        fileToUpload = new Blob([extractedFile.content], { type: "text/csv;charset=utf-8" });
-        fileName = extractedFile.name;
-        setProgressMessage("Enviando CSV extraído...");
+        if (extractedFile.rawBytes) {
+          // Large file - upload raw bytes directly (Latin-1 encoding preserved)
+          // The Edge Function will handle decoding line by line
+          console.log("[TSE Upload] Using raw bytes for large file:", extractedFile.rawBytes.length);
+          // Create a new Uint8Array copy to ensure we have a proper ArrayBuffer
+          const bytesCopy = new Uint8Array(extractedFile.rawBytes);
+          fileToUpload = new Blob([bytesCopy.buffer as ArrayBuffer], { type: "text/csv" });
+          fileName = extractedFile.name;
+          setProgressMessage("Enviando arquivo grande (bytes originais)...");
+        } else {
+          // Normal file - create blob from extracted UTF-8 content
+          fileToUpload = new Blob([extractedFile.content], { type: "text/csv;charset=utf-8" });
+          fileName = extractedFile.name;
+          setProgressMessage("Enviando CSV extraído...");
+        }
       } else {
         fileToUpload = selectedFile;
         fileName = selectedFile.name;
