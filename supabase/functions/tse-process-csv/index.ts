@@ -51,6 +51,8 @@ const COLUMN_MAPPINGS: Record<string, string> = {
 
 // Configuration
 const MAX_PROCESSING_TIME_MS = 25000; // 25 seconds (leave margin for 60s timeout)
+const MIN_BYTES_PER_CHUNK = 2 * 1024 * 1024; // 2MB minimum per chunk to avoid "stuck" on sparse data
+const BYTE_UPDATE_INTERVAL = 1024 * 1024; // Update byte offset every 1MB
 const BATCH_SIZE = 500;
 const PROGRESS_UPDATE_INTERVAL = 5; // Update every 5 batches
 
@@ -307,6 +309,8 @@ serve(async (req) => {
     const cargosMap = new Map<number, any>();
     let votosBatch: any[] = [];
     let batchCount = 0;
+    let lastByteUpdateMark = 0; // Track when we last updated byte offset
+    let skippedLines = 0; // Count filtered/skipped lines
 
     console.log(`[TSE Process] Starting stream processing`);
 
@@ -357,7 +361,7 @@ serve(async (req) => {
         locaisMap.clear();
       }
 
-      // Insert votes
+      // Insert votes using UPSERT to prevent duplicates
       if (votosBatch.length > 0) {
         const votosToInsert = votosBatch.map(v => {
           const candidatoId = candidatoIdCache[v.candidatoKey] || candidatoIdCache[`${v.candidatoKey.split("_")[0]}_${uf}`];
@@ -374,7 +378,13 @@ serve(async (req) => {
         }).filter(v => v.candidato_id);
 
         if (votosToInsert.length > 0) {
-          const { error: votosError } = await supabase.from("tse_votos").insert(votosToInsert);
+          // Use upsert with ignoreDuplicates to handle the unique constraint
+          const { error: votosError } = await supabase
+            .from("tse_votos")
+            .upsert(votosToInsert, { 
+              onConflict: "eleicao_id,candidato_id,local_id,zona,secao",
+              ignoreDuplicates: true 
+            });
           if (!votosError) votesInsertedInThisChunk += votosToInsert.length;
         }
         votosBatch = [];
@@ -420,8 +430,13 @@ serve(async (req) => {
         }
 
         // Check if we should stop this chunk
-        if (Date.now() - startTime > MAX_PROCESSING_TIME_MS) {
-          console.log(`[TSE Process] Time limit reached at line ${currentLine}, byte ${currentByteOffset + bytesReadInChisChunk}`);
+        // Ensure minimum bytes processed before stopping (avoid "stuck" in sparse data regions)
+        const hasMinimumProgress = bytesReadInChisChunk >= MIN_BYTES_PER_CHUNK;
+        const timeExpired = Date.now() - startTime > MAX_PROCESSING_TIME_MS;
+        const safetyTimeout = Date.now() - startTime > 50000; // 50s absolute limit
+        
+        if ((timeExpired && hasMinimumProgress) || safetyTimeout) {
+          console.log(`[TSE Process] Stopping: time=${timeExpired}, minBytes=${hasMinimumProgress}, safety=${safetyTimeout}, bytesRead=${(bytesReadInChisChunk/1024/1024).toFixed(2)}MB`);
           shouldContinue = true;
           break processing;
         }
@@ -434,7 +449,7 @@ serve(async (req) => {
         };
 
         const numeroUrna = parseInt(getValue("numero_urna") || "0");
-        const nomeUrna = getValue("nome_urna") || "";
+        const nomeUrnaRaw = getValue("nome_urna") || "";
         const quantidade = parseInt(getValue("quantidade_votos") || "0");
         const codigoMunicipio = parseInt(getValue("codigo_municipio") || "0");
         const nomeMunicipio = getValue("nome_municipio") || "";
@@ -447,7 +462,32 @@ serve(async (req) => {
         const localNome = getValue("local_nome") || "";
         const endereco = getValue("endereco") || "";
 
-        if (!numeroUrna || !nomeUrna) continue;
+        // Skip lines without numero_urna (required)
+        if (!numeroUrna) {
+          skippedLines++;
+          continue;
+        }
+        
+        // For votos nulos (96) and brancos (95), generate name if empty
+        const nomeUrna = nomeUrnaRaw || 
+          (numeroUrna === 95 ? "VOTO BRANCO" : 
+           numeroUrna === 96 ? "VOTO NULO" : 
+           `VOTO ${numeroUrna}`);
+        
+        // Periodically update byte offset to ensure UI shows progress even when few votes inserted
+        if (bytesReadInChisChunk - lastByteUpdateMark > BYTE_UPDATE_INTERVAL) {
+          const newByteOffset = currentByteOffset + bytesReadInChisChunk;
+          await supabase
+            .from("tse_importacoes")
+            .update({
+              current_byte_offset: newByteOffset,
+              updated_at: new Date().toISOString()
+            })
+            .eq("ano", ano)
+            .eq("uf", uf)
+            .eq("tipo_arquivo", "votacao_secao");
+          lastByteUpdateMark = bytesReadInChisChunk;
+        }
 
         // Track cargos
         if (codigoCargo && !cargoMap[codigoCargo] && !cargosMap.has(codigoCargo)) {
@@ -557,7 +597,7 @@ serve(async (req) => {
 
     const elapsedSeconds = ((Date.now() - startTime) / 1000).toFixed(1);
     const bytesPerSecond = Math.round(bytesReadInChisChunk / parseFloat(elapsedSeconds));
-    console.log(`[TSE Process] Chunk complete in ${elapsedSeconds}s: ${processedInThisChunk} rows, ${votesInsertedInThisChunk} votes, ${(bytesReadInChisChunk/1024/1024).toFixed(2)}MB @ ${(bytesPerSecond/1024/1024).toFixed(2)}MB/s. Continue: ${shouldContinue}`);
+    console.log(`[TSE Process] Chunk complete in ${elapsedSeconds}s: ${processedInThisChunk} valid rows, ${skippedLines} skipped, ${votesInsertedInThisChunk} votes, ${(bytesReadInChisChunk/1024/1024).toFixed(2)}MB @ ${(bytesPerSecond/1024/1024).toFixed(2)}MB/s. Continue: ${shouldContinue}`);
 
     return new Response(
       JSON.stringify({
@@ -571,8 +611,9 @@ serve(async (req) => {
         totalRowsProcessed,
         totalFileSize,
         bytesPerSecond,
+        skippedLines,
         message: shouldContinue 
-          ? `Processou ${processedInThisChunk.toLocaleString()} linhas (${(bytesReadInChisChunk/1024/1024).toFixed(1)}MB). Continuando...`
+          ? `Processou ${processedInThisChunk.toLocaleString()} linhas (${skippedLines} puladas) em ${(bytesReadInChisChunk/1024/1024).toFixed(1)}MB. Continuando...`
           : `Concluído! ${totalVotesInserted.toLocaleString()} votos importados.`,
       }),
       {
