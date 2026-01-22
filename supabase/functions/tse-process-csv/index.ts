@@ -448,8 +448,10 @@ serve(async (req) => {
 
     console.log(`[TSE Process] Received request for ${uf} ${ano}: ${filePath}`);
 
-    // Start background processing
-    EdgeRuntime.waitUntil(processCSVInBackground(ano, uf, filePath));
+    // Start background processing (sem await para retornar imediatamente)
+    processCSVInBackground(ano, uf, filePath).catch(err => {
+      console.error("[TSE Process] Background error:", err);
+    });
 
     // Return immediately
     return new Response(
