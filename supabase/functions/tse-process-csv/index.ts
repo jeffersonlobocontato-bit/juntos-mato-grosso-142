@@ -84,10 +84,28 @@ serve(async (req) => {
 
     const previousVotesInserted = existingImport?.registros_importados || 0;
     const previousRowsProcessed = existingImport?.total_registros || 0;
+    const savedByteOffset = existingImport?.current_byte_offset || 0;
+    const savedTotalFileSize = existingImport?.total_file_size || 0;
 
-    // Detect migration mode: has line progress but no byte offset
-    const isMigrationMode = resumeFromByte === 0 && resumeFromLine > 0;
-    console.log(`[TSE Process] Migration mode: ${isMigrationMode}`);
+    // Detect inconsistent state: many votes/lines but byte offset is 0 or too low
+    // This happens when resuming an old import that didn't have byte tracking
+    const estimatedByteOffset = previousVotesInserted * 300; // ~300 bytes per vote line
+    const isMigrationNeeded = resumeFromByte < estimatedByteOffset * 0.5 && previousVotesInserted > 10000;
+    
+    // Use the saved byte offset from DB if it's higher and valid
+    let effectiveByteOffset = resumeFromByte;
+    if (savedByteOffset > resumeFromByte && savedByteOffset > 0) {
+      effectiveByteOffset = savedByteOffset;
+      console.log(`[TSE Process] Using saved byte offset from DB: ${savedByteOffset}`);
+    }
+    
+    // If still inconsistent after checking DB, estimate from votes
+    if (effectiveByteOffset < estimatedByteOffset * 0.5 && previousVotesInserted > 10000) {
+      effectiveByteOffset = estimatedByteOffset;
+      console.log(`[TSE Process] Migration: estimated byte offset from ${previousVotesInserted} votes = ${effectiveByteOffset}`);
+    }
+    
+    console.log(`[TSE Process] Byte offset decision: requested=${resumeFromByte}, saved=${savedByteOffset}, estimated=${estimatedByteOffset}, using=${effectiveByteOffset}`);
 
     await supabase
       .from("tse_importacoes")
@@ -100,7 +118,7 @@ serve(async (req) => {
         registros_importados: previousVotesInserted,
         total_registros: previousRowsProcessed,
         current_batch: resumeFromLine,
-        current_byte_offset: resumeFromByte,
+        current_byte_offset: effectiveByteOffset,
       }, {
         onConflict: "ano,uf,tipo_arquivo",
       });
@@ -116,9 +134,9 @@ serve(async (req) => {
 
     // Use Range Request for efficient resumption (skip already processed bytes)
     const fetchHeaders: Record<string, string> = {};
-    if (resumeFromByte > 0) {
-      fetchHeaders["Range"] = `bytes=${resumeFromByte}-`;
-      console.log(`[TSE Process] Using Range Request: bytes=${resumeFromByte}-`);
+    if (effectiveByteOffset > 0) {
+      fetchHeaders["Range"] = `bytes=${effectiveByteOffset}-`;
+      console.log(`[TSE Process] Using Range Request: bytes=${effectiveByteOffset}-`);
     }
 
     console.log(`[TSE Process] Fetching file via signed URL with Range: ${fetchHeaders["Range"] || "none"}`);
@@ -249,22 +267,22 @@ serve(async (req) => {
     let buffer = "";
     let headers: string[] = [];
     let columnIndices: Record<string, number> = {};
-    let isFirstLine = resumeFromByte === 0; // Only parse header if starting from beginning
-    let currentLine = resumeFromByte > 0 ? resumeFromLine : 0;
+    let isFirstLine = effectiveByteOffset === 0; // Only parse header if starting from beginning
+    let currentLine = effectiveByteOffset > 0 ? resumeFromLine : 0;
     let processedInThisChunk = 0;
     let votesInsertedInThisChunk = 0;
     let shouldContinue = false;
     let lastProcessedLine = resumeFromLine;
-    let currentByteOffset = resumeFromByte;
+    let currentByteOffset = effectiveByteOffset;
     let bytesReadInChisChunk = 0;
 
     // If resuming from byte offset, we need to skip the first partial line
-    let skipFirstLine = resumeFromByte > 0;
-    let needToParseHeader = resumeFromByte === 0;
+    let skipFirstLine = effectiveByteOffset > 0;
+    let needToParseHeader = effectiveByteOffset === 0;
 
     // If we have cached columns from header (we don't have header in Range response)
     // We need to fetch just the header separately
-    if (resumeFromByte > 0) {
+    if (effectiveByteOffset > 0) {
       console.log(`[TSE Process] Fetching header separately for Range resumption...`);
       const headerResponse = await fetch(signedUrl.signedUrl, {
         headers: { "Range": "bytes=0-5000" } // First 5KB should contain header
