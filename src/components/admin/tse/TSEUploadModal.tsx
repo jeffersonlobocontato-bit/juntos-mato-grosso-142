@@ -615,43 +615,78 @@ export default function TSEUploadModal({
         ? "tse-process-totalizacao" 
         : "tse-process-csv";
       
-      const { data, error } = await supabase.functions.invoke(edgeFunctionName, {
-        body: {
-          ano: parseInt(selectedAno),
-          uf: selectedUF,
-          filePath,
-        },
-      });
+      // Process with automatic chunked resumption for large files
+      let resumeFromLine = 0;
+      let chunkCount = 0;
+      const maxChunks = 200; // Safety limit: ~200 chunks * 25s * ~5k lines = ~1M lines per chunk
+      
+      while (chunkCount < maxChunks) {
+        chunkCount++;
+        console.log(`[TSE Upload] Processing chunk ${chunkCount}, resuming from line ${resumeFromLine}`);
+        setProgressMessage(`Processando dados... (chunk ${chunkCount}, linha ${resumeFromLine.toLocaleString()})`);
+        
+        const { data, error } = await supabase.functions.invoke(edgeFunctionName, {
+          body: {
+            ano: parseInt(selectedAno),
+            uf: selectedUF,
+            filePath,
+            resumeFromLine,
+          },
+        });
 
-      // Stop polling
+        console.log("[TSE Upload] Resposta do chunk:", { data, error, chunkCount });
+
+        if (error) {
+          console.error("[TSE Upload] Erro na Edge Function:", error);
+          throw new Error(`Erro no processamento: ${error.message}`);
+        }
+
+        if (!data?.success) {
+          const errorDetail = data?.error || data?.message || "Erro desconhecido no processamento";
+          console.error("[TSE Upload] Processamento falhou:", data);
+          throw new Error(errorDetail);
+        }
+
+        // Check if we need to continue processing
+        if (data.shouldContinue && data.lastProcessedLine > resumeFromLine) {
+          resumeFromLine = data.lastProcessedLine;
+          setProgressMessage(`Processando... ${data.totalVotesInserted?.toLocaleString() || 0} votos importados (chunk ${chunkCount})`);
+          
+          // Small delay between chunks to avoid rate limiting
+          await new Promise(resolve => setTimeout(resolve, 500));
+          continue;
+        }
+
+        // Processing complete
+        if (interval) {
+          clearInterval(interval);
+          setPollingInterval(null);
+        }
+
+        setProgress(100);
+        setProgressMessage("Importação concluída!");
+        setStats({
+          votos: data.totalVotesInserted,
+        });
+        setStep("complete");
+        
+        toast({
+          title: "Importação concluída",
+          description: `${data.totalVotesInserted?.toLocaleString("pt-BR") || 0} votos importados em ${chunkCount} chunk(s).`,
+        });
+        
+        onSuccess();
+        break;
+      }
+
+      // Stop polling if still running
       if (interval) {
         clearInterval(interval);
         setPollingInterval(null);
       }
 
-      console.log("[TSE Upload] Resposta da Edge Function:", { data, error });
-
-      if (error) {
-        console.error("[TSE Upload] Erro na Edge Function:", error);
-        throw new Error(`Erro no processamento: ${error.message}`);
-      }
-
-      if (data?.success) {
-        setProgress(100);
-        setProgressMessage("Importação concluída!");
-        setStats(data.stats);
-        setStep("complete");
-        
-        toast({
-          title: "Importação concluída",
-          description: `${data.stats?.votos?.toLocaleString("pt-BR") || 0} votos importados.`,
-        });
-        
-        onSuccess();
-      } else {
-        const errorDetail = data?.error || data?.message || "Erro desconhecido no processamento";
-        console.error("[TSE Upload] Processamento falhou:", data);
-        throw new Error(errorDetail);
+      if (chunkCount >= maxChunks) {
+        throw new Error("Limite de chunks atingido. O arquivo pode ser muito grande.");
       }
     } catch (error) {
       console.error("[TSE Upload] Erro completo:", error);
