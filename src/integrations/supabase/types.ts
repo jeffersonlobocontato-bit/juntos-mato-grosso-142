@@ -1319,6 +1319,7 @@ export type Database = {
           batch_size: number | null
           created_at: string
           current_batch: number | null
+          current_byte_offset: number | null
           erro_mensagem: string | null
           file_path: string | null
           id: string
@@ -1326,6 +1327,7 @@ export type Database = {
           registros_importados: number | null
           status: string
           tipo_arquivo: string
+          total_file_size: number | null
           total_registros: number | null
           uf: string
           updated_at: string
@@ -1335,6 +1337,7 @@ export type Database = {
           batch_size?: number | null
           created_at?: string
           current_batch?: number | null
+          current_byte_offset?: number | null
           erro_mensagem?: string | null
           file_path?: string | null
           id?: string
@@ -1342,6 +1345,7 @@ export type Database = {
           registros_importados?: number | null
           status?: string
           tipo_arquivo: string
+          total_file_size?: number | null
           total_registros?: number | null
           uf: string
           updated_at?: string
@@ -1351,6 +1355,7 @@ export type Database = {
           batch_size?: number | null
           created_at?: string
           current_batch?: number | null
+          current_byte_offset?: number | null
           erro_mensagem?: string | null
           file_path?: string | null
           id?: string
@@ -1358,6 +1363,7 @@ export type Database = {
           registros_importados?: number | null
           status?: string
           tipo_arquivo?: string
+          total_file_size?: number | null
           total_registros?: number | null
           uf?: string
           updated_at?: string

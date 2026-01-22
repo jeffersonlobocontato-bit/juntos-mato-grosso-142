@@ -40,13 +40,17 @@ interface Importacao {
   created_at: string;
   file_path: string | null;
   current_batch: number | null;
+  current_byte_offset?: number | null;
+  total_file_size?: number | null;
 }
 
 interface ResumeData {
   ano: number;
   uf: string;
   filePath: string;
-  resumeFromLine: number;
+  resumeFromByte: number;
+  resumeFromLine?: number;
+  totalFileSize?: number;
   tipoArquivo: "votacao_secao" | "totalizacao";
 }
 
@@ -108,7 +112,9 @@ export default function TSEImporter({
       ano: importData.ano,
       uf: selectedUF,
       filePath: importData.file_path,
-      resumeFromLine: importData.current_batch || 0,
+      resumeFromByte: importData.current_byte_offset || 0,
+      resumeFromLine: importData.current_batch || 0, // For migration mode
+      totalFileSize: importData.total_file_size || 0,
       tipoArquivo: importData.tipo_arquivo as "votacao_secao" | "totalizacao",
     });
     setShowUploadModal(true);
