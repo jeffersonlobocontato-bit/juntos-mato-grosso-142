@@ -28,61 +28,61 @@ function parseCSVLine(line: string, delimiter = ";"): string[] {
 }
 
 // Map TSE column names to our structure
-// Based on actual TSE votacao_secao file structure
 const COLUMN_MAPPINGS: Record<string, string> = {
-  // Metadata
   "ANO_ELEICAO": "ano_eleicao",
   "NR_TURNO": "turno",
   "DS_ELEICAO": "descricao_eleicao",
   "DT_ELEICAO": "data_eleicao",
-  
-  // Location
   "SG_UF": "uf",
   "CD_MUNICIPIO": "codigo_municipio",
   "NM_MUNICIPIO": "nome_municipio",
   "NR_ZONA": "zona",
   "NR_SECAO": "secao",
-  
-  // Cargo - TSE uses DS_CARGO not NM_CARGO
   "CD_CARGO": "codigo_cargo",
   "DS_CARGO": "nome_cargo",
-  
-  // Votação
   "NR_VOTAVEL": "numero_urna",
   "NM_VOTAVEL": "nome_urna",
   "QT_VOTOS": "quantidade_votos",
   "SQ_CANDIDATO": "sequencial_candidato",
-  
-  // Local de votação
   "NR_LOCAL_VOTACAO": "codigo_local",
   "NM_LOCAL_VOTACAO": "local_nome",
   "DS_LOCAL_VOTACAO_ENDERECO": "endereco",
 };
 
-interface ProcessedData {
-  candidatos: Map<string, any>;
-  votos: any[];
-  locais: Map<string, any>;
-  cargos: Map<number, any>;
-}
-
-serve(async (req) => {
-  if (req.method === "OPTIONS") {
-    return new Response(null, { headers: corsHeaders });
-  }
+// Streaming line reader for large files
+async function* readLinesFromStream(stream: ReadableStream<Uint8Array>): AsyncGenerator<string> {
+  const reader = stream.getReader();
+  const decoder = new TextDecoder("latin1"); // TSE uses ISO-8859-1
+  let buffer = "";
 
   try {
-    const { ano, uf, filePath } = await req.json();
-
-    if (!ano || !uf || !filePath) {
-      throw new Error("Parâmetros 'ano', 'uf' e 'filePath' são obrigatórios");
+    while (true) {
+      const { done, value } = await reader.read();
+      if (done) break;
+      
+      buffer += decoder.decode(value, { stream: true });
+      const lines = buffer.split("\n");
+      buffer = lines.pop() || "";
+      
+      for (const line of lines) {
+        if (line.trim()) yield line;
+      }
     }
+    
+    // Yield remaining buffer
+    if (buffer.trim()) yield buffer;
+  } finally {
+    reader.releaseLock();
+  }
+}
 
-    console.log(`Processing CSV for ${uf} ${ano}: ${filePath}`);
+async function processCSVInBackground(ano: number, uf: string, filePath: string) {
+  const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
+  const supabaseServiceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
+  const supabase = createClient(supabaseUrl, supabaseServiceKey);
 
-    const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
-    const supabaseServiceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
-    const supabase = createClient(supabaseUrl, supabaseServiceKey);
+  try {
+    console.log(`[Background] Starting processing for ${uf} ${ano}: ${filePath}`);
 
     // Update import status
     await supabase
@@ -94,44 +94,26 @@ serve(async (req) => {
         status: "processando",
         file_path: filePath,
         registros_importados: 0,
+        current_batch: 0,
       }, {
         onConflict: "ano,uf,tipo_arquivo",
       });
 
-    // Download file from storage
-    const { data: fileData, error: downloadError } = await supabase.storage
+    // Get file as stream (not loading all in memory)
+    const { data: signedUrl, error: signError } = await supabase.storage
       .from("tse-csv")
-      .download(filePath);
+      .createSignedUrl(filePath, 3600); // 1 hour
 
-    if (downloadError) {
-      throw new Error(`Erro ao baixar arquivo: ${downloadError.message}`);
+    if (signError || !signedUrl?.signedUrl) {
+      throw new Error(`Erro ao criar URL assinada: ${signError?.message}`);
     }
 
-    // Read file content
-    const text = await fileData.text();
-    const lines = text.split("\n").filter(line => line.trim());
-
-    if (lines.length < 2) {
-      throw new Error("Arquivo CSV vazio ou inválido");
+    console.log(`[Background] Fetching file via signed URL`);
+    
+    const response = await fetch(signedUrl.signedUrl);
+    if (!response.ok || !response.body) {
+      throw new Error(`Erro ao baixar arquivo: ${response.statusText}`);
     }
-
-    console.log(`Found ${lines.length} lines in CSV`);
-
-    // Parse header
-    const headerLine = lines[0];
-    const headers = parseCSVLine(headerLine);
-    console.log(`Headers: ${headers.slice(0, 10).join(", ")}...`);
-
-    // Find column indices
-    const columnIndices: Record<string, number> = {};
-    headers.forEach((header, index) => {
-      const cleanHeader = header.replace(/^\ufeff/, "").trim().toUpperCase();
-      if (COLUMN_MAPPINGS[cleanHeader]) {
-        columnIndices[COLUMN_MAPPINGS[cleanHeader]] = index;
-      }
-    });
-
-    console.log(`Mapped columns: ${Object.keys(columnIndices).join(", ")}`);
 
     // Get or create election record
     const tipoEleicao = ano % 4 === 0 ? "municipal" : "federal";
@@ -164,21 +146,38 @@ serve(async (req) => {
       cargoMap[c.codigo_tse] = c.id;
     });
 
-    // Process data in memory first
-    const processedData: ProcessedData = {
-      candidatos: new Map(),
-      votos: [],
-      locais: new Map(),
-      cargos: new Map(),
-    };
-
-    const BATCH_SIZE = 1000;
+    // Process streaming
+    let headers: string[] = [];
+    let columnIndices: Record<string, number> = {};
+    let isFirstLine = true;
     let processedRows = 0;
+    let totalVotosInserted = 0;
+    
+    // Batching structures
+    const BATCH_SIZE = 500;
+    const candidatosMap = new Map<string, any>();
+    const locaisMap = new Map<string, any>();
+    const cargosMap = new Map<number, any>();
+    const candidatoIdCache: Record<string, string> = {};
+    const localIdCache: Record<string, string> = {};
+    let votosBatch: any[] = [];
+    let batchCount = 0;
 
-    // Parse all data rows
-    for (let i = 1; i < lines.length; i++) {
-      const line = lines[i];
-      if (!line.trim()) continue;
+    console.log(`[Background] Starting stream processing`);
+
+    for await (const line of readLinesFromStream(response.body)) {
+      if (isFirstLine) {
+        headers = parseCSVLine(line);
+        headers.forEach((header, index) => {
+          const cleanHeader = header.replace(/^\ufeff/, "").trim().toUpperCase();
+          if (COLUMN_MAPPINGS[cleanHeader]) {
+            columnIndices[COLUMN_MAPPINGS[cleanHeader]] = index;
+          }
+        });
+        console.log(`[Background] Headers parsed: ${Object.keys(columnIndices).length} columns mapped`);
+        isFirstLine = false;
+        continue;
+      }
 
       const values = parseCSVLine(line);
       
@@ -201,38 +200,38 @@ serve(async (req) => {
       const localNome = getValue("local_nome") || "";
       const endereco = getValue("endereco") || "";
 
-      // Skip invalid rows
       if (!numeroUrna || !nomeUrna) continue;
 
-      // Track new cargos (if not in database)
-      if (codigoCargo && !cargoMap[codigoCargo] && !processedData.cargos.has(codigoCargo)) {
-        processedData.cargos.set(codigoCargo, {
+      // Track cargos
+      if (codigoCargo && !cargoMap[codigoCargo] && !cargosMap.has(codigoCargo)) {
+        cargosMap.set(codigoCargo, {
           codigo_tse: codigoCargo,
           nome: nomeCargo,
           abrangencia: codigoCargo <= 5 ? "federal" : "estadual",
         });
       }
 
-      // Track candidates (without party - votacao_secao doesn't have party info)
+      // Track candidates
       const candidatoKey = `${numeroUrna}_${uf}_${codigoCargo}`;
-      if (!processedData.candidatos.has(candidatoKey)) {
-        processedData.candidatos.set(candidatoKey, {
+      if (!candidatosMap.has(candidatoKey) && !candidatoIdCache[candidatoKey]) {
+        candidatosMap.set(candidatoKey, {
           eleicao_id: eleicao.id,
           cargo_id: cargoMap[codigoCargo] || null,
-          partido_id: null, // votacao_secao doesn't have party info
+          partido_id: null,
           numero_urna: numeroUrna,
           nome_urna: nomeUrna,
           uf,
           situacao: "candidato",
           sequencial_tse: sequencialCandidato || null,
           _codigo_cargo: codigoCargo,
+          _key: candidatoKey,
         });
       }
 
-      // Track voting locations
+      // Track locations
       const localKey = `${uf}_${zona}_${secao}`;
-      if (!processedData.locais.has(localKey)) {
-        processedData.locais.set(localKey, {
+      if (!locaisMap.has(localKey) && !localIdCache[localKey]) {
+        locaisMap.set(localKey, {
           uf,
           zona,
           secao,
@@ -241,142 +240,170 @@ serve(async (req) => {
           codigo_local_tse: codigoLocal || null,
           local_nome: localNome || null,
           endereco: endereco || null,
+          _key: localKey,
         });
       }
 
-      // Add vote record
-      processedData.votos.push({
+      // Add vote to batch
+      votosBatch.push({
         candidatoKey,
         localKey,
         quantidade,
         codigoMunicipio,
         zona,
         secao,
+        eleicao_id: eleicao.id,
       });
 
       processedRows++;
-    }
 
-    console.log(`Parsed ${processedRows} rows`);
-    console.log(`Found ${processedData.candidatos.size} candidates, ${processedData.locais.size} locations, ${processedData.votos.length} vote records, ${processedData.cargos.size} new cargos`);
+      // Flush batches periodically
+      if (votosBatch.length >= BATCH_SIZE) {
+        // Insert cargos if any
+        if (cargosMap.size > 0) {
+          const { data: inserted } = await supabase
+            .from("tse_cargos")
+            .upsert(Array.from(cargosMap.values()), { onConflict: "codigo_tse", ignoreDuplicates: true })
+            .select();
+          inserted?.forEach(c => { cargoMap[c.codigo_tse] = c.id; });
+          cargosMap.clear();
+        }
 
-    // Insert new cargos if any
-    if (processedData.cargos.size > 0) {
-      const newCargos = Array.from(processedData.cargos.values());
-      const { data: insertedCargos, error: cargoError } = await supabase
-        .from("tse_cargos")
-        .upsert(newCargos, { onConflict: "codigo_tse", ignoreDuplicates: true })
-        .select();
+        // Insert candidates
+        if (candidatosMap.size > 0) {
+          const batch = Array.from(candidatosMap.values()).map(({ _codigo_cargo, _key, ...rest }) => ({
+            ...rest,
+            cargo_id: cargoMap[_codigo_cargo] || rest.cargo_id,
+          }));
+          
+          const { data: inserted } = await supabase
+            .from("tse_candidatos")
+            .upsert(batch, { onConflict: "eleicao_id,numero_urna,uf", ignoreDuplicates: false })
+            .select("id, numero_urna, uf, cargo_id");
+          
+          inserted?.forEach(c => {
+            const key = `${c.numero_urna}_${uf}_${Object.keys(cargoMap).find(k => cargoMap[parseInt(k)] === c.cargo_id) || "0"}`;
+            candidatoIdCache[key] = c.id;
+            // Also cache simpler key
+            candidatoIdCache[`${c.numero_urna}_${uf}`] = c.id;
+          });
+          candidatosMap.clear();
+        }
 
-      if (!cargoError && insertedCargos) {
-        insertedCargos.forEach(c => {
-          cargoMap[c.codigo_tse] = c.id;
-        });
-        console.log(`Inserted ${insertedCargos.length} new cargos`);
-      }
-    }
+        // Insert locations
+        if (locaisMap.size > 0) {
+          const batch = Array.from(locaisMap.values()).map(({ _key, ...rest }) => rest);
+          
+          const { data: inserted } = await supabase
+            .from("tse_locais_votacao")
+            .upsert(batch, { onConflict: "uf,zona,secao", ignoreDuplicates: false })
+            .select("id, uf, zona, secao");
+          
+          inserted?.forEach(l => {
+            localIdCache[`${l.uf}_${l.zona}_${l.secao}`] = l.id;
+          });
+          locaisMap.clear();
+        }
 
-    // Insert candidates
-    const candidatosArray = Array.from(processedData.candidatos.values()).map(c => ({
-      ...c,
-      cargo_id: cargoMap[c._codigo_cargo] || c.cargo_id,
-    }));
+        // Insert votes
+        const votosToInsert = votosBatch.map(v => {
+          const candidatoId = candidatoIdCache[v.candidatoKey] || candidatoIdCache[`${v.candidatoKey.split("_")[0]}_${uf}`];
+          return {
+            eleicao_id: v.eleicao_id,
+            candidato_id: candidatoId || null,
+            local_id: localIdCache[v.localKey] || null,
+            uf,
+            codigo_municipio_tse: v.codigoMunicipio,
+            zona: v.zona,
+            secao: v.secao,
+            quantidade: v.quantidade,
+          };
+        }).filter(v => v.candidato_id);
 
-    const candidatoIdMap: Record<string, string> = {};
-    
-    for (let i = 0; i < candidatosArray.length; i += BATCH_SIZE) {
-      const batch = candidatosArray.slice(i, i + BATCH_SIZE).map(({ _codigo_cargo, ...rest }) => rest);
-      const { data: inserted, error: candError } = await supabase
-        .from("tse_candidatos")
-        .upsert(batch, { 
-          onConflict: "eleicao_id,numero_urna,uf",
-          ignoreDuplicates: false,
-        })
-        .select("id, numero_urna, uf");
+        if (votosToInsert.length > 0) {
+          const { error: votosError } = await supabase.from("tse_votos").insert(votosToInsert);
+          if (!votosError) totalVotosInserted += votosToInsert.length;
+        }
 
-      if (candError) {
-        console.error("Error inserting candidates batch:", candError);
-      } else if (inserted) {
-        inserted.forEach(c => {
-          candidatoIdMap[`${c.numero_urna}_${c.uf}`] = c.id;
-        });
-      }
-    }
+        votosBatch = [];
+        batchCount++;
 
-    console.log(`Inserted ${Object.keys(candidatoIdMap).length} candidates`);
-
-    // Insert voting locations
-    const locaisArray = Array.from(processedData.locais.values());
-    const localIdMap: Record<string, string> = {};
-
-    for (let i = 0; i < locaisArray.length; i += BATCH_SIZE) {
-      const batch = locaisArray.slice(i, i + BATCH_SIZE);
-      const { data: inserted, error: localError } = await supabase
-        .from("tse_locais_votacao")
-        .upsert(batch, { 
-          onConflict: "uf,zona,secao",
-          ignoreDuplicates: false,
-        })
-        .select("id, uf, zona, secao");
-
-      if (localError) {
-        console.error("Error inserting locations batch:", localError);
-      } else if (inserted) {
-        inserted.forEach(l => {
-          localIdMap[`${l.uf}_${l.zona}_${l.secao}`] = l.id;
-        });
-      }
-    }
-
-    console.log(`Inserted ${Object.keys(localIdMap).length} locations`);
-
-    // Insert votes in batches
-    let totalVotosInserted = 0;
-    
-    for (let i = 0; i < processedData.votos.length; i += BATCH_SIZE) {
-      const batch = processedData.votos.slice(i, i + BATCH_SIZE).map(v => {
-        const candidatoId = Object.entries(candidatoIdMap).find(([key]) => 
-          key.startsWith(`${v.candidatoKey.split("_")[0]}_${uf}`)
-        )?.[1];
-        
-        return {
-          eleicao_id: eleicao.id,
-          candidato_id: candidatoId || null,
-          local_id: localIdMap[v.localKey] || null,
-          uf,
-          codigo_municipio_tse: v.codigoMunicipio,
-          zona: v.zona,
-          secao: v.secao,
-          quantidade: v.quantidade,
-        };
-      }).filter(v => v.candidato_id);
-
-      if (batch.length > 0) {
-        const { error: votosError } = await supabase
-          .from("tse_votos")
-          .insert(batch);
-
-        if (votosError) {
-          console.error("Error inserting votes batch:", votosError);
-        } else {
-          totalVotosInserted += batch.length;
+        // Update progress every 10 batches
+        if (batchCount % 10 === 0) {
+          await supabase
+            .from("tse_importacoes")
+            .update({
+              registros_importados: totalVotosInserted,
+              current_batch: batchCount,
+              total_registros: processedRows,
+            })
+            .eq("ano", ano)
+            .eq("uf", uf)
+            .eq("tipo_arquivo", "votacao_secao");
+          
+          console.log(`[Background] Progress: ${processedRows} rows, ${totalVotosInserted} votes inserted`);
         }
       }
-
-      // Update progress
-      const progress = Math.round((i / processedData.votos.length) * 100);
-      await supabase
-        .from("tse_importacoes")
-        .update({
-          registros_importados: totalVotosInserted,
-          current_batch: Math.floor(i / BATCH_SIZE),
-        })
-        .eq("ano", ano)
-        .eq("uf", uf)
-        .eq("tipo_arquivo", "votacao_secao");
     }
 
-    console.log(`Inserted ${totalVotosInserted} vote records`);
+    // Flush remaining data
+    if (cargosMap.size > 0 || candidatosMap.size > 0 || locaisMap.size > 0 || votosBatch.length > 0) {
+      if (cargosMap.size > 0) {
+        const { data: inserted } = await supabase
+          .from("tse_cargos")
+          .upsert(Array.from(cargosMap.values()), { onConflict: "codigo_tse", ignoreDuplicates: true })
+          .select();
+        inserted?.forEach(c => { cargoMap[c.codigo_tse] = c.id; });
+      }
+
+      if (candidatosMap.size > 0) {
+        const batch = Array.from(candidatosMap.values()).map(({ _codigo_cargo, _key, ...rest }) => ({
+          ...rest,
+          cargo_id: cargoMap[_codigo_cargo] || rest.cargo_id,
+        }));
+        const { data: inserted } = await supabase
+          .from("tse_candidatos")
+          .upsert(batch, { onConflict: "eleicao_id,numero_urna,uf", ignoreDuplicates: false })
+          .select("id, numero_urna, uf, cargo_id");
+        inserted?.forEach(c => {
+          candidatoIdCache[`${c.numero_urna}_${uf}`] = c.id;
+        });
+      }
+
+      if (locaisMap.size > 0) {
+        const batch = Array.from(locaisMap.values()).map(({ _key, ...rest }) => rest);
+        const { data: inserted } = await supabase
+          .from("tse_locais_votacao")
+          .upsert(batch, { onConflict: "uf,zona,secao", ignoreDuplicates: false })
+          .select("id, uf, zona, secao");
+        inserted?.forEach(l => {
+          localIdCache[`${l.uf}_${l.zona}_${l.secao}`] = l.id;
+        });
+      }
+
+      if (votosBatch.length > 0) {
+        const votosToInsert = votosBatch.map(v => {
+          const candidatoId = candidatoIdCache[v.candidatoKey] || candidatoIdCache[`${v.candidatoKey.split("_")[0]}_${uf}`];
+          return {
+            eleicao_id: v.eleicao_id,
+            candidato_id: candidatoId || null,
+            local_id: localIdCache[v.localKey] || null,
+            uf,
+            codigo_municipio_tse: v.codigoMunicipio,
+            zona: v.zona,
+            secao: v.secao,
+            quantidade: v.quantidade,
+          };
+        }).filter(v => v.candidato_id);
+
+        if (votosToInsert.length > 0) {
+          const { error: votosError } = await supabase.from("tse_votos").insert(votosToInsert);
+          if (!votosError) totalVotosInserted += votosToInsert.length;
+        }
+      }
+    }
+
+    console.log(`[Background] Completed: ${processedRows} rows, ${totalVotosInserted} votes`);
 
     // Update final status
     await supabase
@@ -384,22 +411,51 @@ serve(async (req) => {
       .update({
         status: "concluido",
         registros_importados: totalVotosInserted,
-        total_registros: processedData.votos.length,
+        total_registros: processedRows,
         updated_at: new Date().toISOString(),
       })
       .eq("ano", ano)
       .eq("uf", uf)
       .eq("tipo_arquivo", "votacao_secao");
 
+  } catch (error) {
+    console.error("[Background] Error:", error);
+    
+    await supabase
+      .from("tse_importacoes")
+      .update({
+        status: "erro",
+        erro_mensagem: error instanceof Error ? error.message : "Erro desconhecido",
+        updated_at: new Date().toISOString(),
+      })
+      .eq("ano", ano)
+      .eq("uf", uf)
+      .eq("tipo_arquivo", "votacao_secao");
+  }
+}
+
+serve(async (req) => {
+  if (req.method === "OPTIONS") {
+    return new Response(null, { headers: corsHeaders });
+  }
+
+  try {
+    const { ano, uf, filePath } = await req.json();
+
+    if (!ano || !uf || !filePath) {
+      throw new Error("Parâmetros 'ano', 'uf' e 'filePath' são obrigatórios");
+    }
+
+    console.log(`[TSE Process] Received request for ${uf} ${ano}: ${filePath}`);
+
+    // Start background processing
+    EdgeRuntime.waitUntil(processCSVInBackground(ano, uf, filePath));
+
+    // Return immediately
     return new Response(
       JSON.stringify({
         success: true,
-        message: `Importação concluída para ${uf} ${ano}`,
-        stats: {
-          candidatos: processedData.candidatos.size,
-          locais: processedData.locais.size,
-          votos: totalVotosInserted,
-        },
+        message: `Processamento iniciado para ${uf} ${ano}. Acompanhe o progresso na tela.`,
       }),
       {
         headers: { ...corsHeaders, "Content-Type": "application/json" },
@@ -408,26 +464,6 @@ serve(async (req) => {
     );
   } catch (error) {
     console.error("Error in tse-process-csv:", error);
-    
-    // Try to update import status to error
-    try {
-      const { ano, uf } = await req.clone().json();
-      const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
-      const supabaseServiceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
-      const supabase = createClient(supabaseUrl, supabaseServiceKey);
-      
-      await supabase
-        .from("tse_importacoes")
-        .update({
-          status: "erro",
-          erro_mensagem: error instanceof Error ? error.message : "Erro desconhecido",
-        })
-        .eq("ano", ano)
-        .eq("uf", uf)
-        .eq("tipo_arquivo", "votacao_secao");
-    } catch (e) {
-      console.error("Failed to update error status:", e);
-    }
 
     return new Response(
       JSON.stringify({
