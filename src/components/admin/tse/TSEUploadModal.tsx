@@ -588,14 +588,17 @@ export default function TSEUploadModal({
       setProgress(25);
       setProgressMessage("Verificando arquivo no servidor...");
       
+      // Use the timestamped filename from the upload path for verification
+      const uploadedFileName = filePath.split('/').pop() || '';
+      
       const { data: fileCheck, error: fileCheckError } = await supabase.storage
         .from("tse-csv")
         .list(`${selectedUF}/${selectedAno}`, { 
-          search: fileName.substring(0, 20) 
+          search: uploadedFileName.substring(0, 25) 
         });
 
       if (fileCheckError || !fileCheck || fileCheck.length === 0) {
-        console.error("[TSE Upload] Arquivo não encontrado após upload:", fileCheckError);
+        console.error("[TSE Upload] Arquivo não encontrado após upload:", fileCheckError, "Buscando por:", uploadedFileName);
         throw new Error("Arquivo não foi salvo corretamente. Tente novamente.");
       }
 
