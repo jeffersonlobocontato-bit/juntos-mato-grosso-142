@@ -28,21 +28,33 @@ function parseCSVLine(line: string, delimiter = ";"): string[] {
 }
 
 // Map TSE column names to our structure
+// Based on actual TSE votacao_secao file structure
 const COLUMN_MAPPINGS: Record<string, string> = {
+  // Metadata
+  "ANO_ELEICAO": "ano_eleicao",
   "NR_TURNO": "turno",
-  "CD_CARGO": "codigo_cargo",
-  "NM_CARGO": "nome_cargo",
-  "NR_PARTIDO": "numero_partido",
-  "SG_PARTIDO": "sigla_partido",
-  "NM_PARTIDO": "nome_partido",
-  "NR_VOTAVEL": "numero_urna",
-  "NM_VOTAVEL": "nome_urna",
-  "QT_VOTOS": "quantidade_votos",
+  "DS_ELEICAO": "descricao_eleicao",
+  "DT_ELEICAO": "data_eleicao",
+  
+  // Location
+  "SG_UF": "uf",
   "CD_MUNICIPIO": "codigo_municipio",
   "NM_MUNICIPIO": "nome_municipio",
   "NR_ZONA": "zona",
   "NR_SECAO": "secao",
-  "SG_UF": "uf",
+  
+  // Cargo - TSE uses DS_CARGO not NM_CARGO
+  "CD_CARGO": "codigo_cargo",
+  "DS_CARGO": "nome_cargo",
+  
+  // Votação
+  "NR_VOTAVEL": "numero_urna",
+  "NM_VOTAVEL": "nome_urna",
+  "QT_VOTOS": "quantidade_votos",
+  "SQ_CANDIDATO": "sequencial_candidato",
+  
+  // Local de votação
+  "NR_LOCAL_VOTACAO": "codigo_local",
   "NM_LOCAL_VOTACAO": "local_nome",
   "DS_LOCAL_VOTACAO_ENDERECO": "endereco",
 };
@@ -51,7 +63,7 @@ interface ProcessedData {
   candidatos: Map<string, any>;
   votos: any[];
   locais: Map<string, any>;
-  partidos: Map<number, any>;
+  cargos: Map<number, any>;
 }
 
 serve(async (req) => {
@@ -142,19 +154,10 @@ serve(async (req) => {
       throw new Error(`Erro ao criar eleição: ${eleicaoError.message}`);
     }
 
-    // Get existing parties and cargos
-    const { data: existingPartidos } = await supabase
-      .from("tse_partidos")
-      .select("id, numero");
-
+    // Get existing cargos
     const { data: existingCargos } = await supabase
       .from("tse_cargos")
       .select("id, codigo_tse");
-
-    const partidoMap: Record<number, string> = {};
-    existingPartidos?.forEach(p => {
-      partidoMap[p.numero] = p.id;
-    });
 
     const cargoMap: Record<number, string> = {};
     existingCargos?.forEach(c => {
@@ -166,7 +169,7 @@ serve(async (req) => {
       candidatos: new Map(),
       votos: [],
       locais: new Map(),
-      partidos: new Map(),
+      cargos: new Map(),
     };
 
     const BATCH_SIZE = 1000;
@@ -184,9 +187,6 @@ serve(async (req) => {
         return idx !== undefined ? values[idx] : undefined;
       };
 
-      const numeroPartido = parseInt(getValue("numero_partido") || "0");
-      const siglaPartido = getValue("sigla_partido") || "";
-      const nomePartido = getValue("nome_partido") || "";
       const numeroUrna = parseInt(getValue("numero_urna") || "0");
       const nomeUrna = getValue("nome_urna") || "";
       const quantidade = parseInt(getValue("quantidade_votos") || "0");
@@ -195,31 +195,37 @@ serve(async (req) => {
       const zona = parseInt(getValue("zona") || "0");
       const secao = parseInt(getValue("secao") || "0");
       const codigoCargo = parseInt(getValue("codigo_cargo") || "0");
+      const nomeCargo = getValue("nome_cargo") || "";
+      const sequencialCandidato = getValue("sequencial_candidato") || "";
+      const codigoLocal = parseInt(getValue("codigo_local") || "0");
+      const localNome = getValue("local_nome") || "";
+      const endereco = getValue("endereco") || "";
 
       // Skip invalid rows
       if (!numeroUrna || !nomeUrna) continue;
 
-      // Track new parties
-      if (numeroPartido && !partidoMap[numeroPartido] && !processedData.partidos.has(numeroPartido)) {
-        processedData.partidos.set(numeroPartido, {
-          numero: numeroPartido,
-          sigla: siglaPartido,
-          nome: nomePartido,
+      // Track new cargos (if not in database)
+      if (codigoCargo && !cargoMap[codigoCargo] && !processedData.cargos.has(codigoCargo)) {
+        processedData.cargos.set(codigoCargo, {
+          codigo_tse: codigoCargo,
+          nome: nomeCargo,
+          abrangencia: codigoCargo <= 5 ? "federal" : "estadual",
         });
       }
 
-      // Track candidates
+      // Track candidates (without party - votacao_secao doesn't have party info)
       const candidatoKey = `${numeroUrna}_${uf}_${codigoCargo}`;
       if (!processedData.candidatos.has(candidatoKey)) {
         processedData.candidatos.set(candidatoKey, {
           eleicao_id: eleicao.id,
           cargo_id: cargoMap[codigoCargo] || null,
-          partido_id: partidoMap[numeroPartido] || null,
+          partido_id: null, // votacao_secao doesn't have party info
           numero_urna: numeroUrna,
           nome_urna: nomeUrna,
           uf,
           situacao: "candidato",
-          _partido_numero: numeroPartido,
+          sequencial_tse: sequencialCandidato || null,
+          _codigo_cargo: codigoCargo,
         });
       }
 
@@ -232,6 +238,9 @@ serve(async (req) => {
           secao,
           codigo_municipio_tse: codigoMunicipio,
           nome_municipio: nomeMunicipio,
+          codigo_local_tse: codigoLocal || null,
+          local_nome: localNome || null,
+          endereco: endereco || null,
         });
       }
 
@@ -249,33 +258,34 @@ serve(async (req) => {
     }
 
     console.log(`Parsed ${processedRows} rows`);
-    console.log(`Found ${processedData.candidatos.size} candidates, ${processedData.locais.size} locations, ${processedData.votos.length} vote records`);
+    console.log(`Found ${processedData.candidatos.size} candidates, ${processedData.locais.size} locations, ${processedData.votos.length} vote records, ${processedData.cargos.size} new cargos`);
 
-    // Insert new parties
-    if (processedData.partidos.size > 0) {
-      const newPartidos = Array.from(processedData.partidos.values());
-      const { data: insertedPartidos, error: partidoError } = await supabase
-        .from("tse_partidos")
-        .upsert(newPartidos, { onConflict: "numero", ignoreDuplicates: true })
+    // Insert new cargos if any
+    if (processedData.cargos.size > 0) {
+      const newCargos = Array.from(processedData.cargos.values());
+      const { data: insertedCargos, error: cargoError } = await supabase
+        .from("tse_cargos")
+        .upsert(newCargos, { onConflict: "codigo_tse", ignoreDuplicates: true })
         .select();
 
-      if (!partidoError && insertedPartidos) {
-        insertedPartidos.forEach(p => {
-          partidoMap[p.numero] = p.id;
+      if (!cargoError && insertedCargos) {
+        insertedCargos.forEach(c => {
+          cargoMap[c.codigo_tse] = c.id;
         });
+        console.log(`Inserted ${insertedCargos.length} new cargos`);
       }
     }
 
     // Insert candidates
     const candidatosArray = Array.from(processedData.candidatos.values()).map(c => ({
       ...c,
-      partido_id: partidoMap[c._partido_numero] || c.partido_id,
+      cargo_id: cargoMap[c._codigo_cargo] || c.cargo_id,
     }));
 
     const candidatoIdMap: Record<string, string> = {};
     
     for (let i = 0; i < candidatosArray.length; i += BATCH_SIZE) {
-      const batch = candidatosArray.slice(i, i + BATCH_SIZE).map(({ _partido_numero, ...rest }) => rest);
+      const batch = candidatosArray.slice(i, i + BATCH_SIZE).map(({ _codigo_cargo, ...rest }) => rest);
       const { data: inserted, error: candError } = await supabase
         .from("tse_candidatos")
         .upsert(batch, { 
@@ -288,7 +298,6 @@ serve(async (req) => {
         console.error("Error inserting candidates batch:", candError);
       } else if (inserted) {
         inserted.forEach(c => {
-          const key = `${c.numero_urna}_${c.uf}_${candidatosArray.find(ca => ca.numero_urna === c.numero_urna)?.cargo_id || ""}`;
           candidatoIdMap[`${c.numero_urna}_${c.uf}`] = c.id;
         });
       }

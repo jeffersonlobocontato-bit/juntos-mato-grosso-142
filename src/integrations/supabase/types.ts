@@ -1194,6 +1194,7 @@ export type Database = {
           nome_urna: string
           numero_urna: number
           partido_id: string | null
+          sequencial_tse: string | null
           situacao: string | null
           uf: string
         }
@@ -1208,6 +1209,7 @@ export type Database = {
           nome_urna: string
           numero_urna: number
           partido_id?: string | null
+          sequencial_tse?: string | null
           situacao?: string | null
           uf: string
         }
@@ -1222,6 +1224,7 @@ export type Database = {
           nome_urna?: string
           numero_urna?: number
           partido_id?: string | null
+          sequencial_tse?: string | null
           situacao?: string | null
           uf?: string
         }
@@ -1363,6 +1366,7 @@ export type Database = {
       }
       tse_locais_votacao: {
         Row: {
+          codigo_local_tse: number | null
           codigo_municipio_tse: number | null
           created_at: string
           endereco: string | null
@@ -1377,6 +1381,7 @@ export type Database = {
           zona: number
         }
         Insert: {
+          codigo_local_tse?: number | null
           codigo_municipio_tse?: number | null
           created_at?: string
           endereco?: string | null
@@ -1391,6 +1396,7 @@ export type Database = {
           zona: number
         }
         Update: {
+          codigo_local_tse?: number | null
           codigo_municipio_tse?: number | null
           created_at?: string
           endereco?: string | null

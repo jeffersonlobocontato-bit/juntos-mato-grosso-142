@@ -65,8 +65,9 @@ export default function TSEUploadModal({
   const [validationErrors, setValidationErrors] = useState<string[]>([]);
   const [pollingInterval, setPollingInterval] = useState<NodeJS.Timeout | null>(null);
 
-  // File size limit (500MB) - larger files can crash the browser
-  const MAX_FILE_SIZE = 500 * 1024 * 1024;
+  // Maximum file size: 2GB to support large TSE files
+  // Large files use partial decoding for validation + raw bytes for upload
+  const MAX_FILE_SIZE = 2 * 1024 * 1024 * 1024; // 2GB
   
   // Patterns indicating incorrect file types
   const INVALID_FILE_PATTERNS = ["bu_imgbu", "logjez", "rdv", "imgbu", "_jez_", "vscmr"];
