@@ -64,14 +64,14 @@ serve(async (req) => {
   const supabase = createClient(supabaseUrl, supabaseServiceKey);
 
   try {
-    const { ano, uf, filePath, resumeFromLine = 0 } = await req.json();
+    const { ano, uf, filePath, resumeFromByte = 0, resumeFromLine = 0 } = await req.json();
 
     if (!ano || !uf || !filePath) {
       throw new Error("Parâmetros 'ano', 'uf' e 'filePath' são obrigatórios");
     }
 
     const startTime = Date.now();
-    console.log(`[TSE Process] Starting for ${uf} ${ano}, resuming from line ${resumeFromLine}`);
+    console.log(`[TSE Process] Starting for ${uf} ${ano}, resumeFromByte=${resumeFromByte}, resumeFromLine=${resumeFromLine}`);
 
     // Get or update import status
     const { data: existingImport } = await supabase
@@ -85,6 +85,10 @@ serve(async (req) => {
     const previousVotesInserted = existingImport?.registros_importados || 0;
     const previousRowsProcessed = existingImport?.total_registros || 0;
 
+    // Detect migration mode: has line progress but no byte offset
+    const isMigrationMode = resumeFromByte === 0 && resumeFromLine > 0;
+    console.log(`[TSE Process] Migration mode: ${isMigrationMode}`);
+
     await supabase
       .from("tse_importacoes")
       .upsert({
@@ -96,11 +100,12 @@ serve(async (req) => {
         registros_importados: previousVotesInserted,
         total_registros: previousRowsProcessed,
         current_batch: resumeFromLine,
+        current_byte_offset: resumeFromByte,
       }, {
         onConflict: "ano,uf,tipo_arquivo",
       });
 
-    // Get file as stream
+    // Get signed URL for the file
     const { data: signedUrl, error: signError } = await supabase.storage
       .from("tse-csv")
       .createSignedUrl(filePath, 3600);
@@ -109,11 +114,72 @@ serve(async (req) => {
       throw new Error(`Erro ao criar URL assinada: ${signError?.message}`);
     }
 
-    console.log(`[TSE Process] Fetching file via signed URL`);
+    // Use Range Request for efficient resumption (skip already processed bytes)
+    const fetchHeaders: Record<string, string> = {};
+    if (resumeFromByte > 0) {
+      fetchHeaders["Range"] = `bytes=${resumeFromByte}-`;
+      console.log(`[TSE Process] Using Range Request: bytes=${resumeFromByte}-`);
+    }
+
+    console.log(`[TSE Process] Fetching file via signed URL with Range: ${fetchHeaders["Range"] || "none"}`);
     
-    const response = await fetch(signedUrl.signedUrl);
+    const response = await fetch(signedUrl.signedUrl, { headers: fetchHeaders });
+    
+    // Get total file size from Content-Range header or Content-Length
+    let totalFileSize = 0;
+    const contentRange = response.headers.get("Content-Range");
+    if (contentRange) {
+      // Format: bytes 1000-2000/5000 (start-end/total)
+      const match = contentRange.match(/\/(\d+)$/);
+      if (match) {
+        totalFileSize = parseInt(match[1], 10);
+        console.log(`[TSE Process] Total file size from Content-Range: ${totalFileSize}`);
+      }
+    } else {
+      const contentLength = response.headers.get("Content-Length");
+      if (contentLength) {
+        totalFileSize = parseInt(contentLength, 10) + resumeFromByte;
+        console.log(`[TSE Process] Estimated total file size: ${totalFileSize}`);
+      }
+    }
+
+    // Update total file size in DB if we got it
+    if (totalFileSize > 0) {
+      await supabase
+        .from("tse_importacoes")
+        .update({ total_file_size: totalFileSize })
+        .eq("ano", ano)
+        .eq("uf", uf)
+        .eq("tipo_arquivo", "votacao_secao");
+    }
+
     if (!response.ok || !response.body) {
-      throw new Error(`Erro ao baixar arquivo: ${response.statusText}`);
+      // 416 Range Not Satisfiable means we've processed the whole file
+      if (response.status === 416) {
+        console.log(`[TSE Process] File fully processed (416 Range Not Satisfiable)`);
+        await supabase
+          .from("tse_importacoes")
+          .update({
+            status: "concluido",
+            updated_at: new Date().toISOString(),
+          })
+          .eq("ano", ano)
+          .eq("uf", uf)
+          .eq("tipo_arquivo", "votacao_secao");
+
+        return new Response(
+          JSON.stringify({
+            success: true,
+            shouldContinue: false,
+            lastByteOffset: resumeFromByte,
+            totalVotesInserted: previousVotesInserted,
+            totalRowsProcessed: previousRowsProcessed,
+            message: `Arquivo completamente processado! ${previousVotesInserted.toLocaleString()} votos importados.`,
+          }),
+          { headers: { ...corsHeaders, "Content-Type": "application/json" }, status: 200 }
+        );
+      }
+      throw new Error(`Erro ao baixar arquivo: ${response.statusText} (${response.status})`);
     }
 
     // Get or create election record
@@ -147,56 +213,82 @@ serve(async (req) => {
       cargoMap[c.codigo_tse] = c.id;
     });
 
+    // Pre-load existing candidates and locations to avoid duplicates
+    console.log(`[TSE Process] Loading existing candidates and locations cache...`);
+    const candidatoIdCache: Record<string, string> = {};
+    const localIdCache: Record<string, string> = {};
+
+    const { data: existingCandidatos } = await supabase
+      .from("tse_candidatos")
+      .select("id, numero_urna, uf, cargo_id")
+      .eq("eleicao_id", eleicao.id)
+      .eq("uf", uf);
+    
+    existingCandidatos?.forEach(c => {
+      const cargoCode = Object.entries(cargoMap).find(([_, v]) => v === c.cargo_id)?.[0];
+      if (cargoCode) {
+        candidatoIdCache[`${c.numero_urna}_${uf}_${cargoCode}`] = c.id;
+      }
+      candidatoIdCache[`${c.numero_urna}_${uf}`] = c.id;
+    });
+
+    const { data: existingLocais } = await supabase
+      .from("tse_locais_votacao")
+      .select("id, uf, zona, secao")
+      .eq("uf", uf);
+    
+    existingLocais?.forEach(l => {
+      localIdCache[`${l.uf}_${l.zona}_${l.secao}`] = l.id;
+    });
+    
+    console.log(`[TSE Process] Cached ${Object.keys(candidatoIdCache).length} candidates, ${Object.keys(localIdCache).length} locations`);
+
     // Stream processing with line-by-line reading
     const reader = response.body.getReader();
     const decoder = new TextDecoder("latin1");
     let buffer = "";
     let headers: string[] = [];
     let columnIndices: Record<string, number> = {};
-    let isFirstLine = true;
-    let currentLine = 0;
+    let isFirstLine = resumeFromByte === 0; // Only parse header if starting from beginning
+    let currentLine = resumeFromByte > 0 ? resumeFromLine : 0;
     let processedInThisChunk = 0;
     let votesInsertedInThisChunk = 0;
     let shouldContinue = false;
     let lastProcessedLine = resumeFromLine;
+    let currentByteOffset = resumeFromByte;
+    let bytesReadInChisChunk = 0;
+
+    // If resuming from byte offset, we need to skip the first partial line
+    let skipFirstLine = resumeFromByte > 0;
+    let needToParseHeader = resumeFromByte === 0;
+
+    // If we have cached columns from header (we don't have header in Range response)
+    // We need to fetch just the header separately
+    if (resumeFromByte > 0) {
+      console.log(`[TSE Process] Fetching header separately for Range resumption...`);
+      const headerResponse = await fetch(signedUrl.signedUrl, {
+        headers: { "Range": "bytes=0-5000" } // First 5KB should contain header
+      });
+      if (headerResponse.ok) {
+        const headerText = await headerResponse.text();
+        const headerLine = headerText.split("\n")[0];
+        const rawHeaders = parseCSVLine(headerLine);
+        rawHeaders.forEach((header, index) => {
+          const cleanHeader = header.replace(/^\ufeff/, "").trim().toUpperCase();
+          if (COLUMN_MAPPINGS[cleanHeader]) {
+            columnIndices[COLUMN_MAPPINGS[cleanHeader]] = index;
+          }
+        });
+        console.log(`[TSE Process] Headers fetched: ${Object.keys(columnIndices).length} columns mapped`);
+      }
+    }
 
     // Batching structures
     const candidatosMap = new Map<string, any>();
     const locaisMap = new Map<string, any>();
     const cargosMap = new Map<number, any>();
-    const candidatoIdCache: Record<string, string> = {};
-    const localIdCache: Record<string, string> = {};
     let votosBatch: any[] = [];
     let batchCount = 0;
-
-    // Pre-load existing candidates and locations for this election to avoid duplicates
-    if (resumeFromLine > 0) {
-      console.log(`[TSE Process] Loading existing candidates and locations cache...`);
-      const { data: existingCandidatos } = await supabase
-        .from("tse_candidatos")
-        .select("id, numero_urna, uf, cargo_id")
-        .eq("eleicao_id", eleicao.id)
-        .eq("uf", uf);
-      
-      existingCandidatos?.forEach(c => {
-        const cargoCode = Object.entries(cargoMap).find(([_, v]) => v === c.cargo_id)?.[0];
-        if (cargoCode) {
-          candidatoIdCache[`${c.numero_urna}_${uf}_${cargoCode}`] = c.id;
-        }
-        candidatoIdCache[`${c.numero_urna}_${uf}`] = c.id;
-      });
-
-      const { data: existingLocais } = await supabase
-        .from("tse_locais_votacao")
-        .select("id, uf, zona, secao")
-        .eq("uf", uf);
-      
-      existingLocais?.forEach(l => {
-        localIdCache[`${l.uf}_${l.zona}_${l.secao}`] = l.id;
-      });
-      
-      console.log(`[TSE Process] Cached ${Object.keys(candidatoIdCache).length} candidates, ${Object.keys(localIdCache).length} locations`);
-    }
 
     console.log(`[TSE Process] Starting stream processing`);
 
@@ -277,6 +369,8 @@ serve(async (req) => {
       const { done, value } = await reader.read();
       if (done) break;
       
+      const chunkBytes = value.length;
+      bytesReadInChisChunk += chunkBytes;
       buffer += decoder.decode(value, { stream: true });
       const lines = buffer.split("\n");
       buffer = lines.pop() || "";
@@ -286,8 +380,15 @@ serve(async (req) => {
         
         currentLine++;
         
-        // Handle header
-        if (isFirstLine) {
+        // Skip first partial line when resuming from byte offset
+        if (skipFirstLine) {
+          skipFirstLine = false;
+          console.log(`[TSE Process] Skipped partial first line after Range resume`);
+          continue;
+        }
+        
+        // Handle header (only when starting from beginning)
+        if (needToParseHeader) {
           headers = parseCSVLine(line);
           headers.forEach((header, index) => {
             const cleanHeader = header.replace(/^\ufeff/, "").trim().toUpperCase();
@@ -296,18 +397,13 @@ serve(async (req) => {
             }
           });
           console.log(`[TSE Process] Headers parsed: ${Object.keys(columnIndices).length} columns mapped`);
-          isFirstLine = false;
-          continue;
-        }
-        
-        // Skip lines we've already processed
-        if (currentLine <= resumeFromLine) {
+          needToParseHeader = false;
           continue;
         }
 
         // Check if we should stop this chunk
         if (Date.now() - startTime > MAX_PROCESSING_TIME_MS) {
-          console.log(`[TSE Process] Time limit reached at line ${currentLine}, will continue later`);
+          console.log(`[TSE Process] Time limit reached at line ${currentLine}, byte ${currentByteOffset + bytesReadInChisChunk}`);
           shouldContinue = true;
           break processing;
         }
@@ -399,6 +495,7 @@ serve(async (req) => {
           if (batchCount % PROGRESS_UPDATE_INTERVAL === 0) {
             const totalVotes = previousVotesInserted + votesInsertedInThisChunk;
             const totalRows = previousRowsProcessed + processedInThisChunk;
+            const newByteOffset = currentByteOffset + bytesReadInChisChunk;
             
             await supabase
               .from("tse_importacoes")
@@ -406,23 +503,15 @@ serve(async (req) => {
                 registros_importados: totalVotes,
                 total_registros: totalRows,
                 current_batch: lastProcessedLine,
+                current_byte_offset: newByteOffset,
               })
               .eq("ano", ano)
               .eq("uf", uf)
               .eq("tipo_arquivo", "votacao_secao");
             
-            console.log(`[TSE Process] Progress: line ${lastProcessedLine}, ${totalVotes} votes total`);
+            console.log(`[TSE Process] Progress: line ${lastProcessedLine}, byte ${newByteOffset}, ${totalVotes} votes total`);
           }
         }
-      }
-    }
-
-    // Process remaining buffer
-    if (buffer.trim() && !shouldContinue) {
-      currentLine++;
-      if (currentLine > resumeFromLine) {
-        // Process remaining line similar to above...
-        lastProcessedLine = currentLine;
       }
     }
 
@@ -431,6 +520,7 @@ serve(async (req) => {
 
     const totalVotesInserted = previousVotesInserted + votesInsertedInThisChunk;
     const totalRowsProcessed = previousRowsProcessed + processedInThisChunk;
+    const finalByteOffset = currentByteOffset + bytesReadInChisChunk;
 
     // Update final status
     await supabase
@@ -440,6 +530,7 @@ serve(async (req) => {
         registros_importados: totalVotesInserted,
         total_registros: totalRowsProcessed,
         current_batch: lastProcessedLine,
+        current_byte_offset: finalByteOffset,
         updated_at: new Date().toISOString(),
       })
       .eq("ano", ano)
@@ -447,19 +538,23 @@ serve(async (req) => {
       .eq("tipo_arquivo", "votacao_secao");
 
     const elapsedSeconds = ((Date.now() - startTime) / 1000).toFixed(1);
-    console.log(`[TSE Process] Chunk complete in ${elapsedSeconds}s: ${processedInThisChunk} rows, ${votesInsertedInThisChunk} votes. Continue: ${shouldContinue}`);
+    const bytesPerSecond = Math.round(bytesReadInChisChunk / parseFloat(elapsedSeconds));
+    console.log(`[TSE Process] Chunk complete in ${elapsedSeconds}s: ${processedInThisChunk} rows, ${votesInsertedInThisChunk} votes, ${(bytesReadInChisChunk/1024/1024).toFixed(2)}MB @ ${(bytesPerSecond/1024/1024).toFixed(2)}MB/s. Continue: ${shouldContinue}`);
 
     return new Response(
       JSON.stringify({
         success: true,
         shouldContinue,
         lastProcessedLine,
+        lastByteOffset: finalByteOffset,
         processedInThisChunk,
         votesInsertedInThisChunk,
         totalVotesInserted,
         totalRowsProcessed,
+        totalFileSize,
+        bytesPerSecond,
         message: shouldContinue 
-          ? `Processou ${processedInThisChunk.toLocaleString()} linhas. Continuando...`
+          ? `Processou ${processedInThisChunk.toLocaleString()} linhas (${(bytesReadInChisChunk/1024/1024).toFixed(1)}MB). Continuando...`
           : `Concluído! ${totalVotesInserted.toLocaleString()} votos importados.`,
       }),
       {
@@ -471,18 +566,23 @@ serve(async (req) => {
     console.error("[TSE Process] Error:", error);
 
     // Update error status
-    const { ano, uf } = await req.json().catch(() => ({}));
-    if (ano && uf) {
-      await supabase
-        .from("tse_importacoes")
-        .update({
-          status: "erro",
-          erro_mensagem: error instanceof Error ? error.message : "Erro desconhecido",
-          updated_at: new Date().toISOString(),
-        })
-        .eq("ano", ano)
-        .eq("uf", uf)
-        .eq("tipo_arquivo", "votacao_secao");
+    try {
+      const body = await req.clone().json().catch(() => ({}));
+      const { ano, uf } = body;
+      if (ano && uf) {
+        await supabase
+          .from("tse_importacoes")
+          .update({
+            status: "erro",
+            erro_mensagem: error instanceof Error ? error.message : "Erro desconhecido",
+            updated_at: new Date().toISOString(),
+          })
+          .eq("ano", ano)
+          .eq("uf", uf)
+          .eq("tipo_arquivo", "votacao_secao");
+      }
+    } catch (e) {
+      console.error("[TSE Process] Failed to update error status:", e);
     }
 
     return new Response(

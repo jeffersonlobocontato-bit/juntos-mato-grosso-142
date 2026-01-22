@@ -21,7 +21,9 @@ interface ResumeData {
   ano: number;
   uf: string;
   filePath: string;
-  resumeFromLine: number;
+  resumeFromByte: number;
+  resumeFromLine?: number; // For migration mode
+  totalFileSize?: number;
   tipoArquivo: "votacao_secao" | "totalizacao";
 }
 
@@ -72,6 +74,14 @@ export default function TSEUploadModal({
     resultados?: number;
     partidos?: number;
   } | null>(null);
+  const [processingStats, setProcessingStats] = useState({
+    startTime: 0,
+    startBytes: 0,
+    currentBytes: 0,
+    totalBytes: 0,
+    bytesPerSecond: 0,
+    votesInserted: 0,
+  });
   const [validationErrors, setValidationErrors] = useState<string[]>([]);
   const [pollingInterval, setPollingInterval] = useState<NodeJS.Timeout | null>(null);
 
@@ -120,14 +130,38 @@ export default function TSEUploadModal({
       setSelectedTipoArquivo(resumeData.tipoArquivo);
       setStep("processing");
       setProgress(30);
-      setProgressMessage(`Retomando processamento da linha ${resumeData.resumeFromLine.toLocaleString("pt-BR")}...`);
+      
+      const byteProgress = resumeData.resumeFromByte > 0 
+        ? `byte ${(resumeData.resumeFromByte / 1024 / 1024).toFixed(1)}MB`
+        : `linha ${(resumeData.resumeFromLine || 0).toLocaleString("pt-BR")}`;
+      setProgressMessage(`Retomando processamento de ${byteProgress}...`);
+      
+      // Initialize processing stats
+      setProcessingStats({
+        startTime: Date.now(),
+        startBytes: resumeData.resumeFromByte || 0,
+        currentBytes: resumeData.resumeFromByte || 0,
+        totalBytes: resumeData.totalFileSize || 0,
+        bytesPerSecond: 0,
+        votesInserted: 0,
+      });
       
       // Start resume processing
       resumeProcessing(resumeData);
     }
   }, [open, resumeData]);
 
-  // Resume processing function - reuses chunk logic without upload
+  // Format time remaining
+  const formatTimeRemaining = (seconds: number): string => {
+    if (!isFinite(seconds) || seconds <= 0) return "calculando...";
+    if (seconds < 60) return `~${Math.ceil(seconds)}s`;
+    if (seconds < 3600) return `~${Math.ceil(seconds / 60)} min`;
+    const hours = Math.floor(seconds / 3600);
+    const mins = Math.ceil((seconds % 3600) / 60);
+    return `~${hours}h ${mins}min`;
+  };
+
+  // Resume processing function - uses byte offset for efficient resumption
   const resumeProcessing = async (data: ResumeData) => {
     try {
       const interval = startProgressPolling(data.ano.toString(), data.uf, data.tipoArquivo);
@@ -136,21 +170,24 @@ export default function TSEUploadModal({
         ? "tse-process-totalizacao" 
         : "tse-process-csv";
       
-      let resumeFromLine = data.resumeFromLine;
+      let resumeFromByte = data.resumeFromByte || 0;
+      let resumeFromLine = data.resumeFromLine || 0;
       let chunkCount = 0;
-      const maxChunks = 200;
+      const maxChunks = 500; // Increased for large files
       
       while (chunkCount < maxChunks) {
         chunkCount++;
-        console.log(`[TSE Resume] Processing chunk ${chunkCount}, resuming from line ${resumeFromLine}`);
-        setProgressMessage(`Retomando... chunk ${chunkCount}, linha ${resumeFromLine.toLocaleString("pt-BR")}`);
+        const byteProgress = (resumeFromByte / 1024 / 1024).toFixed(1);
+        console.log(`[TSE Resume] Processing chunk ${chunkCount}, byte offset ${byteProgress}MB`);
+        setProgressMessage(`Processando... chunk ${chunkCount}, ${byteProgress}MB`);
         
         const { data: result, error } = await supabase.functions.invoke(edgeFunctionName, {
           body: {
             ano: data.ano,
             uf: data.uf,
             filePath: data.filePath,
-            resumeFromLine,
+            resumeFromByte,
+            resumeFromLine, // For migration mode
           },
         });
 
@@ -167,14 +204,38 @@ export default function TSEUploadModal({
           throw new Error(errorDetail);
         }
 
+        // Update processing stats for time estimation
+        const elapsedSeconds = (Date.now() - processingStats.startTime) / 1000;
+        const bytesProcessed = (result.lastByteOffset || resumeFromByte) - processingStats.startBytes;
+        const bytesPerSecond = elapsedSeconds > 0 ? bytesProcessed / elapsedSeconds : 0;
+        const totalBytes = result.totalFileSize || data.totalFileSize || processingStats.totalBytes;
+        
+        setProcessingStats(prev => ({
+          ...prev,
+          currentBytes: result.lastByteOffset || resumeFromByte,
+          totalBytes,
+          bytesPerSecond,
+          votesInserted: result.totalVotesInserted || 0,
+        }));
+
+        // Calculate progress percentage based on bytes
+        if (totalBytes > 0) {
+          const currentBytes = result.lastByteOffset || resumeFromByte;
+          const pct = Math.min(95, Math.round((currentBytes / totalBytes) * 100));
+          setProgress(pct);
+        }
+
         // Check if we need to continue processing
-        if (result.shouldContinue && result.lastProcessedLine > resumeFromLine) {
-          resumeFromLine = result.lastProcessedLine;
-          setProgressMessage(`Processando... ${result.totalVotesInserted?.toLocaleString("pt-BR") || 0} votos (chunk ${chunkCount})`);
-          setProgress(Math.min(30 + (chunkCount * 2), 95));
+        if (result.shouldContinue && result.lastByteOffset > resumeFromByte) {
+          resumeFromByte = result.lastByteOffset;
+          resumeFromLine = result.lastProcessedLine || resumeFromLine;
           
-          // Small delay between chunks to avoid rate limiting
-          await new Promise(resolve => setTimeout(resolve, 500));
+          const votesFormatted = result.totalVotesInserted?.toLocaleString("pt-BR") || "0";
+          const mbProcessed = (resumeFromByte / 1024 / 1024).toFixed(1);
+          setProgressMessage(`Processando... ${votesFormatted} votos, ${mbProcessed}MB (chunk ${chunkCount})`);
+          
+          // Small delay between chunks
+          await new Promise(resolve => setTimeout(resolve, 300));
           continue;
         }
 
@@ -736,22 +797,35 @@ export default function TSEUploadModal({
         ? "tse-process-totalizacao" 
         : "tse-process-csv";
       
-      // Process with automatic chunked resumption for large files
-      let resumeFromLine = 0;
+      // Process with automatic chunked resumption using byte offsets
+      let resumeFromByte = 0;
       let chunkCount = 0;
-      const maxChunks = 200; // Safety limit: ~200 chunks * 25s * ~5k lines = ~1M lines per chunk
+      const maxChunks = 500; // Increased for large files with efficient Range Requests
+      const processStartTime = Date.now();
+      const totalBytes = fileToUpload.size;
+      
+      // Initialize processing stats
+      setProcessingStats({
+        startTime: processStartTime,
+        startBytes: 0,
+        currentBytes: 0,
+        totalBytes,
+        bytesPerSecond: 0,
+        votesInserted: 0,
+      });
       
       while (chunkCount < maxChunks) {
         chunkCount++;
-        console.log(`[TSE Upload] Processing chunk ${chunkCount}, resuming from line ${resumeFromLine}`);
-        setProgressMessage(`Processando dados... (chunk ${chunkCount}, linha ${resumeFromLine.toLocaleString()})`);
+        const byteProgress = (resumeFromByte / 1024 / 1024).toFixed(1);
+        console.log(`[TSE Upload] Processing chunk ${chunkCount}, byte offset ${byteProgress}MB`);
+        setProgressMessage(`Processando dados... chunk ${chunkCount}, ${byteProgress}MB`);
         
         const { data, error } = await supabase.functions.invoke(edgeFunctionName, {
           body: {
             ano: parseInt(selectedAno),
             uf: selectedUF,
             filePath,
-            resumeFromLine,
+            resumeFromByte,
           },
         });
 
@@ -768,13 +842,34 @@ export default function TSEUploadModal({
           throw new Error(errorDetail);
         }
 
+        // Update processing stats for time estimation
+        const elapsedSeconds = (Date.now() - processStartTime) / 1000;
+        const bytesProcessed = data.lastByteOffset || resumeFromByte;
+        const bytesPerSecond = elapsedSeconds > 0 ? bytesProcessed / elapsedSeconds : 0;
+        
+        setProcessingStats(prev => ({
+          ...prev,
+          currentBytes: data.lastByteOffset || resumeFromByte,
+          bytesPerSecond,
+          votesInserted: data.totalVotesInserted || 0,
+        }));
+
+        // Calculate progress percentage based on bytes
+        if (totalBytes > 0) {
+          const currentBytes = data.lastByteOffset || resumeFromByte;
+          const pct = Math.min(95, 30 + Math.round((currentBytes / totalBytes) * 65));
+          setProgress(pct);
+        }
+
         // Check if we need to continue processing
-        if (data.shouldContinue && data.lastProcessedLine > resumeFromLine) {
-          resumeFromLine = data.lastProcessedLine;
-          setProgressMessage(`Processando... ${data.totalVotesInserted?.toLocaleString() || 0} votos importados (chunk ${chunkCount})`);
+        if (data.shouldContinue && data.lastByteOffset > resumeFromByte) {
+          resumeFromByte = data.lastByteOffset;
+          const votesFormatted = data.totalVotesInserted?.toLocaleString("pt-BR") || "0";
+          const mbProcessed = (resumeFromByte / 1024 / 1024).toFixed(1);
+          setProgressMessage(`Processando... ${votesFormatted} votos, ${mbProcessed}MB (chunk ${chunkCount})`);
           
-          // Small delay between chunks to avoid rate limiting
-          await new Promise(resolve => setTimeout(resolve, 500));
+          // Small delay between chunks
+          await new Promise(resolve => setTimeout(resolve, 300));
           continue;
         }
 
@@ -1061,18 +1156,66 @@ export default function TSEUploadModal({
           )}
 
           {(step === "uploading" || step === "processing") && (
-            <div className="py-8 text-center">
-              <Loader2 className="h-12 w-12 animate-spin mx-auto text-primary mb-4" />
-              <h3 className="font-semibold mb-2">
-                {step === "uploading" ? "Enviando arquivo..." : "Processando dados..."}
-              </h3>
-              <Progress value={progress} className="mb-2" />
-              <p className="text-sm text-muted-foreground">{progressMessage}</p>
-              <p className="text-xs text-muted-foreground mt-2">
-                {step === "processing" 
-                  ? "Atualizando a cada 3 segundos..." 
-                  : "Isso pode levar alguns minutos dependendo do tamanho do arquivo."}
-              </p>
+            <div className="py-8 space-y-4">
+              <div className="text-center">
+                <Loader2 className="h-12 w-12 animate-spin mx-auto text-primary mb-4" />
+                <h3 className="font-semibold mb-2">
+                  {step === "uploading" ? "Enviando arquivo..." : "Processando dados..."}
+                </h3>
+              </div>
+              
+              <Progress value={progress} className="h-3" />
+              
+              <div className="flex justify-between text-sm text-muted-foreground">
+                <span>{progressMessage}</span>
+                <span>{progress.toFixed(1)}%</span>
+              </div>
+              
+              {step === "processing" && processingStats.bytesPerSecond > 0 && (
+                <div className="bg-muted/50 rounded-lg p-4 space-y-2">
+                  <div className="flex justify-between text-sm">
+                    <span className="text-muted-foreground">Velocidade:</span>
+                    <span className="font-medium">
+                      {(processingStats.bytesPerSecond / 1024 / 1024).toFixed(2)} MB/s
+                    </span>
+                  </div>
+                  <div className="flex justify-between text-sm">
+                    <span className="text-muted-foreground">Tempo restante:</span>
+                    <span className="font-medium text-primary">
+                      {formatTimeRemaining(
+                        (processingStats.totalBytes - processingStats.currentBytes) / 
+                        processingStats.bytesPerSecond
+                      )}
+                    </span>
+                  </div>
+                  <div className="flex justify-between text-sm">
+                    <span className="text-muted-foreground">Progresso:</span>
+                    <span className="font-medium">
+                      {(processingStats.currentBytes / 1024 / 1024).toFixed(1)} MB / {(processingStats.totalBytes / 1024 / 1024).toFixed(1)} MB
+                    </span>
+                  </div>
+                  {processingStats.votesInserted > 0 && (
+                    <div className="flex justify-between text-sm border-t pt-2 mt-2">
+                      <span className="text-muted-foreground">Votos importados:</span>
+                      <span className="font-medium text-primary">
+                        {processingStats.votesInserted.toLocaleString("pt-BR")}
+                      </span>
+                    </div>
+                  )}
+                </div>
+              )}
+              
+              {step === "processing" && processingStats.bytesPerSecond === 0 && (
+                <p className="text-xs text-muted-foreground text-center">
+                  Calculando velocidade de processamento...
+                </p>
+              )}
+              
+              {step === "uploading" && (
+                <p className="text-xs text-muted-foreground text-center">
+                  Isso pode levar alguns minutos dependendo do tamanho do arquivo.
+                </p>
+              )}
             </div>
           )}
 
