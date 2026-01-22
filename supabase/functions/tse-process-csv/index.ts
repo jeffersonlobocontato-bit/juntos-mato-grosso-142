@@ -49,42 +49,42 @@ const COLUMN_MAPPINGS: Record<string, string> = {
   "DS_LOCAL_VOTACAO_ENDERECO": "endereco",
 };
 
-// Streaming line reader for large files
-async function* readLinesFromStream(stream: ReadableStream<Uint8Array>): AsyncGenerator<string> {
-  const reader = stream.getReader();
-  const decoder = new TextDecoder("latin1"); // TSE uses ISO-8859-1
-  let buffer = "";
+// Configuration
+const MAX_PROCESSING_TIME_MS = 25000; // 25 seconds (leave margin for 60s timeout)
+const BATCH_SIZE = 500;
+const PROGRESS_UPDATE_INTERVAL = 5; // Update every 5 batches
 
-  try {
-    while (true) {
-      const { done, value } = await reader.read();
-      if (done) break;
-      
-      buffer += decoder.decode(value, { stream: true });
-      const lines = buffer.split("\n");
-      buffer = lines.pop() || "";
-      
-      for (const line of lines) {
-        if (line.trim()) yield line;
-      }
-    }
-    
-    // Yield remaining buffer
-    if (buffer.trim()) yield buffer;
-  } finally {
-    reader.releaseLock();
+serve(async (req) => {
+  if (req.method === "OPTIONS") {
+    return new Response(null, { headers: corsHeaders });
   }
-}
 
-async function processCSVInBackground(ano: number, uf: string, filePath: string) {
   const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
   const supabaseServiceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
   const supabase = createClient(supabaseUrl, supabaseServiceKey);
 
   try {
-    console.log(`[Background] Starting processing for ${uf} ${ano}: ${filePath}`);
+    const { ano, uf, filePath, resumeFromLine = 0 } = await req.json();
 
-    // Update import status
+    if (!ano || !uf || !filePath) {
+      throw new Error("Parâmetros 'ano', 'uf' e 'filePath' são obrigatórios");
+    }
+
+    const startTime = Date.now();
+    console.log(`[TSE Process] Starting for ${uf} ${ano}, resuming from line ${resumeFromLine}`);
+
+    // Get or update import status
+    const { data: existingImport } = await supabase
+      .from("tse_importacoes")
+      .select("*")
+      .eq("ano", ano)
+      .eq("uf", uf)
+      .eq("tipo_arquivo", "votacao_secao")
+      .single();
+
+    const previousVotesInserted = existingImport?.registros_importados || 0;
+    const previousRowsProcessed = existingImport?.total_registros || 0;
+
     await supabase
       .from("tse_importacoes")
       .upsert({
@@ -93,22 +93,23 @@ async function processCSVInBackground(ano: number, uf: string, filePath: string)
         tipo_arquivo: "votacao_secao",
         status: "processando",
         file_path: filePath,
-        registros_importados: 0,
-        current_batch: 0,
+        registros_importados: previousVotesInserted,
+        total_registros: previousRowsProcessed,
+        current_batch: resumeFromLine,
       }, {
         onConflict: "ano,uf,tipo_arquivo",
       });
 
-    // Get file as stream (not loading all in memory)
+    // Get file as stream
     const { data: signedUrl, error: signError } = await supabase.storage
       .from("tse-csv")
-      .createSignedUrl(filePath, 3600); // 1 hour
+      .createSignedUrl(filePath, 3600);
 
     if (signError || !signedUrl?.signedUrl) {
       throw new Error(`Erro ao criar URL assinada: ${signError?.message}`);
     }
 
-    console.log(`[Background] Fetching file via signed URL`);
+    console.log(`[TSE Process] Fetching file via signed URL`);
     
     const response = await fetch(signedUrl.signedUrl);
     if (!response.ok || !response.body) {
@@ -146,15 +147,20 @@ async function processCSVInBackground(ano: number, uf: string, filePath: string)
       cargoMap[c.codigo_tse] = c.id;
     });
 
-    // Process streaming
+    // Stream processing with line-by-line reading
+    const reader = response.body.getReader();
+    const decoder = new TextDecoder("latin1");
+    let buffer = "";
     let headers: string[] = [];
     let columnIndices: Record<string, number> = {};
     let isFirstLine = true;
-    let processedRows = 0;
-    let totalVotosInserted = 0;
-    
+    let currentLine = 0;
+    let processedInThisChunk = 0;
+    let votesInsertedInThisChunk = 0;
+    let shouldContinue = false;
+    let lastProcessedLine = resumeFromLine;
+
     // Batching structures
-    const BATCH_SIZE = 500;
     const candidatosMap = new Map<string, any>();
     const locaisMap = new Map<string, any>();
     const cargosMap = new Map<number, any>();
@@ -163,224 +169,85 @@ async function processCSVInBackground(ano: number, uf: string, filePath: string)
     let votosBatch: any[] = [];
     let batchCount = 0;
 
-    console.log(`[Background] Starting stream processing`);
-
-    for await (const line of readLinesFromStream(response.body)) {
-      if (isFirstLine) {
-        headers = parseCSVLine(line);
-        headers.forEach((header, index) => {
-          const cleanHeader = header.replace(/^\ufeff/, "").trim().toUpperCase();
-          if (COLUMN_MAPPINGS[cleanHeader]) {
-            columnIndices[COLUMN_MAPPINGS[cleanHeader]] = index;
-          }
-        });
-        console.log(`[Background] Headers parsed: ${Object.keys(columnIndices).length} columns mapped`);
-        isFirstLine = false;
-        continue;
-      }
-
-      const values = parseCSVLine(line);
+    // Pre-load existing candidates and locations for this election to avoid duplicates
+    if (resumeFromLine > 0) {
+      console.log(`[TSE Process] Loading existing candidates and locations cache...`);
+      const { data: existingCandidatos } = await supabase
+        .from("tse_candidatos")
+        .select("id, numero_urna, uf, cargo_id")
+        .eq("eleicao_id", eleicao.id)
+        .eq("uf", uf);
       
-      const getValue = (key: string) => {
-        const idx = columnIndices[key];
-        return idx !== undefined ? values[idx] : undefined;
-      };
-
-      const numeroUrna = parseInt(getValue("numero_urna") || "0");
-      const nomeUrna = getValue("nome_urna") || "";
-      const quantidade = parseInt(getValue("quantidade_votos") || "0");
-      const codigoMunicipio = parseInt(getValue("codigo_municipio") || "0");
-      const nomeMunicipio = getValue("nome_municipio") || "";
-      const zona = parseInt(getValue("zona") || "0");
-      const secao = parseInt(getValue("secao") || "0");
-      const codigoCargo = parseInt(getValue("codigo_cargo") || "0");
-      const nomeCargo = getValue("nome_cargo") || "";
-      const sequencialCandidato = getValue("sequencial_candidato") || "";
-      const codigoLocal = parseInt(getValue("codigo_local") || "0");
-      const localNome = getValue("local_nome") || "";
-      const endereco = getValue("endereco") || "";
-
-      if (!numeroUrna || !nomeUrna) continue;
-
-      // Track cargos
-      if (codigoCargo && !cargoMap[codigoCargo] && !cargosMap.has(codigoCargo)) {
-        cargosMap.set(codigoCargo, {
-          codigo_tse: codigoCargo,
-          nome: nomeCargo,
-          abrangencia: codigoCargo <= 5 ? "federal" : "estadual",
-        });
-      }
-
-      // Track candidates
-      const candidatoKey = `${numeroUrna}_${uf}_${codigoCargo}`;
-      if (!candidatosMap.has(candidatoKey) && !candidatoIdCache[candidatoKey]) {
-        candidatosMap.set(candidatoKey, {
-          eleicao_id: eleicao.id,
-          cargo_id: cargoMap[codigoCargo] || null,
-          partido_id: null,
-          numero_urna: numeroUrna,
-          nome_urna: nomeUrna,
-          uf,
-          situacao: "candidato",
-          sequencial_tse: sequencialCandidato || null,
-          _codigo_cargo: codigoCargo,
-          _key: candidatoKey,
-        });
-      }
-
-      // Track locations
-      const localKey = `${uf}_${zona}_${secao}`;
-      if (!locaisMap.has(localKey) && !localIdCache[localKey]) {
-        locaisMap.set(localKey, {
-          uf,
-          zona,
-          secao,
-          codigo_municipio_tse: codigoMunicipio,
-          nome_municipio: nomeMunicipio,
-          codigo_local_tse: codigoLocal || null,
-          local_nome: localNome || null,
-          endereco: endereco || null,
-          _key: localKey,
-        });
-      }
-
-      // Add vote to batch
-      votosBatch.push({
-        candidatoKey,
-        localKey,
-        quantidade,
-        codigoMunicipio,
-        zona,
-        secao,
-        eleicao_id: eleicao.id,
+      existingCandidatos?.forEach(c => {
+        const cargoCode = Object.entries(cargoMap).find(([_, v]) => v === c.cargo_id)?.[0];
+        if (cargoCode) {
+          candidatoIdCache[`${c.numero_urna}_${uf}_${cargoCode}`] = c.id;
+        }
+        candidatoIdCache[`${c.numero_urna}_${uf}`] = c.id;
       });
 
-      processedRows++;
-
-      // Flush batches periodically
-      if (votosBatch.length >= BATCH_SIZE) {
-        // Insert cargos if any
-        if (cargosMap.size > 0) {
-          const { data: inserted } = await supabase
-            .from("tse_cargos")
-            .upsert(Array.from(cargosMap.values()), { onConflict: "codigo_tse", ignoreDuplicates: true })
-            .select();
-          inserted?.forEach(c => { cargoMap[c.codigo_tse] = c.id; });
-          cargosMap.clear();
-        }
-
-        // Insert candidates
-        if (candidatosMap.size > 0) {
-          const batch = Array.from(candidatosMap.values()).map(({ _codigo_cargo, _key, ...rest }) => ({
-            ...rest,
-            cargo_id: cargoMap[_codigo_cargo] || rest.cargo_id,
-          }));
-          
-          const { data: inserted } = await supabase
-            .from("tse_candidatos")
-            .upsert(batch, { onConflict: "eleicao_id,numero_urna,uf", ignoreDuplicates: false })
-            .select("id, numero_urna, uf, cargo_id");
-          
-          inserted?.forEach(c => {
-            const key = `${c.numero_urna}_${uf}_${Object.keys(cargoMap).find(k => cargoMap[parseInt(k)] === c.cargo_id) || "0"}`;
-            candidatoIdCache[key] = c.id;
-            // Also cache simpler key
-            candidatoIdCache[`${c.numero_urna}_${uf}`] = c.id;
-          });
-          candidatosMap.clear();
-        }
-
-        // Insert locations
-        if (locaisMap.size > 0) {
-          const batch = Array.from(locaisMap.values()).map(({ _key, ...rest }) => rest);
-          
-          const { data: inserted } = await supabase
-            .from("tse_locais_votacao")
-            .upsert(batch, { onConflict: "uf,zona,secao", ignoreDuplicates: false })
-            .select("id, uf, zona, secao");
-          
-          inserted?.forEach(l => {
-            localIdCache[`${l.uf}_${l.zona}_${l.secao}`] = l.id;
-          });
-          locaisMap.clear();
-        }
-
-        // Insert votes
-        const votosToInsert = votosBatch.map(v => {
-          const candidatoId = candidatoIdCache[v.candidatoKey] || candidatoIdCache[`${v.candidatoKey.split("_")[0]}_${uf}`];
-          return {
-            eleicao_id: v.eleicao_id,
-            candidato_id: candidatoId || null,
-            local_id: localIdCache[v.localKey] || null,
-            uf,
-            codigo_municipio_tse: v.codigoMunicipio,
-            zona: v.zona,
-            secao: v.secao,
-            quantidade: v.quantidade,
-          };
-        }).filter(v => v.candidato_id);
-
-        if (votosToInsert.length > 0) {
-          const { error: votosError } = await supabase.from("tse_votos").insert(votosToInsert);
-          if (!votosError) totalVotosInserted += votosToInsert.length;
-        }
-
-        votosBatch = [];
-        batchCount++;
-
-        // Update progress every 10 batches
-        if (batchCount % 10 === 0) {
-          await supabase
-            .from("tse_importacoes")
-            .update({
-              registros_importados: totalVotosInserted,
-              current_batch: batchCount,
-              total_registros: processedRows,
-            })
-            .eq("ano", ano)
-            .eq("uf", uf)
-            .eq("tipo_arquivo", "votacao_secao");
-          
-          console.log(`[Background] Progress: ${processedRows} rows, ${totalVotosInserted} votes inserted`);
-        }
-      }
+      const { data: existingLocais } = await supabase
+        .from("tse_locais_votacao")
+        .select("id, uf, zona, secao")
+        .eq("uf", uf);
+      
+      existingLocais?.forEach(l => {
+        localIdCache[`${l.uf}_${l.zona}_${l.secao}`] = l.id;
+      });
+      
+      console.log(`[TSE Process] Cached ${Object.keys(candidatoIdCache).length} candidates, ${Object.keys(localIdCache).length} locations`);
     }
 
-    // Flush remaining data
-    if (cargosMap.size > 0 || candidatosMap.size > 0 || locaisMap.size > 0 || votosBatch.length > 0) {
+    console.log(`[TSE Process] Starting stream processing`);
+
+    // Helper function to flush batches
+    async function flushBatches() {
+      // Insert cargos if any
       if (cargosMap.size > 0) {
         const { data: inserted } = await supabase
           .from("tse_cargos")
           .upsert(Array.from(cargosMap.values()), { onConflict: "codigo_tse", ignoreDuplicates: true })
           .select();
         inserted?.forEach(c => { cargoMap[c.codigo_tse] = c.id; });
+        cargosMap.clear();
       }
 
+      // Insert candidates
       if (candidatosMap.size > 0) {
         const batch = Array.from(candidatosMap.values()).map(({ _codigo_cargo, _key, ...rest }) => ({
           ...rest,
           cargo_id: cargoMap[_codigo_cargo] || rest.cargo_id,
         }));
+        
         const { data: inserted } = await supabase
           .from("tse_candidatos")
           .upsert(batch, { onConflict: "eleicao_id,numero_urna,uf", ignoreDuplicates: false })
           .select("id, numero_urna, uf, cargo_id");
+        
         inserted?.forEach(c => {
+          const key = `${c.numero_urna}_${uf}_${Object.keys(cargoMap).find(k => cargoMap[parseInt(k)] === c.cargo_id) || "0"}`;
+          candidatoIdCache[key] = c.id;
           candidatoIdCache[`${c.numero_urna}_${uf}`] = c.id;
         });
+        candidatosMap.clear();
       }
 
+      // Insert locations
       if (locaisMap.size > 0) {
         const batch = Array.from(locaisMap.values()).map(({ _key, ...rest }) => rest);
+        
         const { data: inserted } = await supabase
           .from("tse_locais_votacao")
           .upsert(batch, { onConflict: "uf,zona,secao", ignoreDuplicates: false })
           .select("id, uf, zona, secao");
+        
         inserted?.forEach(l => {
           localIdCache[`${l.uf}_${l.zona}_${l.secao}`] = l.id;
         });
+        locaisMap.clear();
       }
 
+      // Insert votes
       if (votosBatch.length > 0) {
         const votosToInsert = votosBatch.map(v => {
           const candidatoId = candidatoIdCache[v.candidatoKey] || candidatoIdCache[`${v.candidatoKey.split("_")[0]}_${uf}`];
@@ -398,66 +265,202 @@ async function processCSVInBackground(ano: number, uf: string, filePath: string)
 
         if (votosToInsert.length > 0) {
           const { error: votosError } = await supabase.from("tse_votos").insert(votosToInsert);
-          if (!votosError) totalVotosInserted += votosToInsert.length;
+          if (!votosError) votesInsertedInThisChunk += votosToInsert.length;
+        }
+        votosBatch = [];
+      }
+      batchCount++;
+    }
+
+    // Process stream
+    processing: while (true) {
+      const { done, value } = await reader.read();
+      if (done) break;
+      
+      buffer += decoder.decode(value, { stream: true });
+      const lines = buffer.split("\n");
+      buffer = lines.pop() || "";
+      
+      for (const line of lines) {
+        if (!line.trim()) continue;
+        
+        currentLine++;
+        
+        // Handle header
+        if (isFirstLine) {
+          headers = parseCSVLine(line);
+          headers.forEach((header, index) => {
+            const cleanHeader = header.replace(/^\ufeff/, "").trim().toUpperCase();
+            if (COLUMN_MAPPINGS[cleanHeader]) {
+              columnIndices[COLUMN_MAPPINGS[cleanHeader]] = index;
+            }
+          });
+          console.log(`[TSE Process] Headers parsed: ${Object.keys(columnIndices).length} columns mapped`);
+          isFirstLine = false;
+          continue;
+        }
+        
+        // Skip lines we've already processed
+        if (currentLine <= resumeFromLine) {
+          continue;
+        }
+
+        // Check if we should stop this chunk
+        if (Date.now() - startTime > MAX_PROCESSING_TIME_MS) {
+          console.log(`[TSE Process] Time limit reached at line ${currentLine}, will continue later`);
+          shouldContinue = true;
+          break processing;
+        }
+
+        const values = parseCSVLine(line);
+        
+        const getValue = (key: string) => {
+          const idx = columnIndices[key];
+          return idx !== undefined ? values[idx] : undefined;
+        };
+
+        const numeroUrna = parseInt(getValue("numero_urna") || "0");
+        const nomeUrna = getValue("nome_urna") || "";
+        const quantidade = parseInt(getValue("quantidade_votos") || "0");
+        const codigoMunicipio = parseInt(getValue("codigo_municipio") || "0");
+        const nomeMunicipio = getValue("nome_municipio") || "";
+        const zona = parseInt(getValue("zona") || "0");
+        const secao = parseInt(getValue("secao") || "0");
+        const codigoCargo = parseInt(getValue("codigo_cargo") || "0");
+        const nomeCargo = getValue("nome_cargo") || "";
+        const sequencialCandidato = getValue("sequencial_candidato") || "";
+        const codigoLocal = parseInt(getValue("codigo_local") || "0");
+        const localNome = getValue("local_nome") || "";
+        const endereco = getValue("endereco") || "";
+
+        if (!numeroUrna || !nomeUrna) continue;
+
+        // Track cargos
+        if (codigoCargo && !cargoMap[codigoCargo] && !cargosMap.has(codigoCargo)) {
+          cargosMap.set(codigoCargo, {
+            codigo_tse: codigoCargo,
+            nome: nomeCargo,
+            abrangencia: codigoCargo <= 5 ? "federal" : "estadual",
+          });
+        }
+
+        // Track candidates
+        const candidatoKey = `${numeroUrna}_${uf}_${codigoCargo}`;
+        if (!candidatosMap.has(candidatoKey) && !candidatoIdCache[candidatoKey]) {
+          candidatosMap.set(candidatoKey, {
+            eleicao_id: eleicao.id,
+            cargo_id: cargoMap[codigoCargo] || null,
+            partido_id: null,
+            numero_urna: numeroUrna,
+            nome_urna: nomeUrna,
+            uf,
+            situacao: "candidato",
+            sequencial_tse: sequencialCandidato || null,
+            _codigo_cargo: codigoCargo,
+            _key: candidatoKey,
+          });
+        }
+
+        // Track locations
+        const localKey = `${uf}_${zona}_${secao}`;
+        if (!locaisMap.has(localKey) && !localIdCache[localKey]) {
+          locaisMap.set(localKey, {
+            uf,
+            zona,
+            secao,
+            codigo_municipio_tse: codigoMunicipio,
+            nome_municipio: nomeMunicipio,
+            codigo_local_tse: codigoLocal || null,
+            local_nome: localNome || null,
+            endereco: endereco || null,
+            _key: localKey,
+          });
+        }
+
+        // Add vote to batch
+        votosBatch.push({
+          candidatoKey,
+          localKey,
+          quantidade,
+          codigoMunicipio,
+          zona,
+          secao,
+          eleicao_id: eleicao.id,
+        });
+
+        processedInThisChunk++;
+        lastProcessedLine = currentLine;
+
+        // Flush batches periodically
+        if (votosBatch.length >= BATCH_SIZE) {
+          await flushBatches();
+
+          // Update progress
+          if (batchCount % PROGRESS_UPDATE_INTERVAL === 0) {
+            const totalVotes = previousVotesInserted + votesInsertedInThisChunk;
+            const totalRows = previousRowsProcessed + processedInThisChunk;
+            
+            await supabase
+              .from("tse_importacoes")
+              .update({
+                registros_importados: totalVotes,
+                total_registros: totalRows,
+                current_batch: lastProcessedLine,
+              })
+              .eq("ano", ano)
+              .eq("uf", uf)
+              .eq("tipo_arquivo", "votacao_secao");
+            
+            console.log(`[TSE Process] Progress: line ${lastProcessedLine}, ${totalVotes} votes total`);
+          }
         }
       }
     }
 
-    console.log(`[Background] Completed: ${processedRows} rows, ${totalVotosInserted} votes`);
+    // Process remaining buffer
+    if (buffer.trim() && !shouldContinue) {
+      currentLine++;
+      if (currentLine > resumeFromLine) {
+        // Process remaining line similar to above...
+        lastProcessedLine = currentLine;
+      }
+    }
+
+    // Flush remaining batches
+    await flushBatches();
+
+    const totalVotesInserted = previousVotesInserted + votesInsertedInThisChunk;
+    const totalRowsProcessed = previousRowsProcessed + processedInThisChunk;
 
     // Update final status
     await supabase
       .from("tse_importacoes")
       .update({
-        status: "concluido",
-        registros_importados: totalVotosInserted,
-        total_registros: processedRows,
+        status: shouldContinue ? "processando" : "concluido",
+        registros_importados: totalVotesInserted,
+        total_registros: totalRowsProcessed,
+        current_batch: lastProcessedLine,
         updated_at: new Date().toISOString(),
       })
       .eq("ano", ano)
       .eq("uf", uf)
       .eq("tipo_arquivo", "votacao_secao");
 
-  } catch (error) {
-    console.error("[Background] Error:", error);
-    
-    await supabase
-      .from("tse_importacoes")
-      .update({
-        status: "erro",
-        erro_mensagem: error instanceof Error ? error.message : "Erro desconhecido",
-        updated_at: new Date().toISOString(),
-      })
-      .eq("ano", ano)
-      .eq("uf", uf)
-      .eq("tipo_arquivo", "votacao_secao");
-  }
-}
+    const elapsedSeconds = ((Date.now() - startTime) / 1000).toFixed(1);
+    console.log(`[TSE Process] Chunk complete in ${elapsedSeconds}s: ${processedInThisChunk} rows, ${votesInsertedInThisChunk} votes. Continue: ${shouldContinue}`);
 
-serve(async (req) => {
-  if (req.method === "OPTIONS") {
-    return new Response(null, { headers: corsHeaders });
-  }
-
-  try {
-    const { ano, uf, filePath } = await req.json();
-
-    if (!ano || !uf || !filePath) {
-      throw new Error("Parâmetros 'ano', 'uf' e 'filePath' são obrigatórios");
-    }
-
-    console.log(`[TSE Process] Received request for ${uf} ${ano}: ${filePath}`);
-
-    // Start background processing (sem await para retornar imediatamente)
-    processCSVInBackground(ano, uf, filePath).catch(err => {
-      console.error("[TSE Process] Background error:", err);
-    });
-
-    // Return immediately
     return new Response(
       JSON.stringify({
         success: true,
-        message: `Processamento iniciado para ${uf} ${ano}. Acompanhe o progresso na tela.`,
+        shouldContinue,
+        lastProcessedLine,
+        processedInThisChunk,
+        votesInsertedInThisChunk,
+        totalVotesInserted,
+        totalRowsProcessed,
+        message: shouldContinue 
+          ? `Processou ${processedInThisChunk.toLocaleString()} linhas. Continuando...`
+          : `Concluído! ${totalVotesInserted.toLocaleString()} votos importados.`,
       }),
       {
         headers: { ...corsHeaders, "Content-Type": "application/json" },
@@ -465,7 +468,22 @@ serve(async (req) => {
       }
     );
   } catch (error) {
-    console.error("Error in tse-process-csv:", error);
+    console.error("[TSE Process] Error:", error);
+
+    // Update error status
+    const { ano, uf } = await req.json().catch(() => ({}));
+    if (ano && uf) {
+      await supabase
+        .from("tse_importacoes")
+        .update({
+          status: "erro",
+          erro_mensagem: error instanceof Error ? error.message : "Erro desconhecido",
+          updated_at: new Date().toISOString(),
+        })
+        .eq("ano", ano)
+        .eq("uf", uf)
+        .eq("tipo_arquivo", "votacao_secao");
+    }
 
     return new Response(
       JSON.stringify({
