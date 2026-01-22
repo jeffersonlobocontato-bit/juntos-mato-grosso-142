@@ -17,12 +17,21 @@ import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Upload, FileText, Loader2, CheckCircle2, AlertCircle, Info, FileArchive, Download, ExternalLink } from "lucide-react";
 
+interface ResumeData {
+  ano: number;
+  uf: string;
+  filePath: string;
+  resumeFromLine: number;
+  tipoArquivo: "votacao_secao" | "totalizacao";
+}
+
 interface TSEUploadModalProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   selectedUF: string;
   onSuccess: () => void;
   anosEleitorais: { ano: number; tipo: string; descricao: string }[];
+  resumeData?: ResumeData;
 }
 
 type UploadStep = "select" | "extracting" | "uploading" | "processing" | "complete" | "error";
@@ -42,6 +51,7 @@ export default function TSEUploadModal({
   selectedUF,
   onSuccess,
   anosEleitorais,
+  resumeData,
 }: TSEUploadModalProps) {
   const { toast } = useToast();
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -101,6 +111,117 @@ export default function TSEUploadModal({
       }
     };
   }, [pollingInterval]);
+
+  // Resume processing when resumeData is provided
+  useEffect(() => {
+    if (open && resumeData) {
+      // Configure initial state for resume mode
+      setSelectedAno(resumeData.ano.toString());
+      setSelectedTipoArquivo(resumeData.tipoArquivo);
+      setStep("processing");
+      setProgress(30);
+      setProgressMessage(`Retomando processamento da linha ${resumeData.resumeFromLine.toLocaleString("pt-BR")}...`);
+      
+      // Start resume processing
+      resumeProcessing(resumeData);
+    }
+  }, [open, resumeData]);
+
+  // Resume processing function - reuses chunk logic without upload
+  const resumeProcessing = async (data: ResumeData) => {
+    try {
+      const interval = startProgressPolling(data.ano.toString(), data.uf, data.tipoArquivo);
+
+      const edgeFunctionName = data.tipoArquivo === "totalizacao" 
+        ? "tse-process-totalizacao" 
+        : "tse-process-csv";
+      
+      let resumeFromLine = data.resumeFromLine;
+      let chunkCount = 0;
+      const maxChunks = 200;
+      
+      while (chunkCount < maxChunks) {
+        chunkCount++;
+        console.log(`[TSE Resume] Processing chunk ${chunkCount}, resuming from line ${resumeFromLine}`);
+        setProgressMessage(`Retomando... chunk ${chunkCount}, linha ${resumeFromLine.toLocaleString("pt-BR")}`);
+        
+        const { data: result, error } = await supabase.functions.invoke(edgeFunctionName, {
+          body: {
+            ano: data.ano,
+            uf: data.uf,
+            filePath: data.filePath,
+            resumeFromLine,
+          },
+        });
+
+        console.log("[TSE Resume] Resposta do chunk:", { result, error, chunkCount });
+
+        if (error) {
+          console.error("[TSE Resume] Erro na Edge Function:", error);
+          throw new Error(`Erro no processamento: ${error.message}`);
+        }
+
+        if (!result?.success) {
+          const errorDetail = result?.error || result?.message || "Erro desconhecido no processamento";
+          console.error("[TSE Resume] Processamento falhou:", result);
+          throw new Error(errorDetail);
+        }
+
+        // Check if we need to continue processing
+        if (result.shouldContinue && result.lastProcessedLine > resumeFromLine) {
+          resumeFromLine = result.lastProcessedLine;
+          setProgressMessage(`Processando... ${result.totalVotesInserted?.toLocaleString("pt-BR") || 0} votos (chunk ${chunkCount})`);
+          setProgress(Math.min(30 + (chunkCount * 2), 95));
+          
+          // Small delay between chunks to avoid rate limiting
+          await new Promise(resolve => setTimeout(resolve, 500));
+          continue;
+        }
+
+        // Processing complete
+        if (interval) {
+          clearInterval(interval);
+          setPollingInterval(null);
+        }
+
+        setProgress(100);
+        setProgressMessage("Retomada concluída!");
+        setStats({
+          votos: result.totalVotesInserted,
+        });
+        setStep("complete");
+        
+        toast({
+          title: "Retomada concluída",
+          description: `${result.totalVotesInserted?.toLocaleString("pt-BR") || 0} votos importados em ${chunkCount} chunk(s).`,
+        });
+        
+        onSuccess();
+        break;
+      }
+
+      if (chunkCount >= maxChunks) {
+        throw new Error("Limite de chunks atingido. O arquivo pode ser muito grande.");
+      }
+    } catch (error) {
+      console.error("[TSE Resume] Erro completo:", error);
+      
+      // Stop polling if still running
+      if (pollingInterval) {
+        clearInterval(pollingInterval);
+        setPollingInterval(null);
+      }
+      
+      setStep("error");
+      setErrorMessage(error instanceof Error ? error.message : "Erro desconhecido na retomada");
+      
+      toast({
+        title: "Erro na retomada",
+        description: error instanceof Error ? error.message : "Erro desconhecido",
+        variant: "destructive",
+      });
+    }
+  };
 
   // Generate direct download URL for TSE files
   const getDirectDownloadUrl = (ano: string, uf: string, tipo: "votacao_secao" | "totalizacao"): string => {

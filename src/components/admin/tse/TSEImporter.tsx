@@ -8,7 +8,13 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Progress } from "@/components/ui/progress";
 import { Badge } from "@/components/ui/badge";
 import { Alert, AlertDescription } from "@/components/ui/alert";
-import { Download, CheckCircle2, Clock, AlertCircle, Loader2, RefreshCw, Info, Upload, CloudDownload } from "lucide-react";
+import { 
+  DropdownMenu, 
+  DropdownMenuContent, 
+  DropdownMenuItem, 
+  DropdownMenuTrigger 
+} from "@/components/ui/dropdown-menu";
+import { Download, CheckCircle2, Clock, AlertCircle, Loader2, RefreshCw, Info, Upload, CloudDownload, PlayCircle, MoreHorizontal } from "lucide-react";
 import TSEUploadModal from "./TSEUploadModal";
 
 interface Estado {
@@ -32,6 +38,16 @@ interface Importacao {
   total_registros: number | null;
   erro_mensagem: string | null;
   created_at: string;
+  file_path: string | null;
+  current_batch: number | null;
+}
+
+interface ResumeData {
+  ano: number;
+  uf: string;
+  filePath: string;
+  resumeFromLine: number;
+  tipoArquivo: "votacao_secao" | "totalizacao";
 }
 
 interface TSEImporterProps {
@@ -55,6 +71,7 @@ export default function TSEImporter({
   const [selectedYears, setSelectedYears] = useState<number[]>([]);
   const [isImporting, setIsImporting] = useState(false);
   const [showUploadModal, setShowUploadModal] = useState(false);
+  const [resumeData, setResumeData] = useState<ResumeData | undefined>();
   const [importProgress, setImportProgress] = useState<{
     ano: number;
     progress: number;
@@ -77,6 +94,54 @@ export default function TSEImporter({
         : [...prev, ano]
     );
   };
+
+  const handleContinueImport = (importData: Importacao) => {
+    if (!importData.file_path) {
+      toast({ 
+        title: "Erro", 
+        description: "Caminho do arquivo não encontrado. Faça um novo upload.", 
+        variant: "destructive" 
+      });
+      return;
+    }
+    setResumeData({
+      ano: importData.ano,
+      uf: selectedUF,
+      filePath: importData.file_path,
+      resumeFromLine: importData.current_batch || 0,
+      tipoArquivo: importData.tipo_arquivo as "votacao_secao" | "totalizacao",
+    });
+    setShowUploadModal(true);
+  };
+
+  const handleResetImport = async (ano: number) => {
+    const { error } = await supabase
+      .from("tse_importacoes")
+      .update({ 
+        status: "pendente", 
+        registros_importados: 0, 
+        total_registros: null, 
+        current_batch: null,
+        erro_mensagem: null
+      })
+      .eq("ano", ano)
+      .eq("uf", selectedUF);
+    
+    if (error) {
+      toast({ 
+        title: "Erro ao resetar", 
+        description: error.message, 
+        variant: "destructive" 
+      });
+    } else {
+      toast({ 
+        title: "Import resetado", 
+        description: `Import de ${ano} foi resetado para pendente.` 
+      });
+      onRefetch();
+    }
+  };
+
 
   const handleImport = async () => {
     if (selectedYears.length === 0) {
@@ -304,6 +369,37 @@ export default function TSEImporter({
                     </div>
                   </div>
                   <div className="flex items-center gap-2">
+                    {/* Continue button for stuck processing */}
+                    {status === "processando" && importData && importData.registros_importados > 0 && importData.file_path && (
+                      <div className="flex items-center gap-1">
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => handleContinueImport(importData)}
+                          disabled={isImporting}
+                          className="text-green-600 border-green-600 hover:bg-green-50 dark:hover:bg-green-950"
+                        >
+                          <PlayCircle className="h-4 w-4 mr-1" />
+                          Continuar
+                        </Button>
+                        <DropdownMenu>
+                          <DropdownMenuTrigger asChild>
+                            <Button variant="ghost" size="sm" className="h-8 w-8 p-0">
+                              <MoreHorizontal className="h-4 w-4" />
+                            </Button>
+                          </DropdownMenuTrigger>
+                          <DropdownMenuContent align="end">
+                            <DropdownMenuItem 
+                              onClick={() => handleResetImport(anoData.ano)}
+                              className="text-destructive"
+                            >
+                              <RefreshCw className="h-4 w-4 mr-2" />
+                              Resetar para Pendente
+                            </DropdownMenuItem>
+                          </DropdownMenuContent>
+                        </DropdownMenu>
+                      </div>
+                    )}
                     {status !== "concluido" && status !== "processando" && (
                       <Button
                         variant="ghost"
@@ -360,10 +456,14 @@ export default function TSEImporter({
       {/* Upload Modal */}
       <TSEUploadModal
         open={showUploadModal}
-        onOpenChange={setShowUploadModal}
+        onOpenChange={(open) => {
+          setShowUploadModal(open);
+          if (!open) setResumeData(undefined);
+        }}
         selectedUF={selectedUF}
         onSuccess={onRefetch}
         anosEleitorais={anosEleitorais}
+        resumeData={resumeData}
       />
     </div>
   );
