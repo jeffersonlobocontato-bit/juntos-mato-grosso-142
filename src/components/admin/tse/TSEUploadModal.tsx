@@ -633,7 +633,7 @@ export default function TSEUploadModal({
     }
   };
 
-  // Poll for processing progress
+  // Poll for processing progress - UNIFIED: uses byte offset as primary source
   const startProgressPolling = useCallback((ano: string, uf: string, tipoArquivo: string) => {
     console.log("[TSE] Starting progress polling for", ano, uf, tipoArquivo);
     
@@ -641,7 +641,7 @@ export default function TSEUploadModal({
       try {
         const { data, error } = await supabase
           .from("tse_importacoes")
-          .select("registros_importados, total_registros, status, erro_mensagem")
+          .select("registros_importados, total_registros, status, erro_mensagem, current_byte_offset, total_file_size")
           .eq("ano", parseInt(ano))
           .eq("uf", uf)
           .eq("tipo_arquivo", tipoArquivo)
@@ -671,19 +671,43 @@ export default function TSEUploadModal({
             return;
           }
           
-          // Calculate progress based on records
-          if (data.total_registros && data.total_registros > 0) {
-            const pct = Math.min(95, Math.round((data.registros_importados / data.total_registros) * 100));
-            setProgress(30 + (pct * 0.65)); // 30-95% range for processing
-            setProgressMessage(`Processando: ${data.registros_importados.toLocaleString("pt-BR")} de ${data.total_registros.toLocaleString("pt-BR")} registros`);
+          // UNIFIED: Prioritize byte-based progress as single source of truth
+          const currentBytes = Number(data.current_byte_offset) || 0;
+          const totalBytes = Number(data.total_file_size) || 0;
+          
+          if (totalBytes > 0 && currentBytes > 0) {
+            // Calculate progress based on bytes (primary metric)
+            const pct = Math.min(95, Math.round((currentBytes / totalBytes) * 100));
+            setProgress(pct);
+            
+            // Update processing stats for UI
+            setProcessingStats(prev => {
+              const elapsedSeconds = (Date.now() - prev.startTime) / 1000;
+              const bytesProcessed = currentBytes - prev.startBytes;
+              const bytesPerSecond = elapsedSeconds > 0 ? bytesProcessed / elapsedSeconds : 0;
+              
+              return {
+                ...prev,
+                currentBytes,
+                totalBytes,
+                bytesPerSecond,
+                votesInserted: data.registros_importados || 0,
+              };
+            });
+            
+            const currentMB = (currentBytes / 1024 / 1024).toFixed(1);
+            const totalMB = (totalBytes / 1024 / 1024).toFixed(1);
+            const votesFormatted = (data.registros_importados || 0).toLocaleString("pt-BR");
+            setProgressMessage(`${currentMB}MB / ${totalMB}MB • ${votesFormatted} votos`);
           } else if (data.registros_importados > 0) {
-            setProgressMessage(`Processando: ${data.registros_importados.toLocaleString("pt-BR")} registros...`);
+            // Fallback to record count if no byte info
+            setProgressMessage(`Processando: ${data.registros_importados.toLocaleString("pt-BR")} votos...`);
           }
         }
       } catch (err) {
         console.error("[TSE] Polling exception:", err);
       }
-    }, 3000); // Poll every 3 seconds
+    }, 2000); // Poll every 2 seconds for more responsive UI
     
     setPollingInterval(interval);
     return interval;
