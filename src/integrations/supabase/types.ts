@@ -1193,6 +1193,47 @@ export type Database = {
           },
         ]
       }
+      shared_presentations: {
+        Row: {
+          conversation_id: string | null
+          created_at: string
+          created_by: string | null
+          id: string
+          presentation_data: Json
+          public_id: string
+          title: string
+          view_count: number | null
+        }
+        Insert: {
+          conversation_id?: string | null
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          presentation_data: Json
+          public_id: string
+          title: string
+          view_count?: number | null
+        }
+        Update: {
+          conversation_id?: string | null
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          presentation_data?: Json
+          public_id?: string
+          title?: string
+          view_count?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "shared_presentations_conversation_id_fkey"
+            columns: ["conversation_id"]
+            isOneToOne: false
+            referencedRelation: "ai_chat_conversations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       sugestoes_populares: {
         Row: {
           created_at: string
