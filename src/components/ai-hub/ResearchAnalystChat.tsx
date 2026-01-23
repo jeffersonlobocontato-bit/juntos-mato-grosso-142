@@ -1,6 +1,6 @@
 import { useState, useRef, useEffect, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Send, Loader2, Sparkles, X, BarChart3, User } from 'lucide-react';
+import { Send, Loader2, Sparkles, X, BarChart3, User, Maximize2, Minimize2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { ScrollArea } from '@/components/ui/scroll-area';
@@ -59,6 +59,7 @@ export const ResearchAnalystChat = ({ agent, onClose }: ResearchAnalystChatProps
   const [selectedPesquisaIds, setSelectedPesquisaIds] = useState<string[]>([]);
   const [loadingPesquisas, setLoadingPesquisas] = useState(true);
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
+  const [isFullscreen, setIsFullscreen] = useState(false);
   const scrollRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
 
@@ -351,7 +352,11 @@ export const ResearchAnalystChat = ({ agent, onClose }: ResearchAnalystChatProps
 
   return (
     <div className="fixed inset-0 z-50 bg-background/80 backdrop-blur-sm">
-      <div className="fixed inset-4 md:inset-8 lg:inset-12 bg-background border border-border rounded-xl shadow-2xl flex flex-col overflow-hidden">
+      <div className={`fixed bg-background border border-border rounded-xl shadow-2xl flex flex-col overflow-hidden transition-all duration-300 ${
+        isFullscreen 
+          ? 'inset-2' 
+          : 'inset-4 md:inset-8 lg:inset-12'
+      }`}>
         {/* Header */}
         <header className="bg-card/80 backdrop-blur-lg border-b border-border px-4 py-3 flex items-center justify-between">
           <div className="flex items-center gap-3">
@@ -365,9 +370,23 @@ export const ResearchAnalystChat = ({ agent, onClose }: ResearchAnalystChatProps
               </p>
             </div>
           </div>
-          <Button variant="ghost" size="icon" onClick={onClose}>
-            <X className="h-5 w-5" />
-          </Button>
+          <div className="flex items-center gap-1">
+            <Button 
+              variant="ghost" 
+              size="icon" 
+              onClick={() => setIsFullscreen(!isFullscreen)}
+              title={isFullscreen ? 'Sair da tela cheia' : 'Tela cheia'}
+            >
+              {isFullscreen ? (
+                <Minimize2 className="h-5 w-5" />
+              ) : (
+                <Maximize2 className="h-5 w-5" />
+              )}
+            </Button>
+            <Button variant="ghost" size="icon" onClick={onClose}>
+              <X className="h-5 w-5" />
+            </Button>
+          </div>
         </header>
 
         {/* Pesquisa Selector Toolbar */}
