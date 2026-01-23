@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
+import { Presentation } from '@/components/ai-hub/slides/types';
 
 export interface Conversation {
   id: string;
@@ -9,6 +10,7 @@ export interface Conversation {
   title: string;
   messages: Array<{ role: 'user' | 'assistant'; content: string }>;
   selected_pesquisa_ids: string[];
+  presentation: Presentation | null;
   created_at: string;
   updated_at: string;
 }
@@ -28,8 +30,10 @@ interface UseConversationsResult {
     title: string;
     messages: Array<{ role: 'user' | 'assistant'; content: string }>;
     selectedPesquisaIds: string[];
+    presentation: Presentation | null;
   }>) => Promise<void>;
   deleteConversation: (id: string) => Promise<void>;
+  deletePresentation: (id: string) => Promise<void>;
   selectConversation: (id: string | null) => void;
   refreshConversations: () => Promise<void>;
 }
@@ -62,6 +66,7 @@ export function useConversations(agentId: string): UseConversationsResult {
         selected_pesquisa_ids: Array.isArray(conv.selected_pesquisa_ids) 
           ? conv.selected_pesquisa_ids as string[]
           : [],
+        presentation: conv.presentation as unknown as Presentation | null,
       }));
 
       setConversations(typedConversations);
@@ -111,6 +116,7 @@ export function useConversations(agentId: string): UseConversationsResult {
         selected_pesquisa_ids: Array.isArray(newConv.selected_pesquisa_ids) 
           ? newConv.selected_pesquisa_ids as string[]
           : [],
+        presentation: newConv.presentation as unknown as Presentation | null,
       };
 
       setConversations(prev => [typedConv, ...prev]);
@@ -128,12 +134,14 @@ export function useConversations(agentId: string): UseConversationsResult {
     title: string;
     messages: Array<{ role: 'user' | 'assistant'; content: string }>;
     selectedPesquisaIds: string[];
+    presentation: Presentation | null;
   }>) => {
     try {
       const updateData: Record<string, unknown> = {};
       if (data.title !== undefined) updateData.title = data.title;
       if (data.messages !== undefined) updateData.messages = data.messages;
       if (data.selectedPesquisaIds !== undefined) updateData.selected_pesquisa_ids = data.selectedPesquisaIds;
+      if (data.presentation !== undefined) updateData.presentation = data.presentation;
       updateData.updated_at = new Date().toISOString();
 
       const { error } = await supabase
@@ -148,8 +156,10 @@ export function useConversations(agentId: string): UseConversationsResult {
           conv.id === id 
             ? { 
                 ...conv, 
-                ...data,
+                title: data.title ?? conv.title,
+                messages: data.messages ?? conv.messages,
                 selected_pesquisa_ids: data.selectedPesquisaIds ?? conv.selected_pesquisa_ids,
+                presentation: data.presentation !== undefined ? data.presentation : conv.presentation,
                 updated_at: new Date().toISOString() 
               } 
             : conv
@@ -183,6 +193,30 @@ export function useConversations(agentId: string): UseConversationsResult {
     }
   };
 
+  const deletePresentation = async (id: string) => {
+    try {
+      const { error } = await supabase
+        .from('ai_chat_conversations')
+        .update({ presentation: null, updated_at: new Date().toISOString() })
+        .eq('id', id);
+
+      if (error) throw error;
+
+      setConversations(prev => 
+        prev.map(conv => 
+          conv.id === id 
+            ? { ...conv, presentation: null, updated_at: new Date().toISOString() } 
+            : conv
+        )
+      );
+      
+      toast.success('Apresentação excluída');
+    } catch (error) {
+      console.error('Error deleting presentation:', error);
+      toast.error('Erro ao excluir apresentação');
+    }
+  };
+
   const selectConversation = (id: string | null) => {
     setActiveConversationId(id);
   };
@@ -197,6 +231,7 @@ export function useConversations(agentId: string): UseConversationsResult {
     createConversation,
     updateConversation,
     deleteConversation,
+    deletePresentation,
     selectConversation,
     refreshConversations: fetchConversations,
   };

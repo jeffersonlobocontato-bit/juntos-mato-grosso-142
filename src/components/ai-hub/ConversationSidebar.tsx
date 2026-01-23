@@ -8,7 +8,8 @@ import {
   Check, 
   X,
   ChevronLeft,
-  ChevronRight
+  ChevronRight,
+  Presentation
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -213,18 +214,23 @@ export const ConversationSidebar = ({
                         activeConversationId === conv.id ? 'text-emerald-500' : 'text-muted-foreground'
                       }`} />
                       <div className="flex-1 min-w-0">
-                        <TooltipProvider delayDuration={500}>
-                          <Tooltip>
-                            <TooltipTrigger asChild>
-                              <p className="text-sm font-medium truncate">
+                        <div className="flex items-center gap-1.5">
+                          <TooltipProvider delayDuration={500}>
+                            <Tooltip>
+                              <TooltipTrigger asChild>
+                                <p className="text-sm font-medium truncate flex-1">
+                                  {conv.title}
+                                </p>
+                              </TooltipTrigger>
+                              <TooltipContent side="right" className="max-w-xs">
                                 {conv.title}
-                              </p>
-                            </TooltipTrigger>
-                            <TooltipContent side="right" className="max-w-xs">
-                              {conv.title}
-                            </TooltipContent>
-                          </Tooltip>
-                        </TooltipProvider>
+                              </TooltipContent>
+                            </Tooltip>
+                          </TooltipProvider>
+                          {conv.presentation && (
+                            <Presentation className="h-3 w-3 text-primary flex-shrink-0" />
+                          )}
+                        </div>
                         <p className="text-xs text-muted-foreground">
                           {formatConversationDate(conv.updated_at)}
                         </p>

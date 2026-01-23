@@ -272,14 +272,34 @@ serve(async (req) => {
       knowledgeContext += extendedContext;
     }
 
+    // Check if this is a presentation generation request
+    const lastMessage = messages[messages.length - 1];
+    const isPresentationRequest = lastMessage?.content?.includes('[[GENERATE_PRESENTATION]]');
+
     // Build system prompt
-    const systemPrompt = `${agent.system_prompt}${knowledgeContext}
+    let systemPrompt = `${agent.system_prompt}${knowledgeContext}
 
 INSTRUÇÕES ADICIONAIS:
 - Responda sempre em português brasileiro
 - Seja claro, objetivo e profissional
 - Use a base de conhecimento fornecida quando relevante
 - Se não souber algo, admita em vez de inventar`;
+
+    // Add specific instructions for presentation generation
+    if (isPresentationRequest) {
+      systemPrompt += `
+
+MODO DE GERAÇÃO DE APRESENTAÇÃO:
+Você está no modo de geração de apresentação. Analise toda a conversa anterior e gere uma apresentação executiva em formato JSON.
+
+REGRAS OBRIGATÓRIAS:
+1. Retorne APENAS JSON válido, sem texto antes ou depois
+2. Não use blocos de código markdown (\`\`\`), apenas o JSON puro
+3. Crie slides que resumam os principais pontos da análise
+4. Use gráficos quando houver dados quantitativos
+5. Limite a 6-8 slides no total
+6. Mantenha títulos concisos e bullets objetivos`;
+    }
 
     // Call Lovable AI Gateway
     const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
@@ -289,7 +309,7 @@ INSTRUÇÕES ADICIONAIS:
         "Content-Type": "application/json",
       },
       body: JSON.stringify({
-        model: "google/gemini-3-flash-preview",
+        model: isPresentationRequest ? "google/gemini-2.5-flash" : "google/gemini-3-flash-preview",
         messages: [
           { role: "system", content: systemPrompt },
           ...messages.map((m: { role: string; content: string }) => ({

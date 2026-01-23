@@ -215,6 +215,7 @@ export type Database = {
           created_at: string
           id: string
           messages: Json
+          presentation: Json | null
           selected_pesquisa_ids: Json | null
           title: string
           updated_at: string
@@ -225,6 +226,7 @@ export type Database = {
           created_at?: string
           id?: string
           messages?: Json
+          presentation?: Json | null
           selected_pesquisa_ids?: Json | null
           title?: string
           updated_at?: string
@@ -235,6 +237,7 @@ export type Database = {
           created_at?: string
           id?: string
           messages?: Json
+          presentation?: Json | null
           selected_pesquisa_ids?: Json | null
           title?: string
           updated_at?: string
