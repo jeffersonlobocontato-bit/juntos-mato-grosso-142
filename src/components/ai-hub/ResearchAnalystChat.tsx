@@ -683,7 +683,7 @@ IMPORTANTE: Retorne APENAS o JSON, sem nenhum texto antes ou depois.`
                           }`}>
                             {message.text || message.content ? (
                               message.role === 'assistant' ? (
-                                <div className="prose prose-sm dark:prose-invert max-w-none">
+                                <div className="prose prose-sm dark:prose-invert max-w-none break-words overflow-hidden">
                                   <ReactMarkdown 
                                     remarkPlugins={[remarkGfm]}
                                     components={{
