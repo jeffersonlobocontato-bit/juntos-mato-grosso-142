@@ -1,5 +1,6 @@
 import { motion } from 'framer-motion';
 import { Slide } from './types';
+import { ContentSlide } from './ContentSlide';
 
 interface CrossTableSlideProps {
   slide: Slide;
@@ -8,7 +9,43 @@ interface CrossTableSlideProps {
 export const CrossTableSlide = ({ slide }: CrossTableSlideProps) => {
   const table = slide.crossTable;
 
-  if (!table) return null;
+  // Fallback: se não houver crossTable, usar bullets/content via ContentSlide
+  if (!table) {
+    if (slide.bullets?.length || slide.content) {
+      return <ContentSlide slide={slide} />;
+    }
+    // Fallback visual quando não há dados
+    return (
+      <div className="h-full flex flex-col items-center justify-center p-8 md:p-12 bg-gradient-to-br from-blue-500/10 via-background to-muted/30">
+        <motion.h2
+          initial={{ y: -20, opacity: 0 }}
+          animate={{ y: 0, opacity: 1 }}
+          transition={{ duration: 0.4 }}
+          className="text-3xl md:text-4xl font-bold text-foreground mb-4"
+        >
+          {slide.title}
+        </motion.h2>
+        {slide.subtitle && (
+          <motion.p
+            initial={{ y: -10, opacity: 0 }}
+            animate={{ y: 0, opacity: 1 }}
+            transition={{ delay: 0.1, duration: 0.4 }}
+            className="text-lg text-muted-foreground mb-6"
+          >
+            {slide.subtitle}
+          </motion.p>
+        )}
+        <motion.p
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          transition={{ delay: 0.3 }}
+          className="text-muted-foreground text-center"
+        >
+          Tabela de dados não disponível para este slide.
+        </motion.p>
+      </div>
+    );
+  }
 
   const containerVariants = {
     hidden: { opacity: 0 },

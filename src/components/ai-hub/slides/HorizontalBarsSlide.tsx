@@ -1,5 +1,6 @@
 import { motion } from 'framer-motion';
 import { Slide } from './types';
+import { ContentSlide } from './ContentSlide';
 
 interface HorizontalBarsSlideProps {
   slide: Slide;
@@ -7,6 +8,45 @@ interface HorizontalBarsSlideProps {
 
 export const HorizontalBarsSlide = ({ slide }: HorizontalBarsSlideProps) => {
   const bars = slide.horizontalBars || [];
+
+  // Fallback: se não houver horizontalBars, usar bullets/content via ContentSlide
+  if (bars.length === 0) {
+    if (slide.bullets?.length || slide.content) {
+      return <ContentSlide slide={slide} />;
+    }
+    // Fallback visual quando não há dados
+    return (
+      <div className="h-full flex flex-col items-center justify-center p-8 md:p-12 bg-gradient-to-br from-rose-500/10 via-background to-primary/10">
+        <motion.h2
+          initial={{ y: -20, opacity: 0 }}
+          animate={{ y: 0, opacity: 1 }}
+          transition={{ duration: 0.4 }}
+          className="text-3xl md:text-4xl font-bold text-foreground mb-4"
+        >
+          {slide.title}
+        </motion.h2>
+        {slide.subtitle && (
+          <motion.p
+            initial={{ y: -10, opacity: 0 }}
+            animate={{ y: 0, opacity: 1 }}
+            transition={{ delay: 0.1, duration: 0.4 }}
+            className="text-lg text-muted-foreground mb-6"
+          >
+            {slide.subtitle}
+          </motion.p>
+        )}
+        <motion.p
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          transition={{ delay: 0.3 }}
+          className="text-muted-foreground text-center"
+        >
+          Dados de barras não disponíveis para este slide.
+        </motion.p>
+      </div>
+    );
+  }
+
   const maxValue = Math.max(...bars.map(b => b.value), 1);
 
   const containerVariants = {

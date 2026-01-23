@@ -21,6 +21,9 @@ export const ContentSlide = ({ slide }: ContentSlideProps) => {
     visible: { x: 0, opacity: 1 }
   };
 
+  const hasBullets = slide.bullets && slide.bullets.length > 0;
+  const hasContent = !!slide.content;
+
   return (
     <div className="h-full flex flex-col p-8 md:p-12 overflow-auto bg-gradient-to-br from-primary/5 via-background to-blue-500/5">
       <motion.h2
@@ -43,14 +46,14 @@ export const ContentSlide = ({ slide }: ContentSlideProps) => {
         </motion.p>
       )}
 
-      {slide.bullets && slide.bullets.length > 0 ? (
+      {hasBullets ? (
         <motion.ul
           variants={containerVariants}
           initial="hidden"
           animate="visible"
           className="space-y-4 flex-1"
         >
-          {slide.bullets.map((bullet, idx) => (
+          {slide.bullets!.map((bullet, idx) => (
             <motion.li
               key={idx}
               variants={itemVariants}
@@ -74,7 +77,7 @@ export const ContentSlide = ({ slide }: ContentSlideProps) => {
             </motion.li>
           ))}
         </motion.ul>
-      ) : slide.content ? (
+      ) : hasContent ? (
         <motion.div
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
@@ -103,10 +106,22 @@ export const ContentSlide = ({ slide }: ContentSlideProps) => {
               ),
             }}
           >
-            {slide.content}
+            {slide.content!}
           </ReactMarkdown>
         </motion.div>
-      ) : null}
+      ) : (
+        // Fallback visual quando não há bullets nem content
+        <motion.div
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          transition={{ delay: 0.2, duration: 0.4 }}
+          className="flex-1 flex items-center justify-center"
+        >
+          <p className="text-muted-foreground text-center">
+            Conteúdo detalhado não disponível para este slide.
+          </p>
+        </motion.div>
+      )}
     </div>
   );
 };
