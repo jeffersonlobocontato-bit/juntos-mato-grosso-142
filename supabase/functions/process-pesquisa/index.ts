@@ -1,5 +1,5 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
-import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { createClient, SupabaseClient } from "https://esm.sh/@supabase/supabase-js@2";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -56,6 +56,18 @@ interface ExtractedData {
   qualitativo?: ExtractedQualitativo[];
 }
 
+interface ProcessingState {
+  total_chunks: number;
+  processed_chunks: number;
+  current_chunk: number;
+  last_processed_at: string;
+  partial_metadata?: ExtractedData['metadata'];
+  partial_resultados?: ExtractedResult[];
+  partial_cruzamentos?: ExtractedCrosstab[];
+  partial_qualitativo?: ExtractedQualitativo[];
+  error?: string;
+}
+
 // Split content into overlapping chunks
 function splitIntoChunks(content: string): string[] {
   if (content.length <= CHUNK_SIZE) {
@@ -105,7 +117,6 @@ function mergeResultados(resultsArrays: ExtractedResult[][]): ExtractedResult[] 
   for (const results of resultsArrays) {
     if (!results) continue;
     for (const result of results) {
-      // Create a unique key based on question type, question text (first 50 chars), and scenario
       const key = `${result.tipo_pergunta}|${result.pergunta?.substring(0, 50)}|${result.cenario_descricao || ''}`;
       
       if (!seen.has(key)) {
@@ -383,6 +394,260 @@ LEMBRE-SE: Retorne APENAS dados explícitos do documento. Dados não encontrados
   return null;
 }
 
+// Update processing state in database
+async function updateProcessingState(
+  supabase: SupabaseClient,
+  pesquisaId: string,
+  state: ProcessingState
+) {
+  await (supabase
+    .from("pesquisas_eleitorais") as any)
+    .update({ ai_processing_state: state })
+    .eq("id", pesquisaId);
+}
+
+// Save final results to database
+async function saveFinalResults(
+  supabase: SupabaseClient,
+  pesquisaId: string,
+  extractedData: ExtractedData
+) {
+  console.log(`Saving final results: ${extractedData.resultados?.length || 0} results, ${extractedData.cruzamentos?.length || 0} crosstabs`);
+
+  // Update pesquisa metadata if extracted
+  if (extractedData.metadata) {
+    const updateData: Record<string, any> = {};
+    const meta = extractedData.metadata;
+    
+    if (meta.titulo) updateData.titulo = meta.titulo;
+    if (meta.instituto) updateData.instituto = meta.instituto;
+    if (meta.data_campo_inicio) updateData.data_campo_inicio = meta.data_campo_inicio;
+    if (meta.data_campo_fim) updateData.data_campo_fim = meta.data_campo_fim;
+    if (meta.data_publicacao) updateData.data_publicacao = meta.data_publicacao;
+    if (meta.registro_tse) updateData.registro_tse = meta.registro_tse;
+    if (meta.universo) updateData.universo = meta.universo;
+    if (meta.amostra_total) updateData.amostra_total = meta.amostra_total;
+    if (meta.margem_erro) updateData.margem_erro = meta.margem_erro;
+    if (meta.nivel_confianca) updateData.nivel_confianca = meta.nivel_confianca;
+    if (meta.metodologia) updateData.metodologia = { descricao: meta.metodologia };
+
+    if (Object.keys(updateData).length > 0) {
+      await (supabase
+        .from("pesquisas_eleitorais") as any)
+        .update(updateData)
+        .eq("id", pesquisaId);
+    }
+  }
+
+  // Insert results
+  if (extractedData.resultados && extractedData.resultados.length > 0) {
+    for (let i = 0; i < extractedData.resultados.length; i++) {
+      const resultado = extractedData.resultados[i];
+      
+      const { data: resultadoData, error: resultadoError } = await (supabase
+        .from("pesquisa_resultados") as any)
+        .insert({
+          pesquisa_id: pesquisaId,
+          tipo_pergunta: resultado.tipo_pergunta,
+          pergunta: resultado.pergunta,
+          cenario_descricao: resultado.cenario_descricao || null,
+          ordem: i,
+        })
+        .select()
+        .single();
+
+      if (resultadoError) {
+        console.error("Error inserting resultado:", resultadoError);
+        continue;
+      }
+
+      // Insert responses
+      if (resultado.respostas && resultado.respostas.length > 0) {
+        const respostasToInsert = resultado.respostas.map((r, idx) => ({
+          resultado_id: resultadoData.id,
+          opcao: r.opcao,
+          percentual: r.percentual,
+          votos_absolutos: r.votos_absolutos || null,
+          ordem: idx,
+        }));
+
+        const { error: respostasError } = await (supabase
+          .from("pesquisa_respostas") as any)
+          .insert(respostasToInsert);
+
+        if (respostasError) {
+          console.error("Error inserting respostas:", respostasError);
+        }
+      }
+    }
+  }
+
+  // Insert crosstabs
+  if (extractedData.cruzamentos && extractedData.cruzamentos.length > 0) {
+    const { data: resultados } = await (supabase
+      .from("pesquisa_resultados") as any)
+      .select("id, pergunta")
+      .eq("pesquisa_id", pesquisaId);
+
+    if (resultados) {
+      for (const cruz of extractedData.cruzamentos) {
+        const matchedResultado = resultados.find((r: any) => 
+          r.pergunta.toLowerCase().includes(cruz.pergunta.toLowerCase().substring(0, 20))
+        );
+
+        if (matchedResultado) {
+          await (supabase
+            .from("pesquisa_cruzamentos") as any)
+            .insert({
+              resultado_id: matchedResultado.id,
+              segmento_tipo: cruz.segmento_tipo,
+              segmento_valor: cruz.segmento_valor,
+              opcao: cruz.opcao,
+              percentual: cruz.percentual,
+            });
+        }
+      }
+    }
+  }
+
+  // Insert qualitative data
+  if (extractedData.qualitativo && extractedData.qualitativo.length > 0) {
+    const qualiToInsert = extractedData.qualitativo.map(q => ({
+      pesquisa_id: pesquisaId,
+      tema: q.tema,
+      insight: q.insight,
+      verbatim: q.verbatim || null,
+      sentimento: q.sentimento || null,
+    }));
+
+    await (supabase
+      .from("pesquisa_qualitativa") as any)
+      .insert(qualiToInsert);
+  }
+
+  // Update status to active and clear processing state
+  await (supabase
+    .from("pesquisas_eleitorais") as any)
+    .update({ 
+      status: "ativa",
+      ai_processing_state: null 
+    })
+    .eq("id", pesquisaId);
+
+  console.log("Final results saved successfully");
+}
+
+// Background processing function
+async function processInBackground(
+  pesquisaId: string,
+  chunks: string[],
+  apiKey: string,
+  supabaseUrl: string,
+  supabaseKey: string
+) {
+  const supabase = createClient(supabaseUrl, supabaseKey);
+  
+  const chunkResults: (ExtractedData | null)[] = [];
+  
+  try {
+    for (let i = 0; i < chunks.length; i++) {
+      // Update progress
+      const state: ProcessingState = {
+        total_chunks: chunks.length,
+        processed_chunks: i,
+        current_chunk: i + 1,
+        last_processed_at: new Date().toISOString(),
+        partial_metadata: chunkResults.length > 0 
+          ? mergeMetadata(chunkResults.filter(r => r !== null).map(r => r!.metadata))
+          : undefined,
+        partial_resultados: chunkResults.length > 0
+          ? mergeResultados(chunkResults.filter(r => r !== null).map(r => r!.resultados))
+          : undefined,
+      };
+      
+      await updateProcessingState(supabase, pesquisaId, state);
+
+      // Add delay between chunks to avoid rate limiting
+      if (i > 0) {
+        await new Promise(resolve => setTimeout(resolve, 1500));
+      }
+      
+      try {
+        const result = await processChunk(chunks[i], i, chunks.length, apiKey);
+        chunkResults.push(result);
+        console.log(`Background: Chunk ${i + 1}/${chunks.length} completed`);
+      } catch (error) {
+        console.error(`Background: Error processing chunk ${i + 1}:`, error);
+        
+        if (error instanceof Error && (error.message.includes("Limite") || error.message.includes("Créditos"))) {
+          // Update state with error
+          await updateProcessingState(supabase, pesquisaId, {
+            ...state,
+            error: error.message,
+          });
+          
+          await (supabase
+            .from("pesquisas_eleitorais") as any)
+            .update({ status: "erro" })
+            .eq("id", pesquisaId);
+          return;
+        }
+        
+        chunkResults.push(null);
+      }
+    }
+
+    // Filter out null results
+    const validResults = chunkResults.filter((r): r is ExtractedData => r !== null);
+    
+    if (validResults.length === 0) {
+      await updateProcessingState(supabase, pesquisaId, {
+        total_chunks: chunks.length,
+        processed_chunks: chunks.length,
+        current_chunk: chunks.length,
+        last_processed_at: new Date().toISOString(),
+        error: "Não foi possível extrair dados da pesquisa",
+      });
+      
+      await (supabase
+        .from("pesquisas_eleitorais") as any)
+        .update({ status: "erro" })
+        .eq("id", pesquisaId);
+      return;
+    }
+
+    // Merge results from all chunks
+    const extractedData: ExtractedData = {
+      metadata: mergeMetadata(validResults.map(r => r.metadata)),
+      resultados: mergeResultados(validResults.map(r => r.resultados)),
+      cruzamentos: mergeCruzamentos(validResults.map(r => r.cruzamentos)),
+      qualitativo: mergeQualitativo(validResults.map(r => r.qualitativo)),
+    };
+
+    console.log(`Background: All chunks processed. Saving final results...`);
+    
+    // Save final results
+    await saveFinalResults(supabase, pesquisaId, extractedData);
+    
+  } catch (error) {
+    console.error("Background processing error:", error);
+    
+    await (supabase
+      .from("pesquisas_eleitorais") as any)
+      .update({ 
+        status: "erro",
+        ai_processing_state: {
+          total_chunks: chunks.length,
+          processed_chunks: chunkResults.length,
+          current_chunk: chunkResults.length,
+          last_processed_at: new Date().toISOString(),
+          error: error instanceof Error ? error.message : "Erro desconhecido",
+        }
+      })
+      .eq("id", pesquisaId);
+  }
+}
+
 serve(async (req) => {
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
@@ -408,8 +673,8 @@ serve(async (req) => {
     const supabase = createClient(supabaseUrl, supabaseKey);
 
     // Update status to processing
-    await supabase
-      .from("pesquisas_eleitorais")
+    await (supabase
+      .from("pesquisas_eleitorais") as any)
       .update({ status: "processando" })
       .eq("id", pesquisa_id);
 
@@ -423,8 +688,8 @@ serve(async (req) => {
     } 
     // If no content_text, try to get from database
     else {
-      const { data: pesquisaData } = await supabase
-        .from("pesquisas_eleitorais")
+      const { data: pesquisaData } = await (supabase
+        .from("pesquisas_eleitorais") as any)
         .select("content")
         .eq("id", pesquisa_id)
         .single();
@@ -440,7 +705,6 @@ serve(async (req) => {
       console.log("Attempting to download file from:", file_url);
       
       try {
-        // Extract file path from URL
         const urlObj = new URL(file_url);
         const pathMatch = urlObj.pathname.match(/\/storage\/v1\/object\/public\/pesquisas-eleitorais\/(.+)/);
         
@@ -448,7 +712,6 @@ serve(async (req) => {
           const filePath = decodeURIComponent(pathMatch[1]);
           console.log("Extracted file path:", filePath);
           
-          // Generate signed URL for private bucket access
           const { data: signedUrlData, error: signedUrlError } = await supabase
             .storage
             .from('pesquisas-eleitorais')
@@ -465,7 +728,6 @@ serve(async (req) => {
               const contentType = fileResponse.headers.get("content-type") || "";
               console.log("File content type:", contentType);
               
-              // Only try to read text from text-based files
               if (contentType.includes("text") || contentType.includes("csv")) {
                 textContent = await fileResponse.text();
                 console.log("Text content extracted, length:", textContent.length);
@@ -488,8 +750,8 @@ serve(async (req) => {
     if (!textContent || textContent.length < 100) {
       console.error("Insufficient content. Length:", textContent?.length || 0);
       
-      await supabase
-        .from("pesquisas_eleitorais")
+      await (supabase
+        .from("pesquisas_eleitorais") as any)
         .update({ status: "rascunho" })
         .eq("id", pesquisa_id);
 
@@ -506,192 +768,47 @@ serve(async (req) => {
 
     // Split content into chunks
     const chunks = splitIntoChunks(textContent);
-    console.log(`Processing ${chunks.length} chunk(s)`);
+    console.log(`Will process ${chunks.length} chunk(s) in background`);
 
-    // Process all chunks
-    const chunkResults: (ExtractedData | null)[] = [];
-    
-    for (let i = 0; i < chunks.length; i++) {
-      try {
-        // Add small delay between chunks to avoid rate limiting
-        if (i > 0) {
-          await new Promise(resolve => setTimeout(resolve, 1000));
-        }
-        
-        const result = await processChunk(chunks[i], i, chunks.length, LOVABLE_API_KEY);
-        chunkResults.push(result);
-      } catch (error) {
-        console.error(`Error processing chunk ${i + 1}:`, error);
-        // If it's a rate limit or payment error, re-throw to handle at top level
-        if (error instanceof Error && (error.message.includes("Limite") || error.message.includes("Créditos"))) {
-          await supabase
-            .from("pesquisas_eleitorais")
-            .update({ status: "rascunho" })
-            .eq("id", pesquisa_id);
-          return new Response(
-            JSON.stringify({ error: error.message }),
-            { status: error.message.includes("Limite") ? 429 : 402, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-          );
-        }
-        chunkResults.push(null);
-      }
-    }
-
-    // Filter out null results
-    const validResults = chunkResults.filter((r): r is ExtractedData => r !== null);
-    
-    if (validResults.length === 0) {
-      await supabase
-        .from("pesquisas_eleitorais")
-        .update({ status: "rascunho" })
-        .eq("id", pesquisa_id);
-      return new Response(
-        JSON.stringify({ error: "Não foi possível extrair dados da pesquisa" }),
-        { status: 422, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-      );
-    }
-
-    // Merge results from all chunks
-    const extractedData: ExtractedData = {
-      metadata: mergeMetadata(validResults.map(r => r.metadata)),
-      resultados: mergeResultados(validResults.map(r => r.resultados)),
-      cruzamentos: mergeCruzamentos(validResults.map(r => r.cruzamentos)),
-      qualitativo: mergeQualitativo(validResults.map(r => r.qualitativo)),
+    // Initialize processing state
+    const initialState: ProcessingState = {
+      total_chunks: chunks.length,
+      processed_chunks: 0,
+      current_chunk: 1,
+      last_processed_at: new Date().toISOString(),
     };
+    
+    await updateProcessingState(supabase, pesquisa_id, initialState);
 
-    console.log(`Final merged data: ${extractedData.resultados.length} results, ${extractedData.cruzamentos.length} crosstabs`);
-
-    // Update pesquisa metadata if extracted
-    if (extractedData.metadata) {
-      const updateData: Record<string, any> = {};
-      const meta = extractedData.metadata;
-      
-      if (meta.titulo) updateData.titulo = meta.titulo;
-      if (meta.instituto) updateData.instituto = meta.instituto;
-      if (meta.data_campo_inicio) updateData.data_campo_inicio = meta.data_campo_inicio;
-      if (meta.data_campo_fim) updateData.data_campo_fim = meta.data_campo_fim;
-      if (meta.data_publicacao) updateData.data_publicacao = meta.data_publicacao;
-      if (meta.registro_tse) updateData.registro_tse = meta.registro_tse;
-      if (meta.universo) updateData.universo = meta.universo;
-      if (meta.amostra_total) updateData.amostra_total = meta.amostra_total;
-      if (meta.margem_erro) updateData.margem_erro = meta.margem_erro;
-      if (meta.nivel_confianca) updateData.nivel_confianca = meta.nivel_confianca;
-      if (meta.metodologia) updateData.metodologia = { descricao: meta.metodologia };
-
-      if (Object.keys(updateData).length > 0) {
-        await supabase
-          .from("pesquisas_eleitorais")
-          .update(updateData)
-          .eq("id", pesquisa_id);
-      }
+    // Start background processing using EdgeRuntime.waitUntil
+    // @ts-ignore - EdgeRuntime is a Deno Deploy specific API
+    if (typeof EdgeRuntime !== 'undefined' && EdgeRuntime.waitUntil) {
+      console.log("Starting background processing with EdgeRuntime.waitUntil");
+      // @ts-ignore
+      EdgeRuntime.waitUntil(
+        processInBackground(pesquisa_id, chunks, LOVABLE_API_KEY, supabaseUrl, supabaseKey)
+      );
+    } else {
+      // Fallback: process synchronously (for local testing)
+      console.log("EdgeRuntime not available, processing synchronously");
+      await processInBackground(pesquisa_id, chunks, LOVABLE_API_KEY, supabaseUrl, supabaseKey);
     }
 
-    // Insert results
-    if (extractedData.resultados && extractedData.resultados.length > 0) {
-      for (let i = 0; i < extractedData.resultados.length; i++) {
-        const resultado = extractedData.resultados[i];
-        
-        const { data: resultadoData, error: resultadoError } = await supabase
-          .from("pesquisa_resultados")
-          .insert({
-            pesquisa_id,
-            tipo_pergunta: resultado.tipo_pergunta,
-            pergunta: resultado.pergunta,
-            cenario_descricao: resultado.cenario_descricao || null,
-            ordem: i,
-          })
-          .select()
-          .single();
-
-        if (resultadoError) {
-          console.error("Error inserting resultado:", resultadoError);
-          continue;
-        }
-
-        // Insert responses
-        if (resultado.respostas && resultado.respostas.length > 0) {
-          const respostasToInsert = resultado.respostas.map((r, idx) => ({
-            resultado_id: resultadoData.id,
-            opcao: r.opcao,
-            percentual: r.percentual,
-            votos_absolutos: r.votos_absolutos || null,
-            ordem: idx,
-          }));
-
-          const { error: respostasError } = await supabase
-            .from("pesquisa_respostas")
-            .insert(respostasToInsert);
-
-          if (respostasError) {
-            console.error("Error inserting respostas:", respostasError);
-          }
-        }
-      }
-    }
-
-    // Insert crosstabs
-    if (extractedData.cruzamentos && extractedData.cruzamentos.length > 0) {
-      // Match cruzamentos to resultados by pergunta
-      const { data: resultados } = await supabase
-        .from("pesquisa_resultados")
-        .select("id, pergunta")
-        .eq("pesquisa_id", pesquisa_id);
-
-      if (resultados) {
-        for (const cruz of extractedData.cruzamentos) {
-          // Find matching resultado
-          const matchedResultado = resultados.find(r => 
-            r.pergunta.toLowerCase().includes(cruz.pergunta.toLowerCase().substring(0, 20))
-          );
-
-          if (matchedResultado) {
-            await supabase
-              .from("pesquisa_cruzamentos")
-              .insert({
-                resultado_id: matchedResultado.id,
-                segmento_tipo: cruz.segmento_tipo,
-                segmento_valor: cruz.segmento_valor,
-                opcao: cruz.opcao,
-                percentual: cruz.percentual,
-              });
-          }
-        }
-      }
-    }
-
-    // Insert qualitative data
-    if (extractedData.qualitativo && extractedData.qualitativo.length > 0) {
-      const qualiToInsert = extractedData.qualitativo.map(q => ({
-        pesquisa_id,
-        tema: q.tema,
-        insight: q.insight,
-        verbatim: q.verbatim || null,
-        sentimento: q.sentimento || null,
-      }));
-
-      await supabase
-        .from("pesquisa_qualitativa")
-        .insert(qualiToInsert);
-    }
-
-    // Update status to active
-    await supabase
-      .from("pesquisas_eleitorais")
-      .update({ status: "ativa" })
-      .eq("id", pesquisa_id);
-
+    // Return immediately with accepted status
     return new Response(
       JSON.stringify({
         success: true,
-        message: `Pesquisa processada com sucesso${chunks.length > 1 ? ` (${chunks.length} partes)` : ''}`,
+        status: "accepted",
+        message: `Processamento iniciado. ${chunks.length} parte(s) serão processadas em segundo plano.`,
         data: {
-          chunks_processed: chunks.length,
-          resultados_count: extractedData.resultados?.length || 0,
-          cruzamentos_count: extractedData.cruzamentos?.length || 0,
-          qualitativo_count: extractedData.qualitativo?.length || 0,
+          pesquisa_id,
+          total_chunks: chunks.length,
         },
       }),
-      { headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      { 
+        status: 202, // Accepted - processing in background
+        headers: { ...corsHeaders, "Content-Type": "application/json" } 
+      }
     );
   } catch (error) {
     console.error("process-pesquisa error:", error);

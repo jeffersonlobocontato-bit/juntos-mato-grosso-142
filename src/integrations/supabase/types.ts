@@ -785,6 +785,7 @@ export type Database = {
       pesquisas_eleitorais: {
         Row: {
           abrangencia: string | null
+          ai_processing_state: Json | null
           amostra_total: number | null
           content: string | null
           created_at: string
@@ -812,6 +813,7 @@ export type Database = {
         }
         Insert: {
           abrangencia?: string | null
+          ai_processing_state?: Json | null
           amostra_total?: number | null
           content?: string | null
           created_at?: string
@@ -839,6 +841,7 @@ export type Database = {
         }
         Update: {
           abrangencia?: string | null
+          ai_processing_state?: Json | null
           amostra_total?: number | null
           content?: string | null
           created_at?: string
