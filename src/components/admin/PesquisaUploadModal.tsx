@@ -387,10 +387,10 @@ export const PesquisaUploadModal = ({
 
     setAiStep(expectedChunks > 1 
       ? `Iniciando análise (${expectedChunks} partes)...` 
-      : 'Enviando dados para análise...');
-    setAiProgress(30);
+      : 'Analisando pesquisa...');
+    setAiProgress(20);
 
-    // Start the processing (returns immediately with 202)
+    // First call - initiates processing
     const response = await supabase.functions.invoke('process-pesquisa', {
       body: { 
         pesquisa_id: pesquisaId,
@@ -402,64 +402,38 @@ export const PesquisaUploadModal = ({
       throw new Error(response.error.message || 'Erro ao processar pesquisa');
     }
 
-    // Poll for status updates
-    const pollInterval = 3000; // 3 seconds
-    const maxPolls = 60; // 3 minutes max
-    let polls = 0;
+    let result = response.data as any;
 
-    return new Promise((resolve, reject) => {
-      const poll = async () => {
-        polls++;
-        
-        try {
-          const { data: pesquisaData, error } = await supabase
-            .from('pesquisas_eleitorais')
-            .select('status, ai_processing_state')
-            .eq('id', pesquisaId)
-            .single();
+    // If needs more chunks, keep calling
+    while (result?.data?.needs_more) {
+      const processedChunks = result.data.processed_chunks;
+      const totalChunks = result.data.total_chunks;
+      
+      const progress = 20 + ((processedChunks / totalChunks) * 70);
+      setAiProgress(Math.min(progress, 90));
+      setAiStep(`Processando parte ${processedChunks + 1} de ${totalChunks}...`);
 
-          if (error) throw error;
+      // Small delay between calls
+      await new Promise(resolve => setTimeout(resolve, 500));
 
-          const state = pesquisaData?.ai_processing_state as any;
-          
-          if (state?.error) {
-            reject(new Error(state.error));
-            return;
-          }
-
-          if (pesquisaData?.status === 'ativa') {
-            setAiProgress(100);
-            setAiStep('Concluído!');
-            resolve({ success: true, data: { chunks_processed: state?.total_chunks || 1, resultados_count: 0, cruzamentos_count: 0 } });
-            return;
-          }
-
-          // Check for error state in ai_processing_state
-          if (state?.error) {
-            reject(new Error(state.error));
-            return;
-          }
-
-          // Update progress based on state
-          if (state) {
-            const progress = 30 + ((state.processed_chunks / state.total_chunks) * 50);
-            setAiProgress(Math.min(progress, 80));
-            setAiStep(`Processando parte ${state.current_chunk} de ${state.total_chunks}...`);
-          }
-
-          if (polls >= maxPolls) {
-            reject(new Error('Tempo limite excedido. Verifique o status da pesquisa.'));
-            return;
-          }
-
-          setTimeout(poll, pollInterval);
-        } catch (err) {
-          reject(err);
+      const nextResponse = await supabase.functions.invoke('process-pesquisa', {
+        body: { 
+          pesquisa_id: pesquisaId,
+          process_next_chunk: true
         }
-      };
+      });
 
-      setTimeout(poll, pollInterval);
-    });
+      if (nextResponse.error) {
+        throw new Error(nextResponse.error.message || 'Erro ao processar chunk');
+      }
+
+      result = nextResponse.data;
+    }
+
+    setAiProgress(100);
+    setAiStep('Concluído!');
+
+    return result;
   };
 
   const handleSubmit = async () => {
