@@ -60,7 +60,7 @@ interface ProcessingState {
   total_chunks: number;
   processed_chunks: number;
   current_chunk: number;
-  chunks: string[];
+  content_length: number;
   partial_metadata?: ExtractedData['metadata'];
   partial_resultados?: ExtractedResult[];
   partial_cruzamentos?: ExtractedCrosstab[];
@@ -463,9 +463,13 @@ serve(async (req) => {
     let state: ProcessingState | null = pesquisaData?.ai_processing_state as ProcessingState | null;
 
     // If process_next_chunk is true, we're continuing an existing process
-    if (process_next_chunk && state && state.chunks && state.processed_chunks < state.total_chunks) {
+    if (process_next_chunk && state && state.content_length && state.processed_chunks < state.total_chunks) {
+      // Regenerate chunks from saved content
+      const savedContent = pesquisaData?.content?.trim() || "";
+      const chunks = splitIntoChunks(savedContent);
+      
       const chunkIndex = state.processed_chunks;
-      const chunk = state.chunks[chunkIndex];
+      const chunk = chunks[chunkIndex];
 
       console.log(`Continuing: Processing chunk ${chunkIndex + 1}/${state.total_chunks}`);
 
@@ -662,7 +666,7 @@ serve(async (req) => {
       total_chunks: chunks.length,
       processed_chunks: 1,
       current_chunk: 2,
-      chunks: chunks,
+      content_length: textContent.length,
       partial_metadata: result?.metadata,
       partial_resultados: result?.resultados || [],
       partial_cruzamentos: result?.cruzamentos || [],
