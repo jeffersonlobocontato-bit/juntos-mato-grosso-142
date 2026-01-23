@@ -1,6 +1,6 @@
 import { useState, useRef, useEffect, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Send, Loader2, Sparkles, X, BarChart3, User, Maximize2, Minimize2, Presentation, Eye } from 'lucide-react';
+import { Send, Loader2, Sparkles, X, BarChart3, User, Maximize2, Minimize2, Presentation, Eye, RefreshCw } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { ScrollArea } from '@/components/ui/scroll-area';
@@ -749,14 +749,34 @@ IMPORTANTE: Retorne APENAS o JSON, sem nenhum texto antes ou depois.`
                       className="flex items-center justify-center gap-3 pt-6 pb-2"
                     >
                       {activeConversation?.presentation ? (
-                        <Button
-                          variant="outline"
-                          onClick={() => setShowPresentation(true)}
-                          className="gap-2"
-                        >
-                          <Eye className="w-4 h-4" />
-                          Ver Apresentação
-                        </Button>
+                        <div className="flex gap-2">
+                          <Button
+                            variant="outline"
+                            onClick={() => setShowPresentation(true)}
+                            className="gap-2"
+                          >
+                            <Eye className="w-4 h-4" />
+                            Ver Apresentação
+                          </Button>
+                          <Button
+                            variant="outline"
+                            onClick={handleGeneratePresentation}
+                            disabled={generatingPresentation || isLoading}
+                            className="gap-2"
+                          >
+                            {generatingPresentation ? (
+                              <>
+                                <Loader2 className="w-4 h-4 animate-spin" />
+                                Gerando...
+                              </>
+                            ) : (
+                              <>
+                                <RefreshCw className="w-4 h-4" />
+                                Gerar Nova Versão
+                              </>
+                            )}
+                          </Button>
+                        </div>
                       ) : (
                         <Button
                           variant="outline"
