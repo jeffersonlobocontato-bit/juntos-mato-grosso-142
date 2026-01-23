@@ -297,10 +297,11 @@ Você está no modo de geração de apresentação profissional. Analise toda a 
 2. NÃO use blocos de código
 3. NÃO escreva texto antes ou depois do JSON
 4. Comece diretamente com { e termine com }
+5. NUNCA use as palavras "exaustiva", "exaustivo", "completa", "detalhada" nos títulos dos slides
 
 TIPOS DE SLIDES DISPONÍVEIS:
 
-1. "cover" - Capa com título impactante
+1. "cover" - Capa com título impactante e direto (sem adjetivos como "exaustiva" ou "completa")
    {"id": "1", "type": "cover", "title": "O mapa invisível da eleição", "subtitle": "O que os números revelam"}
 
 2. "methodology" - Ficha técnica com cards de métricas
