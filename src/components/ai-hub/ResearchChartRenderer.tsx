@@ -76,21 +76,69 @@ const ChartComponent = ({ chart }: { chart: ChartData }) => {
 
 // Utility function to parse chart data from AI response
 export const parseChartDataFromMessage = (content: string): { text: string; charts: ChartData[] } => {
-  const chartMatch = content.match(/<!--CHART_DATA\n?([\s\S]*?)\n?CHART_DATA-->/);
+  // Multiple regex patterns to handle various AI output formats
+  const patterns = [
+    /<!--CHART_DATA\n?([\s\S]*?)\n?CHART_DATA-->/,          // Standard format
+    /<!--\s*CHART_DATA\s*\n?([\s\S]*?)\n?CHART_DATA\s*-->/,  // With spaces
+    /<!\-\-CHART_DATA\n?([\s\S]*?)\n?CHART_DATA\-\->/,       // Escaped dashes
+    /CHART_DATA[\s\S]*?(\{[\s\S]*?"charts"[\s\S]*?\})[\s\S]*?CHART_DATA/,  // Partial format
+    /<!--CHART_DATA([\s\S]*?)CHART_DATA→/,                   // Arrow format
+  ];
   
-  if (chartMatch) {
-    try {
-      const chartJson = JSON.parse(chartMatch[1].trim());
-      const text = content.replace(/<!--CHART_DATA[\s\S]*?CHART_DATA-->/, '').trim();
-      return { 
-        text, 
-        charts: Array.isArray(chartJson.charts) ? chartJson.charts : [] 
-      };
-    } catch (e) {
-      console.warn('Failed to parse chart data:', e);
-      return { text: content, charts: [] };
+  for (const pattern of patterns) {
+    const chartMatch = content.match(pattern);
+    if (chartMatch) {
+      try {
+        let jsonStr = chartMatch[1].trim();
+        
+        // Try to find a valid JSON object if the match is messy
+        if (!jsonStr.startsWith('{')) {
+          const jsonStart = jsonStr.indexOf('{');
+          if (jsonStart !== -1) {
+            jsonStr = jsonStr.substring(jsonStart);
+          }
+        }
+        
+        // Find matching closing brace
+        let braceCount = 0;
+        let jsonEnd = 0;
+        for (let i = 0; i < jsonStr.length; i++) {
+          if (jsonStr[i] === '{') braceCount++;
+          if (jsonStr[i] === '}') braceCount--;
+          if (braceCount === 0 && jsonStr[i] === '}') {
+            jsonEnd = i + 1;
+            break;
+          }
+        }
+        if (jsonEnd > 0) {
+          jsonStr = jsonStr.substring(0, jsonEnd);
+        }
+        
+        const chartJson = JSON.parse(jsonStr);
+        
+        // Clean all variations from content
+        let text = content
+          .replace(/<!--\s*CHART_DATA[\s\S]*?CHART_DATA\s*-->/g, '')
+          .replace(/<!--CHART_DATA[\s\S]*?CHART_DATA→/g, '')
+          .replace(/CHART_DATA[\s\S]*?CHART_DATA/g, '')
+          .trim();
+        
+        return { 
+          text, 
+          charts: Array.isArray(chartJson.charts) ? chartJson.charts : [] 
+        };
+      } catch (e) {
+        console.warn('Failed to parse chart data with pattern:', pattern, e);
+        continue;
+      }
     }
   }
   
-  return { text: content, charts: [] };
+  // Fallback: try to find and remove any visible CHART_DATA remnants
+  const cleanedText = content
+    .replace(/<!--\s*CHART_DATA[\s\S]*$/g, '')  // Incomplete at end
+    .replace(/CHART_DATA[\s\S]*$/g, '')         // Partial at end
+    .trim();
+  
+  return { text: cleanedText, charts: [] };
 };
