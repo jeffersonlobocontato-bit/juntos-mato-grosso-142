@@ -1,6 +1,6 @@
 import { useState, useRef, useEffect, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Send, Loader2, Sparkles, X, BarChart3, User, Maximize2, Minimize2 } from 'lucide-react';
+import { Send, Loader2, Sparkles, X, BarChart3, User, Maximize2, Minimize2, Presentation, Eye } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { ScrollArea } from '@/components/ui/scroll-area';
@@ -11,8 +11,10 @@ import remarkGfm from 'remark-gfm';
 import { ResearchChartRenderer, ChartData, parseChartDataFromMessage } from './ResearchChartRenderer';
 import { PesquisaSelector } from './PesquisaSelector';
 import { ConversationSidebar } from './ConversationSidebar';
+import { PresentationViewer } from './PresentationViewer';
 import { useConversations } from '@/hooks/useConversations';
 import { supabase } from '@/integrations/supabase/client';
+import { Presentation as PresentationType } from './slides/types';
 
 interface AIAgent {
   id: string;
@@ -60,6 +62,8 @@ export const ResearchAnalystChat = ({ agent, onClose }: ResearchAnalystChatProps
   const [loadingPesquisas, setLoadingPesquisas] = useState(true);
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const [isFullscreen, setIsFullscreen] = useState(false);
+  const [generatingPresentation, setGeneratingPresentation] = useState(false);
+  const [showPresentation, setShowPresentation] = useState(false);
   const scrollRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
 
@@ -71,6 +75,7 @@ export const ResearchAnalystChat = ({ agent, onClose }: ResearchAnalystChatProps
     createConversation,
     updateConversation,
     deleteConversation,
+    deletePresentation,
     selectConversation,
   } = useConversations(agent.id);
 
@@ -350,6 +355,151 @@ export const ResearchAnalystChat = ({ agent, onClose }: ResearchAnalystChatProps
     updateConversation(id, { title: newTitle });
   };
 
+  const handleGeneratePresentation = async () => {
+    if (!activeConversationId || messages.length === 0) {
+      toast.error('É necessário ter uma conversa ativa para gerar uma apresentação');
+      return;
+    }
+
+    setGeneratingPresentation(true);
+
+    try {
+      const response = await fetch(CHAT_URL, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY}`,
+        },
+        body: JSON.stringify({
+          agent_id: agent.id,
+          messages: [
+            ...messages.map(m => ({ role: m.role, content: m.content })),
+            { 
+              role: 'user', 
+              content: `[[GENERATE_PRESENTATION]]
+Gere uma apresentação executiva baseada na análise acima.
+
+RETORNE APENAS um JSON válido no seguinte formato (sem texto adicional, markdown ou explicações):
+{
+  "slides": [
+    {
+      "id": "slide-1",
+      "type": "cover",
+      "title": "Título da Apresentação",
+      "subtitle": "Subtítulo opcional",
+      "content": "Informações adicionais separadas por \\n"
+    },
+    {
+      "id": "slide-2", 
+      "type": "content",
+      "title": "Contexto da Análise",
+      "bullets": ["Ponto 1", "Ponto 2", "Ponto 3"]
+    },
+    {
+      "id": "slide-3",
+      "type": "chart",
+      "title": "Intenção de Voto",
+      "subtitle": "Dados atuais",
+      "chart": { "type": "pie", "title": "Intenção de Voto", "data": [{"name": "Candidato A", "value": 45}, {"name": "Candidato B", "value": 35}] }
+    },
+    {
+      "id": "slide-4",
+      "type": "conclusion",
+      "title": "Conclusões",
+      "bullets": ["Conclusão 1", "Conclusão 2"]
+    },
+    {
+      "id": "slide-5",
+      "type": "recommendations",
+      "title": "Recomendações Estratégicas",
+      "bullets": ["Recomendação 1", "Recomendação 2"]
+    }
+  ],
+  "title": "Título da Apresentação",
+  "theme": "default"
+}
+
+Tipos de slides permitidos: cover, content, chart, conclusion, recommendations
+Tipos de gráficos permitidos: pie, bar, line, comparison
+
+IMPORTANTE: Retorne APENAS o JSON, sem nenhum texto antes ou depois.`
+            }
+          ],
+          selected_pesquisa_ids: selectedPesquisaIds,
+        }),
+      });
+
+      if (!response.ok) {
+        throw new Error('Falha ao gerar apresentação');
+      }
+
+      if (!response.body) throw new Error('No response body');
+
+      const reader = response.body.getReader();
+      const decoder = new TextDecoder();
+      let fullContent = '';
+
+      while (true) {
+        const { done, value } = await reader.read();
+        if (done) break;
+
+        const text = decoder.decode(value, { stream: true });
+        const lines = text.split('\n');
+
+        for (const line of lines) {
+          if (line.startsWith('data: ') && line.slice(6).trim() !== '[DONE]') {
+            try {
+              const parsed = JSON.parse(line.slice(6));
+              const delta = parsed.choices?.[0]?.delta?.content;
+              if (delta) fullContent += delta;
+            } catch {
+              // Ignore parsing errors
+            }
+          }
+        }
+      }
+
+      // Parse the JSON from the response
+      const jsonMatch = fullContent.match(/\{[\s\S]*\}/);
+      if (!jsonMatch) {
+        throw new Error('Não foi possível extrair JSON da resposta');
+      }
+
+      const presentationData = JSON.parse(jsonMatch[0]);
+      
+      // Validate basic structure
+      if (!presentationData.slides || !Array.isArray(presentationData.slides)) {
+        throw new Error('Estrutura de apresentação inválida');
+      }
+
+      const presentation: PresentationType = {
+        slides: presentationData.slides,
+        title: presentationData.title || 'Apresentação de Análise',
+        theme: presentationData.theme || 'default',
+        generated_at: new Date().toISOString(),
+      };
+
+      // Save to conversation
+      await updateConversation(activeConversationId, { presentation });
+
+      toast.success('Apresentação gerada com sucesso!');
+      setShowPresentation(true);
+
+    } catch (error) {
+      console.error('Error generating presentation:', error);
+      toast.error('Erro ao gerar apresentação. Tente novamente.');
+    } finally {
+      setGeneratingPresentation(false);
+    }
+  };
+
+  const handleDeletePresentation = async () => {
+    if (activeConversationId) {
+      await deletePresentation(activeConversationId);
+      setShowPresentation(false);
+    }
+  };
+
   return (
     <div className="fixed inset-0 z-50 bg-background/80 backdrop-blur-sm">
       <div className={`fixed bg-background border border-border rounded-xl shadow-2xl flex flex-col overflow-hidden transition-all duration-300 ${
@@ -523,6 +673,45 @@ export const ResearchAnalystChat = ({ agent, onClose }: ResearchAnalystChatProps
                       </motion.div>
                     ))}
                   </AnimatePresence>
+
+                  {/* Presentation Action Bar */}
+                  {messages.length > 0 && messages.some(m => m.role === 'assistant' && m.content) && activeConversationId && (
+                    <motion.div
+                      initial={{ opacity: 0, y: 10 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      className="flex items-center justify-center gap-3 pt-6 pb-2"
+                    >
+                      {activeConversation?.presentation ? (
+                        <Button
+                          variant="outline"
+                          onClick={() => setShowPresentation(true)}
+                          className="gap-2"
+                        >
+                          <Eye className="w-4 h-4" />
+                          Ver Apresentação
+                        </Button>
+                      ) : (
+                        <Button
+                          variant="outline"
+                          onClick={handleGeneratePresentation}
+                          disabled={generatingPresentation || isLoading}
+                          className="gap-2"
+                        >
+                          {generatingPresentation ? (
+                            <>
+                              <Loader2 className="w-4 h-4 animate-spin" />
+                              Gerando...
+                            </>
+                          ) : (
+                            <>
+                              <Presentation className="w-4 h-4" />
+                              Gerar Apresentação
+                            </>
+                          )}
+                        </Button>
+                      )}
+                    </motion.div>
+                  )}
                 </div>
               )}
             </ScrollArea>
@@ -550,6 +739,17 @@ export const ResearchAnalystChat = ({ agent, onClose }: ResearchAnalystChatProps
           </div>
         </div>
       </div>
+
+      {/* Presentation Viewer Modal */}
+      <AnimatePresence>
+        {showPresentation && activeConversation?.presentation && (
+          <PresentationViewer
+            presentation={activeConversation.presentation}
+            onClose={() => setShowPresentation(false)}
+            onDelete={handleDeletePresentation}
+          />
+        )}
+      </AnimatePresence>
     </div>
   );
 };
