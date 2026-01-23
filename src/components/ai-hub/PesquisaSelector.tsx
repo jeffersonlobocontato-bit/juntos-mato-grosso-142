@@ -85,7 +85,7 @@ export const PesquisaSelector = ({
               </div>
             ) : (
               <>
-                <ScrollArea className="max-h-48">
+                <ScrollArea className="max-h-72">
                   <div className="space-y-2 pr-4">
                     {pesquisas.map((pesq) => (
                       <label
