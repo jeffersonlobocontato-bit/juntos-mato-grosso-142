@@ -10,7 +10,7 @@ export const HighlightSlide = ({ slide }: HighlightSlideProps) => {
   const highlight = slide.highlight;
 
   return (
-    <div className="h-full flex flex-col items-center justify-center p-8 md:p-12 bg-gradient-to-br from-primary/5 via-background to-primary/10">
+    <div className="h-full flex flex-col items-center justify-center p-8 md:p-12 bg-gradient-to-br from-primary/20 via-background to-amber-500/15">
       <motion.h2
         initial={{ y: -20, opacity: 0 }}
         animate={{ y: 0, opacity: 1 }}
@@ -41,8 +41,9 @@ export const HighlightSlide = ({ slide }: HighlightSlideProps) => {
             initial={{ scale: 0, opacity: 0 }}
             animate={{ scale: 1, opacity: 1 }}
             transition={{ delay: 0.4, duration: 0.3 }}
+            className="bg-gradient-to-r from-primary to-amber-500 p-3 rounded-full shadow-lg"
           >
-            <ArrowRight className="w-12 h-12 md:w-16 md:h-16 text-primary" />
+            <ArrowRight className="w-10 h-10 md:w-14 md:h-14 text-white" />
           </motion.div>
 
           <motion.div
@@ -51,7 +52,7 @@ export const HighlightSlide = ({ slide }: HighlightSlideProps) => {
             transition={{ delay: 0.5, duration: 0.5 }}
             className="text-center"
           >
-            <span className="text-6xl md:text-8xl font-bold text-primary">
+            <span className="text-6xl md:text-8xl font-bold bg-gradient-to-r from-primary to-amber-500 bg-clip-text text-transparent">
               {highlight.comparison.to}
             </span>
             <p className="text-sm text-muted-foreground mt-2">
@@ -67,7 +68,7 @@ export const HighlightSlide = ({ slide }: HighlightSlideProps) => {
           transition={{ delay: 0.2, duration: 0.5 }}
           className="text-center"
         >
-          <span className="text-7xl md:text-9xl font-bold bg-gradient-to-r from-primary to-primary/70 bg-clip-text text-transparent">
+          <span className="text-7xl md:text-9xl font-bold bg-gradient-to-r from-primary via-primary/80 to-amber-500 bg-clip-text text-transparent drop-shadow-sm">
             {highlight.primary}
           </span>
           {highlight.primaryLabel && (
@@ -81,7 +82,7 @@ export const HighlightSlide = ({ slide }: HighlightSlideProps) => {
               initial={{ y: 20, opacity: 0 }}
               animate={{ y: 0, opacity: 1 }}
               transition={{ delay: 0.5, duration: 0.4 }}
-              className="mt-8 flex items-center justify-center gap-2"
+              className="mt-8 flex items-center justify-center gap-2 bg-primary/10 rounded-full px-6 py-3"
             >
               <span className="text-2xl md:text-3xl font-semibold text-foreground">
                 {highlight.secondary}
@@ -112,7 +113,7 @@ export const HighlightSlide = ({ slide }: HighlightSlideProps) => {
           initial={{ y: 20, opacity: 0 }}
           animate={{ y: 0, opacity: 1 }}
           transition={{ delay: 0.8, duration: 0.4 }}
-          className="mt-8 px-6 py-4 bg-primary/10 rounded-xl border border-primary/20"
+          className="mt-8 px-6 py-4 bg-gradient-to-r from-primary/15 to-amber-500/15 rounded-xl border border-primary/20 shadow-md"
         >
           <p className="text-sm md:text-base text-foreground text-center">
             {slide.content}

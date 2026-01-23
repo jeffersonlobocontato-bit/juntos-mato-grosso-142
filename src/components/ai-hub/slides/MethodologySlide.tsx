@@ -43,8 +43,17 @@ export const MethodologySlide = ({ slide }: MethodologySlideProps) => {
     return BarChart;
   };
 
+  const cardColors = [
+    { bg: 'from-emerald-500/20 to-emerald-500/5', icon: 'from-emerald-500 to-green-500', border: 'border-emerald-500/30' },
+    { bg: 'from-blue-500/20 to-blue-500/5', icon: 'from-blue-500 to-cyan-500', border: 'border-blue-500/30' },
+    { bg: 'from-amber-500/20 to-amber-500/5', icon: 'from-amber-500 to-orange-500', border: 'border-amber-500/30' },
+    { bg: 'from-violet-500/20 to-violet-500/5', icon: 'from-violet-500 to-purple-500', border: 'border-violet-500/30' },
+    { bg: 'from-rose-500/20 to-rose-500/5', icon: 'from-rose-500 to-pink-500', border: 'border-rose-500/30' },
+    { bg: 'from-primary/20 to-primary/5', icon: 'from-primary to-primary/70', border: 'border-primary/30' },
+  ];
+
   return (
-    <div className="h-full flex flex-col p-8 md:p-12 bg-gradient-to-br from-background via-background to-muted/30">
+    <div className="h-full flex flex-col p-8 md:p-12 bg-gradient-to-br from-emerald-500/10 via-background to-blue-500/10">
       <motion.h2
         initial={{ y: -20, opacity: 0 }}
         animate={{ y: 0, opacity: 1 }}
@@ -73,14 +82,15 @@ export const MethodologySlide = ({ slide }: MethodologySlideProps) => {
       >
         {items.map((item, idx) => {
           const Icon = getIcon(item.label);
+          const colors = cardColors[idx % cardColors.length];
           return (
             <motion.div
               key={idx}
               variants={itemVariants}
-              className="bg-card border border-border rounded-xl p-6 flex flex-col items-center text-center shadow-sm hover:shadow-md transition-shadow"
+              className={`bg-gradient-to-br ${colors.bg} border ${colors.border} rounded-xl p-6 flex flex-col items-center text-center shadow-md hover:shadow-lg transition-all hover:scale-[1.02]`}
             >
-              <div className="w-12 h-12 rounded-full bg-primary/10 flex items-center justify-center mb-4">
-                <Icon className="w-6 h-6 text-primary" />
+              <div className={`w-14 h-14 rounded-full bg-gradient-to-br ${colors.icon} flex items-center justify-center mb-4 shadow-md`}>
+                <Icon className="w-7 h-7 text-white" />
               </div>
               <span className="text-3xl md:text-4xl font-bold text-foreground mb-2">
                 {item.value}
