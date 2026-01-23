@@ -379,66 +379,87 @@ export const PesquisaUploadModal = ({
       throw new Error('Sessão expirada. Faça login novamente.');
     }
 
-    // Use provided textContent or fall back to state content
     const contentToSend = (textContent || content).trim();
     console.log('Sending to AI, content length:', contentToSend.length);
 
-    // Calculate expected chunks for progress simulation
     const expectedChunks = calculateExpectedChunks(contentToSend.length);
     console.log('Expected chunks:', expectedChunks);
 
-    // Start progress simulation
-    let currentChunk = 1;
-    const progressInterval = setInterval(() => {
-      if (currentChunk <= expectedChunks) {
-        const baseProgress = 30;
-        const progressPerChunk = 50 / expectedChunks;
-        const chunkProgress = baseProgress + (progressPerChunk * (currentChunk - 0.5));
-        
-        setAiProgress(Math.min(chunkProgress, 80));
-        setAiStep(`Processando parte ${currentChunk} de ${expectedChunks}...`);
-        currentChunk++;
+    setAiStep(expectedChunks > 1 
+      ? `Iniciando análise (${expectedChunks} partes)...` 
+      : 'Enviando dados para análise...');
+    setAiProgress(30);
+
+    // Start the processing (returns immediately with 202)
+    const response = await supabase.functions.invoke('process-pesquisa', {
+      body: { 
+        pesquisa_id: pesquisaId,
+        content_text: contentToSend
       }
-    }, ESTIMATED_SECONDS_PER_CHUNK * 1000);
+    });
 
-    try {
-      setAiStep(expectedChunks > 1 
-        ? `Iniciando análise (${expectedChunks} partes)...` 
-        : 'Enviando dados para análise...');
-      setAiProgress(30);
-
-      const response = await supabase.functions.invoke('process-pesquisa', {
-        body: { 
-          pesquisa_id: pesquisaId,
-          content_text: contentToSend
-        }
-      });
-
-      clearInterval(progressInterval);
-
-      if (response.error) {
-        throw new Error(response.error.message || 'Erro ao processar pesquisa');
-      }
-
-      setAiProgress(85);
-      setAiStep('Salvando resultados...');
-
-      const result = response.data;
-
-      // Update pesquisa status to ativa
-      await supabase
-        .from('pesquisas_eleitorais')
-        .update({ status: 'ativa' })
-        .eq('id', pesquisaId);
-
-      setAiProgress(100);
-      setAiStep('Concluído!');
-
-      return result;
-    } catch (error) {
-      clearInterval(progressInterval);
-      throw error;
+    if (response.error) {
+      throw new Error(response.error.message || 'Erro ao processar pesquisa');
     }
+
+    // Poll for status updates
+    const pollInterval = 3000; // 3 seconds
+    const maxPolls = 60; // 3 minutes max
+    let polls = 0;
+
+    return new Promise((resolve, reject) => {
+      const poll = async () => {
+        polls++;
+        
+        try {
+          const { data: pesquisaData, error } = await supabase
+            .from('pesquisas_eleitorais')
+            .select('status, ai_processing_state')
+            .eq('id', pesquisaId)
+            .single();
+
+          if (error) throw error;
+
+          const state = pesquisaData?.ai_processing_state as any;
+          
+          if (state?.error) {
+            reject(new Error(state.error));
+            return;
+          }
+
+          if (pesquisaData?.status === 'ativa') {
+            setAiProgress(100);
+            setAiStep('Concluído!');
+            resolve({ success: true, data: { chunks_processed: state?.total_chunks || 1, resultados_count: 0, cruzamentos_count: 0 } });
+            return;
+          }
+
+          // Check for error state in ai_processing_state
+          if (state?.error) {
+            reject(new Error(state.error));
+            return;
+          }
+
+          // Update progress based on state
+          if (state) {
+            const progress = 30 + ((state.processed_chunks / state.total_chunks) * 50);
+            setAiProgress(Math.min(progress, 80));
+            setAiStep(`Processando parte ${state.current_chunk} de ${state.total_chunks}...`);
+          }
+
+          if (polls >= maxPolls) {
+            reject(new Error('Tempo limite excedido. Verifique o status da pesquisa.'));
+            return;
+          }
+
+          setTimeout(poll, pollInterval);
+        } catch (err) {
+          reject(err);
+        }
+      };
+
+      setTimeout(poll, pollInterval);
+    });
   };
 
   const handleSubmit = async () => {
@@ -477,10 +498,10 @@ export const PesquisaUploadModal = ({
       setProcessingStage('ai');
       toast.info('Pesquisa salva! Iniciando processamento com IA...');
 
-      const result = await processWithAI(pesquisaId);
+      const result = await processWithAI(pesquisaId) as any;
 
       setProcessingStage('done');
-      const totalResults = (result.resultados_count || 0) + (result.cruzamentos_count || 0);
+      const totalResults = (result?.data?.resultados_count || 0) + (result?.data?.cruzamentos_count || 0);
       toast.success(`Processamento concluído! ${totalResults} resultados extraídos.`);
       
       onSuccess();
@@ -589,14 +610,14 @@ export const PesquisaUploadModal = ({
       setAiStep('Processando com Inteligência Artificial...');
 
       // Step 4: Process with AI - pass the extracted text directly
-      const result = await processWithAI(pesquisaId, textToProcess);
+      const result = await processWithAI(pesquisaId, textToProcess) as any;
 
       setAiProgress(100);
       setProcessingStage('done');
       setAiStep('Concluído!');
 
-      const chunksInfo = result.data?.chunks_processed > 1 ? ` (${result.data.chunks_processed} partes)` : '';
-      const totalResults = (result.data?.resultados_count || 0) + (result.data?.cruzamentos_count || 0);
+      const chunksInfo = result?.data?.chunks_processed > 1 ? ` (${result.data.chunks_processed} partes)` : '';
+      const totalResults = (result?.data?.resultados_count || 0) + (result?.data?.cruzamentos_count || 0);
       toast.success(`✅ Processamento automático concluído${chunksInfo}! ${totalResults} resultados extraídos.`);
       
       onSuccess();
