@@ -438,23 +438,61 @@ IMPORTANTE: Retorne APENAS o JSON, sem nenhum texto antes ou depois.`
       const reader = response.body.getReader();
       const decoder = new TextDecoder();
       let fullContent = '';
+      let textBuffer = '';
+      let streamDone = false;
 
-      while (true) {
+      while (!streamDone) {
         const { done, value } = await reader.read();
         if (done) break;
 
-        const text = decoder.decode(value, { stream: true });
-        const lines = text.split('\n');
+        // Accumulate chunks in buffer
+        textBuffer += decoder.decode(value, { stream: true });
 
-        for (const line of lines) {
-          if (line.startsWith('data: ') && line.slice(6).trim() !== '[DONE]') {
-            try {
-              const parsed = JSON.parse(line.slice(6));
-              const delta = parsed.choices?.[0]?.delta?.content;
-              if (delta) fullContent += delta;
-            } catch {
-              // Ignore parsing errors
-            }
+        // Process complete lines only
+        let newlineIndex: number;
+        while ((newlineIndex = textBuffer.indexOf('\n')) !== -1) {
+          let line = textBuffer.slice(0, newlineIndex);
+          textBuffer = textBuffer.slice(newlineIndex + 1);
+
+          // Clean line
+          if (line.endsWith('\r')) line = line.slice(0, -1);
+          if (line.startsWith(':') || line.trim() === '') continue;
+          if (!line.startsWith('data: ')) continue;
+
+          const jsonStr = line.slice(6).trim();
+          if (jsonStr === '[DONE]') {
+            streamDone = true;
+            break;
+          }
+
+          try {
+            const parsed = JSON.parse(jsonStr);
+            const delta = parsed.choices?.[0]?.delta?.content;
+            if (delta) fullContent += delta;
+          } catch {
+            // If parse fails, put line back in buffer (incomplete)
+            textBuffer = line + '\n' + textBuffer;
+            break;
+          }
+        }
+      }
+
+      // Final flush - process any remaining data in buffer
+      if (textBuffer.trim()) {
+        const remainingLines = textBuffer.split('\n');
+        for (let raw of remainingLines) {
+          if (!raw) continue;
+          if (raw.endsWith('\r')) raw = raw.slice(0, -1);
+          if (raw.startsWith(':') || raw.trim() === '') continue;
+          if (!raw.startsWith('data: ')) continue;
+          const jsonStr = raw.slice(6).trim();
+          if (jsonStr === '[DONE]') continue;
+          try {
+            const parsed = JSON.parse(jsonStr);
+            const delta = parsed.choices?.[0]?.delta?.content;
+            if (delta) fullContent += delta;
+          } catch {
+            // Ignore incomplete final chunks
           }
         }
       }
