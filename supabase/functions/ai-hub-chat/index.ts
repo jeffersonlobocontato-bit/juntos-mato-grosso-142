@@ -362,6 +362,15 @@ ESTRUTURA DO JSON:
   "slides": [array de slides]
 }
 
+FORMATAÇÃO DE TEXTO NOS BULLETS:
+- Use **texto** para negrito (será renderizado automaticamente como HTML)
+- NÃO numere os bullets manualmente (ex: "1. Item", "2. Item") - a numeração é automática
+- NÃO coloque números antes do texto nos bullets
+- Separe conceitos diferentes em bullets diferentes
+- Use linguagem analítica e impactante
+- Exemplo CORRETO: ["**Forças:** Liderança sólida", "**Fraquezas:** Baixa penetração"]
+- Exemplo ERRADO: ["1**Forças:** Liderança sólida", "2**Fraquezas:** Baixa penetração"]
+
 DIRETRIZES DE EXPANSÃO DINÂMICA:
 
 1. PRESERVAÇÃO INTEGRAL DO CONTEÚDO:
@@ -370,6 +379,7 @@ DIRETRIZES DE EXPANSÃO DINÂMICA:
    - Cada pergunta de pesquisa = mínimo 1 slide dedicado
    - Cada cenário eleitoral = 1 slide de chart + 1 slide de análise
    - Cada cruzamento demográfico importante = 1 slide crosstable
+   - COPIE OS TEXTOS INTEGRALMENTE da análise para os slides
 
 2. REGRAS DE EXPANSÃO:
    - Relatório curto (até 500 palavras): 6-10 slides

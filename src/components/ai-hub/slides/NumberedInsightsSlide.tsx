@@ -1,4 +1,6 @@
 import { motion } from 'framer-motion';
+import ReactMarkdown from 'react-markdown';
+import remarkGfm from 'remark-gfm';
 import { Slide } from './types';
 
 interface NumberedInsightsSlideProps {
@@ -21,8 +23,17 @@ export const NumberedInsightsSlide = ({ slide }: NumberedInsightsSlideProps) => 
     visible: { y: 0, opacity: 1 }
   };
 
+  const cardColors = [
+    'from-primary/20 to-primary/5 border-primary/30',
+    'from-amber-500/20 to-amber-500/5 border-amber-500/30',
+    'from-emerald-500/20 to-emerald-500/5 border-emerald-500/30',
+    'from-blue-500/20 to-blue-500/5 border-blue-500/30',
+    'from-violet-500/20 to-violet-500/5 border-violet-500/30',
+    'from-rose-500/20 to-rose-500/5 border-rose-500/30',
+  ];
+
   return (
-    <div className="h-full flex flex-col p-8 md:p-12">
+    <div className="h-full flex flex-col p-8 md:p-12 bg-gradient-to-br from-amber-500/10 via-background to-primary/10">
       <motion.h2
         initial={{ y: -20, opacity: 0 }}
         animate={{ y: 0, opacity: 1 }}
@@ -42,17 +53,25 @@ export const NumberedInsightsSlide = ({ slide }: NumberedInsightsSlideProps) => 
           <motion.div
             key={idx}
             variants={itemVariants}
-            className="bg-card border border-border rounded-xl p-6 flex flex-col hover:shadow-lg transition-shadow"
+            className={`bg-gradient-to-br ${cardColors[idx % cardColors.length]} border rounded-xl p-6 flex flex-col hover:shadow-lg transition-all hover:scale-[1.02]`}
           >
-            <div className="w-12 h-12 rounded-xl bg-primary text-primary-foreground flex items-center justify-center text-xl font-bold mb-4">
+            <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-primary to-primary/70 text-primary-foreground flex items-center justify-center text-xl font-bold mb-4 shadow-md">
               {insight.number || String(idx + 1).padStart(2, '0')}
             </div>
             <h3 className="text-lg font-bold text-foreground mb-3">
               {insight.title}
             </h3>
-            <p className="text-sm text-muted-foreground leading-relaxed flex-1">
-              {insight.description}
-            </p>
+            <div className="text-sm text-muted-foreground leading-relaxed flex-1 prose prose-sm dark:prose-invert max-w-none">
+              <ReactMarkdown
+                remarkPlugins={[remarkGfm]}
+                components={{
+                  strong: ({ children }) => <strong className="font-bold text-primary">{children}</strong>,
+                  p: ({ children }) => <span>{children}</span>,
+                }}
+              >
+                {insight.description}
+              </ReactMarkdown>
+            </div>
           </motion.div>
         ))}
       </motion.div>
@@ -64,7 +83,7 @@ export const NumberedInsightsSlide = ({ slide }: NumberedInsightsSlideProps) => 
           transition={{ delay: 0.6, duration: 0.4 }}
           className="mt-8 text-center"
         >
-          <blockquote className="text-lg italic text-muted-foreground border-l-4 border-primary pl-4 max-w-2xl mx-auto">
+          <blockquote className="text-lg italic text-muted-foreground border-l-4 border-primary pl-4 max-w-2xl mx-auto bg-primary/5 py-3 pr-4 rounded-r-lg">
             "{slide.quote.text}"
           </blockquote>
         </motion.div>

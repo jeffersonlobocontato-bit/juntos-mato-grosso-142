@@ -24,7 +24,7 @@ export const CrossTableSlide = ({ slide }: CrossTableSlideProps) => {
   };
 
   return (
-    <div className="h-full flex flex-col p-8 md:p-12 overflow-auto">
+    <div className="h-full flex flex-col p-8 md:p-12 overflow-auto bg-gradient-to-br from-blue-500/10 via-background to-muted/30">
       <motion.h2
         initial={{ y: -20, opacity: 0 }}
         animate={{ y: 0, opacity: 1 }}
@@ -51,16 +51,16 @@ export const CrossTableSlide = ({ slide }: CrossTableSlideProps) => {
         animate="visible"
         className="flex-1 overflow-auto"
       >
-        <table className="w-full border-collapse">
+        <table className="w-full border-collapse shadow-md rounded-lg overflow-hidden">
           <thead>
             <tr>
-              <th className="p-4 text-left bg-muted/50 font-semibold text-foreground border-b border-border">
+              <th className="p-4 text-left bg-gradient-to-r from-primary/20 to-primary/10 font-semibold text-foreground border-b border-primary/20">
                 Segmento
               </th>
               {table.headers.map((header, idx) => (
                 <th
                   key={idx}
-                  className="p-4 text-center bg-muted/50 font-semibold text-foreground border-b border-border min-w-[100px]"
+                  className="p-4 text-center bg-gradient-to-r from-primary/20 to-primary/10 font-semibold text-foreground border-b border-primary/20 min-w-[100px]"
                 >
                   {header}
                 </th>
@@ -72,9 +72,9 @@ export const CrossTableSlide = ({ slide }: CrossTableSlideProps) => {
               <motion.tr
                 key={rowIdx}
                 variants={rowVariants}
-                className="hover:bg-muted/30 transition-colors"
+                className="hover:bg-primary/5 transition-colors"
               >
-                <td className="p-4 font-medium text-foreground border-b border-border bg-muted/20">
+                <td className="p-4 font-medium text-foreground border-b border-border bg-muted/30">
                   {row.label}
                 </td>
                 {row.values.map((value, colIdx) => {
@@ -88,7 +88,7 @@ export const CrossTableSlide = ({ slide }: CrossTableSlideProps) => {
                       key={colIdx}
                       className={`p-4 text-center border-b border-border transition-colors ${
                         isMax 
-                          ? 'bg-primary/20 text-primary font-bold' 
+                          ? 'bg-gradient-to-br from-primary/30 to-primary/20 text-primary font-bold shadow-inner' 
                           : 'text-foreground'
                       }`}
                     >
@@ -107,7 +107,7 @@ export const CrossTableSlide = ({ slide }: CrossTableSlideProps) => {
           initial={{ y: 20, opacity: 0 }}
           animate={{ y: 0, opacity: 1 }}
           transition={{ delay: 0.5, duration: 0.4 }}
-          className="mt-6 p-4 bg-amber-500/10 border border-amber-500/20 rounded-lg"
+          className="mt-6 p-4 bg-gradient-to-r from-amber-500/20 to-orange-500/10 border border-amber-500/30 rounded-lg shadow-md"
         >
           <p className="text-sm font-medium text-amber-700 dark:text-amber-400">
             ⚠️ Ponto de Atenção: {slide.content}

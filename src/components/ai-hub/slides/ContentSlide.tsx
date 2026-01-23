@@ -22,12 +22,12 @@ export const ContentSlide = ({ slide }: ContentSlideProps) => {
   };
 
   return (
-    <div className="h-full flex flex-col p-8 md:p-12 overflow-auto">
+    <div className="h-full flex flex-col p-8 md:p-12 overflow-auto bg-gradient-to-br from-primary/5 via-background to-blue-500/5">
       <motion.h2
         initial={{ y: -20, opacity: 0 }}
         animate={{ y: 0, opacity: 1 }}
         transition={{ duration: 0.4 }}
-        className="text-3xl md:text-4xl font-bold text-foreground mb-6 border-b border-border pb-4"
+        className="text-3xl md:text-4xl font-bold text-foreground mb-6 border-b border-primary/20 pb-4"
       >
         {slide.title}
       </motion.h2>
@@ -56,10 +56,21 @@ export const ContentSlide = ({ slide }: ContentSlideProps) => {
               variants={itemVariants}
               className="flex items-start gap-4 text-lg"
             >
-              <span className="w-8 h-8 rounded-full bg-primary/20 flex items-center justify-center flex-shrink-0 text-primary font-semibold text-sm">
+              <span className="w-8 h-8 rounded-full bg-gradient-to-br from-primary to-primary/70 flex items-center justify-center flex-shrink-0 text-primary-foreground font-semibold text-sm shadow-md">
                 {idx + 1}
               </span>
-              <span className="text-foreground pt-1">{bullet}</span>
+              <span className="text-foreground pt-1 prose prose-lg dark:prose-invert max-w-none">
+                <ReactMarkdown
+                  remarkPlugins={[remarkGfm]}
+                  components={{
+                    strong: ({ children }) => <strong className="font-bold text-primary">{children}</strong>,
+                    p: ({ children }) => <span>{children}</span>,
+                    em: ({ children }) => <em className="text-muted-foreground">{children}</em>,
+                  }}
+                >
+                  {bullet}
+                </ReactMarkdown>
+              </span>
             </motion.li>
           ))}
         </motion.ul>
@@ -79,7 +90,7 @@ export const ContentSlide = ({ slide }: ContentSlideProps) => {
                 </div>
               ),
               th: ({ children }) => (
-                <th className="border border-border bg-muted px-4 py-2 text-left font-semibold">{children}</th>
+                <th className="border border-border bg-primary/10 px-4 py-2 text-left font-semibold text-primary">{children}</th>
               ),
               td: ({ children }) => (
                 <td className="border border-border px-4 py-2">{children}</td>

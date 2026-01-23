@@ -22,8 +22,17 @@ export const HorizontalBarsSlide = ({ slide }: HorizontalBarsSlideProps) => {
     visible: { width: '100%', opacity: 1 }
   };
 
+  const barColors = [
+    'from-rose-500 to-pink-500',
+    'from-amber-500 to-orange-500',
+    'from-blue-500 to-cyan-500',
+    'from-emerald-500 to-green-500',
+    'from-violet-500 to-purple-500',
+    'from-primary to-primary/70',
+  ];
+
   return (
-    <div className="h-full flex flex-col p-8 md:p-12">
+    <div className="h-full flex flex-col p-8 md:p-12 bg-gradient-to-br from-rose-500/10 via-background to-primary/10">
       <motion.h2
         initial={{ y: -20, opacity: 0 }}
         animate={{ y: 0, opacity: 1 }}
@@ -61,27 +70,27 @@ export const HorizontalBarsSlide = ({ slide }: HorizontalBarsSlideProps) => {
               className="flex items-center gap-4"
             >
               <span className={`w-40 md:w-48 text-sm font-medium truncate ${
-                isHighlighted ? 'text-foreground' : 'text-muted-foreground'
+                isHighlighted ? 'text-foreground font-bold' : 'text-muted-foreground'
               }`}>
                 {bar.label}
               </span>
               
-              <div className="flex-1 h-10 bg-muted/30 rounded-lg overflow-hidden relative">
+              <div className="flex-1 h-12 bg-muted/30 rounded-xl overflow-hidden relative shadow-inner">
                 <motion.div
                   initial={{ width: 0 }}
                   animate={{ width: `${percentage}%` }}
                   transition={{ delay: 0.3 + idx * 0.1, duration: 0.6, ease: 'easeOut' }}
-                  className={`h-full rounded-lg ${
+                  className={`h-full rounded-xl bg-gradient-to-r ${
                     bar.color 
                       ? '' 
                       : isHighlighted 
-                        ? 'bg-primary' 
-                        : 'bg-primary/50'
-                  }`}
+                        ? barColors[0]
+                        : barColors[(idx % (barColors.length - 1)) + 1]
+                  } shadow-md`}
                   style={bar.color ? { backgroundColor: bar.color } : undefined}
                 />
                 <span className={`absolute right-3 top-1/2 -translate-y-1/2 text-sm font-bold ${
-                  percentage > 50 ? 'text-primary-foreground' : 'text-foreground'
+                  percentage > 50 ? 'text-white drop-shadow-md' : 'text-foreground'
                 }`}>
                   {bar.value}%
                 </span>
@@ -96,10 +105,10 @@ export const HorizontalBarsSlide = ({ slide }: HorizontalBarsSlideProps) => {
           initial={{ y: 20, opacity: 0 }}
           animate={{ y: 0, opacity: 1 }}
           transition={{ delay: 0.8, duration: 0.4 }}
-          className="mt-6 p-4 bg-destructive/10 border border-destructive/20 rounded-lg"
+          className="mt-6 p-4 bg-gradient-to-r from-destructive/20 to-rose-500/10 border border-destructive/30 rounded-lg shadow-md"
         >
           <p className="text-sm font-medium text-destructive">
-            Maior Rejeição: {slide.content}
+            🔴 Maior Rejeição: {slide.content}
           </p>
         </motion.div>
       )}

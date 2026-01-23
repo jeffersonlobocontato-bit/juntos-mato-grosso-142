@@ -1,4 +1,6 @@
 import { motion } from 'framer-motion';
+import ReactMarkdown from 'react-markdown';
+import remarkGfm from 'remark-gfm';
 import { Slide } from './types';
 import { AlertTriangle, Info, CheckCircle } from 'lucide-react';
 
@@ -18,19 +20,19 @@ export const AlertSlide = ({ slide }: AlertSlideProps) => {
 
   const colorMap = {
     warning: {
-      bg: 'from-amber-500/20 via-background to-amber-500/10',
-      icon: 'bg-amber-500/20 text-amber-600 dark:text-amber-400',
-      border: 'border-amber-500/30',
+      bg: 'from-amber-500/30 via-amber-500/10 to-orange-500/20',
+      icon: 'bg-gradient-to-br from-amber-500 to-orange-500 text-white',
+      border: 'border-amber-500/40',
     },
     info: {
-      bg: 'from-blue-500/20 via-background to-blue-500/10',
-      icon: 'bg-blue-500/20 text-blue-600 dark:text-blue-400',
-      border: 'border-blue-500/30',
+      bg: 'from-blue-500/30 via-blue-500/10 to-cyan-500/20',
+      icon: 'bg-gradient-to-br from-blue-500 to-cyan-500 text-white',
+      border: 'border-blue-500/40',
     },
     success: {
-      bg: 'from-green-500/20 via-background to-green-500/10',
-      icon: 'bg-green-500/20 text-green-600 dark:text-green-400',
-      border: 'border-green-500/30',
+      bg: 'from-green-500/30 via-green-500/10 to-emerald-500/20',
+      icon: 'bg-gradient-to-br from-green-500 to-emerald-500 text-white',
+      border: 'border-green-500/40',
     },
   };
 
@@ -43,7 +45,7 @@ export const AlertSlide = ({ slide }: AlertSlideProps) => {
         initial={{ scale: 0, rotate: -180 }}
         animate={{ scale: 1, rotate: 0 }}
         transition={{ duration: 0.5, type: 'spring' }}
-        className={`w-24 h-24 rounded-full ${colors.icon} flex items-center justify-center mb-8`}
+        className={`w-24 h-24 rounded-full ${colors.icon} flex items-center justify-center mb-8 shadow-xl`}
       >
         <Icon className="w-12 h-12" />
       </motion.div>
@@ -84,13 +86,23 @@ export const AlertSlide = ({ slide }: AlertSlideProps) => {
           initial={{ y: 20, opacity: 0 }}
           animate={{ y: 0, opacity: 1 }}
           transition={{ delay: 0.5, duration: 0.4 }}
-          className={`mt-8 p-6 rounded-xl border ${colors.border} bg-background/50 max-w-2xl`}
+          className={`mt-8 p-6 rounded-xl border ${colors.border} bg-background/70 backdrop-blur-sm max-w-2xl shadow-lg`}
         >
           <ul className="space-y-3">
             {slide.bullets.map((bullet, idx) => (
               <li key={idx} className="flex items-start gap-3 text-foreground">
-                <span className="text-primary mt-1">•</span>
-                <span>{bullet}</span>
+                <span className="text-primary mt-1 font-bold">•</span>
+                <span className="prose dark:prose-invert max-w-none">
+                  <ReactMarkdown
+                    remarkPlugins={[remarkGfm]}
+                    components={{
+                      strong: ({ children }) => <strong className="font-bold text-primary">{children}</strong>,
+                      p: ({ children }) => <span>{children}</span>,
+                    }}
+                  >
+                    {bullet}
+                  </ReactMarkdown>
+                </span>
               </li>
             ))}
           </ul>
