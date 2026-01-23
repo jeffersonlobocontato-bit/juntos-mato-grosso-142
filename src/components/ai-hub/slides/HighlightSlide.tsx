@@ -1,6 +1,8 @@
 import { motion } from 'framer-motion';
+import ReactMarkdown from 'react-markdown';
+import remarkGfm from 'remark-gfm';
 import { Slide } from './types';
-import { ArrowRight, TrendingDown, TrendingUp } from 'lucide-react';
+import { ArrowRight } from 'lucide-react';
 
 interface HighlightSlideProps {
   slide: Slide;
@@ -95,7 +97,56 @@ export const HighlightSlide = ({ slide }: HighlightSlideProps) => {
             </motion.div>
           )}
         </motion.div>
-      ) : null}
+      ) : (
+        // Fallback: usar content ou bullets quando não há highlight
+        <motion.div
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          transition={{ delay: 0.2, duration: 0.4 }}
+          className="text-center max-w-3xl"
+        >
+          {slide.content && (
+            <div className="prose prose-lg dark:prose-invert max-w-none">
+              <ReactMarkdown
+                remarkPlugins={[remarkGfm]}
+                components={{
+                  strong: ({ children }) => <strong className="font-bold text-primary">{children}</strong>,
+                  p: ({ children }) => <p className="text-xl text-foreground mb-4">{children}</p>,
+                }}
+              >
+                {slide.content}
+              </ReactMarkdown>
+            </div>
+          )}
+          {slide.bullets && slide.bullets.length > 0 && (
+            <ul className="space-y-3 mt-4">
+              {slide.bullets.map((bullet, idx) => (
+                <li key={idx} className="text-lg text-foreground flex items-start gap-3">
+                  <span className="w-6 h-6 rounded-full bg-primary/20 flex items-center justify-center text-primary text-sm font-bold flex-shrink-0 mt-0.5">
+                    {idx + 1}
+                  </span>
+                  <span className="prose prose-lg dark:prose-invert">
+                    <ReactMarkdown
+                      remarkPlugins={[remarkGfm]}
+                      components={{
+                        strong: ({ children }) => <strong className="font-bold text-primary">{children}</strong>,
+                        p: ({ children }) => <span>{children}</span>,
+                      }}
+                    >
+                      {bullet}
+                    </ReactMarkdown>
+                  </span>
+                </li>
+              ))}
+            </ul>
+          )}
+          {!slide.content && !slide.bullets?.length && (
+            <p className="text-muted-foreground">
+              Dados de destaque não disponíveis para este slide.
+            </p>
+          )}
+        </motion.div>
+      )}
 
       {slide.subtitle && (
         <motion.p
@@ -108,7 +159,7 @@ export const HighlightSlide = ({ slide }: HighlightSlideProps) => {
         </motion.p>
       )}
 
-      {slide.content && (
+      {slide.content && highlight && (
         <motion.div
           initial={{ y: 20, opacity: 0 }}
           animate={{ y: 0, opacity: 1 }}

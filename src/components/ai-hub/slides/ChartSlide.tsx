@@ -4,6 +4,7 @@ import { DynamicPieChart } from '../charts/DynamicPieChart';
 import { DynamicLineChart } from '../charts/DynamicLineChart';
 import { DynamicBarChart } from '../charts/DynamicBarChart';
 import { DynamicComparisonChart } from '../charts/DynamicComparisonChart';
+import { ContentSlide } from './ContentSlide';
 
 interface ChartSlideProps {
   slide: Slide;
@@ -29,7 +30,43 @@ interface Series {
 type BarData = Record<string, string | number | undefined>;
 
 export const ChartSlide = ({ slide }: ChartSlideProps) => {
-  if (!slide.chart) return null;
+  // Fallback: se não houver chart, usar bullets/content via ContentSlide
+  if (!slide.chart) {
+    if (slide.bullets?.length || slide.content) {
+      return <ContentSlide slide={slide} />;
+    }
+    // Fallback visual quando não há dados
+    return (
+      <div className="h-full flex flex-col items-center justify-center p-8 md:p-12 bg-gradient-to-br from-primary/5 via-background to-emerald-500/10">
+        <motion.h2
+          initial={{ y: -20, opacity: 0 }}
+          animate={{ y: 0, opacity: 1 }}
+          transition={{ duration: 0.4 }}
+          className="text-3xl md:text-4xl font-bold text-foreground mb-4"
+        >
+          {slide.title}
+        </motion.h2>
+        {slide.subtitle && (
+          <motion.p
+            initial={{ y: -10, opacity: 0 }}
+            animate={{ y: 0, opacity: 1 }}
+            transition={{ delay: 0.1, duration: 0.4 }}
+            className="text-lg text-muted-foreground mb-6"
+          >
+            {slide.subtitle}
+          </motion.p>
+        )}
+        <motion.p
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          transition={{ delay: 0.3 }}
+          className="text-muted-foreground text-center"
+        >
+          Gráfico não disponível para este slide.
+        </motion.p>
+      </div>
+    );
+  }
 
   const renderChart = () => {
     const { chart } = slide;

@@ -413,7 +413,24 @@ DIRETRIZES DE EXPANSÃO DINÂMICA:
 6. QUALIDADE > ECONOMIA:
    - Prefira mais slides bem organizados do que menos slides sobrecarregados
    - Cada slide deve ter UM foco principal
-   - Títulos devem ser analíticos e impactantes`;
+   - Títulos devem ser analíticos e impactantes
+
+7. ⚠️ CAMPOS OBRIGATÓRIOS POR TIPO DE SLIDE (NUNCA OMITA!):
+   - cover: title (obrigatório), subtitle (opcional)
+   - methodology: methodology[] array com {label, value, description} - SEMPRE inclua pelo menos 4 itens
+   - highlight: highlight{} com primary OU comparison - NUNCA use este tipo sem o campo highlight
+   - comparison: highlight{comparison{from, to}} - SEMPRE inclua o campo comparison
+   - crosstable: crossTable{headers[], rows[{label, values[]}]} - SEMPRE inclua headers e rows
+   - horizontal_bars: horizontalBars[] array com {label, value} - SEMPRE inclua pelo menos 3 barras
+   - chart: chart{type, title, data} - SEMPRE inclua type e data válidos
+   - numbered_insights: insights[] array com {number, title, description} - SEMPRE inclua pelo menos 2 insights
+   - alert: alert{type, title, description} - SEMPRE preencha todos os 3 campos
+   - quote: quote{text} OU content (pelo menos um obrigatório)
+   - content: bullets[] OU content string (pelo menos um obrigatório)
+
+   ⚠️ REGRA DE OURO: NUNCA gere um slide com type especializado sem seu campo de dados principal!
+   Se não houver dados suficientes para um tipo especializado, use "content" com bullets.
+   Exemplo: Se não tem dados para crosstable, use {"type": "content", "title": "...", "bullets": [...]}`;
     }
 
     // Call Lovable AI Gateway

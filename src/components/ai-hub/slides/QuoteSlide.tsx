@@ -8,6 +8,7 @@ interface QuoteSlideProps {
 
 export const QuoteSlide = ({ slide }: QuoteSlideProps) => {
   const quote = slide.quote;
+  const quoteText = quote?.text || slide.content || "Citação não disponível";
 
   return (
     <div className="h-full flex flex-col items-center justify-center p-8 md:p-16 bg-gradient-to-br from-muted/50 via-background to-primary/20 relative overflow-hidden">
@@ -28,7 +29,7 @@ export const QuoteSlide = ({ slide }: QuoteSlideProps) => {
         <Quote className="w-24 h-24 text-primary" />
       </motion.div>
 
-      {slide.title && slide.title !== quote?.text && (
+      {slide.title && slide.title !== quoteText && (
         <motion.h2
           initial={{ y: -20, opacity: 0 }}
           animate={{ y: 0, opacity: 1 }}
@@ -46,7 +47,7 @@ export const QuoteSlide = ({ slide }: QuoteSlideProps) => {
         className="text-2xl md:text-4xl font-medium text-foreground text-center max-w-4xl leading-relaxed relative z-10"
       >
         <span className="text-primary text-5xl font-serif leading-none">"</span>
-        {quote?.text || slide.content}
+        {quoteText}
         <span className="text-primary text-5xl font-serif leading-none">"</span>
       </motion.blockquote>
 
