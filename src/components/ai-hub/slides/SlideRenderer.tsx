@@ -3,6 +3,13 @@ import { Slide } from './types';
 import { CoverSlide } from './CoverSlide';
 import { ContentSlide } from './ContentSlide';
 import { ChartSlide } from './ChartSlide';
+import { MethodologySlide } from './MethodologySlide';
+import { HighlightSlide } from './HighlightSlide';
+import { CrossTableSlide } from './CrossTableSlide';
+import { HorizontalBarsSlide } from './HorizontalBarsSlide';
+import { NumberedInsightsSlide } from './NumberedInsightsSlide';
+import { AlertSlide } from './AlertSlide';
+import { QuoteSlide } from './QuoteSlide';
 
 interface SlideRendererProps {
   slide: Slide;
@@ -33,9 +40,32 @@ export const SlideRenderer = ({ slide, direction }: SlideRendererProps) => {
       case 'chart':
         return <ChartSlide slide={slide} />;
       
+      case 'methodology':
+        return <MethodologySlide slide={slide} />;
+      
+      case 'highlight':
+      case 'comparison':
+        return <HighlightSlide slide={slide} />;
+      
+      case 'crosstable':
+        return <CrossTableSlide slide={slide} />;
+      
+      case 'horizontal_bars':
+        return <HorizontalBarsSlide slide={slide} />;
+      
+      case 'numbered_insights':
+        return <NumberedInsightsSlide slide={slide} />;
+      
+      case 'alert':
+        return <AlertSlide slide={slide} />;
+      
+      case 'quote':
+        return <QuoteSlide slide={slide} />;
+      
       case 'content':
       case 'conclusion':
       case 'recommendations':
+      case 'scenarios':
       default:
         return <ContentSlide slide={slide} />;
     }

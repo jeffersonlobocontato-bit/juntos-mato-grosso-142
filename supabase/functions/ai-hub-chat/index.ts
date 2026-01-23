@@ -289,34 +289,89 @@ INSTRUÇÕES ADICIONAIS:
     if (isPresentationRequest) {
       systemPrompt += `
 
-MODO DE GERAÇÃO DE APRESENTAÇÃO:
-Você está no modo de geração de apresentação. Analise toda a conversa anterior e gere uma apresentação executiva.
+MODO DE GERAÇÃO DE APRESENTAÇÃO EXECUTIVA:
+Você está no modo de geração de apresentação profissional. Analise toda a conversa e gere uma apresentação no estilo de consultoria estratégica.
 
 ⚠️ REGRAS CRÍTICAS - SIGA EXATAMENTE:
 1. Retorne SOMENTE o objeto JSON, nada mais
-2. NÃO use blocos de código (\`\`\`json ou \`\`\`)
-3. NÃO escreva texto antes do JSON
-4. NÃO escreva texto depois do JSON
-5. NÃO adicione comentários dentro do JSON
-6. Comece a resposta diretamente com o caractere {
-7. Termine a resposta diretamente com o caractere }
+2. NÃO use blocos de código
+3. NÃO escreva texto antes ou depois do JSON
+4. Comece diretamente com { e termine com }
 
-ESTRUTURA EXATA DO JSON:
+TIPOS DE SLIDES DISPONÍVEIS:
+
+1. "cover" - Capa com título impactante
+   {"id": "1", "type": "cover", "title": "O mapa invisível da eleição", "subtitle": "O que os números revelam"}
+
+2. "methodology" - Ficha técnica com cards de métricas
+   {"id": "2", "type": "methodology", "title": "Metodologia", "methodology": [
+     {"label": "Amostra", "value": "1.300", "description": "Eleitores entrevistados"},
+     {"label": "Margem de Erro", "value": "±2,8%", "description": "Pontos percentuais"},
+     {"label": "Municípios", "value": "54", "description": "Do Paraná"},
+     {"label": "Confiança", "value": "95%", "description": "Intervalo de confiança"}
+   ]}
+
+3. "highlight" - Dado em destaque grande
+   {"id": "3", "type": "highlight", "title": "Antes de qualquer liderança", "highlight": {"primary": "74,2%", "primaryLabel": "Eleitores indefinidos"}}
+
+4. "comparison" - Comparação dramática antes/depois
+   {"id": "4", "type": "comparison", "title": "Queda na indefinição", "highlight": {"comparison": {"from": "74,2%", "to": "5,5%", "label": "Espontânea vs Estimulada"}}, "bullets": ["Espontânea", "Estimulada"]}
+
+5. "crosstable" - Tabela de cruzamento por segmento
+   {"id": "5", "type": "crosstable", "title": "Intenção de Voto por Gênero", "crossTable": {
+     "headers": ["Candidato A", "Candidato B", "Candidato C"],
+     "rows": [
+       {"label": "Masculino", "values": [48, 15, 17]},
+       {"label": "Feminino", "values": [36, 24, 22]}
+     ]
+   }, "content": "Destaque: Candidato A lidera entre homens com 48%"}
+
+6. "horizontal_bars" - Barras horizontais para ranking/rejeição
+   {"id": "6", "type": "horizontal_bars", "title": "Índice de Rejeição", "horizontalBars": [
+     {"label": "Candidato A", "value": 30.2, "highlight": true},
+     {"label": "Candidato B", "value": 20.2},
+     {"label": "Candidato C", "value": 16.8}
+   ], "content": "Candidato A (30,2%)"}
+
+7. "chart" - Gráficos dinâmicos
+   {"id": "7", "type": "chart", "title": "Cenários de Primeiro Turno", "chart": {"type": "bar", "title": "Intenção de Voto", "data": [{"name": "Candidato A", "valor": 41.6}, {"name": "Candidato B", "valor": 19.7}], "keys": ["valor"]}}
+
+8. "numbered_insights" - Insights numerados (como conclusões)
+   {"id": "8", "type": "numbered_insights", "title": "O que esta pesquisa aponta", "insights": [
+     {"number": "01", "title": "A Solidez do Líder", "description": "Candidato possui piso eleitoral alto e rejeição controlada"},
+     {"number": "02", "title": "O Vácuo da Oposição", "description": "Fragmentação impede consolidação de alternativa viável"},
+     {"number": "03", "title": "O Gigante Adormecido", "description": "Aprovação do governo pode ser fator decisivo"}
+   ], "quote": {"text": "A eleição é uma fotografia do momento"}}
+
+9. "alert" - Slide de alerta/volatilidade
+   {"id": "9", "type": "alert", "title": "⚠ Alta Volatilidade", "alert": {"type": "warning", "title": "Cenário Consolidado", "description": "O eleitorado está disponível para ser conquistado"}}
+
+10. "quote" - Citação em destaque
+    {"id": "10", "type": "quote", "title": "Conclusão", "quote": {"text": "A estrutura do cenário sugere um filme com protagonistas já definidos"}}
+
+11. "content" - Conteúdo com bullets
+    {"id": "11", "type": "content", "title": "Análise Detalhada", "bullets": ["Ponto 1", "Ponto 2", "Ponto 3"]}
+
+12. "conclusion" - Slide de conclusão
+    {"id": "12", "type": "conclusion", "title": "Próximos Passos", "bullets": ["Ação 1", "Ação 2"]}
+
+ESTRUTURA DO JSON:
 {
   "title": "Título da Apresentação",
   "theme": "default",
-  "slides": [
-    {"id": "1", "type": "cover", "title": "Título Principal", "subtitle": "Subtítulo"},
-    {"id": "2", "type": "content", "title": "Contexto", "bullets": ["Ponto 1", "Ponto 2"]},
-    {"id": "3", "type": "chart", "title": "Dados", "chart": {"type": "pie", "title": "Gráfico", "data": [{"name": "Item", "value": 50}]}},
-    {"id": "4", "type": "conclusion", "title": "Conclusões", "bullets": ["Conclusão 1"]}
-  ]
+  "slides": [array de slides]
 }
 
-Tipos de slides permitidos: cover, content, chart, conclusion, recommendations
-Tipos de gráfico permitidos: pie, bar, line, comparison
-Limite: 6-8 slides no total
-Mantenha títulos concisos e bullets objetivos`;
+DIRETRIZES:
+- Crie 10-14 slides para apresentações completas
+- Comece com cover, depois methodology
+- Use highlight/comparison para dados impactantes
+- Use crosstable para cruzamentos demográficos
+- Use horizontal_bars para rankings e rejeição
+- Use numbered_insights para conclusões
+- Finalize com quote ou alert
+- Mantenha títulos impactantes e analíticos
+- Adicione "content" como observações quando relevante`;
     }
 
     // Call Lovable AI Gateway
