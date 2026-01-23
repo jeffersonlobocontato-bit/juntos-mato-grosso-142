@@ -814,6 +814,7 @@ IMPORTANTE: Retorne APENAS o JSON, sem nenhum texto antes ou depois.`
             presentation={activeConversation.presentation}
             onClose={() => setShowPresentation(false)}
             onDelete={handleDeletePresentation}
+            conversationId={activeConversationId || undefined}
           />
         )}
       </AnimatePresence>
