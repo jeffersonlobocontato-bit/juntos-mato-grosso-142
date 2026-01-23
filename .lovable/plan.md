@@ -1,154 +1,111 @@
 
-# Melhorias Visuais e de Formatação das Apresentações
+# Adicionar CTA "Gerar Nova Versão" de Layout
 
-## Problemas Identificados
+## Objetivo
 
-### 1. Markdown Não Renderizado nos Bullets
-- O `ContentSlide.tsx` usa `ReactMarkdown` apenas para `slide.content`, mas renderiza `slide.bullets` como texto puro
-- Textos como `**Forças:**` aparecem com asteriscos em vez de negrito
-- Números ficam colados ao texto (`2**Fraquezas**`)
+Quando já existe uma apresentação gerada, exibir **dois botões** lado a lado:
+1. **Ver Apresentação** - Abre a apresentação existente
+2. **Gerar Nova Versão** - Regenera a apresentação com um novo layout/versão
 
-### 2. Layout Muito Branco/Sem Contraste
-- A maioria dos slides usa `bg-background` (branco/cinza claro)
-- Falta variedade visual de cores e gradientes
-- Apenas `AlertSlide`, `HighlightSlide` e `CoverSlide` têm gradientes coloridos
+## Situação Atual
 
-### 3. Preservação Integral do Conteúdo
-- A Edge Function já tem instruções de expansão dinâmica
-- Precisa reforçar no prompt para NÃO resumir e usar markdown correto
-
----
-
-## Solução Técnica
-
-### Arquivo 1: `src/components/ai-hub/slides/ContentSlide.tsx`
-
-**Mudanças:**
-- Renderizar bullets com `ReactMarkdown` para processar negrito, itálico, etc.
-- Adicionar gradiente de fundo colorido alternado
-- Melhorar contraste visual dos elementos
+No arquivo `src/components/ai-hub/ResearchAnalystChat.tsx` (linhas 751-779):
 
 ```tsx
-// ANTES: Bullet sem markdown
-<span className="text-foreground pt-1">{bullet}</span>
-
-// DEPOIS: Bullet com ReactMarkdown
-<span className="text-foreground pt-1">
-  <ReactMarkdown remarkPlugins={[remarkGfm]} components={{
-    strong: ({ children }) => <strong className="font-bold text-primary">{children}</strong>,
-    p: ({ children }) => <span>{children}</span>
-  }}>
-    {bullet}
-  </ReactMarkdown>
-</span>
+{activeConversation?.presentation ? (
+  <Button variant="outline" onClick={() => setShowPresentation(true)}>
+    <Eye /> Ver Apresentação
+  </Button>
+) : (
+  <Button variant="outline" onClick={handleGeneratePresentation}>
+    <Presentation /> Gerar Apresentação
+  </Button>
+)}
 ```
 
-- Adicionar background gradiente: `bg-gradient-to-br from-primary/5 via-background to-primary/10`
+Problema: Quando existe apresentação, só aparece "Ver Apresentação". Não há opção de regenerar.
 
-### Arquivo 2: `src/components/ai-hub/slides/NumberedInsightsSlide.tsx`
+## Solução
 
-**Mudanças:**
-- Renderizar `insight.description` com ReactMarkdown
-- Adicionar gradiente de fundo colorido
-- Melhorar cards com borda colorida
+### Arquivo: `src/components/ai-hub/ResearchAnalystChat.tsx`
 
-### Arquivo 3: `src/components/ai-hub/slides/AlertSlide.tsx`
+Modificar o bloco condicional para mostrar **ambos os botões** quando já existe apresentação:
 
-**Mudanças:**
-- Renderizar bullets com ReactMarkdown
-- Intensificar cores do gradiente
-
-### Arquivo 4: `src/components/ai-hub/slides/CrossTableSlide.tsx`
-
-**Mudanças:**
-- Adicionar gradiente de fundo
-- Melhorar contraste das células destacadas
-
-### Arquivo 5: `src/components/ai-hub/slides/HorizontalBarsSlide.tsx`
-
-**Mudanças:**
-- Adicionar gradiente de fundo
-- Usar cores mais vibrantes para as barras
-
-### Arquivo 6: `src/components/ai-hub/slides/MethodologySlide.tsx`
-
-**Mudanças:**
-- Usar cores temáticas nos cards (verde, azul, laranja)
-- Adicionar ícones coloridos
-
-### Arquivo 7: `src/components/ai-hub/slides/QuoteSlide.tsx`
-
-**Mudanças:**
-- Intensificar gradiente de fundo
-- Adicionar linha decorativa colorida
-
-### Arquivo 8: `src/components/ai-hub/slides/ChartSlide.tsx`
-
-**Mudanças:**
-- Adicionar gradiente de fundo sutil
-
-### Arquivo 9: `src/components/ai-hub/slides/HighlightSlide.tsx`
-
-**Mudanças:**
-- Intensificar cores do gradiente para maior impacto visual
-
-### Arquivo 10: `supabase/functions/ai-hub-chat/index.ts`
-
-**Mudanças no prompt:**
-- Adicionar instrução explícita para usar markdown correto nos bullets
-- Reforçar preservação integral sem resumos
-- Instruir a IA a NÃO numerar bullets quando usar array de bullets
-
-Adicionar ao prompt:
-```text
-FORMATAÇÃO DE TEXTO:
-- Em bullets, use **texto** para negrito (será renderizado automaticamente)
-- NÃO numere os bullets manualmente (ex: "1. Item") - a numeração é automática
-- Separe conceitos diferentes em bullets diferentes
-- Use linguagem analítica e impactante
+```tsx
+{activeConversation?.presentation ? (
+  <div className="flex gap-2">
+    {/* Botão Ver Apresentação */}
+    <Button
+      variant="outline"
+      onClick={() => setShowPresentation(true)}
+      className="gap-2"
+    >
+      <Eye className="w-4 h-4" />
+      Ver Apresentação
+    </Button>
+    
+    {/* Novo: Botão Gerar Nova Versão */}
+    <Button
+      variant="outline"
+      onClick={handleGeneratePresentation}
+      disabled={generatingPresentation || isLoading}
+      className="gap-2"
+    >
+      {generatingPresentation ? (
+        <>
+          <Loader2 className="w-4 h-4 animate-spin" />
+          Gerando...
+        </>
+      ) : (
+        <>
+          <RefreshCw className="w-4 h-4" />
+          Gerar Nova Versão
+        </>
+      )}
+    </Button>
+  </div>
+) : (
+  // Botão inicial para gerar primeira apresentação
+  <Button variant="outline" onClick={handleGeneratePresentation} ...>
+    <Presentation /> Gerar Apresentação
+  </Button>
+)}
 ```
 
----
+### Importação do ícone
 
-## Paleta de Cores por Tipo de Slide
+Adicionar `RefreshCw` aos imports do lucide-react:
 
-| Tipo de Slide | Gradiente de Fundo |
-|---------------|-------------------|
-| cover | `from-primary/20 via-background to-primary/10` |
-| methodology | `from-emerald-500/10 via-background to-blue-500/10` |
-| highlight | `from-primary/10 via-background to-amber-500/10` |
-| comparison | `from-violet-500/10 via-background to-primary/10` |
-| crosstable | `from-blue-500/10 via-background to-muted/30` |
-| horizontal_bars | `from-rose-500/10 via-background to-primary/10` |
-| chart | `from-primary/5 via-background to-emerald-500/10` |
-| numbered_insights | `from-amber-500/10 via-background to-primary/10` |
-| alert | Mantém cores por tipo (warning/info/success) |
-| quote | `from-muted/50 via-background to-primary/20` |
-| content | `from-primary/5 via-background to-blue-500/5` |
+```tsx
+import { Send, Loader2, Sparkles, X, BarChart3, User, Maximize2, Minimize2, Presentation, Eye, RefreshCw } from 'lucide-react';
+```
 
----
+## Comportamento
 
-## Resumo das Alterações
+| Estado | Botões Exibidos |
+|--------|-----------------|
+| Sem apresentação | "Gerar Apresentação" |
+| Com apresentação | "Ver Apresentação" + "Gerar Nova Versão" |
+| Gerando nova versão | "Ver Apresentação" + "Gerando..." (loading) |
 
-| Arquivo | Alterações |
-|---------|------------|
-| `ContentSlide.tsx` | ReactMarkdown nos bullets + gradiente colorido |
-| `NumberedInsightsSlide.tsx` | ReactMarkdown + gradiente + cards coloridos |
-| `AlertSlide.tsx` | ReactMarkdown nos bullets |
-| `CrossTableSlide.tsx` | Gradiente de fundo azulado |
-| `HorizontalBarsSlide.tsx` | Gradiente rosado + barras mais vibrantes |
-| `MethodologySlide.tsx` | Cards com cores temáticas |
-| `QuoteSlide.tsx` | Gradiente intensificado |
-| `ChartSlide.tsx` | Gradiente sutil |
-| `HighlightSlide.tsx` | Cores mais vibrantes |
-| `ai-hub-chat/index.ts` | Instruções de formatação markdown |
+## Fluxo do Usuário
 
----
+1. Usuário conversa com o analista
+2. Clica em **Gerar Apresentação**
+3. Apresentação é criada e armazenada
+4. Agora aparecem os dois botões:
+   - **Ver Apresentação**: Abre a versão atual
+   - **Gerar Nova Versão**: Substitui a apresentação por uma nova (mesmo conteúdo, nova geração = layout potencialmente diferente)
+5. Ao clicar em "Gerar Nova Versão", a função `handleGeneratePresentation` é chamada novamente, sobrescrevendo a apresentação existente
+
+## Resumo de Alterações
+
+| Arquivo | Alteração |
+|---------|-----------|
+| `src/components/ai-hub/ResearchAnalystChat.tsx` | Adicionar import `RefreshCw`, modificar bloco de botões para exibir dois CTAs quando existe apresentação |
 
 ## Benefícios
 
-1. **Negrito funcionando** - `**texto**` será renderizado corretamente
-2. **Visual atraente** - Gradientes coloridos em todos os slides
-3. **Contraste** - Melhor legibilidade com cores contrastantes
-4. **Consistência** - Paleta de cores uniforme e profissional
-5. **Preservação total** - Conteúdo integral sem resumos
+- **Flexibilidade**: Usuário pode gerar múltiplas versões até encontrar o layout ideal
+- **UX clara**: Dois botões distintos para ações diferentes
+- **Reutilização**: Usa a mesma função `handleGeneratePresentation` já existente
