@@ -1,6 +1,6 @@
-import { useState, useRef, useEffect } from 'react';
+import { useState, useRef, useEffect, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { ArrowLeft, Send, Bot, User, Loader2, Sparkles, X, BarChart3 } from 'lucide-react';
+import { Send, Loader2, Sparkles, X, BarChart3, User } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { ScrollArea } from '@/components/ui/scroll-area';
@@ -10,6 +10,8 @@ import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import { ResearchChartRenderer, ChartData, parseChartDataFromMessage } from './ResearchChartRenderer';
 import { PesquisaSelector } from './PesquisaSelector';
+import { ConversationSidebar } from './ConversationSidebar';
+import { useConversations } from '@/hooks/useConversations';
 import { supabase } from '@/integrations/supabase/client';
 
 interface AIAgent {
@@ -56,8 +58,20 @@ export const ResearchAnalystChat = ({ agent, onClose }: ResearchAnalystChatProps
   const [availablePesquisas, setAvailablePesquisas] = useState<Pesquisa[]>([]);
   const [selectedPesquisaIds, setSelectedPesquisaIds] = useState<string[]>([]);
   const [loadingPesquisas, setLoadingPesquisas] = useState(true);
+  const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const scrollRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
+
+  const {
+    conversations,
+    isLoading: conversationsLoading,
+    activeConversationId,
+    activeConversation,
+    createConversation,
+    updateConversation,
+    deleteConversation,
+    selectConversation,
+  } = useConversations(agent.id);
 
   // Fetch available pesquisas on mount
   useEffect(() => {
@@ -85,6 +99,28 @@ export const ResearchAnalystChat = ({ agent, onClose }: ResearchAnalystChatProps
     fetchPesquisas();
   }, []);
 
+  // Load conversation when selected
+  useEffect(() => {
+    if (activeConversation) {
+      const parsedMessages: ParsedMessage[] = activeConversation.messages.map(msg => {
+        const { text, charts } = msg.role === 'assistant' 
+          ? parseChartDataFromMessage(msg.content)
+          : { text: msg.content, charts: [] };
+        return {
+          role: msg.role,
+          content: msg.content,
+          text,
+          charts,
+        };
+      });
+      setMessages(parsedMessages);
+      
+      if (activeConversation.selected_pesquisa_ids.length > 0) {
+        setSelectedPesquisaIds(activeConversation.selected_pesquisa_ids);
+      }
+    }
+  }, [activeConversation]);
+
   useEffect(() => {
     inputRef.current?.focus();
   }, []);
@@ -95,6 +131,42 @@ export const ResearchAnalystChat = ({ agent, onClose }: ResearchAnalystChatProps
     }
   }, [messages]);
 
+  const generateTitle = (firstMessage: string): string => {
+    // Truncate to max 50 chars, break at word boundary
+    const maxLength = 50;
+    if (firstMessage.length <= maxLength) return firstMessage;
+    
+    const truncated = firstMessage.substring(0, maxLength);
+    const lastSpace = truncated.lastIndexOf(' ');
+    return (lastSpace > 20 ? truncated.substring(0, lastSpace) : truncated) + '...';
+  };
+
+  const saveConversation = useCallback(async (
+    allMessages: ParsedMessage[],
+    isNewConversation: boolean,
+    currentConversationId: string | null
+  ) => {
+    const messagesToSave = allMessages.map(m => ({ role: m.role, content: m.content }));
+    
+    if (isNewConversation && !currentConversationId) {
+      // Find first user message for title
+      const firstUserMessage = allMessages.find(m => m.role === 'user');
+      const title = firstUserMessage ? generateTitle(firstUserMessage.content) : 'Nova Conversa';
+      
+      await createConversation({
+        agentId: agent.id,
+        title,
+        messages: messagesToSave,
+        selectedPesquisaIds,
+      });
+    } else if (currentConversationId) {
+      await updateConversation(currentConversationId, {
+        messages: messagesToSave,
+        selectedPesquisaIds,
+      });
+    }
+  }, [agent.id, createConversation, updateConversation, selectedPesquisaIds]);
+
   const sendMessage = async (content: string) => {
     if (!content.trim() || isLoading) return;
 
@@ -104,11 +176,14 @@ export const ResearchAnalystChat = ({ agent, onClose }: ResearchAnalystChatProps
       text: content.trim(),
       charts: []
     };
-    setMessages(prev => [...prev, userMessage]);
+    
+    const newMessages = [...messages, userMessage];
+    setMessages(newMessages);
     setInput('');
     setIsLoading(true);
 
     let assistantContent = '';
+    const isNewConversation = !activeConversationId;
 
     try {
       const response = await fetch(CHAT_URL, {
@@ -119,7 +194,7 @@ export const ResearchAnalystChat = ({ agent, onClose }: ResearchAnalystChatProps
         },
         body: JSON.stringify({
           agent_id: agent.id,
-          messages: messages.map(m => ({ role: m.role, content: m.content })).concat([{ role: 'user', content: content.trim() }]),
+          messages: newMessages.map(m => ({ role: m.role, content: m.content })),
           selected_pesquisa_ids: selectedPesquisaIds,
         }),
       });
@@ -182,14 +257,14 @@ export const ResearchAnalystChat = ({ agent, onClose }: ResearchAnalystChatProps
               const { text, charts } = parseChartDataFromMessage(assistantContent);
               
               setMessages(prev => {
-                const newMessages = [...prev];
-                const lastMessage = newMessages[newMessages.length - 1];
+                const updatedMessages = [...prev];
+                const lastMessage = updatedMessages[updatedMessages.length - 1];
                 if (lastMessage?.role === 'assistant') {
                   lastMessage.content = assistantContent;
                   lastMessage.text = text;
                   lastMessage.charts = charts;
                 }
-                return newMessages;
+                return updatedMessages;
               });
             }
           } catch {
@@ -216,14 +291,14 @@ export const ResearchAnalystChat = ({ agent, onClose }: ResearchAnalystChatProps
               const { text, charts } = parseChartDataFromMessage(assistantContent);
               
               setMessages(prev => {
-                const newMessages = [...prev];
-                const lastMessage = newMessages[newMessages.length - 1];
+                const updatedMessages = [...prev];
+                const lastMessage = updatedMessages[updatedMessages.length - 1];
                 if (lastMessage?.role === 'assistant') {
                   lastMessage.content = assistantContent;
                   lastMessage.text = text;
                   lastMessage.charts = charts;
                 }
-                return newMessages;
+                return updatedMessages;
               });
             }
           } catch {
@@ -231,6 +306,16 @@ export const ResearchAnalystChat = ({ agent, onClose }: ResearchAnalystChatProps
           }
         }
       }
+
+      // Save conversation after AI response
+      setMessages(currentMessages => {
+        // Use setTimeout to ensure we have the final messages
+        setTimeout(() => {
+          saveConversation(currentMessages, isNewConversation, activeConversationId);
+        }, 100);
+        return currentMessages;
+      });
+
     } catch (error) {
       console.error('Chat error:', error);
       toast.error('Erro ao enviar mensagem. Tente novamente.');
@@ -255,14 +340,23 @@ export const ResearchAnalystChat = ({ agent, onClose }: ResearchAnalystChatProps
     sendMessage(starter);
   };
 
+  const handleNewConversation = () => {
+    selectConversation(null);
+    setMessages([]);
+  };
+
+  const handleRenameConversation = (id: string, newTitle: string) => {
+    updateConversation(id, { title: newTitle });
+  };
+
   return (
     <div className="fixed inset-0 z-50 bg-background/80 backdrop-blur-sm">
       <div className="fixed inset-4 md:inset-8 lg:inset-12 bg-background border border-border rounded-xl shadow-2xl flex flex-col overflow-hidden">
         {/* Header */}
         <header className="bg-card/80 backdrop-blur-lg border-b border-border px-4 py-3 flex items-center justify-between">
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-emerald-500 to-teal-600 flex items-center justify-center">
-              <BarChart3 className="w-5 h-5 text-white" />
+            <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-primary to-primary/70 flex items-center justify-center">
+              <BarChart3 className="w-5 h-5 text-primary-foreground" />
             </div>
             <div>
               <h1 className="text-lg font-semibold text-foreground">{agent.name}</h1>
@@ -284,140 +378,156 @@ export const ResearchAnalystChat = ({ agent, onClose }: ResearchAnalystChatProps
           isLoading={loadingPesquisas}
         />
 
-        {/* Chat Area */}
-        <div className="flex-1 flex flex-col overflow-hidden">
-          <ScrollArea className="flex-1 p-4" ref={scrollRef}>
-            {messages.length === 0 ? (
-              <div className="h-full flex flex-col items-center justify-center py-12">
-                <div className="w-20 h-20 rounded-2xl bg-gradient-to-br from-emerald-500 to-teal-600 flex items-center justify-center mb-4">
-                  <BarChart3 className="w-10 h-10 text-white" />
-                </div>
-                <h2 className="text-xl font-semibold mb-2">{agent.name}</h2>
-                <p className="text-muted-foreground text-center max-w-lg mb-6">
-                  Analiso pesquisas eleitorais, identifico tendências e gero visualizações estratégicas automaticamente.
-                </p>
+        {/* Main Content Area with Sidebar */}
+        <div className="flex-1 flex overflow-hidden">
+          {/* Conversation Sidebar */}
+          <ConversationSidebar
+            conversations={conversations}
+            activeConversationId={activeConversationId}
+            onSelectConversation={selectConversation}
+            onNewConversation={handleNewConversation}
+            onRenameConversation={handleRenameConversation}
+            onDeleteConversation={deleteConversation}
+            isLoading={conversationsLoading}
+            isCollapsed={sidebarCollapsed}
+            onToggleCollapse={() => setSidebarCollapsed(!sidebarCollapsed)}
+          />
 
-                {/* Conversation Starters */}
-                {Array.isArray(agent.conversation_starters) && agent.conversation_starters.length > 0 && (
-                  <div className="flex flex-wrap gap-2 justify-center max-w-2xl">
-                    {agent.conversation_starters.map((starter, idx) => (
-                      <button
-                        key={idx}
-                        onClick={() => handleStarterClick(starter)}
-                        className="px-4 py-2 bg-muted hover:bg-muted/80 rounded-full text-sm transition-colors flex items-center gap-2 text-left"
-                      >
-                        <Sparkles className="w-3 h-3 text-emerald-400 flex-shrink-0" />
-                        <span className="line-clamp-1">{starter}</span>
-                      </button>
-                    ))}
+          {/* Chat Area */}
+          <div className="flex-1 flex flex-col overflow-hidden">
+            <ScrollArea className="flex-1 p-4" ref={scrollRef}>
+              {messages.length === 0 ? (
+                <div className="h-full flex flex-col items-center justify-center py-12">
+                  <div className="w-20 h-20 rounded-2xl bg-gradient-to-br from-primary to-primary/70 flex items-center justify-center mb-4">
+                    <BarChart3 className="w-10 h-10 text-primary-foreground" />
                   </div>
-                )}
-              </div>
-            ) : (
-              <div className="space-y-6 pb-4 max-w-4xl mx-auto">
-                <AnimatePresence>
-                  {messages.map((message, idx) => (
-                    <motion.div
-                      key={idx}
-                      initial={{ opacity: 0, y: 10 }}
-                      animate={{ opacity: 1, y: 0 }}
-                      exit={{ opacity: 0 }}
-                      className={`flex gap-3 ${message.role === 'user' ? 'justify-end' : 'justify-start'}`}
-                    >
-                      {message.role === 'assistant' && (
-                        <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-emerald-500 to-teal-600 flex items-center justify-center flex-shrink-0">
-                          <BarChart3 className="w-4 h-4 text-white" />
-                        </div>
-                      )}
-                      
-                      <div className={`${message.role === 'user' ? 'max-w-[75%]' : 'flex-1 min-w-0'}`}>
-                        <Card className={`p-4 ${
-                          message.role === 'user' 
-                            ? 'bg-primary text-primary-foreground' 
-                            : 'bg-muted'
-                        }`}>
-                          {message.text || message.content ? (
-                            message.role === 'assistant' ? (
-                              <div className="prose prose-sm dark:prose-invert max-w-none">
-                                <ReactMarkdown 
-                                  remarkPlugins={[remarkGfm]}
-                                  components={{
-                                    table: ({ children }) => (
-                                      <div className="overflow-x-auto my-2">
-                                        <table className="min-w-full border-collapse text-xs">{children}</table>
-                                      </div>
-                                    ),
-                                    th: ({ children }) => (
-                                      <th className="border border-border bg-muted px-2 py-1 text-left font-medium">{children}</th>
-                                    ),
-                                    td: ({ children }) => (
-                                      <td className="border border-border px-2 py-1">{children}</td>
-                                    ),
-                                    p: ({ children }) => (
-                                      <p className="mb-2 last:mb-0">{children}</p>
-                                    ),
-                                    strong: ({ children }) => (
-                                      <strong className="font-semibold text-foreground">{children}</strong>
-                                    ),
-                                    ul: ({ children }) => (
-                                      <ul className="list-disc pl-4 my-2 space-y-1">{children}</ul>
-                                    ),
-                                    ol: ({ children }) => (
-                                      <ol className="list-decimal pl-4 my-2 space-y-1">{children}</ol>
-                                    ),
-                                  }}
-                                >
-                                  {message.text}
-                                </ReactMarkdown>
-                              </div>
-                            ) : (
-                              <p className="text-sm whitespace-pre-wrap">{message.content}</p>
-                            )
-                          ) : (
-                            <div className="flex items-center gap-2">
-                              <Loader2 className="w-4 h-4 animate-spin" />
-                              <span className="text-sm">Analisando dados...</span>
-                            </div>
-                          )}
-                        </Card>
-                        
-                        {/* Charts below the message */}
-                        {message.role === 'assistant' && message.charts.length > 0 && (
-                          <ResearchChartRenderer charts={message.charts} />
+                  <h2 className="text-xl font-semibold mb-2">{agent.name}</h2>
+                  <p className="text-muted-foreground text-center max-w-lg mb-6">
+                    Analiso pesquisas eleitorais, identifico tendências e gero visualizações estratégicas automaticamente.
+                  </p>
+
+                  {/* Conversation Starters */}
+                  {Array.isArray(agent.conversation_starters) && agent.conversation_starters.length > 0 && (
+                    <div className="flex flex-wrap gap-2 justify-center max-w-2xl">
+                      {agent.conversation_starters.map((starter, idx) => (
+                        <button
+                          key={idx}
+                          onClick={() => handleStarterClick(starter)}
+                          className="px-4 py-2 bg-muted hover:bg-muted/80 rounded-full text-sm transition-colors flex items-center gap-2 text-left"
+                        >
+                          <Sparkles className="w-3 h-3 text-primary flex-shrink-0" />
+                          <span className="line-clamp-1">{starter}</span>
+                        </button>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              ) : (
+                <div className="space-y-6 pb-4 max-w-4xl mx-auto">
+                  <AnimatePresence>
+                    {messages.map((message, idx) => (
+                      <motion.div
+                        key={idx}
+                        initial={{ opacity: 0, y: 10 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        exit={{ opacity: 0 }}
+                        className={`flex gap-3 ${message.role === 'user' ? 'justify-end' : 'justify-start'}`}
+                      >
+                        {message.role === 'assistant' && (
+                          <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-primary to-primary/70 flex items-center justify-center flex-shrink-0">
+                            <BarChart3 className="w-4 h-4 text-primary-foreground" />
+                          </div>
                         )}
-                      </div>
-
-                      {message.role === 'user' && (
-                        <div className="w-8 h-8 rounded-lg bg-primary/20 flex items-center justify-center flex-shrink-0">
-                          <User className="w-4 h-4 text-primary" />
+                        
+                        <div className={`${message.role === 'user' ? 'max-w-[75%]' : 'flex-1 min-w-0'}`}>
+                          <Card className={`p-4 ${
+                            message.role === 'user' 
+                              ? 'bg-primary text-primary-foreground' 
+                              : 'bg-muted'
+                          }`}>
+                            {message.text || message.content ? (
+                              message.role === 'assistant' ? (
+                                <div className="prose prose-sm dark:prose-invert max-w-none">
+                                  <ReactMarkdown 
+                                    remarkPlugins={[remarkGfm]}
+                                    components={{
+                                      table: ({ children }) => (
+                                        <div className="overflow-x-auto my-2">
+                                          <table className="min-w-full border-collapse text-xs">{children}</table>
+                                        </div>
+                                      ),
+                                      th: ({ children }) => (
+                                        <th className="border border-border bg-muted px-2 py-1 text-left font-medium">{children}</th>
+                                      ),
+                                      td: ({ children }) => (
+                                        <td className="border border-border px-2 py-1">{children}</td>
+                                      ),
+                                      p: ({ children }) => (
+                                        <p className="mb-2 last:mb-0">{children}</p>
+                                      ),
+                                      strong: ({ children }) => (
+                                        <strong className="font-semibold text-foreground">{children}</strong>
+                                      ),
+                                      ul: ({ children }) => (
+                                        <ul className="list-disc pl-4 my-2 space-y-1">{children}</ul>
+                                      ),
+                                      ol: ({ children }) => (
+                                        <ol className="list-decimal pl-4 my-2 space-y-1">{children}</ol>
+                                      ),
+                                    }}
+                                  >
+                                    {message.text}
+                                  </ReactMarkdown>
+                                </div>
+                              ) : (
+                                <p className="text-sm whitespace-pre-wrap">{message.content}</p>
+                              )
+                            ) : (
+                              <div className="flex items-center gap-2">
+                                <Loader2 className="w-4 h-4 animate-spin" />
+                                <span className="text-sm">Analisando dados...</span>
+                              </div>
+                            )}
+                          </Card>
+                          
+                          {/* Charts below the message */}
+                          {message.role === 'assistant' && message.charts.length > 0 && (
+                            <ResearchChartRenderer charts={message.charts} />
+                          )}
                         </div>
-                      )}
-                    </motion.div>
-                  ))}
-                </AnimatePresence>
-              </div>
-            )}
-          </ScrollArea>
 
-          {/* Input Area */}
-          <div className="border-t border-border p-4 bg-background">
-            <form onSubmit={handleSubmit} className="flex gap-2 max-w-4xl mx-auto">
-              <Input
-                ref={inputRef}
-                value={input}
-                onChange={(e) => setInput(e.target.value)}
-                placeholder="Faça perguntas sobre as pesquisas eleitorais..."
-                disabled={isLoading}
-                className="flex-1"
-              />
-              <Button type="submit" disabled={isLoading || !input.trim()}>
-                {isLoading ? (
-                  <Loader2 className="w-4 h-4 animate-spin" />
-                ) : (
-                  <Send className="w-4 h-4" />
-                )}
-              </Button>
-            </form>
+                        {message.role === 'user' && (
+                          <div className="w-8 h-8 rounded-lg bg-primary/20 flex items-center justify-center flex-shrink-0">
+                            <User className="w-4 h-4 text-primary" />
+                          </div>
+                        )}
+                      </motion.div>
+                    ))}
+                  </AnimatePresence>
+                </div>
+              )}
+            </ScrollArea>
+
+            {/* Input Area */}
+            <div className="border-t border-border p-4 bg-background">
+              <form onSubmit={handleSubmit} className="flex gap-2 max-w-4xl mx-auto">
+                <Input
+                  ref={inputRef}
+                  value={input}
+                  onChange={(e) => setInput(e.target.value)}
+                  placeholder="Faça perguntas sobre as pesquisas eleitorais..."
+                  disabled={isLoading}
+                  className="flex-1"
+                />
+                <Button type="submit" disabled={isLoading || !input.trim()}>
+                  {isLoading ? (
+                    <Loader2 className="w-4 h-4 animate-spin" />
+                  ) : (
+                    <Send className="w-4 h-4" />
+                  )}
+                </Button>
+              </form>
+            </div>
           </div>
         </div>
       </div>
