@@ -7,9 +7,9 @@ const corsHeaders = {
 };
 
 // Configuration for chunking
-const CHUNK_SIZE = 25000; // ~25k chars per chunk
-const CHUNK_OVERLAP = 2000; // 2k overlap between chunks
-const MAX_CHUNKS = 5; // Maximum chunks to process (125k chars total coverage)
+const CHUNK_SIZE = 25000;
+const CHUNK_OVERLAP = 2000;
+const MAX_CHUNKS = 5;
 
 interface ExtractedResult {
   tipo_pergunta: string;
@@ -60,7 +60,7 @@ interface ProcessingState {
   total_chunks: number;
   processed_chunks: number;
   current_chunk: number;
-  last_processed_at: string;
+  chunks: string[];
   partial_metadata?: ExtractedData['metadata'];
   partial_resultados?: ExtractedResult[];
   partial_cruzamentos?: ExtractedCrosstab[];
@@ -68,7 +68,6 @@ interface ProcessingState {
   error?: string;
 }
 
-// Split content into overlapping chunks
 function splitIntoChunks(content: string): string[] {
   if (content.length <= CHUNK_SIZE) {
     return [content];
@@ -87,7 +86,6 @@ function splitIntoChunks(content: string): string[] {
   return chunks;
 }
 
-// Merge metadata from multiple chunks (first valid value wins)
 function mergeMetadata(metadataArray: ExtractedData['metadata'][]): ExtractedData['metadata'] {
   const merged: ExtractedData['metadata'] = {};
   
@@ -109,7 +107,6 @@ function mergeMetadata(metadataArray: ExtractedData['metadata'][]): ExtractedDat
   return merged;
 }
 
-// Deduplicate results by question + scenario
 function mergeResultados(resultsArrays: ExtractedResult[][]): ExtractedResult[] {
   const merged: ExtractedResult[] = [];
   const seen = new Set<string>();
@@ -126,11 +123,9 @@ function mergeResultados(resultsArrays: ExtractedResult[][]): ExtractedResult[] 
     }
   }
   
-  console.log(`Merged ${merged.length} unique results from chunks`);
   return merged;
 }
 
-// Deduplicate crosstabs
 function mergeCruzamentos(cruzsArrays: ExtractedCrosstab[][]): ExtractedCrosstab[] {
   const merged: ExtractedCrosstab[] = [];
   const seen = new Set<string>();
@@ -147,11 +142,9 @@ function mergeCruzamentos(cruzsArrays: ExtractedCrosstab[][]): ExtractedCrosstab
     }
   }
   
-  console.log(`Merged ${merged.length} unique crosstabs from chunks`);
   return merged;
 }
 
-// Deduplicate qualitative data
 function mergeQualitativo(qualiArrays: (ExtractedQualitativo[] | undefined)[]): ExtractedQualitativo[] {
   const merged: ExtractedQualitativo[] = [];
   const seen = new Set<string>();
@@ -171,7 +164,6 @@ function mergeQualitativo(qualiArrays: (ExtractedQualitativo[] | undefined)[]): 
   return merged;
 }
 
-// Process a single chunk with AI
 async function processChunk(
   chunk: string, 
   chunkIndex: number, 
@@ -180,91 +172,27 @@ async function processChunk(
 ): Promise<ExtractedData | null> {
   console.log(`Processing chunk ${chunkIndex + 1}/${totalChunks}, length: ${chunk.length}`);
 
-  const systemPrompt = `Você é um especialista em análise de pesquisas eleitorais brasileiras, especialmente do Estado do Paraná.
+  const systemPrompt = `Você é um especialista em análise de pesquisas eleitorais brasileiras.
 Sua tarefa é extrair dados estruturados EXCLUSIVAMENTE do documento fornecido.
 
-REGRAS CRÍTICAS - OBRIGATÓRIO:
-1. EXTRAIA APENAS dados que estão EXPLICITAMENTE no documento fornecido
-2. NÃO INVENTE, NÃO PREENCHA, NÃO COMPLETE com dados de outras fontes
-3. Se um dado não estiver no documento, NÃO inclua - deixe vazio ou omita
-4. NÃO use conhecimento prévio sobre pesquisas eleitorais de outros estados ou períodos
-5. Se o documento for do Paraná, extraia APENAS candidatos e dados do Paraná
-6. Se não conseguir identificar claramente um dado, NÃO inclua
+REGRAS CRÍTICAS:
+1. EXTRAIA APENAS dados que estão EXPLICITAMENTE no documento
+2. NÃO INVENTE, NÃO PREENCHA com dados externos
+3. Se um dado não estiver no documento, NÃO inclua
 
-${totalChunks > 1 ? `IMPORTANTE: Este é o chunk ${chunkIndex + 1} de ${totalChunks} de um documento grande. Extraia apenas os dados presentes neste trecho.` : ''}
+${totalChunks > 1 ? `IMPORTANTE: Este é o chunk ${chunkIndex + 1} de ${totalChunks}. Extraia apenas os dados presentes neste trecho.` : ''}
 
-INSTITUTOS CONHECIDOS NO PARANÁ:
-- Ágili Pesquisas
-- Neokemp 
-- Real Time Big Data
-- Paraná Pesquisas
-- Atlas Intel
-- Instituto Mapa
-- IPEC
-- Datafolha
-- Quaest
-- Veritá
+TIPOS DE PERGUNTAS:
+- "intencao_estimulada", "intencao_espontanea", "rejeicao", "avaliacao_governo", "cenario", "outro"
 
-TIPOS DE PERGUNTAS A IDENTIFICAR:
-1. "intencao_estimulada": Quando mostra lista de candidatos para o eleitor escolher
-2. "intencao_espontanea": Quando pergunta "em quem votaria" sem mostrar opções
-3. "rejeicao": Perguntas como "em quem não votaria de jeito nenhum"
-4. "avaliacao_governo": Avaliação de governos (federal, estadual, municipal) - ótimo/bom, regular, ruim/péssimo
-5. "cenario": Cenários eleitorais com combinações específicas de candidatos
-6. "outro": Outras perguntas de opinião
+FORMATO DE DATAS: YYYY-MM-DD`;
 
-CRUZAMENTOS DEMOGRÁFICOS A EXTRAIR:
-- Sexo: masculino, feminino
-- Idade: 16-24, 25-34, 35-44, 45-59, 60+
-- Escolaridade: fundamental, médio, superior
-- Renda: até 2 SM, 2-5 SM, acima 5 SM
-- Região: Curitiba, RMC, Norte, Oeste, Sudoeste, Litoral, Campos Gerais, etc.
-
-FORMATO DE DATAS:
-- Sempre retorne datas no formato YYYY-MM-DD
-- Se a pesquisa foi realizada "de 05 a 08 de janeiro de 2025", retorne:
-  - data_campo_inicio: "2025-01-05"
-  - data_campo_fim: "2025-01-08"
-
-MÚLTIPLOS CENÁRIOS:
-- Se houver diferentes cenários de votação (ex: "Cenário 1", "Cenário 2"), extraia cada um como um resultado separado
-- Use cenario_descricao para descrever qual cenário é (ex: "Cenário com Candidato X", "Cenário sem Candidato Y")
-
-Use a função extract_pesquisa_data para retornar APENAS os dados encontrados no documento.`;
-
-  const userPrompt = `ATENÇÃO: Extraia dados APENAS do documento abaixo. Não invente dados, não use conhecimento externo.
-Se um candidato ou percentual não estiver explícito no texto, NÃO inclua.
+  const userPrompt = `Extraia dados APENAS do documento abaixo:
 
 ${totalChunks > 1 ? `[CHUNK ${chunkIndex + 1}/${totalChunks}]` : ''}
-DOCUMENTO PARA ANÁLISE:
 ---
 ${chunk}
----
-
-INSTRUÇÕES DE EXTRAÇÃO:
-
-1. METADADOS (se presentes no documento):
-   - Título da pesquisa
-   - Nome do instituto
-   - Datas de campo (formato YYYY-MM-DD)
-   - Registro TSE (ex: "PR-00123/2026")
-   - Tamanho da amostra (número de entrevistados)
-   - Margem de erro (em pontos percentuais)
-   - Nível de confiança (geralmente 95%)
-   - Universo pesquisado (ex: "Eleitores do Paraná com 16 anos ou mais")
-   - Metodologia (telefone, presencial, online)
-
-2. RESULTADOS (APENAS candidatos/opções mencionados):
-   - Intenção de voto estimulada (com lista de candidatos)
-   - Intenção de voto espontânea (se houver)
-   - Rejeição de candidatos (se houver)
-   - Avaliação de governo (federal, estadual - se houver)
-   - Diferentes cenários eleitorais (se houver múltiplos cenários)
-
-3. CRUZAMENTOS (se disponíveis):
-   - Dados por sexo, idade, escolaridade, renda, região
-
-LEMBRE-SE: Retorne APENAS dados explícitos do documento. Dados não encontrados devem ser omitidos.`;
+---`;
 
   const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
     method: "POST",
@@ -290,17 +218,17 @@ LEMBRE-SE: Retorne APENAS dados explícitos do documento. Dados não encontrados
                 metadata: {
                   type: "object",
                   properties: {
-                    titulo: { type: "string", description: "Título da pesquisa" },
-                    instituto: { type: "string", description: "Nome do instituto" },
-                    data_campo_inicio: { type: "string", description: "Data início do campo (YYYY-MM-DD)" },
-                    data_campo_fim: { type: "string", description: "Data fim do campo (YYYY-MM-DD)" },
-                    data_publicacao: { type: "string", description: "Data de publicação (YYYY-MM-DD)" },
-                    registro_tse: { type: "string", description: "Número de registro no TSE" },
-                    universo: { type: "string", description: "Descrição do universo pesquisado" },
-                    amostra_total: { type: "number", description: "Tamanho total da amostra" },
-                    margem_erro: { type: "number", description: "Margem de erro percentual" },
-                    nivel_confianca: { type: "number", description: "Nível de confiança percentual" },
-                    metodologia: { type: "string", description: "Descrição da metodologia" },
+                    titulo: { type: "string" },
+                    instituto: { type: "string" },
+                    data_campo_inicio: { type: "string" },
+                    data_campo_fim: { type: "string" },
+                    data_publicacao: { type: "string" },
+                    registro_tse: { type: "string" },
+                    universo: { type: "string" },
+                    amostra_total: { type: "number" },
+                    margem_erro: { type: "number" },
+                    nivel_confianca: { type: "number" },
+                    metodologia: { type: "string" },
                   },
                 },
                 resultados: {
@@ -308,20 +236,17 @@ LEMBRE-SE: Retorne APENAS dados explícitos do documento. Dados não encontrados
                   items: {
                     type: "object",
                     properties: {
-                      tipo_pergunta: {
-                        type: "string",
-                        enum: ["intencao_espontanea", "intencao_estimulada", "rejeicao", "avaliacao_governo", "cenario", "outro"],
-                      },
-                      pergunta: { type: "string", description: "Texto da pergunta" },
-                      cenario_descricao: { type: "string", description: "Descrição do cenário (se aplicável)" },
+                      tipo_pergunta: { type: "string", enum: ["intencao_espontanea", "intencao_estimulada", "rejeicao", "avaliacao_governo", "cenario", "outro"] },
+                      pergunta: { type: "string" },
+                      cenario_descricao: { type: "string" },
                       respostas: {
                         type: "array",
                         items: {
                           type: "object",
                           properties: {
-                            opcao: { type: "string", description: "Nome do candidato ou opção" },
-                            percentual: { type: "number", description: "Valor percentual" },
-                            votos_absolutos: { type: "number", description: "Número absoluto de votos" },
+                            opcao: { type: "string" },
+                            percentual: { type: "number" },
+                            votos_absolutos: { type: "number" },
                           },
                           required: ["opcao", "percentual"],
                         },
@@ -335,11 +260,11 @@ LEMBRE-SE: Retorne APENAS dados explícitos do documento. Dados não encontrados
                   items: {
                     type: "object",
                     properties: {
-                      pergunta: { type: "string", description: "Pergunta relacionada" },
-                      segmento_tipo: { type: "string", description: "Tipo do segmento (sexo, idade, escolaridade, renda, regiao)" },
-                      segmento_valor: { type: "string", description: "Valor do segmento (masculino, 25-34, etc)" },
-                      opcao: { type: "string", description: "Candidato ou opção" },
-                      percentual: { type: "number", description: "Valor percentual" },
+                      pergunta: { type: "string" },
+                      segmento_tipo: { type: "string" },
+                      segmento_valor: { type: "string" },
+                      opcao: { type: "string" },
+                      percentual: { type: "number" },
                     },
                     required: ["pergunta", "segmento_tipo", "segmento_valor", "opcao", "percentual"],
                   },
@@ -349,9 +274,9 @@ LEMBRE-SE: Retorne APENAS dados explícitos do documento. Dados não encontrados
                   items: {
                     type: "object",
                     properties: {
-                      tema: { type: "string", description: "Tema discutido" },
-                      insight: { type: "string", description: "Insight identificado" },
-                      verbatim: { type: "string", description: "Citação direta dos participantes" },
+                      tema: { type: "string" },
+                      insight: { type: "string" },
+                      verbatim: { type: "string" },
                       sentimento: { type: "string", enum: ["positivo", "negativo", "neutro", "misto"] },
                     },
                     required: ["tema", "insight"],
@@ -372,7 +297,7 @@ LEMBRE-SE: Retorne APENAS dados explícitos do documento. Dados não encontrados
     if (response.status === 429 || response.status === 402) {
       throw new Error(response.status === 429 
         ? "Limite de requisições excedido. Tente novamente mais tarde."
-        : "Créditos insuficientes. Adicione créditos ao workspace.");
+        : "Créditos insuficientes.");
     }
     return null;
   }
@@ -383,10 +308,10 @@ LEMBRE-SE: Retorne APENAS dados explícitos do documento. Dados não encontrados
   if (toolCall?.function?.arguments) {
     try {
       const data = JSON.parse(toolCall.function.arguments);
-      console.log(`Chunk ${chunkIndex + 1} extracted: ${data.resultados?.length || 0} results, ${data.cruzamentos?.length || 0} crosstabs`);
+      console.log(`Chunk ${chunkIndex + 1} extracted: ${data.resultados?.length || 0} results`);
       return data;
     } catch (e) {
-      console.error(`Failed to parse chunk ${chunkIndex + 1} response:`, e);
+      console.error(`Failed to parse chunk ${chunkIndex + 1}:`, e);
       return null;
     }
   }
@@ -394,27 +319,13 @@ LEMBRE-SE: Retorne APENAS dados explícitos do documento. Dados não encontrados
   return null;
 }
 
-// Update processing state in database
-async function updateProcessingState(
-  supabase: SupabaseClient,
-  pesquisaId: string,
-  state: ProcessingState
-) {
-  await (supabase
-    .from("pesquisas_eleitorais") as any)
-    .update({ ai_processing_state: state })
-    .eq("id", pesquisaId);
-}
-
-// Save final results to database
 async function saveFinalResults(
   supabase: SupabaseClient,
   pesquisaId: string,
   extractedData: ExtractedData
 ) {
-  console.log(`Saving final results: ${extractedData.resultados?.length || 0} results, ${extractedData.cruzamentos?.length || 0} crosstabs`);
+  console.log(`Saving final results: ${extractedData.resultados?.length || 0} results`);
 
-  // Update pesquisa metadata if extracted
   if (extractedData.metadata) {
     const updateData: Record<string, any> = {};
     const meta = extractedData.metadata;
@@ -432,14 +343,12 @@ async function saveFinalResults(
     if (meta.metodologia) updateData.metodologia = { descricao: meta.metodologia };
 
     if (Object.keys(updateData).length > 0) {
-      await (supabase
-        .from("pesquisas_eleitorais") as any)
+      await (supabase.from("pesquisas_eleitorais") as any)
         .update(updateData)
         .eq("id", pesquisaId);
     }
   }
 
-  // Insert results
   if (extractedData.resultados && extractedData.resultados.length > 0) {
     for (let i = 0; i < extractedData.resultados.length; i++) {
       const resultado = extractedData.resultados[i];
@@ -461,7 +370,6 @@ async function saveFinalResults(
         continue;
       }
 
-      // Insert responses
       if (resultado.respostas && resultado.respostas.length > 0) {
         const respostasToInsert = resultado.respostas.map((r, idx) => ({
           resultado_id: resultadoData.id,
@@ -471,18 +379,11 @@ async function saveFinalResults(
           ordem: idx,
         }));
 
-        const { error: respostasError } = await (supabase
-          .from("pesquisa_respostas") as any)
-          .insert(respostasToInsert);
-
-        if (respostasError) {
-          console.error("Error inserting respostas:", respostasError);
-        }
+        await (supabase.from("pesquisa_respostas") as any).insert(respostasToInsert);
       }
     }
   }
 
-  // Insert crosstabs
   if (extractedData.cruzamentos && extractedData.cruzamentos.length > 0) {
     const { data: resultados } = await (supabase
       .from("pesquisa_resultados") as any)
@@ -496,8 +397,7 @@ async function saveFinalResults(
         );
 
         if (matchedResultado) {
-          await (supabase
-            .from("pesquisa_cruzamentos") as any)
+          await (supabase.from("pesquisa_cruzamentos") as any)
             .insert({
               resultado_id: matchedResultado.id,
               segmento_tipo: cruz.segmento_tipo,
@@ -510,7 +410,6 @@ async function saveFinalResults(
     }
   }
 
-  // Insert qualitative data
   if (extractedData.qualitativo && extractedData.qualitativo.length > 0) {
     const qualiToInsert = extractedData.qualitativo.map(q => ({
       pesquisa_id: pesquisaId,
@@ -520,132 +419,14 @@ async function saveFinalResults(
       sentimento: q.sentimento || null,
     }));
 
-    await (supabase
-      .from("pesquisa_qualitativa") as any)
-      .insert(qualiToInsert);
+    await (supabase.from("pesquisa_qualitativa") as any).insert(qualiToInsert);
   }
 
-  // Update status to active and clear processing state
-  await (supabase
-    .from("pesquisas_eleitorais") as any)
-    .update({ 
-      status: "ativa",
-      ai_processing_state: null 
-    })
+  await (supabase.from("pesquisas_eleitorais") as any)
+    .update({ status: "ativa", ai_processing_state: null })
     .eq("id", pesquisaId);
 
   console.log("Final results saved successfully");
-}
-
-// Background processing function
-async function processInBackground(
-  pesquisaId: string,
-  chunks: string[],
-  apiKey: string,
-  supabaseUrl: string,
-  supabaseKey: string
-) {
-  const supabase = createClient(supabaseUrl, supabaseKey);
-  
-  const chunkResults: (ExtractedData | null)[] = [];
-  
-  try {
-    for (let i = 0; i < chunks.length; i++) {
-      // Update progress
-      const state: ProcessingState = {
-        total_chunks: chunks.length,
-        processed_chunks: i,
-        current_chunk: i + 1,
-        last_processed_at: new Date().toISOString(),
-        partial_metadata: chunkResults.length > 0 
-          ? mergeMetadata(chunkResults.filter(r => r !== null).map(r => r!.metadata))
-          : undefined,
-        partial_resultados: chunkResults.length > 0
-          ? mergeResultados(chunkResults.filter(r => r !== null).map(r => r!.resultados))
-          : undefined,
-      };
-      
-      await updateProcessingState(supabase, pesquisaId, state);
-
-      // Add delay between chunks to avoid rate limiting
-      if (i > 0) {
-        await new Promise(resolve => setTimeout(resolve, 1500));
-      }
-      
-      try {
-        const result = await processChunk(chunks[i], i, chunks.length, apiKey);
-        chunkResults.push(result);
-        console.log(`Background: Chunk ${i + 1}/${chunks.length} completed`);
-      } catch (error) {
-        console.error(`Background: Error processing chunk ${i + 1}:`, error);
-        
-        if (error instanceof Error && (error.message.includes("Limite") || error.message.includes("Créditos"))) {
-          // Update state with error
-          await updateProcessingState(supabase, pesquisaId, {
-            ...state,
-            error: error.message,
-          });
-          
-          await (supabase
-            .from("pesquisas_eleitorais") as any)
-            .update({ status: "erro" })
-            .eq("id", pesquisaId);
-          return;
-        }
-        
-        chunkResults.push(null);
-      }
-    }
-
-    // Filter out null results
-    const validResults = chunkResults.filter((r): r is ExtractedData => r !== null);
-    
-    if (validResults.length === 0) {
-      await updateProcessingState(supabase, pesquisaId, {
-        total_chunks: chunks.length,
-        processed_chunks: chunks.length,
-        current_chunk: chunks.length,
-        last_processed_at: new Date().toISOString(),
-        error: "Não foi possível extrair dados da pesquisa",
-      });
-      
-      await (supabase
-        .from("pesquisas_eleitorais") as any)
-        .update({ status: "erro" })
-        .eq("id", pesquisaId);
-      return;
-    }
-
-    // Merge results from all chunks
-    const extractedData: ExtractedData = {
-      metadata: mergeMetadata(validResults.map(r => r.metadata)),
-      resultados: mergeResultados(validResults.map(r => r.resultados)),
-      cruzamentos: mergeCruzamentos(validResults.map(r => r.cruzamentos)),
-      qualitativo: mergeQualitativo(validResults.map(r => r.qualitativo)),
-    };
-
-    console.log(`Background: All chunks processed. Saving final results...`);
-    
-    // Save final results
-    await saveFinalResults(supabase, pesquisaId, extractedData);
-    
-  } catch (error) {
-    console.error("Background processing error:", error);
-    
-    await (supabase
-      .from("pesquisas_eleitorais") as any)
-      .update({ 
-        status: "erro",
-        ai_processing_state: {
-          total_chunks: chunks.length,
-          processed_chunks: chunkResults.length,
-          current_chunk: chunkResults.length,
-          last_processed_at: new Date().toISOString(),
-          error: error instanceof Error ? error.message : "Erro desconhecido",
-        }
-      })
-      .eq("id", pesquisaId);
-  }
 }
 
 serve(async (req) => {
@@ -654,7 +435,7 @@ serve(async (req) => {
   }
 
   try {
-    const { pesquisa_id, file_url, content_text } = await req.json();
+    const { pesquisa_id, file_url, content_text, process_next_chunk } = await req.json();
 
     if (!pesquisa_id) {
       return new Response(
@@ -672,35 +453,123 @@ serve(async (req) => {
     const supabaseKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
     const supabase = createClient(supabaseUrl, supabaseKey);
 
-    // Update status to processing
-    await (supabase
+    // Check if we're continuing from a previous state
+    const { data: pesquisaData } = await (supabase
       .from("pesquisas_eleitorais") as any)
-      .update({ status: "processando" })
-      .eq("id", pesquisa_id);
+      .select("ai_processing_state, content")
+      .eq("id", pesquisa_id)
+      .single();
 
-    // Priority: content_text > database content > file content
-    let textContent = "";
+    let state: ProcessingState | null = pesquisaData?.ai_processing_state as ProcessingState | null;
 
-    // First, try to use provided content_text
-    if (content_text && content_text.trim().length > 50) {
-      console.log("Using provided content_text, length:", content_text.length);
-      textContent = content_text.trim();
-    } 
-    // If no content_text, try to get from database
-    else {
-      const { data: pesquisaData } = await (supabase
-        .from("pesquisas_eleitorais") as any)
-        .select("content")
-        .eq("id", pesquisa_id)
-        .single();
+    // If process_next_chunk is true, we're continuing an existing process
+    if (process_next_chunk && state && state.chunks && state.processed_chunks < state.total_chunks) {
+      const chunkIndex = state.processed_chunks;
+      const chunk = state.chunks[chunkIndex];
 
-      if (pesquisaData?.content && pesquisaData.content.trim().length > 50) {
-        console.log("Using database content, length:", pesquisaData.content.length);
-        textContent = pesquisaData.content.trim();
+      console.log(`Continuing: Processing chunk ${chunkIndex + 1}/${state.total_chunks}`);
+
+      try {
+        const result = await processChunk(chunk, chunkIndex, state.total_chunks, LOVABLE_API_KEY);
+        
+        // Update state with new result
+        const newState: ProcessingState = {
+          ...state,
+          processed_chunks: chunkIndex + 1,
+          current_chunk: chunkIndex + 2,
+          partial_metadata: result?.metadata 
+            ? mergeMetadata([state.partial_metadata || {}, result.metadata])
+            : state.partial_metadata,
+          partial_resultados: result?.resultados
+            ? mergeResultados([state.partial_resultados || [], result.resultados])
+            : state.partial_resultados,
+          partial_cruzamentos: result?.cruzamentos
+            ? mergeCruzamentos([state.partial_cruzamentos || [], result.cruzamentos])
+            : state.partial_cruzamentos,
+          partial_qualitativo: result?.qualitativo
+            ? mergeQualitativo([state.partial_qualitativo, result.qualitativo])
+            : state.partial_qualitativo,
+        };
+
+        // Check if we're done
+        if (newState.processed_chunks >= newState.total_chunks) {
+          console.log("All chunks processed, saving final results...");
+          
+          const finalData: ExtractedData = {
+            metadata: newState.partial_metadata || {},
+            resultados: newState.partial_resultados || [],
+            cruzamentos: newState.partial_cruzamentos || [],
+            qualitativo: newState.partial_qualitativo,
+          };
+
+          await saveFinalResults(supabase, pesquisa_id, finalData);
+
+          return new Response(
+            JSON.stringify({
+              success: true,
+              status: "completed",
+              message: "Processamento concluído!",
+              data: {
+                total_chunks: newState.total_chunks,
+                resultados_count: finalData.resultados.length,
+                cruzamentos_count: finalData.cruzamentos.length,
+              },
+            }),
+            { headers: { ...corsHeaders, "Content-Type": "application/json" } }
+          );
+        }
+
+        // Save state and return for next chunk
+        await (supabase.from("pesquisas_eleitorais") as any)
+          .update({ ai_processing_state: newState })
+          .eq("id", pesquisa_id);
+
+        return new Response(
+          JSON.stringify({
+            success: true,
+            status: "processing",
+            message: `Chunk ${chunkIndex + 1}/${state.total_chunks} processado`,
+            data: {
+              total_chunks: newState.total_chunks,
+              processed_chunks: newState.processed_chunks,
+              needs_more: true,
+            },
+          }),
+          { headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        );
+
+      } catch (error) {
+        console.error("Error processing chunk:", error);
+        
+        await (supabase.from("pesquisas_eleitorais") as any)
+          .update({ 
+            status: "erro",
+            ai_processing_state: { ...state, error: error instanceof Error ? error.message : "Erro desconhecido" }
+          })
+          .eq("id", pesquisa_id);
+
+        return new Response(
+          JSON.stringify({ error: error instanceof Error ? error.message : "Erro desconhecido" }),
+          { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        );
       }
     }
 
-    // If still no content and we have a file_url, try to download
+    // Initial processing - set up chunks
+    await (supabase.from("pesquisas_eleitorais") as any)
+      .update({ status: "processando" })
+      .eq("id", pesquisa_id);
+
+    let textContent = "";
+
+    if (content_text && content_text.trim().length > 50) {
+      console.log("Using provided content_text, length:", content_text.length);
+      textContent = content_text.trim();
+    } else if (pesquisaData?.content && pesquisaData.content.trim().length > 50) {
+      console.log("Using database content, length:", pesquisaData.content.length);
+      textContent = pesquisaData.content.trim();
+    }
+
     if (!textContent && file_url) {
       console.log("Attempting to download file from:", file_url);
       
@@ -710,106 +579,114 @@ serve(async (req) => {
         
         if (pathMatch) {
           const filePath = decodeURIComponent(pathMatch[1]);
-          console.log("Extracted file path:", filePath);
           
-          const { data: signedUrlData, error: signedUrlError } = await supabase
+          const { data: signedUrlData } = await supabase
             .storage
             .from('pesquisas-eleitorais')
             .createSignedUrl(filePath, 3600);
 
-          if (signedUrlError) {
-            console.error("Error creating signed URL:", signedUrlError);
-          } else if (signedUrlData?.signedUrl) {
-            console.log("Signed URL created successfully");
-            
+          if (signedUrlData?.signedUrl) {
             const fileResponse = await fetch(signedUrlData.signedUrl);
             
             if (fileResponse.ok) {
               const contentType = fileResponse.headers.get("content-type") || "";
-              console.log("File content type:", contentType);
-              
               if (contentType.includes("text") || contentType.includes("csv")) {
                 textContent = await fileResponse.text();
-                console.log("Text content extracted, length:", textContent.length);
-              } else {
-                console.log("Binary file detected (PDF/Excel). Cannot extract text directly.");
               }
-            } else {
-              console.error("Failed to download file, status:", fileResponse.status);
             }
           }
-        } else {
-          console.error("Could not extract file path from URL:", file_url);
         }
       } catch (fileError) {
         console.error("Error fetching file:", fileError);
       }
     }
 
-    // CRITICAL: If we don't have enough text content, fail early
     if (!textContent || textContent.length < 100) {
       console.error("Insufficient content. Length:", textContent?.length || 0);
       
-      await (supabase
-        .from("pesquisas_eleitorais") as any)
+      await (supabase.from("pesquisas_eleitorais") as any)
         .update({ status: "rascunho" })
         .eq("id", pesquisa_id);
 
       return new Response(
         JSON.stringify({ 
-          error: "Conteúdo insuficiente para processamento. Por favor, cole o texto da pesquisa no campo 'Dados Manuais' antes de processar.",
-          hint: "Para arquivos PDF/Excel, copie e cole o conteúdo textual no campo apropriado."
+          error: "Conteúdo insuficiente. Cole o texto na aba 'Dados Manuais'.",
         }),
         { status: 422, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
 
-    console.log("Total content length:", textContent.length);
-
-    // Split content into chunks
     const chunks = splitIntoChunks(textContent);
-    console.log(`Will process ${chunks.length} chunk(s) in background`);
+    console.log(`Will process ${chunks.length} chunk(s)`);
 
-    // Initialize processing state
-    const initialState: ProcessingState = {
-      total_chunks: chunks.length,
-      processed_chunks: 0,
-      current_chunk: 1,
-      last_processed_at: new Date().toISOString(),
-    };
-    
-    await updateProcessingState(supabase, pesquisa_id, initialState);
+    // For single chunk, process immediately
+    if (chunks.length === 1) {
+      console.log("Single chunk - processing immediately");
+      
+      const result = await processChunk(chunks[0], 0, 1, LOVABLE_API_KEY);
+      
+      if (!result) {
+        await (supabase.from("pesquisas_eleitorais") as any)
+          .update({ status: "rascunho" })
+          .eq("id", pesquisa_id);
 
-    // Start background processing using EdgeRuntime.waitUntil
-    // @ts-ignore - EdgeRuntime is a Deno Deploy specific API
-    if (typeof EdgeRuntime !== 'undefined' && EdgeRuntime.waitUntil) {
-      console.log("Starting background processing with EdgeRuntime.waitUntil");
-      // @ts-ignore
-      EdgeRuntime.waitUntil(
-        processInBackground(pesquisa_id, chunks, LOVABLE_API_KEY, supabaseUrl, supabaseKey)
+        return new Response(
+          JSON.stringify({ error: "Não foi possível extrair dados" }),
+          { status: 422, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        );
+      }
+
+      await saveFinalResults(supabase, pesquisa_id, result);
+
+      return new Response(
+        JSON.stringify({
+          success: true,
+          status: "completed",
+          message: "Processamento concluído!",
+          data: {
+            total_chunks: 1,
+            resultados_count: result.resultados?.length || 0,
+            cruzamentos_count: result.cruzamentos?.length || 0,
+          },
+        }),
+        { headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
-    } else {
-      // Fallback: process synchronously (for local testing)
-      console.log("EdgeRuntime not available, processing synchronously");
-      await processInBackground(pesquisa_id, chunks, LOVABLE_API_KEY, supabaseUrl, supabaseKey);
     }
 
-    // Return immediately with accepted status
+    // Multiple chunks - process first chunk and save state
+    console.log("Multiple chunks - processing first chunk");
+    
+    const result = await processChunk(chunks[0], 0, chunks.length, LOVABLE_API_KEY);
+
+    const initialState: ProcessingState = {
+      total_chunks: chunks.length,
+      processed_chunks: 1,
+      current_chunk: 2,
+      chunks: chunks,
+      partial_metadata: result?.metadata,
+      partial_resultados: result?.resultados || [],
+      partial_cruzamentos: result?.cruzamentos || [],
+      partial_qualitativo: result?.qualitativo,
+    };
+
+    await (supabase.from("pesquisas_eleitorais") as any)
+      .update({ ai_processing_state: initialState })
+      .eq("id", pesquisa_id);
+
     return new Response(
       JSON.stringify({
         success: true,
-        status: "accepted",
-        message: `Processamento iniciado. ${chunks.length} parte(s) serão processadas em segundo plano.`,
+        status: "processing",
+        message: `Chunk 1/${chunks.length} processado`,
         data: {
-          pesquisa_id,
           total_chunks: chunks.length,
+          processed_chunks: 1,
+          needs_more: true,
         },
       }),
-      { 
-        status: 202, // Accepted - processing in background
-        headers: { ...corsHeaders, "Content-Type": "application/json" } 
-      }
+      { headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );
+
   } catch (error) {
     console.error("process-pesquisa error:", error);
     return new Response(
