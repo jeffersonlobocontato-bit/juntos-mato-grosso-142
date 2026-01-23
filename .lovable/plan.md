@@ -1,142 +1,119 @@
 
-# Correção Definitiva do Erro de Geração de Apresentação
 
-## Problema Identificado
+# Expansão Dinâmica do Gerador de Apresentações
 
-O parsing de streaming em `handleGeneratePresentation` está **perdendo dados entre chunks**, causando JSON corrompido. A evidência nos logs mostra:
+## Objetivo
 
+Remover o limite fixo de 10-14 slides e instruir a IA a criar apresentações que preservem **100% do conteúdo** do relatório consolidado, expandindo o número de páginas conforme necessário.
+
+## Problema Atual
+
+O prompt atual (linha 366) limita artificialmente:
 ```
-]": "line"
+DIRETRIZES:
+- Crie 10-14 slides para apresentações completas
 ```
 
-Isso indica que o array `bullets` foi cortado no meio e mesclado com o próximo campo. O problema NÃO é o prompt ou formatação - é a **implementação do parser de streaming**.
-
-### Comparação das Implementações
-
-| Função | Abordagem | Problema |
-|--------|-----------|----------|
-| `handleSend` (linha 237-280) | Buffer persistente (`textBuffer`) que acumula chunks incompletos e reconstrói linhas | Funciona corretamente |
-| `handleGeneratePresentation` (linha 442-459) | Processa cada chunk independentemente sem buffer | Perde dados entre chunks |
+Isso faz com que relatórios extensos sejam resumidos e percam informações importantes.
 
 ## Solução
 
-Reescrever o parser de streaming em `handleGeneratePresentation` para usar a **mesma abordagem robusta** de `handleSend`:
+Atualizar as instruções no prompt para:
 
-1. Usar um `textBuffer` persistente entre iterações
-2. Processar apenas linhas completas (terminadas em `\n`)
-3. Manter linhas incompletas no buffer para o próximo chunk
-4. Fazer flush final do buffer após stream terminar
+1. **Remover limite fixo** de slides
+2. **Preservar integralmente** todo o conteúdo da conversa
+3. **Expandir dinamicamente** conforme o volume de dados
+4. **Organizar por seções lógicas** (cada pergunta/cenário = slides dedicados)
 
 ## Alterações Técnicas
 
-### Arquivo: `src/components/ai-hub/ResearchAnalystChat.tsx`
+### Arquivo: `supabase/functions/ai-hub-chat/index.ts`
 
-Substituir o bloco de streaming (linhas 438-460) por:
+Substituir o bloco de DIRETRIZES (linhas 365-374) por:
 
 ```typescript
-const reader = response.body.getReader();
-const decoder = new TextDecoder();
-let fullContent = '';
-let textBuffer = '';
-let streamDone = false;
+DIRETRIZES DE EXPANSÃO DINÂMICA:
 
-while (!streamDone) {
-  const { done, value } = await reader.read();
-  if (done) break;
+1. PRESERVAÇÃO INTEGRAL DO CONTEÚDO:
+   - Transforme 100% do relatório/análise da conversa em slides
+   - NÃO resuma nem omita dados - cada insight vira um slide
+   - Cada pergunta de pesquisa = mínimo 1 slide dedicado
+   - Cada cenário eleitoral = 1 slide de chart + 1 slide de análise
+   - Cada cruzamento demográfico importante = 1 slide crosstable
 
-  // Accumulate chunks in buffer
-  textBuffer += decoder.decode(value, { stream: true });
+2. REGRAS DE EXPANSÃO:
+   - Relatório curto (até 500 palavras): 6-10 slides
+   - Relatório médio (500-1500 palavras): 10-20 slides
+   - Relatório extenso (1500-3000 palavras): 20-35 slides
+   - Relatório completo (3000+ palavras): 35-50 slides
+   - NÃO HÁ LIMITE MÁXIMO - expanda conforme necessário
 
-  // Process complete lines only
-  let newlineIndex: number;
-  while ((newlineIndex = textBuffer.indexOf('\n')) !== -1) {
-    let line = textBuffer.slice(0, newlineIndex);
-    textBuffer = textBuffer.slice(newlineIndex + 1);
+3. ESTRUTURA OBRIGATÓRIA:
+   - Slide 1: cover (título da análise)
+   - Slide 2: methodology (ficha técnica da pesquisa)
+   - Slides 3-N: conteúdo completo organizado por tema
+   - Últimos 2-3 slides: numbered_insights + quote/alert
 
-    // Clean line
-    if (line.endsWith('\r')) line = line.slice(0, -1);
-    if (line.startsWith(':') || line.trim() === '') continue;
-    if (!line.startsWith('data: ')) continue;
+4. ORGANIZAÇÃO POR SEÇÕES:
+   - Agrupe slides por tema (intenção de voto, rejeição, perfil, etc.)
+   - Use slide "content" para introduzir cada nova seção
+   - Use "highlight" para dados mais impactantes de cada seção
+   - Use "crosstable" para TODOS os cruzamentos demográficos mencionados
 
-    const jsonStr = line.slice(6).trim();
-    if (jsonStr === '[DONE]') {
-      streamDone = true;
-      break;
-    }
+5. MAPEAMENTO DE CONTEÚDO:
+   - Percentuais de intenção de voto → chart (bar) + highlight
+   - Comparação espontânea vs estimulada → comparison
+   - Rankings e rejeição → horizontal_bars
+   - Cruzamentos por gênero/idade/região → crosstable (um para cada)
+   - Análises qualitativas → content com bullets
+   - Alertas estratégicos → alert
+   - Conclusões numeradas → numbered_insights
+   - Citações importantes → quote
 
-    try {
-      const parsed = JSON.parse(jsonStr);
-      const delta = parsed.choices?.[0]?.delta?.content;
-      if (delta) fullContent += delta;
-    } catch {
-      // If parse fails, put line back in buffer (incomplete)
-      textBuffer = line + '\n' + textBuffer;
-      break;
-    }
-  }
-}
+6. QUALIDADE > ECONOMIA:
+   - Prefira mais slides bem organizados do que menos slides sobrecarregados
+   - Cada slide deve ter UM foco principal
+   - Títulos devem ser analíticos e impactantes
+```
 
-// Final flush - process any remaining data in buffer
-if (textBuffer.trim()) {
-  const remainingLines = textBuffer.split('\n');
-  for (let raw of remainingLines) {
-    if (!raw) continue;
-    if (raw.endsWith('\r')) raw = raw.slice(0, -1);
-    if (raw.startsWith(':') || raw.trim() === '') continue;
-    if (!raw.startsWith('data: ')) continue;
-    const jsonStr = raw.slice(6).trim();
-    if (jsonStr === '[DONE]') continue;
-    try {
-      const parsed = JSON.parse(jsonStr);
-      const delta = parsed.choices?.[0]?.delta?.content;
-      if (delta) fullContent += delta;
-    } catch {
-      // Ignore incomplete final chunks
-    }
-  }
-}
+## Exemplo de Transformação
+
+**Antes (limitado a 10-14 slides):**
+- Muitos dados comprimidos em poucos slides
+- Cruzamentos demográficos omitidos
+- Análises resumidas
+
+**Depois (expansão dinâmica):**
+```text
+Relatório com 3 cenários de 1º turno + 2 de 2º turno + 
+5 cruzamentos demográficos + análise qualitativa
+
+RESULTADO: ~25-30 slides
+├── 1x cover
+├── 1x methodology  
+├── 3x chart (cenários 1º turno)
+├── 3x content (análises de cada cenário)
+├── 2x chart (cenários 2º turno)
+├── 2x content (análises 2º turno)
+├── 5x crosstable (gênero, idade, escolaridade, região, renda)
+├── 2x horizontal_bars (rejeição, potencial)
+├── 2x highlight (dados mais impactantes)
+├── 1x alert (volatilidade/atenção)
+├── 1x numbered_insights (3-5 conclusões)
+└── 1x quote (frase de fechamento)
 ```
 
 ## Resumo das Mudanças
 
 | Arquivo | Alteração |
 |---------|-----------|
-| `src/components/ai-hub/ResearchAnalystChat.tsx` | Reescrever parser de streaming usando buffer persistente |
+| `supabase/functions/ai-hub-chat/index.ts` | Substituir DIRETRIZES por regras de expansão dinâmica |
 
 ## Benefícios
 
-1. **Buffer persistente** - Chunks incompletos são mantidos e completados no próximo ciclo
-2. **Processamento linha por linha** - Apenas linhas completas são parseadas
-3. **Recuperação de erros** - Se parsing falhar, a linha volta ao buffer
-4. **Flush final** - Dados residuais são processados ao fim do stream
-5. **Consistência** - Mesma lógica usada em `handleSend` que funciona corretamente
+1. **Preservação total** - Nenhum dado do relatório é perdido
+2. **Escala automática** - Apresentação cresce conforme o conteúdo
+3. **Organização lógica** - Slides agrupados por tema
+4. **Qualidade profissional** - Um foco por slide, títulos analíticos
+5. **Flexibilidade** - Funciona para relatórios curtos e extensos
 
-## Diagrama do Fluxo
-
-```text
-STREAMING CHUNKS
-     │
-     ▼
-┌─────────────────────────────────────────┐
-│  textBuffer += decoder.decode(chunk)    │
-│  "data: {...}\ndata: {..."              │
-└──────────────────┬──────────────────────┘
-                   │
-     ┌─────────────┴─────────────┐
-     │  Processa linhas completas │
-     │  (terminadas em \n)        │
-     └─────────────┬─────────────┘
-                   │
-     ┌─────────────┴─────────────┐
-     │  "data: {...}" → parse     │
-     │  fullContent += delta      │
-     └─────────────┬─────────────┘
-                   │
-     ┌─────────────┴─────────────┐
-     │  "data: {..." (incompleto) │
-     │  → mantém no buffer        │
-     └─────────────┬─────────────┘
-                   │
-                   ▼
-           PRÓXIMO CHUNK
-```
