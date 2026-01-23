@@ -290,15 +290,33 @@ INSTRUÇÕES ADICIONAIS:
       systemPrompt += `
 
 MODO DE GERAÇÃO DE APRESENTAÇÃO:
-Você está no modo de geração de apresentação. Analise toda a conversa anterior e gere uma apresentação executiva em formato JSON.
+Você está no modo de geração de apresentação. Analise toda a conversa anterior e gere uma apresentação executiva.
 
-REGRAS OBRIGATÓRIAS:
-1. Retorne APENAS JSON válido, sem texto antes ou depois
-2. Não use blocos de código markdown (\`\`\`), apenas o JSON puro
-3. Crie slides que resumam os principais pontos da análise
-4. Use gráficos quando houver dados quantitativos
-5. Limite a 6-8 slides no total
-6. Mantenha títulos concisos e bullets objetivos`;
+⚠️ REGRAS CRÍTICAS - SIGA EXATAMENTE:
+1. Retorne SOMENTE o objeto JSON, nada mais
+2. NÃO use blocos de código (\`\`\`json ou \`\`\`)
+3. NÃO escreva texto antes do JSON
+4. NÃO escreva texto depois do JSON
+5. NÃO adicione comentários dentro do JSON
+6. Comece a resposta diretamente com o caractere {
+7. Termine a resposta diretamente com o caractere }
+
+ESTRUTURA EXATA DO JSON:
+{
+  "title": "Título da Apresentação",
+  "theme": "default",
+  "slides": [
+    {"id": "1", "type": "cover", "title": "Título Principal", "subtitle": "Subtítulo"},
+    {"id": "2", "type": "content", "title": "Contexto", "bullets": ["Ponto 1", "Ponto 2"]},
+    {"id": "3", "type": "chart", "title": "Dados", "chart": {"type": "pie", "title": "Gráfico", "data": [{"name": "Item", "value": 50}]}},
+    {"id": "4", "type": "conclusion", "title": "Conclusões", "bullets": ["Conclusão 1"]}
+  ]
+}
+
+Tipos de slides permitidos: cover, content, chart, conclusion, recommendations
+Tipos de gráfico permitidos: pie, bar, line, comparison
+Limite: 6-8 slides no total
+Mantenha títulos concisos e bullets objetivos`;
     }
 
     // Call Lovable AI Gateway

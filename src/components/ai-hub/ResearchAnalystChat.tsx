@@ -459,13 +459,42 @@ IMPORTANTE: Retorne APENAS o JSON, sem nenhum texto antes ou depois.`
         }
       }
 
-      // Parse the JSON from the response
-      const jsonMatch = fullContent.match(/\{[\s\S]*\}/);
-      if (!jsonMatch) {
+      // Clean and parse the JSON from the response
+      let cleanedContent = fullContent.trim();
+
+      // Remove markdown code blocks if present
+      cleanedContent = cleanedContent.replace(/^```json?\s*/i, '');
+      cleanedContent = cleanedContent.replace(/```\s*$/i, '');
+      cleanedContent = cleanedContent.replace(/```json\s*/gi, '');
+      cleanedContent = cleanedContent.replace(/```\s*/gi, '');
+      cleanedContent = cleanedContent.trim();
+
+      // Remove any text before the first { and after the last }
+      const jsonStart = cleanedContent.indexOf('{');
+      const jsonEnd = cleanedContent.lastIndexOf('}');
+
+      if (jsonStart === -1 || jsonEnd === -1) {
+        console.error('JSON não encontrado na resposta:', fullContent.substring(0, 500));
         throw new Error('Não foi possível extrair JSON da resposta');
       }
 
-      const presentationData = JSON.parse(jsonMatch[0]);
+      let jsonString = cleanedContent.substring(jsonStart, jsonEnd + 1);
+
+      // Fix common JSON issues
+      jsonString = jsonString
+        .replace(/,\s*}/g, '}')  // Remove trailing commas before }
+        .replace(/,\s*]/g, ']')  // Remove trailing commas before ]
+        .replace(/[\u201C\u201D]/g, '"')  // Replace smart quotes
+        .replace(/[\u2018\u2019]/g, "'"); // Replace smart apostrophes
+
+      let presentationData;
+      try {
+        presentationData = JSON.parse(jsonString);
+      } catch (parseError) {
+        console.error('Erro ao parsear JSON:', parseError);
+        console.error('JSON recebido:', jsonString.substring(0, 1000));
+        throw new Error('JSON inválido na resposta da IA');
+      }
       
       // Validate basic structure
       if (!presentationData.slides || !Array.isArray(presentationData.slides)) {
