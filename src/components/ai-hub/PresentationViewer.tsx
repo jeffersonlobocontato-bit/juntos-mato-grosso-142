@@ -338,7 +338,7 @@ export const PresentationViewer = ({
       </header>
 
       {/* Slides Area */}
-      <div className="absolute inset-0 pt-16 pb-20 overflow-hidden">
+      <div className="absolute inset-0 pt-20 pb-24 overflow-hidden">
         <AnimatedSlideRenderer 
           slides={presentation.slides} 
           currentIndex={currentIndex} 
