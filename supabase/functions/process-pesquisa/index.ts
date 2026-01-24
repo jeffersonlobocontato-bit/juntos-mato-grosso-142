@@ -485,22 +485,54 @@ serve(async (req) => {
     let state: ProcessingState | null = pesquisaData?.ai_processing_state as ProcessingState | null;
 
     // If process_next_chunk is true, we're continuing an existing process
-    if (process_next_chunk && state && state.content_length && state.processed_chunks < state.total_chunks) {
+    if (process_next_chunk && state && state.content_length) {
       // Regenerate chunks from saved content
       const savedContent = pesquisaData?.content?.trim() || "";
       const chunks = splitIntoChunks(savedContent);
       
+      // CRITICAL: Use actual chunk count, not stored one (chunk size may have changed)
+      const actualTotalChunks = chunks.length;
       const chunkIndex = state.processed_chunks;
+      
+      // Check if already completed with updated chunk count
+      if (chunkIndex >= actualTotalChunks) {
+        console.log("All chunks already processed, finalizing...");
+        
+        const finalData: ExtractedData = {
+          metadata: state.partial_metadata || {},
+          resultados: state.partial_resultados || [],
+          cruzamentos: state.partial_cruzamentos || [],
+          qualitativo: state.partial_qualitativo,
+        };
+
+        await saveFinalResults(supabase, pesquisa_id, finalData);
+
+        return new Response(
+          JSON.stringify({
+            success: true,
+            status: "completed",
+            message: "Processamento concluído!",
+            data: {
+              total_chunks: actualTotalChunks,
+              resultados_count: finalData.resultados.length,
+              cruzamentos_count: finalData.cruzamentos.length,
+            },
+          }),
+          { headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        );
+      }
+      
       const chunk = chunks[chunkIndex];
 
-      console.log(`Continuing: Processing chunk ${chunkIndex + 1}/${state.total_chunks}`);
+      console.log(`Continuing: Processing chunk ${chunkIndex + 1}/${actualTotalChunks}`);
 
       try {
         const result = await processChunk(chunk, chunkIndex, state.total_chunks, LOVABLE_API_KEY);
         
-        // Update state with new result
+        // Update state with new result (use actual chunk count)
         const newState: ProcessingState = {
           ...state,
+          total_chunks: actualTotalChunks, // Always update to current chunk count
           processed_chunks: chunkIndex + 1,
           current_chunk: chunkIndex + 2,
           partial_metadata: result?.metadata 
@@ -518,7 +550,7 @@ serve(async (req) => {
         };
 
         // Check if we're done
-        if (newState.processed_chunks >= newState.total_chunks) {
+        if (newState.processed_chunks >= actualTotalChunks) {
           console.log("All chunks processed, saving final results...");
           
           const finalData: ExtractedData = {
@@ -536,7 +568,7 @@ serve(async (req) => {
               status: "completed",
               message: "Processamento concluído!",
               data: {
-                total_chunks: newState.total_chunks,
+                total_chunks: actualTotalChunks,
                 resultados_count: finalData.resultados.length,
                 cruzamentos_count: finalData.cruzamentos.length,
               },
@@ -554,9 +586,9 @@ serve(async (req) => {
           JSON.stringify({
             success: true,
             status: "processing",
-            message: `Chunk ${chunkIndex + 1}/${state.total_chunks} processado`,
+            message: `Chunk ${chunkIndex + 1}/${actualTotalChunks} processado`,
             data: {
-              total_chunks: newState.total_chunks,
+              total_chunks: actualTotalChunks,
               processed_chunks: newState.processed_chunks,
               needs_more: true,
             },
