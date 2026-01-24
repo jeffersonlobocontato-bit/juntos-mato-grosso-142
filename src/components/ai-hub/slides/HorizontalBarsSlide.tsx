@@ -126,14 +126,20 @@ export const HorizontalBarsSlide = ({ slide }: HorizontalBarsSlideProps) => {
                       : isHighlighted 
                         ? barColors[0]
                         : barColors[(idx % (barColors.length - 1)) + 1]
-                  } shadow-md`}
+                  } shadow-md flex items-center justify-end pr-3`}
                   style={bar.color ? { backgroundColor: bar.color } : undefined}
-                />
-                <span className={`absolute right-3 top-1/2 -translate-y-1/2 text-sm font-bold ${
-                  percentage > 50 ? 'text-white drop-shadow-md' : 'text-foreground'
-                }`}>
-                  {bar.value}%
-                </span>
+                >
+                  {percentage > 60 && (
+                    <span className="text-sm font-bold text-white drop-shadow-md">
+                      {bar.value}%
+                    </span>
+                  )}
+                </motion.div>
+                {percentage <= 60 && (
+                  <span className="absolute right-3 top-1/2 -translate-y-1/2 text-sm font-bold text-foreground">
+                    {bar.value}%
+                  </span>
+                )}
               </div>
             </motion.div>
           );
