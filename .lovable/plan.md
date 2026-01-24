@@ -1,244 +1,149 @@
 
-# Correção de Slides em Branco nas Apresentações
+# Correção do Timeout no Processamento de Pesquisa
 
-## Diagnóstico do Problema
+## Problema Identificado
 
-Após análise detalhada do código e dos dados armazenados, identifiquei **3 causas raiz** para slides aparecerem em branco:
+O erro `connection closed before message completed` indica que a Edge Function `process-pesquisa` está atingindo o timeout enquanto aguarda resposta da IA para um dos chunks.
 
-### Causa 1: Componentes sem Fallback Visual
-Os componentes especializados retornam `null` ou renderizam áreas vazias quando os dados esperados não existem:
+**Logs relevantes:**
+- `Split content into 5 chunks. Sizes: 25000, 18275, 2000, 2000, 2000`
+- `Processing chunk 1/5, length: 25000`
+- `ERROR Http: connection closed before message completed`
 
-| Componente | Campo Esperado | Comportamento Atual |
-|------------|----------------|---------------------|
-| `MethodologySlide` | `slide.methodology[]` | Renderiza grid vazio |
-| `HighlightSlide` | `slide.highlight{}` | Retorna `null` |
-| `CrossTableSlide` | `slide.crossTable{}` | Retorna `null` |
-| `HorizontalBarsSlide` | `slide.horizontalBars[]` | Renderiza área vazia |
-| `NumberedInsightsSlide` | `slide.insights[]` | Renderiza grid vazio |
-| `QuoteSlide` | `slide.quote{}` | Texto potencialmente vazio |
+## Causa Raiz
 
-### Causa 2: IA Pode Gerar JSON Incompleto
-A IA às vezes gera slides com `type` especializado mas omite os campos de dados correspondentes, resultando em slides vazios.
-
-### Causa 3: ContentSlide como Fallback Genérico
-O `SlideRenderer` usa `ContentSlide` como fallback para tipos não reconhecidos, mas se o slide não tiver `bullets` nem `content`, fica em branco.
-
----
+1. O `CHUNK_SIZE` de 25.000 caracteres resulta em chunks grandes demais
+2. A chamada de IA para chunks grandes pode exceder 60-120 segundos
+3. O gateway fecha a conexão antes da resposta ser completada
 
 ## Solução Técnica
 
-### 1. Adicionar Fallback Visual em Todos os Componentes
+### 1. Reduzir o Tamanho dos Chunks
 
-Cada componente especializado deve:
-- Verificar se os dados existem e são válidos
-- Se não existirem, tentar usar `slide.bullets` ou `slide.content` como fallback
-- Se nenhum dado existir, exibir mensagem de "conteúdo não disponível" em vez de ficar em branco
+**Arquivo:** `supabase/functions/process-pesquisa/index.ts`
 
-### 2. Arquivos a Modificar
+Alterar as constantes de chunking para valores menores:
 
-#### Arquivo 1: `src/components/ai-hub/slides/MethodologySlide.tsx`
+```typescript
+// Linha 10-12: Alterar de
+const CHUNK_SIZE = 25000;
+const CHUNK_OVERLAP = 2000;
+const MAX_CHUNKS = 5;
 
-Adicionar fallback para `slide.bullets` ou `slide.content` quando `methodology` estiver vazio:
+// Para
+const CHUNK_SIZE = 12000;  // Metade do anterior
+const CHUNK_OVERLAP = 1500;
+const MAX_CHUNKS = 10;     // Mais chunks, menor cada um
+```
 
-```tsx
-// Linha ~19
-const items = slide.methodology || [];
+**Benefícios:**
+- Chunks menores = respostas mais rápidas da IA
+- Mais margem de tempo para cada chamada
+- Maior tolerância a documentos longos
 
-// Se items estiver vazio, usar bullets como fallback
-if (items.length === 0) {
-  if (slide.bullets && slide.bullets.length > 0) {
-    // Renderizar como ContentSlide com bullets
-    return <ContentSlide slide={slide} />;
+### 2. Adicionar Timeout Explícito com Retry
+
+Adicionar um timeout controller na chamada de IA com retry automático:
+
+```typescript
+// Na função processChunk, linha ~197
+const controller = new AbortController();
+const timeoutId = setTimeout(() => controller.abort(), 55000); // 55s timeout
+
+try {
+  const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
+    method: "POST",
+    headers: { ... },
+    body: JSON.stringify({ ... }),
+    signal: controller.signal,
+  });
+  clearTimeout(timeoutId);
+  // ... resto do processamento
+} catch (error) {
+  clearTimeout(timeoutId);
+  if (error.name === 'AbortError') {
+    console.error(`Chunk ${chunkIndex + 1} timeout - será processado na próxima tentativa`);
+    // Retornar null para permitir retry no próximo request
+    return null;
   }
-  if (slide.content) {
-    return <ContentSlide slide={slide} />;
-  }
-  // Fallback visual de "sem dados"
-  return (
-    <div className="h-full flex flex-col items-center justify-center p-8 bg-gradient-to-br from-emerald-500/10 via-background to-blue-500/10">
-      <h2 className="text-3xl font-bold text-foreground mb-4">{slide.title}</h2>
-      <p className="text-muted-foreground">Dados de metodologia não disponíveis</p>
-    </div>
-  );
+  throw error;
 }
 ```
 
-#### Arquivo 2: `src/components/ai-hub/slides/HighlightSlide.tsx`
+### 3. Melhorar Feedback de Erro no Frontend
 
-Adicionar fallback quando `highlight` não existir:
+**Arquivo:** `src/components/admin/PesquisaUploadModal.tsx`
 
-```tsx
-// Após linha 98 (onde retorna null)
-} : (
-  // Fallback: usar content ou bullets
-  <motion.div className="text-center">
-    {slide.content && (
-      <p className="text-xl text-muted-foreground">{slide.content}</p>
-    )}
-    {slide.bullets && slide.bullets.map((bullet, idx) => (
-      <p key={idx} className="text-lg text-foreground">{bullet}</p>
-    ))}
-  </motion.div>
-)
-```
+Adicionar detecção de erro de timeout e sugestão de retry:
 
-#### Arquivo 3: `src/components/ai-hub/slides/CrossTableSlide.tsx`
-
-Substituir `return null` por fallback para ContentSlide:
-
-```tsx
-// Linha ~21
-if (!table) {
-  // Tentar fallback para bullets/content
-  if (slide.bullets?.length || slide.content) {
-    return <ContentSlide slide={slide} />;
+```typescript
+// No catch do handleAutoProcess (linha ~598)
+} catch (error: any) {
+  console.error('Auto-process error:', error);
+  
+  const errorMessage = error.message || '';
+  
+  if (errorMessage.includes('closed') || errorMessage.includes('timeout')) {
+    toast.error(
+      'Processamento interrompido por timeout. Clique em "Processar com IA" para continuar de onde parou.',
+      { duration: 8000 }
+    );
+  } else {
+    toast.error(error.message || 'Erro no processamento automático');
   }
-  return (
-    <div className="h-full flex flex-col items-center justify-center p-8 bg-gradient-to-br from-blue-500/10 via-background to-muted/30">
-      <h2 className="text-3xl font-bold text-foreground mb-4">{slide.title}</h2>
-      {slide.subtitle && <p className="text-muted-foreground">{slide.subtitle}</p>}
-      <p className="text-muted-foreground mt-4">Tabela de dados não disponível</p>
-    </div>
-  );
+  // ...
 }
 ```
 
-#### Arquivo 4: `src/components/ai-hub/slides/HorizontalBarsSlide.tsx`
+### 4. Botão de Continuar Processamento
 
-Adicionar fallback quando `horizontalBars` estiver vazio:
-
-```tsx
-// Após linha 9
-const bars = slide.horizontalBars || [];
-
-if (bars.length === 0) {
-  if (slide.bullets?.length || slide.content) {
-    return <ContentSlide slide={slide} />;
-  }
-  return (
-    <div className="h-full flex flex-col items-center justify-center p-8 bg-gradient-to-br from-rose-500/10 via-background to-primary/10">
-      <h2 className="text-3xl font-bold text-foreground mb-4">{slide.title}</h2>
-      {slide.subtitle && <p className="text-muted-foreground">{slide.subtitle}</p>}
-      <p className="text-muted-foreground mt-4">Dados de barras não disponíveis</p>
-    </div>
-  );
-}
-```
-
-#### Arquivo 5: `src/components/ai-hub/slides/NumberedInsightsSlide.tsx`
-
-Adicionar fallback quando `insights` estiver vazio:
+Adicionar um botão na UI para retomar processamento de pesquisas com `ai_processing_state` incompleto:
 
 ```tsx
-// Após linha 11
-const insights = slide.insights || [];
-
-if (insights.length === 0) {
-  if (slide.bullets?.length || slide.content) {
-    return <ContentSlide slide={slide} />;
-  }
-  return (
-    <div className="h-full flex flex-col items-center justify-center p-8 bg-gradient-to-br from-amber-500/10 via-background to-primary/10">
-      <h2 className="text-3xl font-bold text-foreground mb-4">{slide.title}</h2>
-      <p className="text-muted-foreground">Insights não disponíveis</p>
-    </div>
-  );
-}
-```
-
-#### Arquivo 6: `src/components/ai-hub/slides/QuoteSlide.tsx`
-
-Adicionar fallback quando `quote` não existir:
-
-```tsx
-// Linha ~49
-{quote?.text || slide.content || "Citação não disponível"}
-```
-
-#### Arquivo 7: `src/components/ai-hub/slides/ChartSlide.tsx`
-
-Adicionar fallback quando `chart` não existir:
-
-```tsx
-// Após linha 68 (onde retorna null no default)
-if (!slide.chart) {
-  if (slide.bullets?.length || slide.content) {
-    return <ContentSlide slide={slide} />;
-  }
-  return (
-    <div className="h-full flex flex-col items-center justify-center p-8">
-      <h2 className="text-3xl font-bold mb-4">{slide.title}</h2>
-      <p className="text-muted-foreground">Gráfico não disponível</p>
-    </div>
-  );
-}
-```
-
-#### Arquivo 8: `src/components/ai-hub/slides/ContentSlide.tsx`
-
-Garantir que sempre exibe algo mesmo sem bullets/content:
-
-```tsx
-// Adicionar após verificação de bullets e content (aprox. linha 65-75)
-// Se não houver bullets nem content, exibir mensagem
-{!slide.bullets?.length && !slide.content && (
-  <motion.div
-    initial={{ opacity: 0 }}
-    animate={{ opacity: 1 }}
-    className="flex-1 flex items-center justify-center"
+// Na lista de pesquisas ou no modal
+{pesquisa?.ai_processing_state?.processed_chunks < pesquisa?.ai_processing_state?.total_chunks && (
+  <Button 
+    variant="outline" 
+    onClick={() => resumeProcessing(pesquisa.id)}
+    className="gap-2"
   >
-    <p className="text-muted-foreground text-center">
-      Conteúdo detalhado não disponível para este slide.
-    </p>
-  </motion.div>
+    <RefreshCw className="w-4 h-4" />
+    Continuar ({pesquisa.ai_processing_state.processed_chunks}/{pesquisa.ai_processing_state.total_chunks})
+  </Button>
 )}
 ```
 
-### 3. Reforçar Prompt da IA
-
-#### Arquivo 9: `supabase/functions/ai-hub-chat/index.ts`
-
-Adicionar instruções mais explícitas para garantir que cada tipo de slide tenha seus campos obrigatórios preenchidos:
-
-```text
-CAMPOS OBRIGATÓRIOS POR TIPO DE SLIDE:
-- cover: title (obrigatório), subtitle (opcional)
-- methodology: methodology[] array com {label, value, description} (obrigatório)
-- highlight: highlight{} com primary/comparison (obrigatório)
-- crosstable: crossTable{headers, rows} (obrigatório)
-- horizontal_bars: horizontalBars[] array com {label, value} (obrigatório)
-- chart: chart{} com type e data (obrigatório)
-- numbered_insights: insights[] array com {number, title, description} (obrigatório)
-- alert: alert{} com type, title, description (obrigatório)
-- quote: quote{text} (obrigatório)
-- content: bullets[] OU content string (pelo menos um obrigatório)
-
-⚠️ NUNCA gere um slide sem seu campo de dados principal preenchido!
-Se não houver dados suficientes para um tipo especializado, use "content" com bullets.
-```
-
----
-
 ## Resumo das Alterações
 
-| Arquivo | Tipo de Alteração |
-|---------|-------------------|
-| `MethodologySlide.tsx` | Fallback para ContentSlide ou mensagem |
-| `HighlightSlide.tsx` | Fallback para bullets/content |
-| `CrossTableSlide.tsx` | Fallback para ContentSlide ou mensagem |
-| `HorizontalBarsSlide.tsx` | Fallback para ContentSlide ou mensagem |
-| `NumberedInsightsSlide.tsx` | Fallback para ContentSlide ou mensagem |
-| `QuoteSlide.tsx` | Fallback de texto padrão |
-| `ChartSlide.tsx` | Fallback para ContentSlide ou mensagem |
-| `ContentSlide.tsx` | Mensagem quando sem conteúdo |
-| `ai-hub-chat/index.ts` | Instruções de campos obrigatórios |
+| Arquivo | Alteração |
+|---------|-----------|
+| `supabase/functions/process-pesquisa/index.ts` | Reduzir CHUNK_SIZE para 12000, aumentar MAX_CHUNKS para 10, adicionar timeout controller |
+| `src/components/admin/PesquisaUploadModal.tsx` | Melhorar mensagem de erro de timeout |
+| `src/pages/AdminPesquisas.tsx` | Adicionar botão de continuar processamento na listagem |
 
----
+## Fluxo Corrigido
+
+```text
+1. Upload PDF (41.275 chars)
+2. Split em ~4 chunks de 12.000 chars cada
+3. Processar chunk 1 → salvar estado → responder cliente
+4. Frontend chama próximo chunk
+5. Processar chunk 2 → salvar estado → responder cliente
+6. ... continua até o último chunk
+7. Salvar resultados finais nas tabelas relacionais
+```
 
 ## Benefícios
 
-1. **Zero slides em branco** - Sempre haverá conteúdo visual
-2. **Degradação graciosa** - Se dados específicos faltarem, usa fallback inteligente
-3. **Feedback ao usuário** - Mensagens claras quando dados não estão disponíveis
-4. **IA mais precisa** - Instruções reforçadas para gerar JSON completo
-5. **Preservação integral** - Conteúdo sempre visível, mesmo em casos de edge
+1. **Sem timeout** - Chunks menores respondem mais rápido
+2. **Resiliente** - Se falhar, pode continuar de onde parou
+3. **Feedback claro** - Usuário sabe o que aconteceu
+4. **Ação de recuperação** - Botão para continuar processamento interrompido
+
+## Ação Imediata
+
+Após implementar as correções, você poderá:
+1. Reprocessar a pesquisa de janeiro 2026
+2. O sistema vai criar chunks menores (~4 chunks de 12k em vez de 5 chunks com um de 25k)
+3. Cada chunk será processado dentro do limite de tempo
+
