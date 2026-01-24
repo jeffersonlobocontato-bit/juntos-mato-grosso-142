@@ -71,7 +71,19 @@ export const DynamicBarChart = ({ title, data, keys }: DynamicBarChartProps) => 
                     borderRadius: '8px',
                     fontSize: '12px',
                   }}
-                  formatter={(value: number) => [`${value.toFixed(1)}%`, 'Percentual']}
+                  formatter={(value: number, name: string, props: { payload?: { name?: string } }) => [
+                    `${Number(value).toFixed(1)}%`, 
+                    props.payload?.name || name
+                  ]}
+                />
+                <Legend 
+                  wrapperStyle={{ fontSize: '11px' }}
+                  payload={simpleData.map((entry, index) => ({
+                    value: entry.name,
+                    type: 'square' as const,
+                    color: DEFAULT_COLORS[index % DEFAULT_COLORS.length],
+                  }))}
+                  formatter={(value) => <span className="text-foreground">{value}</span>}
                 />
                 <Bar 
                   dataKey="value" 
