@@ -1,4 +1,4 @@
-import { useEffect, useState, useCallback } from 'react';
+import { useEffect, useState, useCallback, useRef } from 'react';
 import { useParams } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { BarChart3, Loader2, AlertCircle } from 'lucide-react';
@@ -24,6 +24,8 @@ const PublicPresentation = () => {
   const [error, setError] = useState<string | null>(null);
   const [currentIndex, setCurrentIndex] = useState(0);
   const [direction, setDirection] = useState(0);
+  const touchStartRef = useRef<{ x: number; y: number } | null>(null);
+  const slideAreaRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     const fetchPresentation = async () => {
@@ -107,6 +109,40 @@ const PublicPresentation = () => {
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, [currentIndex, navigate, presentation]);
 
+  // Touch/swipe navigation for mobile
+  const handleTouchStart = useCallback((e: React.TouchEvent) => {
+    touchStartRef.current = {
+      x: e.touches[0].clientX,
+      y: e.touches[0].clientY
+    };
+  }, []);
+
+  const handleTouchEnd = useCallback((e: React.TouchEvent) => {
+    if (!touchStartRef.current || !presentation) return;
+
+    const touchEnd = {
+      x: e.changedTouches[0].clientX,
+      y: e.changedTouches[0].clientY
+    };
+
+    const deltaX = touchEnd.x - touchStartRef.current.x;
+    const deltaY = touchEnd.y - touchStartRef.current.y;
+    const minSwipeDistance = 50;
+
+    // Only handle horizontal swipes (ignore vertical scrolling)
+    if (Math.abs(deltaX) > Math.abs(deltaY) && Math.abs(deltaX) > minSwipeDistance) {
+      if (deltaX > 0) {
+        // Swipe right - go to previous
+        navigate(currentIndex - 1);
+      } else {
+        // Swipe left - go to next
+        navigate(currentIndex + 1);
+      }
+    }
+
+    touchStartRef.current = null;
+  }, [navigate, currentIndex, presentation]);
+
   if (loading) {
     return (
       <div className="min-h-screen bg-background flex items-center justify-center">
@@ -157,8 +193,13 @@ const PublicPresentation = () => {
         </div>
       </header>
 
-      {/* Slides Area */}
-      <div className="fixed top-[72px] bottom-[80px] left-0 right-0 overflow-hidden">
+      {/* Slides Area - with touch support */}
+      <div 
+        ref={slideAreaRef}
+        className="fixed top-[72px] bottom-[88px] sm:bottom-[80px] left-0 right-0 overflow-hidden touch-pan-y"
+        onTouchStart={handleTouchStart}
+        onTouchEnd={handleTouchEnd}
+      >
         <AnimatedSlideRenderer 
           slides={presentation.slides} 
           currentIndex={currentIndex} 
