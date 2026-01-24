@@ -106,7 +106,7 @@ export const ChartSlide = ({ slide }: ChartSlideProps) => {
   };
 
   return (
-    <div className="h-full flex flex-col p-8 md:p-12 overflow-auto bg-gradient-to-br from-primary/5 via-background to-emerald-500/10">
+    <div className="h-full flex flex-col p-6 md:p-8 overflow-y-auto bg-gradient-to-br from-primary/5 via-background to-emerald-500/10">
       <motion.h2
         initial={{ y: -20, opacity: 0 }}
         animate={{ y: 0, opacity: 1 }}
@@ -141,7 +141,7 @@ export const ChartSlide = ({ slide }: ChartSlideProps) => {
           initial={{ y: 20, opacity: 0 }}
           animate={{ y: 0, opacity: 1 }}
           transition={{ delay: 0.4, duration: 0.4 }}
-          className="mt-6 text-center text-muted-foreground max-w-3xl mx-auto bg-primary/5 rounded-lg p-4"
+          className="mt-4 text-center text-muted-foreground max-w-3xl mx-auto bg-primary/5 rounded-lg p-3 text-sm"
         >
           {slide.content}
         </motion.p>
