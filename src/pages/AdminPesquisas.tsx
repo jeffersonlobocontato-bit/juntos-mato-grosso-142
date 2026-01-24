@@ -191,40 +191,46 @@ const AdminPesquisas = () => {
 
     setProcessingId(pesquisa.id);
     try {
-      const response = await fetch(
-        `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/process-pesquisa`,
-        {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            Authorization: `Bearer ${import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY}`,
-          },
-          body: JSON.stringify({
-            pesquisa_id: pesquisa.id,
-            file_url: pesquisa.file_url,
-            content_text: pesquisa.content,
-          }),
-        }
-      );
+      const response = await supabase.functions.invoke('process-pesquisa', {
+        body: {
+          pesquisa_id: pesquisa.id,
+          file_url: pesquisa.file_url,
+          content_text: pesquisa.content,
+        },
+      });
 
-      const data = await response.json();
-
-      if (!response.ok) {
-        if (response.status === 429) {
-          toast.error('Limite de requisições excedido. Tente novamente mais tarde.');
-        } else if (response.status === 402) {
-          toast.error('Créditos insuficientes. Adicione créditos ao workspace.');
-        } else {
-          toast.error(data.error || 'Erro ao processar pesquisa');
-        }
-        return;
+      if (response.error) {
+        throw new Error(response.error.message || 'Erro ao processar pesquisa');
       }
 
-      toast.success(`Pesquisa processada! ${data.data.resultados_count} resultados extraídos.`);
+      let data = response.data as any;
+
+      // Keep calling until done
+      while (data?.data?.needs_more) {
+        toast.info(`Processando parte ${data.data.processed_chunks + 1} de ${data.data.total_chunks}...`);
+        
+        await new Promise(resolve => setTimeout(resolve, 500));
+        
+        const nextResponse = await supabase.functions.invoke('process-pesquisa', {
+          body: {
+            pesquisa_id: pesquisa.id,
+            process_next_chunk: true,
+          },
+        });
+
+        if (nextResponse.error) {
+          throw new Error(nextResponse.error.message || 'Erro ao processar chunk');
+        }
+
+        data = nextResponse.data;
+      }
+
+      const totalResults = (data?.data?.resultados_count || 0) + (data?.data?.cruzamentos_count || 0);
+      toast.success(`Pesquisa processada! ${totalResults} resultados extraídos.`);
       fetchPesquisas();
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error processing pesquisa:', error);
-      toast.error('Erro ao processar pesquisa com IA');
+      toast.error(error.message || 'Erro ao processar pesquisa com IA');
     } finally {
       setProcessingId(null);
     }
@@ -247,27 +253,18 @@ const AdminPesquisas = () => {
 
     setProcessingId(pesquisa.id);
     try {
-      const response = await fetch(
-        `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/process-pesquisa`,
-        {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            Authorization: `Bearer ${import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY}`,
-          },
-          body: JSON.stringify({
-            pesquisa_id: pesquisa.id,
-            process_next_chunk: true,
-          }),
-        }
-      );
+      const response = await supabase.functions.invoke('process-pesquisa', {
+        body: {
+          pesquisa_id: pesquisa.id,
+          process_next_chunk: true,
+        },
+      });
 
-      let data = await response.json();
-
-      if (!response.ok) {
-        toast.error(data.error || 'Erro ao continuar processamento');
-        return;
+      if (response.error) {
+        throw new Error(response.error.message || 'Erro ao continuar processamento');
       }
+
+      let data = response.data as any;
 
       // Keep calling until done
       while (data?.data?.needs_more) {
@@ -275,37 +272,29 @@ const AdminPesquisas = () => {
         
         await new Promise(resolve => setTimeout(resolve, 500));
         
-        const nextResponse = await fetch(
-          `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/process-pesquisa`,
-          {
-            method: 'POST',
-            headers: {
-              'Content-Type': 'application/json',
-              Authorization: `Bearer ${import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY}`,
-            },
-            body: JSON.stringify({
-              pesquisa_id: pesquisa.id,
-              process_next_chunk: true,
-            }),
-          }
-        );
+        const nextResponse = await supabase.functions.invoke('process-pesquisa', {
+          body: {
+            pesquisa_id: pesquisa.id,
+            process_next_chunk: true,
+          },
+        });
 
-        data = await nextResponse.json();
-        
-        if (!nextResponse.ok) {
-          toast.error(data.error || 'Erro ao processar chunk');
-          break;
+        if (nextResponse.error) {
+          throw new Error(nextResponse.error.message || 'Erro ao processar chunk');
         }
+
+        data = nextResponse.data;
       }
 
       if (data?.status === 'completed') {
-        toast.success(`Processamento concluído! ${data.data?.resultados_count || 0} resultados extraídos.`);
+        const totalResults = (data.data?.resultados_count || 0) + (data.data?.cruzamentos_count || 0);
+        toast.success(`Processamento concluído! ${totalResults} resultados extraídos.`);
       }
       
       fetchPesquisas();
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error continuing processing:', error);
-      toast.error('Erro ao continuar processamento');
+      toast.error(error.message || 'Erro ao continuar processamento');
     } finally {
       setProcessingId(null);
     }
