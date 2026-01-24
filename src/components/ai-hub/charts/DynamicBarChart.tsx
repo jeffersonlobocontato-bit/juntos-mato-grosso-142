@@ -105,17 +105,34 @@ export const DynamicBarChart = ({ title, data, keys }: DynamicBarChartProps) => 
   }
 
   // Complex format with multiple keys per category
+  // Detect category key - could be "category", "name", "label", or "candidato"
+  const categoryKey = 'category' in (data[0] || {}) ? 'category' 
+    : 'name' in (data[0] || {}) ? 'name' 
+    : 'label' in (data[0] || {}) ? 'label'
+    : 'candidato' in (data[0] || {}) ? 'candidato'
+    : Object.keys(data[0] || {}).find(k => typeof data[0][k] === 'string') || 'category';
+
+  // Filter out the category key from dataKeys
+  const filteredDataKeys = dataKeys.filter(k => k !== categoryKey);
+
+  // Create legend payload with category names and colors
+  const legendPayload = data.map((entry, index) => ({
+    value: String(entry[categoryKey] || `Item ${index + 1}`),
+    type: 'square' as const,
+    color: DEFAULT_COLORS[index % DEFAULT_COLORS.length],
+  }));
+
   return (
     <Card className="h-full">
       <CardHeader className="py-3 px-4">
         <CardTitle className="text-sm font-medium">{title}</CardTitle>
       </CardHeader>
       <CardContent className="pt-0 pb-4 px-4">
-        <div className="h-[200px]">
+        <div className="h-[280px]">
           <ResponsiveContainer width="100%" height="100%">
             <BarChart 
               data={data} 
-              margin={{ top: 5, right: 20, left: 0, bottom: 5 }}
+              margin={{ top: 5, right: 20, left: 0, bottom: 60 }}
             >
               <CartesianGrid 
                 strokeDasharray="3 3" 
@@ -123,9 +140,13 @@ export const DynamicBarChart = ({ title, data, keys }: DynamicBarChartProps) => 
                 opacity={0.5}
               />
               <XAxis 
-                dataKey="category"
-                tick={{ fontSize: 10, fill: 'hsl(var(--muted-foreground))' }}
+                dataKey={categoryKey}
+                tick={{ fontSize: 9, fill: 'hsl(var(--muted-foreground))' }}
                 stroke="hsl(var(--border))"
+                angle={-45}
+                textAnchor="end"
+                height={60}
+                interval={0}
               />
               <YAxis 
                 tick={{ fontSize: 10, fill: 'hsl(var(--muted-foreground))' }}
@@ -139,19 +160,29 @@ export const DynamicBarChart = ({ title, data, keys }: DynamicBarChartProps) => 
                   borderRadius: '8px',
                   fontSize: '12px',
                 }}
-                formatter={(value: number) => [`${value.toFixed(1)}%`, '']}
+                formatter={(value: number, name: string, props: { payload?: Record<string, unknown> }) => [
+                  `${Number(value).toFixed(1)}%`, 
+                  props.payload?.[categoryKey] ? String(props.payload[categoryKey]) : name
+                ]}
               />
               <Legend 
-                wrapperStyle={{ fontSize: '11px' }}
+                wrapperStyle={{ fontSize: '11px', paddingTop: '10px' }}
+                payload={legendPayload}
                 formatter={(value) => <span className="text-foreground">{value}</span>}
               />
-              {dataKeys.map((key, idx) => (
+              {filteredDataKeys.map((key, idx) => (
                 <Bar 
                   key={key}
                   dataKey={key}
-                  fill={DEFAULT_COLORS[idx % DEFAULT_COLORS.length]}
                   radius={[4, 4, 0, 0]}
-                />
+                >
+                  {data.map((_, index) => (
+                    <Cell 
+                      key={`cell-${index}`} 
+                      fill={DEFAULT_COLORS[index % DEFAULT_COLORS.length]}
+                    />
+                  ))}
+                </Bar>
               ))}
             </BarChart>
           </ResponsiveContainer>
