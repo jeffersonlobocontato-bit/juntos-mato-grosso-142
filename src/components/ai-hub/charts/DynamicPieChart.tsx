@@ -13,16 +13,18 @@ interface DynamicPieChartProps {
 }
 
 const DEFAULT_COLORS = [
-  'hsl(var(--primary))',
-  'hsl(var(--chart-2))',
-  'hsl(var(--chart-3))',
-  'hsl(var(--chart-4))',
-  'hsl(var(--chart-5))',
-  '#6366f1',
-  '#8b5cf6',
-  '#d946ef',
-  '#f43f5e',
-  '#f97316',
+  '#16a34a', // green
+  '#2563eb', // blue
+  '#dc2626', // red
+  '#f59e0b', // amber
+  '#8b5cf6', // purple
+  '#06b6d4', // cyan
+  '#ec4899', // pink
+  '#f97316', // orange
+  '#84cc16', // lime
+  '#6366f1', // indigo
+  '#14b8a6', // teal
+  '#a855f7', // violet
 ];
 
 export const DynamicPieChart = ({ title, data }: DynamicPieChartProps) => {
@@ -52,6 +54,7 @@ export const DynamicPieChart = ({ title, data }: DynamicPieChartProps) => {
                   return parseFloat(percent) > 5 ? `${percent}%` : '';
                 }}
                 labelLine={false}
+                style={{ fontSize: '11px', fontWeight: 600, fill: '#000000' }}
               >
                 {data.map((entry, index) => (
                   <Cell 
