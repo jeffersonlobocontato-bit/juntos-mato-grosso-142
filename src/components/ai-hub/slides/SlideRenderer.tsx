@@ -83,7 +83,7 @@ export const SlideRenderer = ({ slide, direction }: SlideRendererProps) => {
         x: { type: 'spring', stiffness: 300, damping: 30 },
         opacity: { duration: 0.2 },
       }}
-      className="absolute inset-0 bg-background"
+      className="absolute inset-0 bg-background overflow-y-auto"
     >
       {renderSlideContent()}
     </motion.div>
