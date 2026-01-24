@@ -6,10 +6,10 @@ const corsHeaders = {
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
 };
 
-// Configuration for chunking
-const CHUNK_SIZE = 25000;
-const CHUNK_OVERLAP = 2000;
-const MAX_CHUNKS = 5;
+// Configuration for chunking - reduced to avoid timeouts
+const CHUNK_SIZE = 12000;
+const CHUNK_OVERLAP = 1500;
+const MAX_CHUNKS = 10;
 
 interface ExtractedResult {
   tipo_pergunta: string;
@@ -194,13 +194,19 @@ ${totalChunks > 1 ? `[CHUNK ${chunkIndex + 1}/${totalChunks}]` : ''}
 ${chunk}
 ---`;
 
-  const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
-    method: "POST",
-    headers: {
-      Authorization: `Bearer ${apiKey}`,
-      "Content-Type": "application/json",
-    },
-    body: JSON.stringify({
+  // Add timeout controller to prevent gateway timeout (55s to leave margin for 60s gateway limit)
+  const controller = new AbortController();
+  const timeoutId = setTimeout(() => controller.abort(), 55000);
+
+  try {
+    const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${apiKey}`,
+        "Content-Type": "application/json",
+      },
+      signal: controller.signal,
+      body: JSON.stringify({
       model: "google/gemini-2.5-flash",
       messages: [
         { role: "system", content: systemPrompt },
@@ -292,31 +298,44 @@ ${chunk}
     }),
   });
 
-  if (!response.ok) {
-    console.error(`Chunk ${chunkIndex + 1} failed with status:`, response.status);
-    if (response.status === 429 || response.status === 402) {
-      throw new Error(response.status === 429 
-        ? "Limite de requisições excedido. Tente novamente mais tarde."
-        : "Créditos insuficientes.");
-    }
-    return null;
-  }
-
-  const aiResponse = await response.json();
-  const toolCall = aiResponse.choices?.[0]?.message?.tool_calls?.[0];
-  
-  if (toolCall?.function?.arguments) {
-    try {
-      const data = JSON.parse(toolCall.function.arguments);
-      console.log(`Chunk ${chunkIndex + 1} extracted: ${data.resultados?.length || 0} results`);
-      return data;
-    } catch (e) {
-      console.error(`Failed to parse chunk ${chunkIndex + 1}:`, e);
+    clearTimeout(timeoutId);
+    
+    if (!response.ok) {
+      console.error(`Chunk ${chunkIndex + 1} failed with status:`, response.status);
+      if (response.status === 429 || response.status === 402) {
+        throw new Error(response.status === 429 
+          ? "Limite de requisições excedido. Tente novamente mais tarde."
+          : "Créditos insuficientes.");
+      }
       return null;
     }
+
+    const aiResponse = await response.json();
+    const toolCall = aiResponse.choices?.[0]?.message?.tool_calls?.[0];
+    
+    if (toolCall?.function?.arguments) {
+      try {
+        const data = JSON.parse(toolCall.function.arguments);
+        console.log(`Chunk ${chunkIndex + 1} extracted: ${data.resultados?.length || 0} results`);
+        return data;
+      } catch (e) {
+        console.error(`Failed to parse chunk ${chunkIndex + 1}:`, e);
+        return null;
+      }
+    }
+    
+    return null;
+  } catch (error: unknown) {
+    clearTimeout(timeoutId);
+    
+    // Check if it's an abort error (timeout)
+    if (error instanceof Error && error.name === 'AbortError') {
+      console.error(`Chunk ${chunkIndex + 1} timeout after 55 seconds - will retry on next request`);
+      return null;
+    }
+    
+    throw error;
   }
-  
-  return null;
 }
 
 async function saveFinalResults(

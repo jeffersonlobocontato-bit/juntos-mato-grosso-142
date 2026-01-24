@@ -23,12 +23,21 @@ import {
   Edit,
   Sparkles,
   Loader2,
-  Brain
+  Brain,
+  RefreshCw,
+  AlertTriangle
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { PesquisaUploadModal } from '@/components/admin/PesquisaUploadModal';
 import { PesquisaDetailModal } from '@/components/admin/PesquisaDetailModal';
 import { ResearchAnalystChat } from '@/components/ai-hub/ResearchAnalystChat';
+
+interface PesquisaProcessingState {
+  total_chunks?: number;
+  processed_chunks?: number;
+  current_chunk?: number;
+  content_length?: number;
+}
 
 interface Pesquisa {
   id: string;
@@ -49,6 +58,7 @@ interface Pesquisa {
   created_at: string;
   file_url: string | null;
   content: string | null;
+  ai_processing_state: PesquisaProcessingState | null;
 }
 
 const INSTITUTOS = [
@@ -130,11 +140,11 @@ const AdminPesquisas = () => {
     try {
       const { data, error } = await supabase
         .from('pesquisas_eleitorais')
-        .select('*')
+        .select('*, ai_processing_state')
         .order('created_at', { ascending: false });
 
       if (error) throw error;
-      setPesquisas((data as Pesquisa[]) || []);
+      setPesquisas((data as unknown as Pesquisa[]) || []);
     } catch (error) {
       console.error('Error fetching pesquisas:', error);
       toast.error('Erro ao carregar pesquisas');
@@ -215,6 +225,87 @@ const AdminPesquisas = () => {
     } catch (error) {
       console.error('Error processing pesquisa:', error);
       toast.error('Erro ao processar pesquisa com IA');
+    } finally {
+      setProcessingId(null);
+    }
+  };
+
+  // Helper to check if a pesquisa has incomplete processing
+  const hasIncompleteProcessing = (pesquisa: Pesquisa): boolean => {
+    const state = pesquisa.ai_processing_state;
+    return !!(state && state.processed_chunks !== undefined && 
+              state.total_chunks !== undefined && 
+              state.processed_chunks < state.total_chunks);
+  };
+
+  // Continue processing from where it left off
+  const handleContinueProcessing = async (pesquisa: Pesquisa) => {
+    if (!hasIncompleteProcessing(pesquisa)) {
+      toast.error('Esta pesquisa não possui processamento pendente');
+      return;
+    }
+
+    setProcessingId(pesquisa.id);
+    try {
+      const response = await fetch(
+        `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/process-pesquisa`,
+        {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            Authorization: `Bearer ${import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY}`,
+          },
+          body: JSON.stringify({
+            pesquisa_id: pesquisa.id,
+            process_next_chunk: true,
+          }),
+        }
+      );
+
+      let data = await response.json();
+
+      if (!response.ok) {
+        toast.error(data.error || 'Erro ao continuar processamento');
+        return;
+      }
+
+      // Keep calling until done
+      while (data?.data?.needs_more) {
+        toast.info(`Processando parte ${data.data.processed_chunks + 1} de ${data.data.total_chunks}...`);
+        
+        await new Promise(resolve => setTimeout(resolve, 500));
+        
+        const nextResponse = await fetch(
+          `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/process-pesquisa`,
+          {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              Authorization: `Bearer ${import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY}`,
+            },
+            body: JSON.stringify({
+              pesquisa_id: pesquisa.id,
+              process_next_chunk: true,
+            }),
+          }
+        );
+
+        data = await nextResponse.json();
+        
+        if (!nextResponse.ok) {
+          toast.error(data.error || 'Erro ao processar chunk');
+          break;
+        }
+      }
+
+      if (data?.status === 'completed') {
+        toast.success(`Processamento concluído! ${data.data?.resultados_count || 0} resultados extraídos.`);
+      }
+      
+      fetchPesquisas();
+    } catch (error) {
+      console.error('Error continuing processing:', error);
+      toast.error('Erro ao continuar processamento');
     } finally {
       setProcessingId(null);
     }
@@ -488,8 +579,25 @@ const AdminPesquisas = () => {
                             )}
                           </div>
                         </div>
-                        <div className="flex items-center gap-2">
-                          {(pesquisa.file_url || pesquisa.content) && pesquisa.status !== 'ativa' && (
+                        <div className="flex items-center gap-2 flex-wrap">
+                          {/* Continue incomplete processing button */}
+                          {hasIncompleteProcessing(pesquisa) && (
+                            <Button 
+                              variant="outline" 
+                              size="sm"
+                              onClick={() => handleContinueProcessing(pesquisa)}
+                              disabled={processingId === pesquisa.id}
+                              className="border-amber-500/50 text-amber-600 hover:bg-amber-500/10 gap-1"
+                            >
+                              {processingId === pesquisa.id ? (
+                                <Loader2 className="w-4 h-4 animate-spin" />
+                              ) : (
+                                <RefreshCw className="w-4 h-4" />
+                              )}
+                              Continuar ({pesquisa.ai_processing_state?.processed_chunks}/{pesquisa.ai_processing_state?.total_chunks})
+                            </Button>
+                          )}
+                          {(pesquisa.file_url || pesquisa.content) && pesquisa.status !== 'ativa' && !hasIncompleteProcessing(pesquisa) && (
                             <Button 
                               variant="default" 
                               size="sm"
