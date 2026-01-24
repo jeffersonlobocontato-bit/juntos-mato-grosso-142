@@ -171,7 +171,7 @@ const PublicPresentation = () => {
       </header>
 
       {/* Slides Area */}
-      <div className="fixed inset-0 pt-20 pb-24 overflow-hidden">
+      <div className="fixed top-[72px] bottom-[80px] left-0 right-0 overflow-hidden">
         <AnimatedSlideRenderer 
           slides={presentation.slides} 
           currentIndex={currentIndex} 
