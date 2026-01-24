@@ -352,11 +352,11 @@ export const PesquisaUploadModal = ({
     }
   };
 
-  // Constants matching edge function
-  const CHUNK_SIZE = 25000;
-  const CHUNK_OVERLAP = 2000;
-  const MAX_CHUNKS = 5;
-  const ESTIMATED_SECONDS_PER_CHUNK = 8;
+  // Constants matching edge function (updated for timeout fix)
+  const CHUNK_SIZE = 12000;
+  const CHUNK_OVERLAP = 1500;
+  const MAX_CHUNKS = 10;
+  const ESTIMATED_SECONDS_PER_CHUNK = 12;
 
   // Calculate expected number of chunks
   const calculateExpectedChunks = (contentLength: number): number => {
@@ -597,7 +597,19 @@ export const PesquisaUploadModal = ({
       onSuccess();
     } catch (error: any) {
       console.error('Auto-process error:', error);
-      toast.error(error.message || 'Erro no processamento automático');
+      
+      const errorMessage = error.message || '';
+      
+      // Detect timeout errors and provide better feedback
+      if (errorMessage.includes('closed') || errorMessage.includes('timeout') || errorMessage.includes('AbortError')) {
+        toast.error(
+          'Processamento interrompido por timeout. Edite a pesquisa e clique em "Processar com IA" para continuar de onde parou.',
+          { duration: 8000 }
+        );
+      } else {
+        toast.error(error.message || 'Erro no processamento automático');
+      }
+      
       setProcessingStage('idle');
       setAiProgress(0);
       setAiStep('');
