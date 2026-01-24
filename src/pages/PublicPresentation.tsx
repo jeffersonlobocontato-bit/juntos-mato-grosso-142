@@ -1,8 +1,7 @@
 import { useEffect, useState, useCallback } from 'react';
-import { useParams, Link } from 'react-router-dom';
+import { useParams } from 'react-router-dom';
 import { motion } from 'framer-motion';
-import { BarChart3, Home, Loader2, AlertCircle } from 'lucide-react';
-import { Button } from '@/components/ui/button';
+import { BarChart3, Loader2, AlertCircle } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { Presentation } from '@/components/ai-hub/slides/types';
 import { AnimatedSlideRenderer } from '@/components/ai-hub/slides/SlideRenderer';
@@ -127,15 +126,9 @@ const PublicPresentation = () => {
             <AlertCircle className="w-8 h-8 text-destructive" />
           </div>
           <h1 className="text-xl font-semibold mb-2">{error || 'Apresentação não encontrada'}</h1>
-          <p className="text-muted-foreground mb-6">
+          <p className="text-muted-foreground">
             O link pode estar incorreto ou a apresentação foi removida.
           </p>
-          <Button asChild>
-            <Link to="/">
-              <Home className="w-4 h-4 mr-2" />
-              Ir para o início
-            </Link>
-          </Button>
         </div>
       </div>
     );
@@ -148,7 +141,7 @@ const PublicPresentation = () => {
       className="min-h-screen bg-background"
     >
       {/* Header */}
-      <header className="fixed top-0 left-0 right-0 z-10 bg-background/80 backdrop-blur-sm border-b border-border px-4 py-3 flex items-center justify-between">
+      <header className="fixed top-0 left-0 right-0 z-10 bg-background/80 backdrop-blur-sm border-b border-border px-4 py-3">
         <div className="flex items-center gap-3">
           <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-primary to-primary/70 flex items-center justify-center">
             <BarChart3 className="w-4 h-4 text-primary-foreground" />
@@ -162,12 +155,6 @@ const PublicPresentation = () => {
             </p>
           </div>
         </div>
-        
-        <Button variant="ghost" size="sm" asChild>
-          <Link to="/">
-            <Home className="w-4 h-4" />
-          </Link>
-        </Button>
       </header>
 
       {/* Slides Area */}
