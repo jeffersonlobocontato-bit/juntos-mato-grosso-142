@@ -33,11 +33,27 @@ import { toast } from "sonner";
 interface Eixo {
   id: string;
   nome: string;
+  ordem?: number;
 }
 
 interface Municipio {
   id: string;
   nome: string;
+}
+
+interface Tema {
+  id: string;
+  nome: string;
+  codigo: string;
+  eixo_id: string;
+  ordem?: number;
+}
+
+interface Subtema {
+  id: string;
+  nome: string;
+  tema_id: string;
+  ordem?: number;
 }
 
 interface QuestionarioData {
@@ -285,10 +301,14 @@ const EntrevistaForm = () => {
   const [entrevistadoCelular, setEntrevistadoCelular] = useState("");
   const [municipioId, setMunicipioId] = useState("");
   const [eixoId, setEixoId] = useState("");
+  const [temaId, setTemaId] = useState("");
+  const [subtemaId, setSubtemaId] = useState("");
 
   // Data
   const [eixos, setEixos] = useState<Eixo[]>([]);
   const [municipios, setMunicipios] = useState<Municipio[]>([]);
+  const [temas, setTemas] = useState<Tema[]>([]);
+  const [subtemas, setSubtemas] = useState<Subtema[]>([]);
   const [liderNome, setLiderNome] = useState("");
 
   // Questionário
@@ -297,10 +317,23 @@ const EntrevistaForm = () => {
   useEffect(() => {
     fetchEixos();
     fetchMunicipios();
+    fetchTemas();
+    fetchSubtemas();
     if (user) {
       fetchLiderNome();
     }
   }, [user]);
+
+  // Reset tema and subtema when eixo changes
+  useEffect(() => {
+    setTemaId("");
+    setSubtemaId("");
+  }, [eixoId]);
+
+  // Reset subtema when tema changes
+  useEffect(() => {
+    setSubtemaId("");
+  }, [temaId]);
 
   // Sync detalhes_propostas with propostas_estruturantes
   useEffect(() => {
@@ -350,6 +383,22 @@ const EntrevistaForm = () => {
     if (!error && data) setMunicipios(data);
   };
 
+  const fetchTemas = async () => {
+    const { data, error } = await supabase
+      .from("temas")
+      .select("id, nome, codigo, eixo_id, ordem")
+      .order("ordem");
+    if (!error && data) setTemas(data);
+  };
+
+  const fetchSubtemas = async () => {
+    const { data, error } = await supabase
+      .from("subtemas")
+      .select("id, nome, tema_id, ordem")
+      .order("ordem");
+    if (!error && data) setSubtemas(data);
+  };
+
   const fetchLiderNome = async () => {
     if (!user) return;
     const { data, error } = await supabase
@@ -388,6 +437,10 @@ const EntrevistaForm = () => {
         }
         if (!eixoId) {
           toast.error("Selecione o eixo temático");
+          return false;
+        }
+        if (!temaId) {
+          toast.error("Selecione o tema");
           return false;
         }
         return true;
@@ -492,6 +545,8 @@ const EntrevistaForm = () => {
         autor_id: user.id,
         lider_responsavel_id: user.id,
         eixo_id: eixoId,
+        tema_id: temaId || null,
+        subtema_id: subtemaId || null,
         municipio_id: municipioId,
         entrevistado: entrevistado.trim(),
         titulo,
@@ -522,6 +577,8 @@ const EntrevistaForm = () => {
     setEntrevistadoCelular("");
     setMunicipioId("");
     setEixoId("");
+    setTemaId("");
+    setSubtemaId("");
     setQuestionario(initialQuestionario);
     setIsSubmitted(false);
   };
@@ -711,6 +768,57 @@ const EntrevistaForm = () => {
                   ))}
                 </SelectContent>
               </Select>
+            </div>
+
+            <div>
+              <Label htmlFor="tema" className="text-white mb-2 block">
+                Tema *
+              </Label>
+              <Select 
+                value={temaId} 
+                onValueChange={setTemaId}
+                disabled={!eixoId}
+              >
+                <SelectTrigger className="bg-gray-900 border-gray-700 text-white">
+                  <SelectValue placeholder={eixoId ? "Selecione o tema" : "Selecione um eixo primeiro"} />
+                </SelectTrigger>
+                <SelectContent>
+                  {temas
+                    .filter(t => t.eixo_id === eixoId)
+                    .map((t) => (
+                      <SelectItem key={t.id} value={t.id}>
+                        <span className="font-medium">{t.codigo}</span> - {t.nome}
+                      </SelectItem>
+                    ))}
+                </SelectContent>
+              </Select>
+            </div>
+
+            <div>
+              <Label htmlFor="subtema" className="text-white mb-2 block">
+                Subtema
+              </Label>
+              <Select 
+                value={subtemaId} 
+                onValueChange={setSubtemaId}
+                disabled={!temaId}
+              >
+                <SelectTrigger className="bg-gray-900 border-gray-700 text-white">
+                  <SelectValue placeholder={temaId ? "Selecione o subtema (opcional)" : "Selecione um tema primeiro"} />
+                </SelectTrigger>
+                <SelectContent>
+                  {subtemas
+                    .filter(s => s.tema_id === temaId)
+                    .map((s) => (
+                      <SelectItem key={s.id} value={s.id}>
+                        {s.nome}
+                      </SelectItem>
+                    ))}
+                </SelectContent>
+              </Select>
+              <p className="text-xs text-gray-500 mt-1">
+                Opcional - para tagueamento mais preciso
+              </p>
             </div>
 
             <div>
