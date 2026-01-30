@@ -1,6 +1,15 @@
 
 # Plano: Reorganização Hierárquica Completa dos Eixos Temáticos
 
+## ✅ Progresso (Fase 1 Concluída)
+
+- [x] Migration SQL - Schema + Seed (5 eixos, 34 temas, ~60 subtemas)
+- [x] Componente EixoTemaSelector - Seleção cascata reutilizável
+- [x] AdminEixos - Interface hierárquica com accordions
+- [ ] Formulários - EntrevistaForm, SuggestionForm, LiderancasForm
+- [ ] Páginas Admin - AdminPropostas, AdminSugestoes, AdminMeuPainel
+- [ ] Mapas e Dashboards - PublicParanaHeatmap, ParanaMap, Dashboard
+
 ## Resumo Executivo
 
 Migração da estrutura plana de 8 eixos para uma hierarquia de 3 níveis (5 Eixos → Temas → Sub-temas), impactando toda a plataforma: cadastros, mapas, dashboards e filtros.
