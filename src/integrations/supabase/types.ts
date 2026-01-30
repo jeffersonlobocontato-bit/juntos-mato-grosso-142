@@ -1146,6 +1146,7 @@ export type Database = {
           municipio_id: string | null
           questionario: Json | null
           status: Database["public"]["Enums"]["proposal_status"]
+          subtema_id: string | null
           tema_id: string | null
           titulo: string
           updated_at: string
@@ -1165,6 +1166,7 @@ export type Database = {
           municipio_id?: string | null
           questionario?: Json | null
           status?: Database["public"]["Enums"]["proposal_status"]
+          subtema_id?: string | null
           tema_id?: string | null
           titulo: string
           updated_at?: string
@@ -1184,6 +1186,7 @@ export type Database = {
           municipio_id?: string | null
           questionario?: Json | null
           status?: Database["public"]["Enums"]["proposal_status"]
+          subtema_id?: string | null
           tema_id?: string | null
           titulo?: string
           updated_at?: string
@@ -1208,6 +1211,13 @@ export type Database = {
             columns: ["municipio_id"]
             isOneToOne: false
             referencedRelation: "municipios"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "propostas_tecnicas_subtema_id_fkey"
+            columns: ["subtema_id"]
+            isOneToOne: false
+            referencedRelation: "subtemas"
             referencedColumns: ["id"]
           },
           {
