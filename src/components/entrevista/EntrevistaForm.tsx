@@ -302,7 +302,7 @@ const EntrevistaForm = () => {
   const [municipioId, setMunicipioId] = useState("");
   const [eixoId, setEixoId] = useState("");
   const [temaId, setTemaId] = useState("");
-  const [subtemaId, setSubtemaId] = useState("");
+  const [subtemaIds, setSubtemaIds] = useState<string[]>([]);
 
   // Data
   const [eixos, setEixos] = useState<Eixo[]>([]);
@@ -324,15 +324,15 @@ const EntrevistaForm = () => {
     }
   }, [user]);
 
-  // Reset tema and subtema when eixo changes
+  // Reset tema and subtemas when eixo changes
   useEffect(() => {
     setTemaId("");
-    setSubtemaId("");
+    setSubtemaIds([]);
   }, [eixoId]);
 
-  // Reset subtema when tema changes
+  // Reset subtemas when tema changes
   useEffect(() => {
-    setSubtemaId("");
+    setSubtemaIds([]);
   }, [temaId]);
 
   // Sync detalhes_propostas with propostas_estruturantes
@@ -538,6 +538,7 @@ const EntrevistaForm = () => {
         identificacao: {
           entrevistado_email: entrevistadoEmail.trim(),
           entrevistado_celular: entrevistadoCelular.trim(),
+          subtemas: subtemaIds,
         },
       };
 
@@ -546,7 +547,7 @@ const EntrevistaForm = () => {
         lider_responsavel_id: user.id,
         eixo_id: eixoId,
         tema_id: temaId || null,
-        subtema_id: subtemaId || null,
+        subtema_id: subtemaIds.length === 1 ? subtemaIds[0] : null,
         municipio_id: municipioId,
         entrevistado: entrevistado.trim(),
         titulo,
@@ -578,7 +579,7 @@ const EntrevistaForm = () => {
     setMunicipioId("");
     setEixoId("");
     setTemaId("");
-    setSubtemaId("");
+    setSubtemaIds([]);
     setQuestionario(initialQuestionario);
     setIsSubmitted(false);
   };
@@ -795,30 +796,48 @@ const EntrevistaForm = () => {
             </div>
 
             <div>
-              <Label htmlFor="subtema" className="text-white mb-2 block">
-                Subtema
+              <Label className="text-white mb-2 block">
+                Subtemas
               </Label>
-              <Select 
-                value={subtemaId} 
-                onValueChange={setSubtemaId}
-                disabled={!temaId}
-              >
-                <SelectTrigger className="bg-gray-900 border-gray-700 text-white">
-                  <SelectValue placeholder={temaId ? "Selecione o subtema (opcional)" : "Selecione um tema primeiro"} />
-                </SelectTrigger>
-                <SelectContent>
-                  {subtemas
-                    .filter(s => s.tema_id === temaId)
-                    .map((s) => (
-                      <SelectItem key={s.id} value={s.id}>
-                        {s.nome}
-                      </SelectItem>
-                    ))}
-                </SelectContent>
-              </Select>
-              <p className="text-xs text-gray-500 mt-1">
-                Opcional - para tagueamento mais preciso
-              </p>
+              {!temaId ? (
+                <p className="text-sm text-gray-500">Selecione um tema primeiro</p>
+              ) : (
+                <>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-2 p-3 bg-gray-900 border border-gray-700 rounded-md max-h-48 overflow-y-auto">
+                    {subtemas
+                      .filter(s => s.tema_id === temaId)
+                      .map((s) => (
+                        <div key={s.id} className="flex items-center space-x-2">
+                          <Checkbox
+                            id={`subtema-${s.id}`}
+                            checked={subtemaIds.includes(s.id)}
+                            onCheckedChange={(checked) => {
+                              if (checked) {
+                                setSubtemaIds(prev => [...prev, s.id]);
+                              } else {
+                                setSubtemaIds(prev => prev.filter(id => id !== s.id));
+                              }
+                            }}
+                          />
+                          <label
+                            htmlFor={`subtema-${s.id}`}
+                            className="text-sm text-gray-300 cursor-pointer"
+                          >
+                            {s.nome}
+                          </label>
+                        </div>
+                      ))}
+                  </div>
+                  {subtemaIds.length > 0 && (
+                    <p className="text-xs text-primary mt-1">
+                      {subtemaIds.length} subtema{subtemaIds.length > 1 ? 's' : ''} selecionado{subtemaIds.length > 1 ? 's' : ''}
+                    </p>
+                  )}
+                  <p className="text-xs text-gray-500 mt-1">
+                    Opcional - selecione um ou mais subtemas para tagueamento preciso
+                  </p>
+                </>
+              )}
             </div>
 
             <div>
