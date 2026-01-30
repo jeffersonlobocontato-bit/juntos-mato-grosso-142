@@ -450,6 +450,8 @@ export type Database = {
           id: string
           lider_id: string | null
           nome: string
+          ordem: number | null
+          subtitulo: string | null
         }
         Insert: {
           created_at?: string
@@ -457,6 +459,8 @@ export type Database = {
           id?: string
           lider_id?: string | null
           nome: string
+          ordem?: number | null
+          subtitulo?: string | null
         }
         Update: {
           created_at?: string
@@ -464,6 +468,8 @@ export type Database = {
           id?: string
           lider_id?: string | null
           nome?: string
+          ordem?: number | null
+          subtitulo?: string | null
         }
         Relationships: []
       }
@@ -1070,6 +1076,7 @@ export type Database = {
           publico_alvo: string | null
           resumo: string | null
           status: Database["public"]["Enums"]["proposal_politica_status"]
+          tema_id: string | null
           titulo: string
           updated_at: string
           visivel_publico: boolean
@@ -1085,6 +1092,7 @@ export type Database = {
           publico_alvo?: string | null
           resumo?: string | null
           status?: Database["public"]["Enums"]["proposal_politica_status"]
+          tema_id?: string | null
           titulo: string
           updated_at?: string
           visivel_publico?: boolean
@@ -1100,6 +1108,7 @@ export type Database = {
           publico_alvo?: string | null
           resumo?: string | null
           status?: Database["public"]["Enums"]["proposal_politica_status"]
+          tema_id?: string | null
           titulo?: string
           updated_at?: string
           visivel_publico?: boolean
@@ -1112,6 +1121,13 @@ export type Database = {
             referencedRelation: "eixos_tematicos"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "propostas_politicas_tema_id_fkey"
+            columns: ["tema_id"]
+            isOneToOne: false
+            referencedRelation: "temas"
+            referencedColumns: ["id"]
+          },
         ]
       }
       propostas_tecnicas: {
@@ -1120,7 +1136,7 @@ export type Database = {
           autor_id: string
           created_at: string
           descricao: string
-          eixo_id: string
+          eixo_id: string | null
           entrevistado: string | null
           etapa: number
           id: string
@@ -1130,6 +1146,7 @@ export type Database = {
           municipio_id: string | null
           questionario: Json | null
           status: Database["public"]["Enums"]["proposal_status"]
+          tema_id: string | null
           titulo: string
           updated_at: string
         }
@@ -1138,7 +1155,7 @@ export type Database = {
           autor_id: string
           created_at?: string
           descricao: string
-          eixo_id: string
+          eixo_id?: string | null
           entrevistado?: string | null
           etapa?: number
           id?: string
@@ -1148,6 +1165,7 @@ export type Database = {
           municipio_id?: string | null
           questionario?: Json | null
           status?: Database["public"]["Enums"]["proposal_status"]
+          tema_id?: string | null
           titulo: string
           updated_at?: string
         }
@@ -1156,7 +1174,7 @@ export type Database = {
           autor_id?: string
           created_at?: string
           descricao?: string
-          eixo_id?: string
+          eixo_id?: string | null
           entrevistado?: string | null
           etapa?: number
           id?: string
@@ -1166,6 +1184,7 @@ export type Database = {
           municipio_id?: string | null
           questionario?: Json | null
           status?: Database["public"]["Enums"]["proposal_status"]
+          tema_id?: string | null
           titulo?: string
           updated_at?: string
         }
@@ -1189,6 +1208,13 @@ export type Database = {
             columns: ["municipio_id"]
             isOneToOne: false
             referencedRelation: "municipios"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "propostas_tecnicas_tema_id_fkey"
+            columns: ["tema_id"]
+            isOneToOne: false
+            referencedRelation: "temas"
             referencedColumns: ["id"]
           },
         ]
@@ -1234,6 +1260,38 @@ export type Database = {
           },
         ]
       }
+      subtemas: {
+        Row: {
+          created_at: string | null
+          id: string
+          nome: string
+          ordem: number | null
+          tema_id: string
+        }
+        Insert: {
+          created_at?: string | null
+          id?: string
+          nome: string
+          ordem?: number | null
+          tema_id: string
+        }
+        Update: {
+          created_at?: string | null
+          id?: string
+          nome?: string
+          ordem?: number | null
+          tema_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "subtemas_tema_id_fkey"
+            columns: ["tema_id"]
+            isOneToOne: false
+            referencedRelation: "temas"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       sugestoes_populares: {
         Row: {
           created_at: string
@@ -1244,6 +1302,7 @@ export type Database = {
           municipio: string
           nome: string | null
           publico: boolean | null
+          tema_id: string | null
           whatsapp: string | null
         }
         Insert: {
@@ -1255,6 +1314,7 @@ export type Database = {
           municipio: string
           nome?: string | null
           publico?: boolean | null
+          tema_id?: string | null
           whatsapp?: string | null
         }
         Update: {
@@ -1266,9 +1326,53 @@ export type Database = {
           municipio?: string
           nome?: string | null
           publico?: boolean | null
+          tema_id?: string | null
           whatsapp?: string | null
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "sugestoes_populares_tema_id_fkey"
+            columns: ["tema_id"]
+            isOneToOne: false
+            referencedRelation: "temas"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      temas: {
+        Row: {
+          codigo: string
+          created_at: string | null
+          eixo_id: string
+          id: string
+          nome: string
+          ordem: number | null
+        }
+        Insert: {
+          codigo: string
+          created_at?: string | null
+          eixo_id: string
+          id?: string
+          nome: string
+          ordem?: number | null
+        }
+        Update: {
+          codigo?: string
+          created_at?: string | null
+          eixo_id?: string
+          id?: string
+          nome?: string
+          ordem?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "temas_eixo_id_fkey"
+            columns: ["eixo_id"]
+            isOneToOne: false
+            referencedRelation: "eixos_tematicos"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       tse_candidatos: {
         Row: {
