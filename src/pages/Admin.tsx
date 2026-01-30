@@ -94,7 +94,7 @@ const Admin = () => {
     { 
       icon: Target, 
       title: 'Eixos Temáticos', 
-      description: 'Gerenciar os 8 eixos temáticos',
+      description: 'Gerenciar os 5 eixos temáticos',
       href: '/admin/eixos',
       color: 'primary',
       roles: ['admin']
