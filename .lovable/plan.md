@@ -1,149 +1,297 @@
 
-# Correção do Timeout no Processamento de Pesquisa
+# Plano: Reorganização Hierárquica Completa dos Eixos Temáticos
 
-## Problema Identificado
+## Resumo Executivo
 
-O erro `connection closed before message completed` indica que a Edge Function `process-pesquisa` está atingindo o timeout enquanto aguarda resposta da IA para um dos chunks.
+Migração da estrutura plana de 8 eixos para uma hierarquia de 3 níveis (5 Eixos → Temas → Sub-temas), impactando toda a plataforma: cadastros, mapas, dashboards e filtros.
 
-**Logs relevantes:**
-- `Split content into 5 chunks. Sizes: 25000, 18275, 2000, 2000, 2000`
-- `Processing chunk 1/5, length: 25000`
-- `ERROR Http: connection closed before message completed`
+---
 
-## Causa Raiz
+## Nova Estrutura de Dados
 
-1. O `CHUNK_SIZE` de 25.000 caracteres resulta em chunks grandes demais
-2. A chamada de IA para chunks grandes pode exceder 60-120 segundos
-3. O gateway fecha a conexão antes da resposta ser completada
+| Eixo | Subtítulo | Temas |
+|------|-----------|-------|
+| 01 - Desenvolvimento Social | Qualidade de Vida | 5 (Educação, Cultura, Esporte, Saúde, Assistência Social) |
+| 02 - Desenvolvimento Econômico Sustentável | Geração de Emprego e Renda | 11 (Agricultura, Indústria, Comércio, Turismo, etc.) |
+| 03 - Desenvolvimento das Cidades e Infraestrutura | Viver e Transitar | 8 (Habitação, Mobilidade, Saneamento, Logística, etc.) |
+| 04 - Gestão Pública Eficiente | Controlar | 4 (Modernização, Responsabilidade Fiscal, etc.) |
+| 05 - Segurança, Justiça, Combate à Corrupção | - | 6 (Segurança Pública, Combate à Corrupção, etc.) |
 
-## Solução Técnica
+---
 
-### 1. Reduzir o Tamanho dos Chunks
+## Fase 1: Modelagem do Banco de Dados
 
-**Arquivo:** `supabase/functions/process-pesquisa/index.ts`
+### 1.1 Modificar tabela `eixos_tematicos`
 
-Alterar as constantes de chunking para valores menores:
-
-```typescript
-// Linha 10-12: Alterar de
-const CHUNK_SIZE = 25000;
-const CHUNK_OVERLAP = 2000;
-const MAX_CHUNKS = 5;
-
-// Para
-const CHUNK_SIZE = 12000;  // Metade do anterior
-const CHUNK_OVERLAP = 1500;
-const MAX_CHUNKS = 10;     // Mais chunks, menor cada um
+```sql
+ALTER TABLE eixos_tematicos 
+  ADD COLUMN subtitulo TEXT,
+  ADD COLUMN ordem INTEGER DEFAULT 0;
 ```
 
-**Benefícios:**
-- Chunks menores = respostas mais rápidas da IA
-- Mais margem de tempo para cada chamada
-- Maior tolerância a documentos longos
+### 1.2 Criar tabela `temas`
 
-### 2. Adicionar Timeout Explícito com Retry
+```sql
+CREATE TABLE temas (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  eixo_id UUID NOT NULL REFERENCES eixos_tematicos(id) ON DELETE CASCADE,
+  nome TEXT NOT NULL,
+  codigo TEXT NOT NULL,  -- "1.1", "2.3", etc.
+  ordem INTEGER DEFAULT 0,
+  created_at TIMESTAMPTZ DEFAULT now()
+);
 
-Adicionar um timeout controller na chamada de IA com retry automático:
-
-```typescript
-// Na função processChunk, linha ~197
-const controller = new AbortController();
-const timeoutId = setTimeout(() => controller.abort(), 55000); // 55s timeout
-
-try {
-  const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
-    method: "POST",
-    headers: { ... },
-    body: JSON.stringify({ ... }),
-    signal: controller.signal,
-  });
-  clearTimeout(timeoutId);
-  // ... resto do processamento
-} catch (error) {
-  clearTimeout(timeoutId);
-  if (error.name === 'AbortError') {
-    console.error(`Chunk ${chunkIndex + 1} timeout - será processado na próxima tentativa`);
-    // Retornar null para permitir retry no próximo request
-    return null;
-  }
-  throw error;
-}
+-- RLS: leitura pública, escrita admin
+CREATE POLICY "Anyone can view temas" ON temas FOR SELECT USING (true);
+CREATE POLICY "Admins can manage temas" ON temas FOR ALL USING (is_admin(auth.uid()));
 ```
 
-### 3. Melhorar Feedback de Erro no Frontend
+### 1.3 Criar tabela `subtemas`
 
-**Arquivo:** `src/components/admin/PesquisaUploadModal.tsx`
+```sql
+CREATE TABLE subtemas (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  tema_id UUID NOT NULL REFERENCES temas(id) ON DELETE CASCADE,
+  nome TEXT NOT NULL,
+  ordem INTEGER DEFAULT 0,
+  created_at TIMESTAMPTZ DEFAULT now()
+);
 
-Adicionar detecção de erro de timeout e sugestão de retry:
-
-```typescript
-// No catch do handleAutoProcess (linha ~598)
-} catch (error: any) {
-  console.error('Auto-process error:', error);
-  
-  const errorMessage = error.message || '';
-  
-  if (errorMessage.includes('closed') || errorMessage.includes('timeout')) {
-    toast.error(
-      'Processamento interrompido por timeout. Clique em "Processar com IA" para continuar de onde parou.',
-      { duration: 8000 }
-    );
-  } else {
-    toast.error(error.message || 'Erro no processamento automático');
-  }
-  // ...
-}
+-- RLS similar
 ```
 
-### 4. Botão de Continuar Processamento
+### 1.4 Modificar tabelas de propostas
 
-Adicionar um botão na UI para retomar processamento de pesquisas com `ai_processing_state` incompleto:
-
-```tsx
-// Na lista de pesquisas ou no modal
-{pesquisa?.ai_processing_state?.processed_chunks < pesquisa?.ai_processing_state?.total_chunks && (
-  <Button 
-    variant="outline" 
-    onClick={() => resumeProcessing(pesquisa.id)}
-    className="gap-2"
-  >
-    <RefreshCw className="w-4 h-4" />
-    Continuar ({pesquisa.ai_processing_state.processed_chunks}/{pesquisa.ai_processing_state.total_chunks})
-  </Button>
-)}
+```sql
+ALTER TABLE propostas_tecnicas ADD COLUMN tema_id UUID REFERENCES temas(id);
+ALTER TABLE propostas_politicas ADD COLUMN tema_id UUID REFERENCES temas(id);
+ALTER TABLE sugestoes_populares ADD COLUMN tema_id UUID REFERENCES temas(id);
 ```
 
-## Resumo das Alterações
+### 1.5 Seed completo dos dados
 
-| Arquivo | Alteração |
-|---------|-----------|
-| `supabase/functions/process-pesquisa/index.ts` | Reduzir CHUNK_SIZE para 12000, aumentar MAX_CHUNKS para 10, adicionar timeout controller |
-| `src/components/admin/PesquisaUploadModal.tsx` | Melhorar mensagem de erro de timeout |
-| `src/pages/AdminPesquisas.tsx` | Adicionar botão de continuar processamento na listagem |
+Inserir os 5 novos eixos (substituindo os 8 antigos), 34 temas e ~80 subtemas conforme a lista fornecida.
 
-## Fluxo Corrigido
+---
+
+## Fase 2: Componente Reutilizável de Seleção
+
+### Novo arquivo: `src/components/admin/EixoTemaSelector.tsx`
+
+Componente de seleção em cascata:
 
 ```text
-1. Upload PDF (41.275 chars)
-2. Split em ~4 chunks de 12.000 chars cada
-3. Processar chunk 1 → salvar estado → responder cliente
-4. Frontend chama próximo chunk
-5. Processar chunk 2 → salvar estado → responder cliente
-6. ... continua até o último chunk
-7. Salvar resultados finais nas tabelas relacionais
+[Select Eixo] → [Select Tema] → [Select Subtema (opcional)]
+
+Props:
+- eixoId, temaId, subtemaId (controlled)
+- onEixoChange, onTemaChange, onSubtemaChange
+- showSubtemas?: boolean (default: true)
+- required?: boolean
 ```
 
-## Benefícios
+Este componente será reutilizado em todos os formulários.
 
-1. **Sem timeout** - Chunks menores respondem mais rápido
-2. **Resiliente** - Se falhar, pode continuar de onde parou
-3. **Feedback claro** - Usuário sabe o que aconteceu
-4. **Ação de recuperação** - Botão para continuar processamento interrompido
+---
 
-## Ação Imediata
+## Fase 3: Atualização dos Formulários de Cadastro
 
-Após implementar as correções, você poderá:
-1. Reprocessar a pesquisa de janeiro 2026
-2. O sistema vai criar chunks menores (~4 chunks de 12k em vez de 5 chunks com um de 25k)
-3. Cada chunk será processado dentro do limite de tempo
+### 3.1 Formulário de Entrevista (`src/components/entrevista/EntrevistaForm.tsx`)
 
+**Mudanças:**
+- Substituir seleção única de eixo por `EixoTemaSelector`
+- Atualizar estado do formulário para incluir `tema_id`
+- Atualizar submissão para salvar `tema_id` junto com `eixo_id`
+- Adaptar indicadores para carregar por tema (não mais por eixo)
+
+### 3.2 Formulário de Sugestões (`src/components/landing/SuggestionForm.tsx`)
+
+**Mudanças:**
+- Remover lista hardcoded `eixosList` (linha 66-75 de AdminSugestoes)
+- Substituir por fetch dinâmico da tabela `eixos_tematicos`
+- Adicionar segundo select para escolha de tema
+- Salvar `eixo` (nome) e `tema_id` na sugestão
+
+### 3.3 Formulário de Lideranças (`src/components/liderancas/LiderancasForm.tsx`)
+
+**Mudanças:**
+- Implementar seleção cascata Eixo → Tema
+- Atualizar payload de submissão
+
+---
+
+## Fase 4: Atualização das Páginas Admin
+
+### 4.1 AdminEixos (`src/pages/AdminEixos.tsx`)
+
+**Transformação completa:**
+- Visualização hierárquica com acordeões (Eixo → Temas)
+- CRUD de Eixos com subtítulo
+- CRUD de Temas dentro de cada eixo
+- CRUD de Subtemas dentro de cada tema
+- Estatísticas por tema (quantidade de propostas/sugestões)
+- Drag-and-drop para reordenação
+
+### 4.2 AdminPropostas (`src/pages/AdminPropostas.tsx`)
+
+**Mudanças:**
+- Adicionar filtro por Tema após seleção de Eixo
+- Atualizar form de criação/edição com `EixoTemaSelector`
+- Exibir tema na tabela de listagem
+- Atualizar marcadores do mapa para incluir tema
+
+### 4.3 AdminSugestoes (`src/pages/AdminSugestoes.tsx`)
+
+**Mudanças:**
+- Remover `eixosList` hardcoded (linhas 66-75)
+- Buscar eixos dinamicamente do banco
+- Adicionar filtro por Tema
+- Atualizar cores dos badges para nova estrutura
+- Atualizar gráfico de pizza por eixo
+
+### 4.4 AdminMeuPainel (`src/pages/AdminMeuPainel.tsx`)
+
+**Mudanças:**
+- `eixoSummary` (linha 340-358): Agrupar por eixo com breakdown por tema
+- `statusPorEixo` (linha 317-337): Adaptar para nova estrutura
+- `propostasPorEixo` (linha 294-303): Manter agrupamento por eixo pai
+- `EixoSummaryTable`: Expandir para mostrar temas
+- `EixoStatusChart`: Opção de drill-down por tema
+
+---
+
+## Fase 5: Atualização dos Mapas
+
+### 5.1 Heatmap Público (`src/components/dashboard/PublicParanaHeatmap.tsx`)
+
+**Mudanças:**
+- Atualizar `eixoColors` (linhas 33-42) para os 5 novos eixos
+- Modificar query para incluir tema no tooltip
+- Atualizar legenda com novos eixos
+
+### 5.2 ParanaMap Admin (`src/components/admin/ParanaMap.tsx`)
+
+**Mudanças:**
+- Atualizar sistema de cores bicolor para 5 eixos
+- Incluir tema no popup de marcador
+
+---
+
+## Fase 6: Atualização dos Dashboards
+
+### 6.1 Dashboard Público (`src/pages/Dashboard.tsx`)
+
+**Mudanças:**
+- Atualizar `proposalsByEixo` (linhas 37-46) para 5 eixos
+- Atualizar filtro de eixos no header (linhas 107-117)
+- Adaptar gráfico de barras por eixo
+
+### 6.2 Componentes de Gráficos
+
+| Componente | Mudança |
+|------------|---------|
+| `EixoSummaryTable.tsx` | Adicionar coluna de tema e expandir linhas |
+| `EixoStatusChart.tsx` | Opção de visualização por tema |
+| `EixoComparisonPanel.tsx` | Comparação pode ser por eixo ou tema |
+| `GovernmentBalanceChart.tsx` | Agrupar por eixo com breakdown por tema |
+
+---
+
+## Fase 7: Hooks e Utilitários
+
+### 7.1 `useUserAccess.tsx`
+
+**Mudanças:**
+- Adicionar suporte para permissões por tema (não apenas eixo)
+- Novo método `canAccessTema(temaId)`
+- Atualizar `getEixoIds()` para retornar eixos pai
+
+### 7.2 Nova função utilitária
+
+```typescript
+// src/utils/eixoHelpers.ts
+export const getEixoColor = (eixoNome: string): string => { ... }
+export const getTemasByEixo = (eixoId: string, temas: Tema[]): Tema[] => { ... }
+```
+
+---
+
+## Fase 8: Migração de Dados Existentes
+
+### 8.1 Mapeamento de eixos antigos → novos
+
+| Eixo Antigo | Novo Eixo | Tema Sugerido |
+|-------------|-----------|---------------|
+| Educação | 01 - Desenvolvimento Social | 1.1 Educação |
+| Saúde | 01 - Desenvolvimento Social | 1.4 Saúde |
+| Segurança Pública | 05 - Segurança, Justiça | 5.1 Segurança Pública |
+| Infraestrutura | 03 - Cidades e Infraestrutura | 3.3 Infraestrutura Urbana |
+| Agricultura e Meio Ambiente | 02 - Desenvolvimento Econômico | 2.1 Agricultura / 2.11 Meio Ambiente |
+| Economia e Turismo | 02 - Desenvolvimento Econômico | 2.3 Comércio / 2.4 Turismo |
+| Desenvolvimento Social | 01 - Desenvolvimento Social | 1.5 Assistência Social |
+| Tecnologia e Inovação | 02 - Desenvolvimento Econômico | 2.7 Inovação e Tecnologia |
+
+### 8.2 Script de migração
+
+```sql
+-- Criar mapping temporário e atualizar propostas existentes
+-- Manter registro de propostas não mapeadas para revisão manual
+```
+
+---
+
+## Arquivos Impactados
+
+### Banco de Dados (Migration)
+- Nova migration com ~500 linhas (schema + seed completo)
+
+### Componentes (Frontend)
+| Arquivo | Tipo de Mudança |
+|---------|-----------------|
+| `src/components/admin/EixoTemaSelector.tsx` | **Novo** |
+| `src/components/entrevista/EntrevistaForm.tsx` | Modificar |
+| `src/components/landing/SuggestionForm.tsx` | Modificar |
+| `src/components/liderancas/LiderancasForm.tsx` | Modificar |
+| `src/components/admin/EixoSummaryTable.tsx` | Modificar |
+| `src/components/admin/EixoStatusChart.tsx` | Modificar |
+| `src/components/admin/EixoComparisonPanel.tsx` | Modificar |
+| `src/components/dashboard/PublicParanaHeatmap.tsx` | Modificar |
+| `src/components/admin/ParanaMap.tsx` | Modificar |
+
+### Páginas
+| Arquivo | Tipo de Mudança |
+|---------|-----------------|
+| `src/pages/AdminEixos.tsx` | **Reescrever** |
+| `src/pages/AdminPropostas.tsx` | Modificar |
+| `src/pages/AdminSugestoes.tsx` | Modificar |
+| `src/pages/AdminMeuPainel.tsx` | Modificar |
+| `src/pages/Dashboard.tsx` | Modificar |
+
+### Hooks e Utils
+| Arquivo | Tipo de Mudança |
+|---------|-----------------|
+| `src/hooks/useUserAccess.tsx` | Modificar |
+| `src/utils/eixoHelpers.ts` | **Novo** |
+
+---
+
+## Resumo de Impacto
+
+- **3 novas tabelas**: `temas`, `subtemas`, + alterações em `eixos_tematicos`
+- **3 tabelas modificadas**: `propostas_tecnicas`, `propostas_politicas`, `sugestoes_populares`
+- **~15 arquivos frontend modificados**
+- **2 novos arquivos criados**
+- **Migração de dados existentes** com mapeamento automático
+
+---
+
+## Ordem de Implementação
+
+1. **Migration SQL** - Schema + seed dos dados
+2. **Componente EixoTemaSelector** - Base para todos os forms
+3. **AdminEixos** - Interface de gestão hierárquica
+4. **Formulários** - EntrevistaForm, SuggestionForm, LiderancasForm
+5. **Páginas Admin** - AdminPropostas, AdminSugestoes, AdminMeuPainel
+6. **Mapas e Dashboards** - PublicParanaHeatmap, ParanaMap, Dashboard
+7. **Migração de dados** - Mapeamento dos registros existentes
+8. **Testes e ajustes** - Validação end-to-end
