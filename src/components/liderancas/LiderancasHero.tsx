@@ -21,7 +21,7 @@ const LiderancasHero = () => {
           alt="Paraná"
           className="w-full h-full object-cover opacity-20"
         />
-        <div className="absolute inset-0 bg-gradient-to-br from-black via-black/95 to-emerald-950/30" />
+        <div className="absolute inset-0 bg-gradient-to-br from-black/88 via-black/83 to-emerald-950/30" />
       </div>
 
       {/* Geometric Graphics */}
