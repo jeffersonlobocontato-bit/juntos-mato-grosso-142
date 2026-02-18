@@ -38,11 +38,20 @@ import {
   Filter,
   Download,
   MessageSquare,
-  PieChart as PieChartIcon
+  PieChart as PieChartIcon,
+  Sparkles
 } from 'lucide-react';
 import AdminPieChart from '@/components/admin/AdminPieChart';
 import ParanaMap from '@/components/admin/ParanaMap';
 import TimelineChart from '@/components/admin/TimelineChart';
+
+interface AnaliseItem {
+  tema_id: string;
+  tema_nome: string;
+  eixo_nome: string;
+  trechos: string[];
+  resumo: string;
+}
 
 interface Sugestao {
   id: string;
@@ -54,6 +63,8 @@ interface Sugestao {
   descricao: string;
   publico: boolean;
   created_at: string;
+  tema_ids: any;
+  analise_semantica: any;
 }
 
 interface Municipio {
@@ -425,7 +436,7 @@ const AdminSugestoes = () => {
 
       {/* View Dialog */}
       <Dialog open={!!viewingSugestao} onOpenChange={() => setViewingSugestao(null)}>
-        <DialogContent className="max-w-lg">
+        <DialogContent className="max-w-lg max-h-[85vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle>Detalhes da Sugestão</DialogTitle>
           </DialogHeader>
@@ -461,6 +472,38 @@ const AdminSugestoes = () => {
                   <p className="whitespace-pre-wrap">{viewingSugestao.descricao}</p>
                 </div>
               </div>
+
+              {/* Análise Semântica por IA */}
+              {viewingSugestao.analise_semantica?.analise && (
+                <div>
+                  <p className="text-sm text-muted-foreground mb-2 flex items-center gap-1">
+                    <Sparkles className="w-4 h-4" />
+                    Análise Semântica por IA
+                  </p>
+                  <div className="space-y-3">
+                    {(viewingSugestao.analise_semantica.analise as AnaliseItem[]).map((item, idx) => (
+                      <div key={idx} className="p-3 rounded-lg border border-border bg-muted/30">
+                        <div className="flex items-center gap-2 mb-2">
+                          <Badge className={`text-xs ${getEixoColors(item.eixo_nome).bg} ${getEixoColors(item.eixo_nome).text}`}>
+                            {item.eixo_nome}
+                          </Badge>
+                          <span className="text-sm font-medium text-foreground">{item.tema_nome}</span>
+                        </div>
+                        <p className="text-sm text-foreground mb-2">{item.resumo}</p>
+                        {item.trechos.length > 0 && (
+                          <div className="space-y-1">
+                            {item.trechos.map((trecho, tIdx) => (
+                              <p key={tIdx} className="text-xs text-muted-foreground italic border-l-2 border-primary/30 pl-2">
+                                "{trecho}"
+                              </p>
+                            ))}
+                          </div>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
               
               <div className="text-sm text-muted-foreground">
                 Enviado em {new Date(viewingSugestao.created_at).toLocaleString('pt-BR')}

@@ -1304,6 +1304,7 @@ export type Database = {
       }
       sugestoes_populares: {
         Row: {
+          analise_semantica: Json | null
           created_at: string
           descricao: string
           eixo: string
@@ -1313,9 +1314,11 @@ export type Database = {
           nome: string | null
           publico: boolean | null
           tema_id: string | null
+          tema_ids: Json | null
           whatsapp: string | null
         }
         Insert: {
+          analise_semantica?: Json | null
           created_at?: string
           descricao: string
           eixo: string
@@ -1325,9 +1328,11 @@ export type Database = {
           nome?: string | null
           publico?: boolean | null
           tema_id?: string | null
+          tema_ids?: Json | null
           whatsapp?: string | null
         }
         Update: {
+          analise_semantica?: Json | null
           created_at?: string
           descricao?: string
           eixo?: string
@@ -1337,6 +1342,7 @@ export type Database = {
           nome?: string | null
           publico?: boolean | null
           tema_id?: string | null
+          tema_ids?: Json | null
           whatsapp?: string | null
         }
         Relationships: [
