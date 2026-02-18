@@ -64,26 +64,20 @@ interface Municipio {
 }
 
 const eixosList = [
-  "Educação",
-  "Saúde",
-  "Segurança Pública",
-  "Infraestrutura",
-  "Agricultura e Meio Ambiente",
-  "Economia e Turismo",
   "Desenvolvimento Social",
-  "Tecnologia e Inovação",
+  "Desenvolvimento Econômico Sustentável",
+  "Desenvolvimento das Cidades e Infraestrutura",
+  "Gestão Pública Eficiente",
+  "Segurança, Justiça, Combate à Corrupção",
 ];
 
-// Cores dos eixos temáticos (mesmas do mapa)
+// Cores dos eixos temáticos (mesmas do eixoHelpers.ts)
 const eixoColors: Record<string, { bg: string; text: string }> = {
-  "Educação": { bg: "bg-blue-500", text: "text-white" },
-  "Saúde": { bg: "bg-red-500", text: "text-white" },
-  "Segurança Pública": { bg: "bg-amber-500", text: "text-white" },
-  "Infraestrutura": { bg: "bg-purple-500", text: "text-white" },
-  "Agricultura e Meio Ambiente": { bg: "bg-green-500", text: "text-white" },
-  "Economia e Turismo": { bg: "bg-pink-500", text: "text-white" },
-  "Desenvolvimento Social": { bg: "bg-orange-500", text: "text-white" },
-  "Tecnologia e Inovação": { bg: "bg-cyan-500", text: "text-white" },
+  "Desenvolvimento Social": { bg: "bg-blue-500", text: "text-white" },
+  "Desenvolvimento Econômico Sustentável": { bg: "bg-green-500", text: "text-white" },
+  "Desenvolvimento das Cidades e Infraestrutura": { bg: "bg-amber-500", text: "text-white" },
+  "Gestão Pública Eficiente": { bg: "bg-purple-500", text: "text-white" },
+  "Segurança, Justiça, Combate à Corrupção": { bg: "bg-red-500", text: "text-white" },
 };
 
 const getEixoColors = (eixo: string) => {

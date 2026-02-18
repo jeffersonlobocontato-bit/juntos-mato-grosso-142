@@ -26,14 +26,11 @@ interface EixoComparisonPanelProps {
 }
 
 const EIXO_COLORS: Record<string, string> = {
-  'Agricultura e Meio Ambiente': '#22c55e',
-  'Desenvolvimento Social': '#8b5cf6',
-  'Economia e Turismo': '#f59e0b',
-  'Educação': '#3b82f6',
-  'Infraestrutura': '#64748b',
-  'Saúde': '#ef4444',
-  'Segurança Pública': '#1e40af',
-  'Tecnologia e Inovação': '#06b6d4',
+  'Desenvolvimento Social': '#3B82F6',
+  'Desenvolvimento Econômico Sustentável': '#22C55E',
+  'Desenvolvimento das Cidades e Infraestrutura': '#F59E0B',
+  'Gestão Pública Eficiente': '#8B5CF6',
+  'Segurança, Justiça, Combate à Corrupção': '#EF4444',
 };
 
 export function EixoComparisonPanel({ 
