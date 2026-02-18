@@ -35,14 +35,11 @@ import {
 import PublicParanaHeatmap from "@/components/dashboard/PublicParanaHeatmap";
 
 const proposalsByEixo = [
-  { name: "Educação", propostas: 124, sugestoes: 456 },
-  { name: "Saúde", propostas: 98, sugestoes: 389 },
-  { name: "Segurança", propostas: 87, sugestoes: 298 },
-  { name: "Infraestrutura", propostas: 76, sugestoes: 267 },
-  { name: "Agricultura", propostas: 65, sugestoes: 234 },
-  { name: "Meio Ambiente", propostas: 54, sugestoes: 189 },
-  { name: "Turismo", propostas: 43, sugestoes: 156 },
-  { name: "Tecnologia", propostas: 38, sugestoes: 134 },
+  { name: "Social", propostas: 124, sugestoes: 456 },
+  { name: "Econômico", propostas: 98, sugestoes: 389 },
+  { name: "Infraestrutura", propostas: 87, sugestoes: 298 },
+  { name: "Gestão", propostas: 76, sugestoes: 267 },
+  { name: "Segurança", propostas: 65, sugestoes: 234 },
 ];
 
 const statusData = [
@@ -78,7 +75,7 @@ const Dashboard = () => {
     { icon: FileText, value: "847", label: "Propostas Técnicas", trend: "+12%", color: "primary" },
     { icon: Users, value: "3.254", label: "Sugestões Populares", trend: "+28%", color: "secondary" },
     { icon: MapPin, value: "267", label: "Municípios Ativos", sublabel: "/399", color: "accent" },
-    { icon: Target, value: "8", label: "Eixos Temáticos", trend: "100%", color: "primary" },
+    { icon: Target, value: "5", label: "Eixos Temáticos", trend: "100%", color: "primary" },
   ];
 
   return (
@@ -111,9 +108,11 @@ const Dashboard = () => {
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="todos">Todos os Eixos</SelectItem>
-                  <SelectItem value="educacao">Educação</SelectItem>
-                  <SelectItem value="saude">Saúde</SelectItem>
-                  <SelectItem value="seguranca">Segurança</SelectItem>
+                  <SelectItem value="social">Desenv. Social</SelectItem>
+                  <SelectItem value="economico">Desenv. Econômico</SelectItem>
+                  <SelectItem value="infraestrutura">Cidades e Infraestrutura</SelectItem>
+                  <SelectItem value="gestao">Gestão Pública</SelectItem>
+                  <SelectItem value="seguranca">Segurança e Justiça</SelectItem>
                 </SelectContent>
               </Select>
               <Button variant="outline" size="sm" className="gap-2">

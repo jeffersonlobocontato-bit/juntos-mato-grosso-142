@@ -367,7 +367,7 @@ Seu papel é:
 1. Criar planos de governo técnicos e profissionais
 2. Seguir as melhores práticas de políticas públicas
 3. Estruturar propostas com metas claras, indicadores e prazos
-4. Considerar os 8 eixos temáticos: Agricultura e Meio Ambiente, Desenvolvimento Social, Economia e Turismo, Educação, Infraestrutura, Saúde, Segurança Pública, Tecnologia e Inovação
+4. Considerar os 5 eixos temáticos: Desenvolvimento Social, Desenvolvimento Econômico Sustentável, Desenvolvimento das Cidades e Infraestrutura, Gestão Pública Eficiente, Segurança Justiça e Combate à Corrupção
 
 IMPORTANTE: Crie conteúdo técnico e institucional, com linguagem apropriada para documentos oficiais.`,
 

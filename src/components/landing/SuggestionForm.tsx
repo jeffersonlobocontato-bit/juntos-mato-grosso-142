@@ -13,14 +13,11 @@ import SocialShareButtons from "./SocialShareButtons";
 import SuggestionConfirmationMap from "./SuggestionConfirmationMap";
 
 const eixos = [
-  "Educação",
-  "Saúde",
-  "Segurança Pública",
-  "Infraestrutura",
-  "Agricultura e Meio Ambiente",
-  "Economia e Turismo",
   "Desenvolvimento Social",
-  "Tecnologia e Inovação",
+  "Desenvolvimento Econômico Sustentável",
+  "Desenvolvimento das Cidades e Infraestrutura",
+  "Gestão Pública Eficiente",
+  "Segurança, Justiça, Combate à Corrupção",
 ];
 
 interface Municipio {

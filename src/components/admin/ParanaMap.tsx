@@ -34,14 +34,11 @@ const defaultStatusColors: Record<string, string> = {
 };
 
 const defaultEixoColors: Record<string, string> = {
-  'Saúde': '#ef4444',
-  'Educação': '#3b82f6',
-  'Segurança': '#f59e0b',
-  'Infraestrutura': '#8b5cf6',
-  'Meio Ambiente': '#22c55e',
-  'Economia': '#ec4899',
-  'Cultura': '#14b8a6',
-  'Assistência Social': '#f97316',
+  'Desenvolvimento Social': '#3B82F6',
+  'Desenvolvimento Econômico Sustentável': '#22C55E',
+  'Desenvolvimento das Cidades e Infraestrutura': '#F59E0B',
+  'Gestão Pública Eficiente': '#8B5CF6',
+  'Segurança, Justiça, Combate à Corrupção': '#EF4444',
 };
 
 const MAPBOX_TOKEN = import.meta.env.VITE_MAPBOX_PUBLIC_TOKEN || '';

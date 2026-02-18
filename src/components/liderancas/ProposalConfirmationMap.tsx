@@ -13,14 +13,11 @@ interface ProposalConfirmationMapProps {
 const MAPBOX_TOKEN = import.meta.env.VITE_MAPBOX_PUBLIC_TOKEN;
 
 const eixoColors: Record<string, string> = {
-  "Saúde": "#ef4444",
-  "Educação": "#3b82f6",
-  "Segurança Pública": "#f59e0b",
-  "Infraestrutura": "#8b5cf6",
-  "Meio Ambiente": "#22c55e",
-  "Economia": "#ec4899",
-  "Tecnologia": "#14b8a6",
-  "Desenvolvimento Social": "#f97316",
+  "Desenvolvimento Social": "#3B82F6",
+  "Desenvolvimento Econômico Sustentável": "#22C55E",
+  "Desenvolvimento das Cidades e Infraestrutura": "#F59E0B",
+  "Gestão Pública Eficiente": "#8B5CF6",
+  "Segurança, Justiça, Combate à Corrupção": "#EF4444",
 };
 
 const getEixoColor = (eixo: string): string => {
