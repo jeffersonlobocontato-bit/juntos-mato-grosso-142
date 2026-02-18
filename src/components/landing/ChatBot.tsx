@@ -121,7 +121,7 @@ const ChatBot = () => {
       {
         id: "welcome",
         role: "assistant",
-        content: `Olá, ${sanitizedData.name}! 👋 Sou o assistente virtual da Rota 399. Estou aqui para tirar suas dúvidas sobre nossa iniciativa popular de construção do Plano de Governo do Paraná.\n\nComo posso ajudar você hoje?`,
+        content: `Olá, ${sanitizedData.name}! 👋 Sou o assistente virtual do Juntos Paraná 399. Estou aqui para tirar suas dúvidas sobre nossa iniciativa popular de construção do Plano de Governo do Paraná.\n\nComo posso ajudar você hoje?`,
       },
     ]);
   };
@@ -302,7 +302,7 @@ const ChatBot = () => {
                   <MessageCircle className="w-5 h-5" />
                 </div>
                 <div>
-                  <h3 className="font-display font-bold">Assistente Rota 399</h3>
+                  <h3 className="font-display font-bold">Assistente Juntos Paraná 399</h3>
                   <p className="text-xs text-primary-foreground/70">Powered by AI</p>
                 </div>
               </div>

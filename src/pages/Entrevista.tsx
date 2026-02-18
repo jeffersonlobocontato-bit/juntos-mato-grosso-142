@@ -47,7 +47,7 @@ const Entrevista = () => {
           </h1>
           <p className="text-muted-foreground mb-6">
             Esta área é exclusiva para líderes técnicos e administradores da 
-            iniciativa Rota 399.
+            iniciativa Juntos Paraná 399.
           </p>
           <Button onClick={() => navigate("/")} variant="outline">
             Voltar à Página Inicial

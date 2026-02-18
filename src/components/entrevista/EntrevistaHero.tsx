@@ -88,7 +88,7 @@ const EntrevistaHero = () => {
               transition={{ duration: 0.8, delay: 0.3 }}
               className="font-display text-4xl md:text-5xl lg:text-6xl font-black text-white mb-6 leading-tight"
             >
-              Rota 399:
+              Juntos Paraná 399:
               <br />
               <span className="text-transparent bg-clip-text bg-gradient-to-r from-emerald-400 via-emerald-500 to-emerald-600">
                 Entrevista Técnica
@@ -170,7 +170,7 @@ const EntrevistaHero = () => {
                     Senador Sergio Moro
                   </h3>
                   <p className="text-emerald-400 text-sm font-medium">
-                    Idealizador da Iniciativa Rota 399 Paraná
+                    Idealizador da Iniciativa Juntos Paraná 399
                   </p>
                 </motion.div>
               </div>

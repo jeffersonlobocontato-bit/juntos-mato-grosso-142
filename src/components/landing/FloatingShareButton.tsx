@@ -9,7 +9,7 @@ const FloatingShareButton = () => {
   const [copied, setCopied] = useState(false);
   const { toast } = useToast();
 
-  const message = "Participe da Rota 399! Ajude a construir o futuro do Paraná 🌲";
+  const message = "Participe do Juntos Paraná 399! Ajude a construir o futuro do Paraná 🌲";
   const url = typeof window !== "undefined" ? window.location.origin : "https://rota399.org.br";
   const shareText = encodeURIComponent(message);
   const shareUrl = encodeURIComponent(url);

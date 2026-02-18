@@ -43,7 +43,7 @@ const AboutSection = () => {
             <span className="text-primary"> Juntos</span>
           </h2>
           <p className="text-lg text-muted-foreground leading-relaxed">
-            A Rota 399 é uma iniciativa popular que percorre todos os municípios 
+            O Juntos Paraná 399 é uma iniciativa popular que percorre todos os municípios 
             paranaenses para coletar propostas técnicas e sugestões da população, 
             construindo colaborativamente um Plano de Governo para o Paraná.
           </p>

@@ -50,7 +50,7 @@ const LiderancasAbout = () => {
             <span className="text-primary"> Fundamentais</span>
           </h2>
           <p className="text-muted-foreground leading-relaxed">
-            A Rota 399 valoriza a experiência de quem está na linha de frente da gestão pública. 
+            O Juntos Paraná 399 valoriza a experiência de quem está na linha de frente da gestão pública. 
             Prefeitos, secretários, vereadores e lideranças comunitárias têm conhecimento único 
             sobre as necessidades reais de cada região.
           </p>

@@ -178,7 +178,7 @@ const Admin = () => {
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-4">
               <Link to="/" className="flex items-center gap-1">
-                <span className="text-2xl font-display font-black text-primary">Rota</span>
+                <span className="text-2xl font-display font-black text-primary">Juntos Paraná</span>
                 <span className="text-2xl font-display font-black text-accent">399</span>
               </Link>
               <span className="text-muted-foreground">|</span>
@@ -213,7 +213,7 @@ const Admin = () => {
               Bem-vindo ao Painel
             </h1>
             <p className="text-muted-foreground">
-              Gerencie propostas, sugestões e acompanhe o progresso da Rota 399.
+              Gerencie propostas, sugestões e acompanhe o progresso do Juntos Paraná 399.
             </p>
           </div>
 

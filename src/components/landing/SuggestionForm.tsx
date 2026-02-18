@@ -218,7 +218,7 @@ const SuggestionForm = () => {
                   Quanto mais vozes, mais forte o Paraná. Compartilhe!
                 </p>
                 <SocialShareButtons 
-                  message="Acabei de contribuir com a Rota 399! Você também pode ajudar a construir o Paraná 🌲"
+                  message="Acabei de contribuir com o Juntos Paraná 399! Você também pode ajudar a construir o Paraná 🌲"
                   variant="default"
                 />
               </div>
