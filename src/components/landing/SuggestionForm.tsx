@@ -6,19 +6,13 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Card, CardContent } from "@/components/ui/card";
-import { Send, CheckCircle2, Sparkles, Share2, MapPin, Tag, ExternalLink } from "lucide-react";
+import { Checkbox } from "@/components/ui/checkbox";
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
+import { Send, CheckCircle2, Sparkles, Share2, MapPin, Tag, ExternalLink, ChevronDown } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import SocialShareButtons from "./SocialShareButtons";
 import SuggestionConfirmationMap from "./SuggestionConfirmationMap";
-
-const eixos = [
-  "Desenvolvimento Social",
-  "Desenvolvimento Econômico Sustentável",
-  "Desenvolvimento das Cidades e Infraestrutura",
-  "Gestão Pública Eficiente",
-  "Segurança, Justiça, Combate à Corrupção",
-];
 
 interface Municipio {
   id: string;
@@ -27,9 +21,22 @@ interface Municipio {
   longitude: number | null;
 }
 
+interface Eixo {
+  id: string;
+  nome: string;
+  ordem: number | null;
+}
+
+interface Tema {
+  id: string;
+  nome: string;
+  eixo_id: string;
+  ordem: number | null;
+}
+
 interface SubmittedData {
   descricao: string;
-  eixoNome: string;
+  temasSelecionados: { eixoNome: string; temaNome: string }[];
   municipioNome: string;
   municipioLat: number;
   municipioLng: number;
@@ -41,18 +48,20 @@ const SuggestionForm = () => {
   const [submittedData, setSubmittedData] = useState<SubmittedData | null>(null);
   const { toast } = useToast();
   
-  // Form state
   const [nome, setNome] = useState("");
   const [email, setEmail] = useState("");
   const [municipio, setMunicipio] = useState("");
-  const [eixo, setEixo] = useState("");
   const [descricao, setDescricao] = useState("");
+  const [selectedTemaIds, setSelectedTemaIds] = useState<string[]>([]);
   
-  // Municipios from database
   const [municipios, setMunicipios] = useState<Municipio[]>([]);
+  const [eixos, setEixos] = useState<Eixo[]>([]);
+  const [temas, setTemas] = useState<Tema[]>([]);
+  const [openEixos, setOpenEixos] = useState<string[]>([]);
   
   useEffect(() => {
     fetchMunicipios();
+    fetchEixosAndTemas();
   }, []);
   
   const fetchMunicipios = async () => {
@@ -63,13 +72,47 @@ const SuggestionForm = () => {
     if (!error && data) setMunicipios(data);
   };
 
+  const fetchEixosAndTemas = async () => {
+    const [eixosRes, temasRes] = await Promise.all([
+      supabase.from("eixos_tematicos").select("id, nome, ordem").order("ordem"),
+      supabase.from("temas").select("id, nome, eixo_id, ordem").order("ordem"),
+    ]);
+    if (!eixosRes.error && eixosRes.data) setEixos(eixosRes.data);
+    if (!temasRes.error && temasRes.data) setTemas(temasRes.data);
+  };
+
+  const toggleTema = (temaId: string) => {
+    setSelectedTemaIds(prev =>
+      prev.includes(temaId) ? prev.filter(id => id !== temaId) : [...prev, temaId]
+    );
+  };
+
+  const toggleEixo = (eixoId: string) => {
+    setOpenEixos(prev =>
+      prev.includes(eixoId) ? prev.filter(id => id !== eixoId) : [...prev, eixoId]
+    );
+  };
+
+  const getTemasForEixo = (eixoId: string) => temas.filter(t => t.eixo_id === eixoId);
+
+  const getSelectedTemasGrouped = () => {
+    const grouped: { eixoNome: string; temaNome: string }[] = [];
+    for (const temaId of selectedTemaIds) {
+      const tema = temas.find(t => t.id === temaId);
+      if (!tema) continue;
+      const eixo = eixos.find(e => e.id === tema.eixo_id);
+      grouped.push({ eixoNome: eixo?.nome || "", temaNome: tema.nome });
+    }
+    return grouped;
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
-    if (!municipio || !eixo || !descricao) {
+    if (!municipio || selectedTemaIds.length === 0 || !descricao) {
       toast({
         title: "Campos obrigatórios",
-        description: "Por favor, preencha o município, eixo temático e sua sugestão.",
+        description: "Por favor, preencha o município, selecione ao menos 1 tema e escreva sua sugestão.",
         variant: "destructive",
       });
       return;
@@ -77,19 +120,26 @@ const SuggestionForm = () => {
     
     setIsLoading(true);
     
-    // Get selected municipio data for map
     const selectedMunicipio = municipios.find(m => m.nome === municipio);
     
-    const { error } = await supabase
+    // Determine the primary eixo name for backward compat
+    const firstTema = temas.find(t => t.id === selectedTemaIds[0]);
+    const firstEixo = firstTema ? eixos.find(e => e.id === firstTema.eixo_id) : null;
+    const eixoName = firstEixo?.nome || "Desenvolvimento Social";
+
+    const { data: insertedData, error } = await supabase
       .from('sugestoes_populares')
       .insert({
         nome: nome || null,
         email: email || null,
         municipio,
-        eixo,
+        eixo: eixoName,
         descricao,
         publico: true,
-      });
+        tema_ids: selectedTemaIds as unknown as any,
+      })
+      .select('id')
+      .single();
     
     setIsLoading(false);
     
@@ -103,10 +153,16 @@ const SuggestionForm = () => {
       return;
     }
     
-    // Store submitted data for confirmation screen
+    // Fire-and-forget: call analyze-suggestion edge function
+    if (insertedData?.id) {
+      supabase.functions.invoke('analyze-suggestion', {
+        body: { sugestao_id: insertedData.id, descricao, tema_ids: selectedTemaIds },
+      }).catch(err => console.error('Analyze suggestion error:', err));
+    }
+
     setSubmittedData({
       descricao: descricao.slice(0, 100) + (descricao.length > 100 ? "..." : ""),
-      eixoNome: eixo,
+      temasSelecionados: getSelectedTemasGrouped(),
       municipioNome: municipio,
       municipioLat: Number(selectedMunicipio?.latitude) || -25.4284,
       municipioLng: Number(selectedMunicipio?.longitude) || -49.2733,
@@ -124,7 +180,7 @@ const SuggestionForm = () => {
     setNome("");
     setEmail("");
     setMunicipio("");
-    setEixo("");
+    setSelectedTemaIds([]);
     setDescricao("");
     setSubmittedData(null);
     setIsSubmitted(false);
@@ -151,7 +207,6 @@ const SuggestionForm = () => {
                 Sua ideia está no mapa do Paraná! Juntos, estamos construindo o futuro do nosso Estado.
               </p>
 
-              {/* Suggestion Summary Card */}
               {submittedData && (
                 <>
                   <Card className="mb-6 bg-muted/50 border-border">
@@ -164,8 +219,14 @@ const SuggestionForm = () => {
                         <div className="flex items-start gap-3">
                           <Tag className="w-4 h-4 text-muted-foreground mt-1" />
                           <div>
-                            <p className="text-xs text-muted-foreground">Eixo Temático</p>
-                            <p className="font-medium text-foreground">{submittedData.eixoNome}</p>
+                            <p className="text-xs text-muted-foreground">Temas Selecionados</p>
+                            <div className="flex flex-wrap gap-1 mt-1">
+                              {submittedData.temasSelecionados.map((t, i) => (
+                                <span key={i} className="inline-block px-2 py-0.5 text-xs rounded-full bg-primary/10 text-primary font-medium">
+                                  {t.temaNome}
+                                </span>
+                              ))}
+                            </div>
                           </div>
                         </div>
                         <div className="flex items-start gap-3">
@@ -179,31 +240,24 @@ const SuggestionForm = () => {
                     </CardContent>
                   </Card>
 
-                  {/* Map */}
                   <div className="mb-6">
                     <SuggestionConfirmationMap
                       municipioNome={submittedData.municipioNome}
                       latitude={submittedData.municipioLat}
                       longitude={submittedData.municipioLng}
-                      eixoNome={submittedData.eixoNome}
+                      eixoNome={submittedData.temasSelecionados[0]?.eixoNome || ""}
                     />
                   </div>
                 </>
               )}
 
-              {/* CTA to Dashboard */}
               <Link to="/dashboard" className="block mb-6">
-                <Button
-                  size="lg"
-                  variant="hero"
-                  className="w-full gap-2"
-                >
+                <Button size="lg" variant="hero" className="w-full gap-2">
                   <ExternalLink className="w-5 h-5" />
                   Veja o Paraná Todo
                 </Button>
               </Link>
 
-              {/* Social Share Section */}
               <div className="bg-muted/50 rounded-2xl p-6 mb-6">
                 <div className="flex items-center justify-center gap-2 mb-3">
                   <Share2 className="w-5 h-5 text-primary" />
@@ -220,12 +274,7 @@ const SuggestionForm = () => {
                 />
               </div>
 
-              <Button
-                onClick={resetForm}
-                variant="outline"
-                size="lg"
-                className="w-full"
-              >
+              <Button onClick={resetForm} variant="outline" size="lg" className="w-full">
                 Enviar outra sugestão
               </Button>
             </div>
@@ -295,41 +344,84 @@ const SuggestionForm = () => {
                 </div>
               </div>
 
-              <div className="grid md:grid-cols-2 gap-6">
-                <div className="space-y-2">
-                  <label className="text-sm font-medium text-foreground">
-                    Município <span className="text-destructive">*</span>
-                  </label>
-                  <Select value={municipio} onValueChange={setMunicipio}>
-                    <SelectTrigger className="h-12 rounded-xl border-border/50">
-                      <SelectValue placeholder="Selecione seu município" />
-                    </SelectTrigger>
-                    <SelectContent className="max-h-60">
-                      {municipios.map((m) => (
-                        <SelectItem key={m.id} value={m.nome}>
-                          {m.nome}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
+              <div className="space-y-2">
+                <label className="text-sm font-medium text-foreground">
+                  Município <span className="text-destructive">*</span>
+                </label>
+                <Select value={municipio} onValueChange={setMunicipio}>
+                  <SelectTrigger className="h-12 rounded-xl border-border/50">
+                    <SelectValue placeholder="Selecione seu município" />
+                  </SelectTrigger>
+                  <SelectContent className="max-h-60">
+                    {municipios.map((m) => (
+                      <SelectItem key={m.id} value={m.nome}>
+                        {m.nome}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+
+              {/* Multi-select temas agrupados por eixo */}
+              <div className="space-y-2">
+                <label className="text-sm font-medium text-foreground">
+                  Sobre quais temas quer opinar? <span className="text-destructive">*</span>
+                </label>
+                <p className="text-xs text-muted-foreground">Selecione um ou mais temas</p>
+                <div className="space-y-2 rounded-xl border border-border/50 p-3 max-h-[320px] overflow-y-auto">
+                  {eixos.map(eixo => {
+                    const eixoTemas = getTemasForEixo(eixo.id);
+                    if (eixoTemas.length === 0) return null;
+                    const isOpen = openEixos.includes(eixo.id);
+                    const selectedCount = eixoTemas.filter(t => selectedTemaIds.includes(t.id)).length;
+                    return (
+                      <Collapsible key={eixo.id} open={isOpen} onOpenChange={() => toggleEixo(eixo.id)}>
+                        <CollapsibleTrigger className="flex items-center justify-between w-full px-3 py-2 rounded-lg hover:bg-muted/50 text-sm font-medium text-foreground transition-colors">
+                          <span className="flex items-center gap-2">
+                            {eixo.nome}
+                            {selectedCount > 0 && (
+                              <span className="inline-flex items-center justify-center w-5 h-5 rounded-full bg-primary text-primary-foreground text-[10px] font-bold">
+                                {selectedCount}
+                              </span>
+                            )}
+                          </span>
+                          <ChevronDown className={`w-4 h-4 text-muted-foreground transition-transform ${isOpen ? 'rotate-180' : ''}`} />
+                        </CollapsibleTrigger>
+                        <CollapsibleContent className="pl-3 pb-2 space-y-1">
+                          {eixoTemas.map(tema => (
+                            <label
+                              key={tema.id}
+                              className="flex items-center gap-2 px-3 py-1.5 rounded-md hover:bg-muted/30 cursor-pointer transition-colors"
+                            >
+                              <Checkbox
+                                checked={selectedTemaIds.includes(tema.id)}
+                                onCheckedChange={() => toggleTema(tema.id)}
+                              />
+                              <span className="text-sm text-foreground">{tema.nome}</span>
+                            </label>
+                          ))}
+                        </CollapsibleContent>
+                      </Collapsible>
+                    );
+                  })}
                 </div>
-                <div className="space-y-2">
-                  <label className="text-sm font-medium text-foreground">
-                    Eixo Temático <span className="text-destructive">*</span>
-                  </label>
-                  <Select value={eixo} onValueChange={setEixo}>
-                    <SelectTrigger className="h-12 rounded-xl border-border/50">
-                      <SelectValue placeholder="Selecione um eixo" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {eixos.map((e) => (
-                        <SelectItem key={e} value={e}>
-                          {e}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
+                {selectedTemaIds.length > 0 && (
+                  <div className="flex flex-wrap gap-1 mt-2">
+                    {selectedTemaIds.map(id => {
+                      const tema = temas.find(t => t.id === id);
+                      return tema ? (
+                        <span
+                          key={id}
+                          className="inline-flex items-center gap-1 px-2 py-0.5 text-xs rounded-full bg-primary/10 text-primary font-medium cursor-pointer hover:bg-destructive/10 hover:text-destructive transition-colors"
+                          onClick={() => toggleTema(id)}
+                          title="Clique para remover"
+                        >
+                          {tema.nome} ×
+                        </span>
+                      ) : null;
+                    })}
+                  </div>
+                )}
               </div>
 
               <div className="space-y-2">
@@ -353,9 +445,7 @@ const SuggestionForm = () => {
                 disabled={isLoading}
               >
                 {isLoading ? (
-                  <>
-                    <span className="animate-pulse">Enviando...</span>
-                  </>
+                  <span className="animate-pulse">Enviando...</span>
                 ) : (
                   <>
                     <Send className="w-5 h-5" />

@@ -38,3 +38,6 @@ verify_jwt = false
 
 [functions.tse-process-totalizacao]
 verify_jwt = false
+
+[functions.analyze-suggestion]
+verify_jwt = false
