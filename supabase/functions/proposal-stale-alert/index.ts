@@ -86,7 +86,7 @@ serve(async (req: Request) => {
           const resend = new Resend(resendApiKey);
 
           const emailResponse = await resend.emails.send({
-            from: "Sistema Rota 399 <alertas@resend.dev>",
+            from: "Sistema Juntos Paraná 399 <alertas@resend.dev>",
             to: [proposal.responsavel_email],
             subject: `⚠️ Proposta aguardando ação: ${proposal.titulo}`,
             html: `
@@ -107,7 +107,7 @@ serve(async (req: Request) => {
                 </p>
                 
                 <p style="color: #999; font-size: 12px; margin-top: 30px;">
-                  Este é um email automático do Sistema Rota 399.
+                  Este é um email automático do Sistema Juntos Paraná 399.
                 </p>
               </div>
             `,

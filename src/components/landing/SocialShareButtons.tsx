@@ -12,7 +12,7 @@ interface SocialShareButtonsProps {
 }
 
 const SocialShareButtons = ({
-  message = "Participe da Rota 399! Ajude a construir o futuro do Paraná 🌲",
+  message = "Participe do Juntos Paraná 399! Ajude a construir o futuro do Paraná 🌲",
   url = typeof window !== "undefined" ? window.location.origin : "https://rota399.org.br",
   variant = "default",
   className = "",
@@ -87,7 +87,7 @@ const SocialShareButtons = ({
     if (navigator.share) {
       try {
         await navigator.share({
-          title: "Rota 399 - Iniciativa Popular",
+          title: "Juntos Paraná 399 - Iniciativa Popular",
           text: message,
           url: url,
         });

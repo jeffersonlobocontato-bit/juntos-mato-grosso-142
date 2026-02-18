@@ -44,9 +44,9 @@ const validateMessages = (messages: unknown): { role: string; content: string }[
   return validatedMessages;
 };
 
-const SYSTEM_PROMPT = `Você é o assistente virtual da Rota 399, uma iniciativa popular não governamental que percorre todos os 399 municípios do Paraná para construir colaborativamente um Plano de Governo para o Estado.
+const SYSTEM_PROMPT = `Você é o assistente virtual do Juntos Paraná 399, uma iniciativa popular não governamental que percorre todos os 399 municípios do Paraná para construir colaborativamente um Plano de Governo para o Estado.
 
-SOBRE A ROTA 399:
+SOBRE O JUNTOS PARANÁ 399:
 - É uma iniciativa de participação popular que coleta propostas técnicas e sugestões da população
 - Visita todos os 399 municípios do Paraná
 - Trabalha com eixos temáticos: Educação, Saúde, Segurança, Infraestrutura, Meio Ambiente, Agricultura, Desenvolvimento Econômico, Cultura e Turismo, Assistência Social

@@ -275,7 +275,7 @@ const AdminMensageria = () => {
 
     const alertContent = `Olá ${user.full_name || 'participante'},
 
-Identificamos que você está há ${user.hours_inactive} horas sem atividade na plataforma Rota 399.
+Identificamos que você está há ${user.hours_inactive} horas sem atividade na plataforma Juntos Paraná 399.
 
 Lembramos da importância de se manter ativo no engajamento de especialistas e lideranças nas cidades para popular as propostas do plano de governo popular.
 
@@ -283,7 +283,7 @@ Sua participação é fundamental para o sucesso desta iniciativa colaborativa!
 
 Acesse a plataforma e continue contribuindo: ${window.location.origin}
 
-Equipe Rota 399`;
+Equipe Juntos Paraná 399`;
 
     try {
       const { error } = await supabase
@@ -291,7 +291,7 @@ Equipe Rota 399`;
         .insert({
           sender_id: user!.user_id,
           recipient_ids: [userId],
-          subject: 'Lembrete de atividade - Rota 399',
+          subject: 'Lembrete de atividade - Juntos Paraná 399',
           content: alertContent,
           channel: 'email',
           message_type: 'automatic_inactivity',

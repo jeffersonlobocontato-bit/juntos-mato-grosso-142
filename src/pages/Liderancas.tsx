@@ -14,7 +14,7 @@ const Liderancas = () => {
   useEffect(() => {
     trackPageview();
     // Update page title for SEO
-    document.title = "Lideranças | Rota 399 Paraná";
+    document.title = "Lideranças | Juntos Paraná 399";
   }, []);
 
   return (

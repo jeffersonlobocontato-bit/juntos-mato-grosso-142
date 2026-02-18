@@ -12,7 +12,7 @@ const HeroSection = () => {
   const [copied, setCopied] = useState(false);
   const { toast } = useToast();
 
-  const message = "Participe da Rota 399! Ajude a construir o futuro do Paraná 🌲";
+  const message = "Participe do Juntos Paraná 399! Ajude a construir o futuro do Paraná 🌲";
   const url = typeof window !== "undefined" ? window.location.origin : "https://rota399.org.br";
   const shareText = encodeURIComponent(message);
   const shareUrl = encodeURIComponent(url);
@@ -74,7 +74,7 @@ const HeroSection = () => {
           transition={{ duration: 0.8, delay: 0.4 }}
           className="font-display text-4xl md:text-6xl lg:text-7xl font-black text-primary-foreground mb-6 leading-tight"
         >
-          Rota 399:
+          Juntos Paraná 399:
           <br />
           <span className="text-accent">o destino certo,</span>
           <br />
