@@ -25,7 +25,9 @@ import {
   ChevronLeft,
   Check,
   FileText,
+  Focus,
 } from "lucide-react";
+import { getBlocoFConfig } from "@/config/entrevistaQuestions";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { toast } from "sonner";
@@ -94,6 +96,14 @@ interface QuestionarioData {
     metas_4_anos: string;
     frequencia_monitoramento: string;
   };
+  bloco_f: {
+    q1: string;
+    q2: string;
+    q3: string;
+    q4: string;
+    q5: string;
+    q6: string;
+  };
 }
 
 const initialQuestionario: QuestionarioData = {
@@ -130,6 +140,14 @@ const initialQuestionario: QuestionarioData = {
     metas_4_anos: "",
     frequencia_monitoramento: "",
   },
+  bloco_f: {
+    q1: "",
+    q2: "",
+    q3: "",
+    q4: "",
+    q5: "",
+    q6: "",
+  },
 };
 
 const steps = [
@@ -139,6 +157,7 @@ const steps = [
   { label: "Propostas", icon: Lightbulb },
   { label: "Implementação", icon: Settings },
   { label: "Territorialização", icon: MapPin },
+  { label: "Visão Setorial", icon: Focus },
   { label: "Indicadores", icon: BarChart3 },
 ];
 
@@ -453,7 +472,10 @@ const EntrevistaForm = () => {
         }
         return true;
 
-      case 6: // Indicadores
+      case 6: // Visão Setorial (Bloco F)
+        return true; // Perguntas abertas, sem obrigatoriedade
+
+      case 7: // Indicadores
         if (questionario.indicadores.indicadores_sucesso.length < 2) {
           toast.error("Selecione ao menos 2 indicadores de sucesso");
           return false;
@@ -1147,6 +1169,44 @@ const EntrevistaForm = () => {
         );
 
       case 6:
+        const blocoFConfig = getBlocoFConfig(eixoId);
+        return (
+          <div className="space-y-6">
+            {!eixoId && (
+              <div className="p-4 bg-gray-800/50 rounded-lg border border-gray-700 text-gray-400 text-sm">
+                Selecione um eixo temático na etapa de Identificação para ver as perguntas específicas.
+              </div>
+            )}
+            {eixoId && (
+              <>
+                <p className="text-sm text-gray-400 mb-2">
+                  Perguntas técnicas para o eixo <span className="text-primary font-semibold">{blocoFConfig.eixoNome}</span>
+                </p>
+                {blocoFConfig.perguntas.map((pergunta, index) => {
+                  const qKey = `q${index + 1}` as keyof typeof questionario.bloco_f;
+                  return (
+                    <div key={qKey}>
+                      <Label className="text-white mb-2 block">
+                        <span className="text-primary font-semibold">F{index + 1}.</span> {pergunta}
+                      </Label>
+                      {index === 5 && (
+                        <p className="text-xs text-gray-400 mb-2">Pergunta aberta — fale livremente.</p>
+                      )}
+                      <Textarea
+                        value={questionario.bloco_f[qKey]}
+                        onChange={(e) => updateQuestionario("bloco_f", qKey, e.target.value)}
+                        placeholder="Sua resposta..."
+                        className="bg-gray-900 border-gray-700 text-white min-h-[100px]"
+                      />
+                    </div>
+                  );
+                })}
+              </>
+            )}
+          </div>
+        );
+
+      case 7:
         const indicadoresDisponiveis = indicadoresPorEixo[eixoId] || [];
         return (
           <div className="space-y-6">
@@ -1414,7 +1474,7 @@ const EntrevistaForm = () => {
                 <ul className="space-y-3 text-sm text-gray-400">
                   <li className="flex gap-2">
                     <Check className="w-4 h-4 text-primary mt-0.5 flex-shrink-0" />
-                    <span>20 perguntas estruturadas para análise comparativa</span>
+                    <span>26 perguntas estruturadas + visão setorial por eixo</span>
                   </li>
                   <li className="flex gap-2">
                     <Check className="w-4 h-4 text-primary mt-0.5 flex-shrink-0" />
@@ -1442,7 +1502,8 @@ const EntrevistaForm = () => {
                   {currentStep === 3 && "Propostas estruturantes são aquelas que promovem mudança sistêmica, não apenas ações pontuais."}
                   {currentStep === 4 && "Seja específico sobre ações e dependências. Identifique riscos reais, não genéricos."}
                   {currentStep === 5 && "Considere as diferenças entre regiões do Paraná na implementação das propostas."}
-                  {currentStep === 6 && "Selecione os indicadores que o entrevistado mencionou como relevantes para medir o sucesso."}
+                  {currentStep === 6 && "Perguntas técnicas específicas do eixo selecionado. A última pergunta é aberta para o especialista falar livremente."}
+                  {currentStep === 7 && "Selecione os indicadores que o entrevistado mencionou como relevantes para medir o sucesso."}
                 </p>
               </div>
 
