@@ -392,10 +392,6 @@ const EntrevistaForm = () => {
     
     switch (currentStep) {
       case 0: // Identificação
-        if (!entrevistado.trim()) {
-          toast.error("Informe o nome do entrevistado");
-          return false;
-        }
         if (!municipioId) {
           toast.error("Selecione o município");
           return false;
@@ -659,7 +655,7 @@ const EntrevistaForm = () => {
           <div className="space-y-6">
             <div>
               <Label htmlFor="entrevistado" className="text-white mb-2 block">
-                Nome do Entrevistado *
+                Nome do Entrevistado
               </Label>
               <Input
                 id="entrevistado"
