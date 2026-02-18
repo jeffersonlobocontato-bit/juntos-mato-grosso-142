@@ -87,7 +87,7 @@ const SocialShareButtons = ({
     if (navigator.share) {
       try {
         await navigator.share({
-          title: "Juntos Paraná 399 - Iniciativa Popular",
+          title: "Juntos Paraná 399",
           text: message,
           url: url,
         });

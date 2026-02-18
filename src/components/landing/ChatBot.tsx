@@ -121,7 +121,7 @@ const ChatBot = () => {
       {
         id: "welcome",
         role: "assistant",
-        content: `Olá, ${sanitizedData.name}! 👋 Sou o assistente virtual do Juntos Paraná 399. Estou aqui para tirar suas dúvidas sobre nossa iniciativa popular de construção do Plano de Governo do Paraná.\n\nComo posso ajudar você hoje?`,
+        content: `Olá, ${sanitizedData.name}! 👋 Sou o assistente virtual do Juntos Paraná 399. Estou aqui para tirar suas dúvidas sobre a construção colaborativa do Plano de Governo do Paraná.\n\nComo posso ajudar você hoje?`,
       },
     ]);
   };

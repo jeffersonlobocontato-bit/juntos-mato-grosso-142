@@ -31,12 +31,12 @@ const Footer = () => {
               </div>
               <div>
                 <h3 className="font-display font-bold text-2xl text-background">Juntos Paraná 399</h3>
-                <p className="text-sm text-background/60">Iniciativa Popular</p>
+                <p className="text-sm text-background/60">Plano de Governo Colaborativo</p>
               </div>
             </div>
             <p className="text-background/70 max-w-md leading-relaxed mb-6">
-              Uma iniciativa popular para construir colaborativamente um Plano de Governo 
-              para o Paraná, ouvindo todos os 399 municípios.
+              Uma iniciativa para construir colaborativamente um Plano de Governo 
+              para o Paraná, ouvindo quem vive os 399 municípios.
             </p>
             
             {/* Social Networks */}
@@ -112,7 +112,7 @@ const Footer = () => {
         {/* Bottom */}
         <div className="pt-8 border-t border-background/10 flex flex-col md:flex-row justify-between items-center gap-4">
           <p className="text-sm text-background/50">
-            © 2024 Juntos Paraná 399 - Iniciativa Popular. Todos os direitos reservados.
+            © 2024 Juntos Paraná 399. Todos os direitos reservados.
           </p>
           <div className="flex gap-6 text-sm">
             <a href="#" className="text-background/50 hover:text-background/70 transition-colors">
