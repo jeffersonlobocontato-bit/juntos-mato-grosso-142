@@ -1,88 +1,48 @@
 
-## Renomear "Rota 399" para "Juntos Parana 399" em todo o projeto
+## Atualizar Lista de Eixos Tematicos de 8 para 5 em toda a plataforma
 
-### Resumo
-Substituir todas as ocorrencias do nome "Rota 399" por "Juntos Parana 399" em todos os arquivos do projeto. Tambem atualizar URLs de redes sociais e handles que referenciam "rota399".
+### Problema
+Varios pontos da plataforma ainda usam a lista antiga de 8 eixos tematicos (Educacao, Saude, Seguranca Publica, Infraestrutura, Agricultura e Meio Ambiente, Economia e Turismo, Desenvolvimento Social, Tecnologia e Inovacao). O banco de dados ja foi atualizado para os 5 novos eixos:
 
-### Arquivos a modificar (20 arquivos, ~158 ocorrencias)
+1. Desenvolvimento Social (Qualidade de Vida)
+2. Desenvolvimento Economico Sustentavel (Geracao de Emprego e Renda)
+3. Desenvolvimento das Cidades e Infraestrutura (Viver e Transitar)
+4. Gestao Publica Eficiente (Controlar)
+5. Seguranca, Justica, Combate a Corrupcao
 
-#### 1. index.html
-- Title, meta description, author, keywords, og:title, twitter:site
-- Trocar "@Rota399" para "@JuntosParana399"
+### Arquivos a modificar (8 arquivos)
 
-#### 2. src/components/landing/HeroSection.tsx
-- Mensagem de compartilhamento: "Participe da Rota 399!" -> "Participe do Juntos Parana 399!"
-- URL placeholder: "rota399.org.br" -> manter ou atualizar conforme necessario
-- Titulo hero: "Rota 399:" -> "Juntos Parana 399:"
+#### 1. `src/components/landing/SuggestionForm.tsx`
+- Substituir array hardcoded de 8 eixos (linhas 15-24) pelos 5 novos eixos
+- Ou melhor: buscar eixos dinamicamente do banco de dados como o EixoTemaSelector ja faz
 
-#### 3. src/components/landing/Header.tsx
-- Nome no header: "Rota 399" -> "Juntos Parana 399"
+#### 2. `src/pages/AdminSugestoes.tsx`
+- Substituir array `eixoOptions` de 8 eixos (linhas 65-75) pelos 5 novos
+- Atualizar `eixoColorMap` (linhas 77-87) para os 5 novos eixos usando cores do `eixoHelpers.ts`
 
-#### 4. src/components/landing/Footer.tsx
-- Nome no footer: "Rota 399" -> "Juntos Parana 399"
-- Copyright: "Rota 399 - Iniciativa Popular"
-- Email: "contato@rota399.org.br" (manter dominio tecnico ou atualizar)
-- URLs de redes sociais (instagram, facebook, twitter, linkedin, youtube, tiktok): atualizar handles de "rota399" para "juntosparana399"
+#### 3. `src/pages/Dashboard.tsx`
+- Substituir dados mock `proposalsByEixo` (linhas 37-46) para refletir 5 eixos
+- Atualizar filtro de eixos no Select (linhas 112-117) para os 5 novos
 
-#### 5. src/components/landing/AboutSection.tsx
-- Texto descritivo: "A Rota 399 e uma iniciativa..."
+#### 4. `src/components/admin/EixoComparisonPanel.tsx`
+- Substituir `EIXO_COLORS` (linhas 28-37) pelos 5 novos eixos, importando de `eixoHelpers.ts`
 
-#### 6. src/components/landing/ChatBot.tsx
-- Mensagem de boas-vindas e titulo do assistente
+#### 5. `src/components/admin/ParanaMap.tsx`
+- Substituir `defaultEixoColors` (linhas 36-45) pelos 5 novos eixos, importando de `eixoHelpers.ts`
 
-#### 7. src/components/landing/FloatingShareButton.tsx
-- Mensagem de compartilhamento e URL
+#### 6. `src/components/liderancas/ProposalConfirmationMap.tsx`
+- Substituir `eixoColors` (linhas 15-24) pelos 5 novos eixos, importando de `eixoHelpers.ts`
 
-#### 8. src/components/landing/SocialShareButtons.tsx
-- Mensagem padrao e titulo de compartilhamento
+#### 7. `supabase/functions/plano-governo-ai/index.ts`
+- Atualizar prompt do modo "plano" (linha 370) de "8 eixos tematicos: Agricultura e Meio Ambiente..." para "5 eixos tematicos: Desenvolvimento Social, Desenvolvimento Economico Sustentavel, Desenvolvimento das Cidades e Infraestrutura, Gestao Publica Eficiente, Seguranca Justica e Combate a Corrupcao"
 
-#### 9. src/components/landing/SocialEngagementSection.tsx
-- Titulo da secao e mensagem de compartilhamento
+#### 8. `src/components/entrevista/EntrevistaForm.tsx`
+- Os indicadores por eixo (linhas 183-290) usam UUIDs antigos que nao correspondem aos novos eixos no banco. Atualizar os UUIDs para os novos IDs dos eixos e reorganizar os indicadores nos 5 eixos corretos
 
-#### 10. src/components/landing/SuggestionForm.tsx
-- Mensagem pos-envio de sugestao
+### Abordagem
+- Sempre que possivel, importar cores de `src/utils/eixoHelpers.ts` (que ja tem os 5 eixos corretos) em vez de duplicar
+- Para o formulario de sugestao publica, buscar eixos do banco dinamicamente
+- Redeployar a edge function `plano-governo-ai` apos a alteracao
 
-#### 11. src/components/entrevista/EntrevistaHero.tsx
-- Titulo hero e texto "Idealizador da Iniciativa"
-
-#### 12. src/components/entrevista/EntrevistaAbout.tsx
-- Texto descritivo
-
-#### 13. src/components/liderancas/LiderancasHero.tsx
-- Titulo hero e texto "Idealizador da Iniciativa"
-
-#### 14. src/components/liderancas/LiderancasAbout.tsx
-- Texto descritivo
-
-#### 15. src/pages/Admin.tsx
-- Descricao do painel admin
-
-#### 16. src/pages/AdminMensageria.tsx
-- Conteudo de alertas/emails e assunto
-
-#### 17. src/pages/Entrevista.tsx
-- Texto de acesso restrito
-
-#### 18. src/pages/Liderancas.tsx
-- document.title para SEO
-
-#### 19. supabase/functions/chat-rota399/index.ts
-- System prompt inteiro do chatbot (todas as mencoes a "Rota 399")
-- Nota: o nome da funcao em si (chat-rota399) sera mantido para evitar quebra de integracao
-
-#### 20. supabase/functions/proposal-stale-alert/index.ts
-- Remetente de email e rodape
-
-#### 21. src/hooks/useAnalytics.tsx
-- Chaves de localStorage ("rota399_visitor_id", "rota399_geo") - manter como estao pois sao chaves tecnicas internas
-
-#### 22. supabase/functions/seed-test-users/index.ts
-- Emails de teste (@rota399.test) - manter como estao pois sao dados de teste internos
-
-### Regra de substituicao
-- "Rota 399 Parana" -> "Juntos Parana 399"
-- "Rota 399" (isolado) -> "Juntos Parana 399"
-- "rota399" em URLs de redes sociais -> "juntosparana399"
-- "@Rota399" -> "@JuntosParana399"
-- Chaves tecnicas internas (localStorage, emails de teste) permanecem inalteradas
-- Nome da edge function (chat-rota399) permanece inalterado
+### Nota sobre seed-test-users
+O arquivo `supabase/functions/seed-test-users/index.ts` referencia os 8 eixos antigos nos usuarios de teste. Sera mantido como esta por ser dados de teste internos, conforme decisao anterior.
