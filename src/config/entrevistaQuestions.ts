@@ -1,6 +1,8 @@
 /**
  * Perguntas parametrizadas por eixo para o Bloco F (Visão Setorial)
  * 5 perguntas técnicas específicas + 1 pergunta aberta comum a todos os eixos
+ *
+ * Programa-Teste parametrizado por eixo para o Bloco G (Cocriação)
  */
 
 const PERGUNTA_ABERTA_COMUM =
@@ -9,6 +11,11 @@ const PERGUNTA_ABERTA_COMUM =
 export interface BlocoFConfig {
   eixoNome: string;
   perguntas: string[]; // 6 perguntas (5 técnicas + 1 aberta)
+}
+
+export interface ProgramaTesteConfig {
+  nome: string;
+  descricao: string;
 }
 
 export const blocoFPorEixo: Record<string, BlocoFConfig> = {
@@ -93,4 +100,37 @@ export const blocoFGenerico: BlocoFConfig = {
 
 export const getBlocoFConfig = (eixoId: string): BlocoFConfig => {
   return blocoFPorEixo[eixoId] || blocoFGenerico;
+};
+
+/** Programa-Teste parametrizado por eixo (Bloco G, pergunta 2) */
+export const programaTestePorEixo: Record<string, ProgramaTesteConfig> = {
+  "e1000000-0000-0000-0000-000000000001": {
+    nome: "Porta Única Social",
+    descricao: "Prontuário único integrado entre CRAS, UBS e escola para famílias em vulnerabilidade",
+  },
+  "e2000000-0000-0000-0000-000000000002": {
+    nome: "Rua Produtiva Digital",
+    descricao: "Modernização de comércio de rua com pagamento, catálogo, vendas online e gestão simples",
+  },
+  "e3000000-0000-0000-0000-000000000003": {
+    nome: "Obra Transparente",
+    descricao: "Dashboard público com rastreamento de obras, medições, prazos e desvios em tempo real",
+  },
+  "e4000000-0000-0000-0000-000000000004": {
+    nome: "Licença Zero Clique",
+    descricao: "Licença automática para atividades de baixo risco com checagem por dados e fiscalização posterior",
+  },
+  "e5000000-0000-0000-0000-000000000005": {
+    nome: "Delegacia Inteligente",
+    descricao: "Triagem digital de ocorrências com priorização por gravidade e encaminhamento automatizado",
+  },
+};
+
+export const programaTesteGenerico: ProgramaTesteConfig = {
+  nome: "Programa-Piloto",
+  descricao: "Um programa-piloto que possa ser testado em 90 dias no seu setor",
+};
+
+export const getProgramaTeste = (eixoId: string): ProgramaTesteConfig => {
+  return programaTestePorEixo[eixoId] || programaTesteGenerico;
 };
