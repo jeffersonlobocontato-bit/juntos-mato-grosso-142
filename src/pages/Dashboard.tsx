@@ -1,6 +1,8 @@
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { motion } from "framer-motion";
 import { Link } from "react-router-dom";
+import { useQuery } from "@tanstack/react-query";
+import { supabase } from "@/integrations/supabase/client";
 import { 
   MapPin, 
   FileText, 
@@ -17,6 +19,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Skeleton } from "@/components/ui/skeleton";
 import {
   BarChart,
   Bar,
@@ -33,49 +36,134 @@ import {
   Legend,
 } from "recharts";
 import PublicParanaHeatmap from "@/components/dashboard/PublicParanaHeatmap";
-
-const proposalsByEixo = [
-  { name: "Social", propostas: 124, sugestoes: 456 },
-  { name: "Econômico", propostas: 98, sugestoes: 389 },
-  { name: "Infraestrutura", propostas: 87, sugestoes: 298 },
-  { name: "Gestão", propostas: 76, sugestoes: 267 },
-  { name: "Segurança", propostas: 65, sugestoes: 234 },
-];
-
-const statusData = [
-  { name: "Rascunho", value: 124, color: "hsl(var(--muted-foreground))" },
-  { name: "Em Análise", value: 485, color: "hsl(var(--primary))" },
-  { name: "Aprovada", value: 238, color: "hsl(var(--accent))" },
-];
-
-const timelineData = [
-  { month: "Jun", propostas: 45, sugestoes: 120 },
-  { month: "Jul", propostas: 89, sugestoes: 345 },
-  { month: "Ago", propostas: 156, sugestoes: 567 },
-  { month: "Set", propostas: 234, sugestoes: 890 },
-  { month: "Out", propostas: 387, sugestoes: 1234 },
-  { month: "Nov", propostas: 567, sugestoes: 1890 },
-  { month: "Dez", propostas: 847, sugestoes: 3254 },
-];
-
-const topMunicipios = [
-  { name: "Curitiba", total: 279, percent: 8.5 },
-  { name: "Londrina", total: 188, percent: 5.8 },
-  { name: "Maringá", total: 170, percent: 5.2 },
-  { name: "Cascavel", total: 122, percent: 3.7 },
-  { name: "Ponta Grossa", total: 134, percent: 4.1 },
-];
+import { format, subMonths, eachMonthOfInterval, startOfMonth } from "date-fns";
+import { ptBR } from "date-fns/locale";
 
 const Dashboard = () => {
   const [selectedEixo, setSelectedEixo] = useState("todos");
-  const [selectedPeriodo, setSelectedPeriodo] = useState("todos");
+  const [selectedPeriodo, setSelectedPeriodo] = useState("12m");
+
+  // Fetch eixos
+  const { data: eixos } = useQuery({
+    queryKey: ["dashboard-eixos"],
+    queryFn: async () => {
+      const { data, error } = await supabase.from("eixos_tematicos").select("id, nome, ordem").order("ordem");
+      if (error) throw error;
+      return data || [];
+    },
+  });
+
+  // Fetch propostas
+  const { data: propostas, isLoading: loadingPropostas } = useQuery({
+    queryKey: ["dashboard-propostas"],
+    queryFn: async () => {
+      const { data, error } = await supabase.from("propostas_tecnicas").select("id, eixo_id, status, created_at");
+      if (error) throw error;
+      return data || [];
+    },
+  });
+
+  // Fetch sugestões
+  const { data: sugestoes, isLoading: loadingSugestoes } = useQuery({
+    queryKey: ["dashboard-sugestoes"],
+    queryFn: async () => {
+      const { data, error } = await supabase.from("sugestoes_populares").select("id, eixo, municipio, created_at");
+      if (error) throw error;
+      return data || [];
+    },
+  });
+
+  const isLoading = loadingPropostas || loadingSugestoes;
+
+  // Period filter
+  const periodMonths = selectedPeriodo === "3m" ? 3 : selectedPeriodo === "6m" ? 6 : 12;
+  const periodStart = subMonths(new Date(), periodMonths);
+
+  // Filtered data
+  const filteredPropostas = useMemo(() => {
+    let items = propostas || [];
+    if (selectedEixo !== "todos" && eixos) {
+      const eixo = eixos.find(e => e.id === selectedEixo);
+      if (eixo) items = items.filter(p => p.eixo_id === eixo.id);
+    }
+    return items.filter(p => new Date(p.created_at) >= periodStart);
+  }, [propostas, selectedEixo, eixos, periodStart]);
+
+  const filteredSugestoes = useMemo(() => {
+    let items = sugestoes || [];
+    if (selectedEixo !== "todos" && eixos) {
+      const eixo = eixos.find(e => e.id === selectedEixo);
+      if (eixo) items = items.filter(s => s.eixo === eixo.nome);
+    }
+    return items.filter(s => new Date(s.created_at) >= periodStart);
+  }, [sugestoes, selectedEixo, eixos, periodStart]);
+
+  // Stats
+  const activeMunicipios = useMemo(() => {
+    const muniSet = new Set<string>();
+    (propostas || []).forEach(p => p.eixo_id && muniSet.add(p.eixo_id)); // placeholder
+    (sugestoes || []).forEach(s => s.municipio && muniSet.add(s.municipio));
+    return muniSet.size;
+  }, [propostas, sugestoes]);
 
   const stats = [
-    { icon: FileText, value: "847", label: "Propostas Técnicas", trend: "+12%", color: "primary" },
-    { icon: Users, value: "3.254", label: "Sugestões Populares", trend: "+28%", color: "secondary" },
-    { icon: MapPin, value: "267", label: "Municípios Ativos", sublabel: "/399", color: "accent" },
-    { icon: Target, value: "5", label: "Eixos Temáticos", trend: "100%", color: "primary" },
+    { icon: FileText, value: filteredPropostas.length.toLocaleString("pt-BR"), label: "Propostas Técnicas", color: "primary" },
+    { icon: Users, value: filteredSugestoes.length.toLocaleString("pt-BR"), label: "Sugestões Populares", color: "secondary" },
+    { icon: MapPin, value: String(activeMunicipios), label: "Municípios Ativos", sublabel: "/399", color: "accent" },
+    { icon: Target, value: String(eixos?.length || 5), label: "Eixos Temáticos", color: "primary" },
   ];
+
+  // Status pie
+  const statusData = useMemo(() => [
+    { name: "Rascunho", value: filteredPropostas.filter(p => p.status === "rascunho").length, color: "hsl(var(--muted-foreground))" },
+    { name: "Em Análise", value: filteredPropostas.filter(p => p.status === "em_analise").length, color: "hsl(var(--primary))" },
+    { name: "Aprovada", value: filteredPropostas.filter(p => p.status === "aprovada").length, color: "hsl(var(--accent))" },
+  ], [filteredPropostas]);
+
+  // Timeline
+  const timelineData = useMemo(() => {
+    const now = new Date();
+    const intervals = eachMonthOfInterval({ start: periodStart, end: now });
+    return intervals.map(date => {
+      const monthStart = startOfMonth(date);
+      const monthEnd = startOfMonth(subMonths(date, -1));
+      return {
+        month: format(date, "MMM", { locale: ptBR }),
+        propostas: filteredPropostas.filter(p => {
+          const d = new Date(p.created_at);
+          return d >= monthStart && d < monthEnd;
+        }).length,
+        sugestoes: filteredSugestoes.filter(s => {
+          const d = new Date(s.created_at);
+          return d >= monthStart && d < monthEnd;
+        }).length,
+      };
+    });
+  }, [filteredPropostas, filteredSugestoes, periodStart]);
+
+  // By eixo
+  const proposalsByEixo = useMemo(() => {
+    if (!eixos) return [];
+    return eixos.map(e => ({
+      name: e.nome.length > 15 ? e.nome.substring(0, 15) + "..." : e.nome,
+      propostas: (propostas || []).filter(p => p.eixo_id === e.id).length,
+      sugestoes: (sugestoes || []).filter(s => s.eixo === e.nome).length,
+    }));
+  }, [eixos, propostas, sugestoes]);
+
+  // Top municipalities
+  const topMunicipios = useMemo(() => {
+    const countMap: Record<string, number> = {};
+    (sugestoes || []).forEach(s => {
+      if (s.municipio) countMap[s.municipio] = (countMap[s.municipio] || 0) + 1;
+    });
+    const sorted = Object.entries(countMap)
+      .map(([name, total]) => ({ name, total }))
+      .sort((a, b) => b.total - a.total)
+      .slice(0, 5);
+    const max = sorted[0]?.total || 1;
+    return sorted.map(m => ({ ...m, percent: (m.total / max) * 100 }));
+  }, [sugestoes]);
 
   return (
     <div className="min-h-screen bg-muted/20">
@@ -107,11 +195,11 @@ const Dashboard = () => {
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="todos">Todos os Eixos</SelectItem>
-                  <SelectItem value="social">Desenv. Social</SelectItem>
-                  <SelectItem value="economico">Desenv. Econômico</SelectItem>
-                  <SelectItem value="infraestrutura">Cidades e Infraestrutura</SelectItem>
-                  <SelectItem value="gestao">Gestão Pública</SelectItem>
-                  <SelectItem value="seguranca">Segurança e Justiça</SelectItem>
+                  {eixos?.map(e => (
+                    <SelectItem key={e.id} value={e.id}>
+                      {e.nome.length > 25 ? e.nome.substring(0, 25) + "..." : e.nome}
+                    </SelectItem>
+                  ))}
                 </SelectContent>
               </Select>
               <Button variant="outline" size="sm" className="gap-2">
@@ -147,17 +235,15 @@ const Dashboard = () => {
                         "text-accent"
                       }`} />
                     </div>
-                    {stat.trend && (
-                      <span className="inline-flex items-center gap-1 text-xs font-medium text-primary bg-primary/10 px-2 py-1 rounded-full">
-                        <TrendingUp className="w-3 h-3" />
-                        {stat.trend}
-                      </span>
-                    )}
                   </div>
-                  <div className="font-display text-3xl font-bold text-foreground mb-1">
-                    {stat.value}
-                    {stat.sublabel && <span className="text-muted-foreground text-lg">{stat.sublabel}</span>}
-                  </div>
+                  {isLoading ? (
+                    <Skeleton className="h-9 w-20 mb-1" />
+                  ) : (
+                    <div className="font-display text-3xl font-bold text-foreground mb-1">
+                      {stat.value}
+                      {stat.sublabel && <span className="text-muted-foreground text-lg">{stat.sublabel}</span>}
+                    </div>
+                  )}
                   <p className="text-sm text-muted-foreground">{stat.label}</p>
                 </CardContent>
               </Card>
@@ -186,7 +272,7 @@ const Dashboard = () => {
                       <SelectValue />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="todos">Último ano</SelectItem>
+                      <SelectItem value="12m">Último ano</SelectItem>
                       <SelectItem value="6m">6 meses</SelectItem>
                       <SelectItem value="3m">3 meses</SelectItem>
                     </SelectContent>
@@ -208,22 +294,8 @@ const Dashboard = () => {
                         }}
                       />
                       <Legend />
-                      <Line
-                        type="monotone"
-                        dataKey="propostas"
-                        name="Propostas Técnicas"
-                        stroke="hsl(var(--primary))"
-                        strokeWidth={2}
-                        dot={{ fill: "hsl(var(--primary))", strokeWidth: 2 }}
-                      />
-                      <Line
-                        type="monotone"
-                        dataKey="sugestoes"
-                        name="Sugestões Populares"
-                        stroke="hsl(var(--secondary))"
-                        strokeWidth={2}
-                        dot={{ fill: "hsl(var(--secondary))", strokeWidth: 2 }}
-                      />
+                      <Line type="monotone" dataKey="propostas" name="Propostas Técnicas" stroke="hsl(var(--primary))" strokeWidth={2} dot={{ fill: "hsl(var(--primary))", strokeWidth: 2 }} />
+                      <Line type="monotone" dataKey="sugestoes" name="Sugestões Populares" stroke="hsl(var(--secondary))" strokeWidth={2} dot={{ fill: "hsl(var(--secondary))", strokeWidth: 2 }} />
                     </LineChart>
                   </ResponsiveContainer>
                 </div>
@@ -245,44 +317,35 @@ const Dashboard = () => {
                 </CardTitle>
               </CardHeader>
               <CardContent>
-                <div className="h-[200px]">
-                  <ResponsiveContainer width="100%" height="100%">
-                    <RechartsPieChart>
-                      <Pie
-                        data={statusData}
-                        cx="50%"
-                        cy="50%"
-                        innerRadius={50}
-                        outerRadius={80}
-                        paddingAngle={2}
-                        dataKey="value"
-                      >
-                        {statusData.map((entry, index) => (
-                          <Cell key={`cell-${index}`} fill={entry.color} />
-                        ))}
-                      </Pie>
-                      <Tooltip
-                        contentStyle={{
-                          backgroundColor: "hsl(var(--card))",
-                          border: "1px solid hsl(var(--border))",
-                          borderRadius: "8px",
-                        }}
-                      />
-                    </RechartsPieChart>
-                  </ResponsiveContainer>
-                </div>
-                <div className="grid grid-cols-2 gap-2 mt-4">
-                  {statusData.map((item) => (
-                    <div key={item.name} className="flex items-center gap-2">
-                      <div
-                        className="w-3 h-3 rounded-full"
-                        style={{ backgroundColor: item.color }}
-                      />
-                      <span className="text-xs text-muted-foreground">{item.name}</span>
-                      <span className="text-xs font-medium text-foreground ml-auto">{item.value}</span>
+                {filteredPropostas.length > 0 ? (
+                  <>
+                    <div className="h-[200px]">
+                      <ResponsiveContainer width="100%" height="100%">
+                        <RechartsPieChart>
+                          <Pie data={statusData} cx="50%" cy="50%" innerRadius={50} outerRadius={80} paddingAngle={2} dataKey="value">
+                            {statusData.map((entry, index) => (
+                              <Cell key={`cell-${index}`} fill={entry.color} />
+                            ))}
+                          </Pie>
+                          <Tooltip contentStyle={{ backgroundColor: "hsl(var(--card))", border: "1px solid hsl(var(--border))", borderRadius: "8px" }} />
+                        </RechartsPieChart>
+                      </ResponsiveContainer>
                     </div>
-                  ))}
-                </div>
+                    <div className="grid grid-cols-2 gap-2 mt-4">
+                      {statusData.map((item) => (
+                        <div key={item.name} className="flex items-center gap-2">
+                          <div className="w-3 h-3 rounded-full" style={{ backgroundColor: item.color }} />
+                          <span className="text-xs text-muted-foreground">{item.name}</span>
+                          <span className="text-xs font-medium text-foreground ml-auto">{item.value}</span>
+                        </div>
+                      ))}
+                    </div>
+                  </>
+                ) : (
+                  <div className="h-[200px] flex items-center justify-center text-sm text-muted-foreground">
+                    Nenhuma proposta registrada ainda
+                  </div>
+                )}
               </CardContent>
             </Card>
           </motion.div>
@@ -316,23 +379,23 @@ const Dashboard = () => {
               </CardHeader>
               <CardContent>
                 <div className="h-[350px]">
-                  <ResponsiveContainer width="100%" height="100%">
-                    <BarChart data={proposalsByEixo} layout="vertical">
-                      <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" horizontal={false} />
-                      <XAxis type="number" stroke="hsl(var(--muted-foreground))" fontSize={12} />
-                      <YAxis dataKey="name" type="category" stroke="hsl(var(--muted-foreground))" fontSize={11} width={90} />
-                      <Tooltip
-                        contentStyle={{
-                          backgroundColor: "hsl(var(--card))",
-                          border: "1px solid hsl(var(--border))",
-                          borderRadius: "8px",
-                        }}
-                      />
-                      <Legend />
-                      <Bar dataKey="propostas" name="Propostas" fill="hsl(var(--primary))" radius={[0, 4, 4, 0]} />
-                      <Bar dataKey="sugestoes" name="Sugestões" fill="hsl(var(--secondary))" radius={[0, 4, 4, 0]} />
-                    </BarChart>
-                  </ResponsiveContainer>
+                  {proposalsByEixo.length > 0 ? (
+                    <ResponsiveContainer width="100%" height="100%">
+                      <BarChart data={proposalsByEixo} layout="vertical">
+                        <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" horizontal={false} />
+                        <XAxis type="number" stroke="hsl(var(--muted-foreground))" fontSize={12} />
+                        <YAxis dataKey="name" type="category" stroke="hsl(var(--muted-foreground))" fontSize={11} width={120} />
+                        <Tooltip contentStyle={{ backgroundColor: "hsl(var(--card))", border: "1px solid hsl(var(--border))", borderRadius: "8px" }} />
+                        <Legend />
+                        <Bar dataKey="propostas" name="Propostas" fill="hsl(var(--primary))" radius={[0, 4, 4, 0]} />
+                        <Bar dataKey="sugestoes" name="Sugestões" fill="hsl(var(--secondary))" radius={[0, 4, 4, 0]} />
+                      </BarChart>
+                    </ResponsiveContainer>
+                  ) : (
+                    <div className="h-full flex items-center justify-center text-sm text-muted-foreground">
+                      Nenhum dado disponível
+                    </div>
+                  )}
                 </div>
               </CardContent>
             </Card>
@@ -352,27 +415,33 @@ const Dashboard = () => {
                 </CardTitle>
               </CardHeader>
               <CardContent>
-                <div className="space-y-4">
-                  {topMunicipios.map((mun, index) => (
-                    <div key={mun.name} className="space-y-2">
-                      <div className="flex items-center justify-between">
-                        <div className="flex items-center gap-3">
-                          <span className="w-6 h-6 rounded-full bg-primary/10 flex items-center justify-center text-xs font-bold text-primary">
-                            {index + 1}
-                          </span>
-                          <span className="font-medium text-foreground">{mun.name}</span>
+                {topMunicipios.length > 0 ? (
+                  <div className="space-y-4">
+                    {topMunicipios.map((mun, index) => (
+                      <div key={mun.name} className="space-y-2">
+                        <div className="flex items-center justify-between">
+                          <div className="flex items-center gap-3">
+                            <span className="w-6 h-6 rounded-full bg-primary/10 flex items-center justify-center text-xs font-bold text-primary">
+                              {index + 1}
+                            </span>
+                            <span className="font-medium text-foreground">{mun.name}</span>
+                          </div>
+                          <span className="text-sm text-muted-foreground">{mun.total}</span>
                         </div>
-                        <span className="text-sm text-muted-foreground">{mun.total}</span>
+                        <div className="h-2 bg-muted rounded-full overflow-hidden">
+                          <div
+                            className="h-full bg-gradient-to-r from-primary to-primary/70 rounded-full transition-all"
+                            style={{ width: `${mun.percent}%` }}
+                          />
+                        </div>
                       </div>
-                      <div className="h-2 bg-muted rounded-full overflow-hidden">
-                        <div
-                          className="h-full bg-gradient-to-r from-primary to-primary/70 rounded-full transition-all"
-                          style={{ width: `${mun.percent * 10}%` }}
-                        />
-                      </div>
-                    </div>
-                  ))}
-                </div>
+                    ))}
+                  </div>
+                ) : (
+                  <div className="h-[200px] flex items-center justify-center text-sm text-muted-foreground">
+                    Nenhum município com registros ainda
+                  </div>
+                )}
               </CardContent>
             </Card>
           </motion.div>
