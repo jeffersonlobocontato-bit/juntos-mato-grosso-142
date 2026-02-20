@@ -1,34 +1,80 @@
 
-# Adicionar Upload de Arquivos por Modo de Analise
 
-## O que sera feito
+# Corrigir Textos Truncados, Erros Gramaticais e Alucinacoes nos Agentes
 
-Cada aba de modo no `ModeConfigPanel` ganhara uma secao "Biblioteca de Documentos" onde o admin pode:
+## Diagnostico
 
-1. **Fazer upload de arquivos** (PDF, TXT, etc.) ou **colar texto** diretamente -- igual ao que ja existe no AgentEditor do Hub de IA
-2. **Ver documentos vinculados** ao modo especifico
-3. **Vincular/desvincular documentos existentes** da base `ai_documents`
-4. **Remover documentos** da biblioteca do modo
+Apos analisar o codigo da funcao `plano-governo-ai`, identifiquei 3 causas principais:
 
-## Como funciona
+1. **Sem limite de tokens de saida**: A chamada a IA nao define `max_tokens`, o que faz o modelo parar de gerar texto prematuramente (truncamento)
+2. **Modelo desatualizado**: Usa `google/gemini-2.5-flash` enquanto o `ai-hub-chat` ja usa o mais capaz `google/gemini-3-flash-preview`
+3. **Sem controle de temperatura**: Nao ha parametro `temperature`, o que permite ao modelo "alucinar" com mais liberdade
+4. **Sem instrucoes anti-alucinacao**: Os prompts nao instruem explicitamente o modelo a evitar inventar dados
 
-- Cada modo ja tem um registro na tabela `ai_agent_config` com um `id` unico
-- A tabela `ai_agent_documents` (join table) ja existe e vincula `agent_id` a `document_id`
-- Os arquivos sao armazenados no bucket `ai-documents` (ja existente e publico)
-- Nenhuma alteracao de banco de dados e necessaria -- toda a infraestrutura ja existe
+---
+
+## Solucao
+
+### 1. Atualizar parametros da chamada de IA
+
+No arquivo `supabase/functions/plano-governo-ai/index.ts`:
+
+- Trocar modelo de `google/gemini-2.5-flash` para `google/gemini-3-flash-preview`
+- Adicionar `max_tokens: 16384` (garante respostas longas sem truncamento)
+- Adicionar `temperature: 0.4` (reduz alucinacoes mantendo criatividade util)
+
+### 2. Adicionar instrucoes anti-alucinacao nos prompts
+
+Inserir no bloco de formatacao (`formattingInstructions`) regras claras:
+
+- "NAO invente dados, estatisticas ou nomes que nao estejam nos dados fornecidos"
+- "Se nao houver dados suficientes, diga explicitamente"
+- "Cite sempre a fonte quando referenciar dados especificos"
+- "Revise a gramatica e coerencia antes de finalizar"
+
+### 3. Adicionar log de debug para detectar truncamentos futuros
+
+Interceptar o stream para verificar se a resposta terminou por `MAX_TOKENS` e logar um aviso.
+
+---
 
 ## Detalhes Tecnicos
 
-### Arquivo modificado: `src/components/admin/ModeConfigPanel.tsx`
+### Arquivo: `supabase/functions/plano-governo-ai/index.ts`
 
-Adicionar a cada aba do modo:
+Alteracao na chamada da API (linha ~558):
 
-1. **Estado para documentos**: lista de documentos vinculados por modo, estado de upload
-2. **Fetch de documentos vinculados**: ao carregar configs, buscar `ai_agent_documents` para cada `config.id`
-3. **Secao de upload**: formulario com dois modos (arquivo ou texto), titulo obrigatorio
-   - Upload de arquivo: envia para o bucket `ai-documents`, cria registro em `ai_documents`, vincula via `ai_agent_documents`
-   - Texto direto: cria registro em `ai_documents` com o conteudo, vincula ao modo
-4. **Lista de documentos**: exibe documentos vinculados com botao para desvincular
-5. **Seletor de documentos existentes**: checkbox para vincular documentos ja cadastrados na base
+```text
+ANTES:
+  model: "google/gemini-2.5-flash",
+  messages: apiMessages,
+  stream: true,
 
-O padrao de upload sera reutilizado do `AgentEditor.tsx` (linhas 302-393), adaptado para funcionar dentro das abas do ModeConfigPanel.
+DEPOIS:
+  model: "google/gemini-3-flash-preview",
+  messages: apiMessages,
+  stream: true,
+  max_tokens: 16384,
+  temperature: 0.4,
+```
+
+Alteracao nas instrucoes de formatacao (bloco `formattingInstructions`):
+
+Adicionar ao final:
+
+```text
+REGRAS DE QUALIDADE (OBRIGATORIAS):
+- NAO invente dados, numeros, nomes de projetos ou estatisticas que nao estejam nos dados fornecidos
+- Se os dados disponveis forem insuficientes para responder, diga claramente: "Os dados disponiveis nao permitem concluir..."
+- Ao citar numeros ou fatos, indique de qual fonte vieram (sugestoes, propostas, documentos)
+- Revise seu texto para garantir coerencia gramatical e clareza antes de finalizar
+- Complete TODAS as frases e paragrafos -- nunca interrompa no meio de uma ideia
+```
+
+### Impacto
+
+- Respostas mais longas e completas (sem truncamento)
+- Menos invencao de dados (temperatura mais baixa + instrucoes explicitas)
+- Melhor qualidade gramatical (modelo mais capaz + instrucoes de revisao)
+- Transparencia quando dados sao insuficientes
+
