@@ -32,11 +32,7 @@ const Admin = () => {
     if (!isLoading && !user) {
       navigate('/auth');
     }
-    // Redirect lider_tematico (without admin roles) to /entrevista
-    if (!isLoading && user && !isAdmin && !isAdminMaster && hasRole('lider_tematico')) {
-      navigate('/entrevista');
-    }
-  }, [user, isLoading, navigate, isAdmin, isAdminMaster, roles]);
+  }, [user, isLoading, navigate]);
 
   const handleSignOut = async () => {
     await signOut();
@@ -85,7 +81,7 @@ const Admin = () => {
       description: 'Propostas finais para plano de governo',
       href: '/admin/propostas-politicas',
       color: 'accent',
-      roles: ['admin', 'admin_master', 'lider_tematico']
+      roles: ['admin', 'admin_master']
     },
     { 
       icon: Users, 
@@ -93,7 +89,7 @@ const Admin = () => {
       description: 'Visualizar sugestões da população',
       href: '/admin/sugestoes',
       color: 'accent',
-      roles: ['admin', 'lider_tematico', 'curador_municipal']
+      roles: ['admin', 'curador_municipal']
     },
     { 
       icon: Target, 
@@ -141,7 +137,7 @@ const Admin = () => {
       description: 'IA para planos e brainstorming',
       href: '/admin/plano-governo',
       color: 'primary',
-      roles: ['admin', 'lider_tematico']
+      roles: ['admin']
     },
     { 
       icon: BarChart3, 
@@ -149,7 +145,7 @@ const Admin = () => {
       description: 'Métricas de tráfego e navegação',
       href: '/admin/analytics',
       color: 'secondary',
-      roles: ['admin', 'lider_tematico']
+      roles: ['admin']
     },
     { 
       icon: BarChart2, 
@@ -157,7 +153,7 @@ const Admin = () => {
       description: 'Gerenciar pesquisas de institutos',
       href: '/admin/pesquisas',
       color: 'primary',
-      roles: ['admin', 'admin_master', 'lider_tematico']
+      roles: ['admin', 'admin_master']
     },
     { 
       icon: Vote, 
@@ -165,7 +161,7 @@ const Admin = () => {
       description: 'Histórico eleitoral e mapas de votos',
       href: '/admin/tse',
       color: 'accent',
-      roles: ['admin', 'admin_master', 'lider_tematico']
+      roles: ['admin', 'admin_master']
     },
   ];
 
@@ -267,7 +263,7 @@ const Admin = () => {
             </motion.div>
           )}
 
-          {(isAdmin || roles.includes('lider_tematico') || roles.includes('curador_municipal')) && (
+          {(isAdmin || isAdminMaster) && (
             <Link to="/admin/leads">
               <Card className="mb-8 bg-gradient-to-r from-primary/10 via-accent/10 to-primary/10 border-primary/20 hover:shadow-lg transition-all duration-300 hover:-translate-y-1 cursor-pointer group overflow-hidden relative">
                 <div className="absolute inset-0 bg-gradient-to-r from-primary/5 to-accent/5 opacity-0 group-hover:opacity-100 transition-opacity" />
