@@ -577,7 +577,7 @@ export default function AdminMeuPainel() {
       </div>
 
       {/* CTA Entrevista para líderes temáticos */}
-      {(isLider || isAdminMaster) && userEixos.length > 0 && (
+      {(isLider || isAdminMaster) && (
         <Card className="bg-gradient-to-r from-primary/20 via-accent/15 to-primary/20 border-primary/40 shadow-lg shadow-primary/10 overflow-hidden relative group">
           <div className="absolute inset-0 bg-gradient-to-r from-primary/5 to-accent/5 opacity-0 group-hover:opacity-100 transition-opacity" />
           <CardContent className="flex flex-col sm:flex-row items-center justify-between gap-4 py-6 relative z-10">
@@ -590,9 +590,11 @@ export default function AdminMeuPainel() {
                   Entrevista Técnica
                 </p>
                 <p className="text-sm text-muted-foreground">
-                  {userEixos.length === 1
-                    ? `Registre entrevistas para o eixo: ${userEixos[0].eixo_nome || 'Seu eixo'}`
-                    : `Registre entrevistas para seus ${userEixos.length} eixos vinculados`}
+                  {userEixos.length === 0
+                    ? 'Registre entrevistas técnicas com especialistas'
+                    : userEixos.length === 1
+                      ? `Registre entrevistas para o eixo: ${userEixos[0].eixo_nome || 'Seu eixo'}`
+                      : `Registre entrevistas para seus ${userEixos.length} eixos vinculados`}
                 </p>
               </div>
             </div>
