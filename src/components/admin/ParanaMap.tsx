@@ -28,8 +28,7 @@ interface ParanaMapProps {
 
 const defaultStatusColors: Record<string, string> = {
   rascunho: '#6b7280',
-  validada: '#3b82f6',
-  consolidada: '#f59e0b',
+  em_analise: '#3b82f6',
   aprovada: '#22c55e',
 };
 

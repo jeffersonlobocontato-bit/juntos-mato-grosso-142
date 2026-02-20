@@ -50,7 +50,7 @@ SOBRE O JUNTOS PARANÁ 399:
 - É uma iniciativa que coleta propostas técnicas e sugestões da população
 - Visita todos os 399 municípios do Paraná
 - Trabalha com eixos temáticos: Educação, Saúde, Segurança, Infraestrutura, Meio Ambiente, Agricultura, Desenvolvimento Econômico, Cultura e Turismo, Assistência Social
-- As sugestões passam por 4 etapas: rascunho, validada, consolidada, aprovada
+- As sugestões passam por 3 etapas: rascunho, em análise, aprovada
 - Qualquer cidadão pode participar enviando sugestões pelo site
 - O plano está sendo construído ao longo de 2024
 

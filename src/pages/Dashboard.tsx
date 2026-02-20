@@ -44,8 +44,7 @@ const proposalsByEixo = [
 
 const statusData = [
   { name: "Rascunho", value: 124, color: "hsl(var(--muted-foreground))" },
-  { name: "Validada", value: 287, color: "hsl(var(--secondary))" },
-  { name: "Consolidada", value: 198, color: "hsl(var(--primary))" },
+  { name: "Em Análise", value: 485, color: "hsl(var(--primary))" },
   { name: "Aprovada", value: 238, color: "hsl(var(--accent))" },
 ];
 

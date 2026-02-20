@@ -21,7 +21,7 @@ interface Proposal {
   id: string;
   titulo: string;
   descricao: string;
-  status: 'rascunho' | 'validada' | 'consolidada' | 'aprovada';
+  status: 'rascunho' | 'em_analise' | 'aprovada';
   etapa: number;
   eixo_id: string;
   municipio_id: string | null;
@@ -80,8 +80,7 @@ interface ProposalDetailModalProps {
 
 const statusLabels: Record<string, { label: string; color: string }> = {
   rascunho: { label: 'Rascunho', color: 'bg-gray-500' },
-  validada: { label: 'Validada', color: 'bg-blue-500' },
-  consolidada: { label: 'Consolidada', color: 'bg-yellow-500' },
+  em_analise: { label: 'Em Análise', color: 'bg-blue-500' },
   aprovada: { label: 'Aprovada', color: 'bg-green-500' },
 };
 
@@ -442,8 +441,7 @@ export const ProposalDetailModal = ({
                       </SelectTrigger>
                       <SelectContent>
                         <SelectItem value="rascunho">Rascunho</SelectItem>
-                        <SelectItem value="validada">Validada</SelectItem>
-                        <SelectItem value="consolidada">Consolidada</SelectItem>
+                        <SelectItem value="em_analise">Em Análise</SelectItem>
                         <SelectItem value="aprovada">Aprovada</SelectItem>
                       </SelectContent>
                     </Select>

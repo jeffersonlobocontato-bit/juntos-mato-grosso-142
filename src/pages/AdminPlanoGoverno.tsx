@@ -217,8 +217,7 @@ const AdminPlanoGoverno = () => {
         // Map proposal status to temporal categories
         const statusToTemporal: Record<string, string> = {
           'aprovada': 'realizado',
-          'consolidada': 'em_andamento',
-          'validada': 'prometido',
+          'em_analise': 'em_andamento',
           'rascunho': 'nao_iniciado',
         };
 
@@ -235,10 +234,9 @@ const AdminPlanoGoverno = () => {
               eixoProposals.filter(p => p.status === 'aprovada').length,
             em_andamento: 
               eixoDocs.filter(d => d.temporal_status === 'em_andamento').length +
-              eixoProposals.filter(p => p.status === 'consolidada').length,
+              eixoProposals.filter(p => p.status === 'em_analise').length,
             prometido: 
-              eixoDocs.filter(d => d.temporal_status === 'prometido').length +
-              eixoProposals.filter(p => p.status === 'validada').length,
+              eixoDocs.filter(d => d.temporal_status === 'prometido').length,
             nao_iniciado: 
               eixoDocs.filter(d => d.temporal_status === 'nao_iniciado').length +
               eixoProposals.filter(p => p.status === 'rascunho').length,
@@ -286,8 +284,8 @@ const AdminPlanoGoverno = () => {
   const getItemsForCategory = (category: 'realizado' | 'em_andamento' | 'prometido' | 'nao_iniciado', eixoName?: string): BalanceItem[] => {
     const statusMap = {
       realizado: { docStatus: 'realizado', proposalStatus: 'aprovada' },
-      em_andamento: { docStatus: 'em_andamento', proposalStatus: 'consolidada' },
-      prometido: { docStatus: 'prometido', proposalStatus: 'validada' },
+      em_andamento: { docStatus: 'em_andamento', proposalStatus: 'em_analise' },
+      prometido: { docStatus: 'prometido', proposalStatus: '' },
       nao_iniciado: { docStatus: 'nao_iniciado', proposalStatus: 'rascunho' },
     };
     

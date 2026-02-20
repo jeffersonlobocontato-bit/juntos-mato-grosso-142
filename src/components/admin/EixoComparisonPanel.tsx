@@ -14,8 +14,7 @@ interface EixoData {
   atrasadas: number;
   sugestoes: number;
   rascunho: number;
-  validada: number;
-  consolidada: number;
+  em_analise: number;
 }
 
 interface EixoComparisonPanelProps {
@@ -214,11 +213,8 @@ export function EixoComparisonPanel({
                     <Badge variant="outline" className="text-xs bg-gray-100">
                       {eixo.rascunho} rasc.
                     </Badge>
-                    <Badge variant="outline" className="text-xs bg-yellow-100">
-                      {eixo.validada} valid.
-                    </Badge>
                     <Badge variant="outline" className="text-xs bg-blue-100">
-                      {eixo.consolidada} cons.
+                      {eixo.em_analise} análise
                     </Badge>
                   </div>
                 </CardContent>
