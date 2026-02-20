@@ -576,6 +576,33 @@ export default function AdminMeuPainel() {
         </div>
       </div>
 
+      {/* CTA Entrevista para líderes temáticos */}
+      {(isLider || isAdminMaster) && userEixos.length > 0 && (
+        <Card className="border-primary/30 bg-primary/5">
+          <CardContent className="flex flex-col sm:flex-row items-center justify-between gap-4 py-5">
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center">
+                <FileText className="w-5 h-5 text-primary" />
+              </div>
+              <div>
+                <p className="font-semibold text-sm">Registrar Entrevista Técnica</p>
+                <p className="text-xs text-muted-foreground">
+                  {userEixos.length === 1
+                    ? `Eixo: ${userEixos[0].eixo_nome || 'Seu eixo'}`
+                    : `${userEixos.length} eixos vinculados`}
+                </p>
+              </div>
+            </div>
+            <Button asChild size="sm" className="gap-2 whitespace-nowrap">
+              <a href="/entrevista">
+                <FileText className="w-4 h-4" />
+                Iniciar Entrevista
+              </a>
+            </Button>
+          </CardContent>
+        </Card>
+      )}
+
       {/* Big Numbers Row 1 */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
         <StatCard
