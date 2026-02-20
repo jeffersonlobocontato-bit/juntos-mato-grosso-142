@@ -235,6 +235,33 @@ const AdminUsuarios = () => {
     },
   });
 
+  // Delete user mutation
+  const deleteUserMutation = useMutation({
+    mutationFn: async (userId: string) => {
+      const { data: result, error } = await supabase.functions.invoke('admin-delete-user', {
+        body: { user_id: userId },
+      });
+      if (error) throw error;
+      if (result.error) throw new Error(result.error);
+      return result;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['admin-profiles'] });
+      queryClient.invalidateQueries({ queryKey: ['admin-user-roles'] });
+      queryClient.invalidateQueries({ queryKey: ['user-eixos'] });
+      queryClient.invalidateQueries({ queryKey: ['user-municipios'] });
+      queryClient.invalidateQueries({ queryKey: ['user-ai-hub-functions'] });
+      toast({ title: 'Usuário excluído com sucesso!' });
+    },
+    onError: (error: any) => {
+      toast({
+        title: 'Erro ao excluir usuário',
+        description: error.message,
+        variant: 'destructive',
+      });
+    },
+  });
+
   // Remove role mutation
   const removeRoleMutation = useMutation({
     mutationFn: async ({ userId, role }: { userId: string; role: AppRole }) => {
@@ -830,6 +857,7 @@ const AdminUsuarios = () => {
                         {isAdminMaster && <TableHead>Eixos</TableHead>}
                         {isAdminMaster && <TableHead>Funções IA</TableHead>}
                         {isAdminMaster && <TableHead>Adicionar Role</TableHead>}
+                        {isAdminMaster && <TableHead>Ações</TableHead>}
                       </TableRow>
                     </TableHeader>
                     <TableBody>
@@ -927,6 +955,22 @@ const AdminUsuarios = () => {
                                     </Button>
                                   )}
                                 </div>
+                              </TableCell>
+                            )}
+                            {isAdminMaster && (
+                              <TableCell>
+                                <Button
+                                  variant="destructive"
+                                  size="icon"
+                                  disabled={deleteUserMutation.isPending || profile.id === user?.id}
+                                  onClick={() => {
+                                    if (confirm(`Tem certeza que deseja excluir "${profile.full_name || profile.email}"? Esta ação é irreversível.`)) {
+                                      deleteUserMutation.mutate(profile.id);
+                                    }
+                                  }}
+                                >
+                                  <Trash2 className="h-4 w-4" />
+                                </Button>
                               </TableCell>
                             )}
                           </TableRow>
