@@ -2048,7 +2048,12 @@ export type Database = {
         | "aprovada"
         | "publicada"
         | "arquivada"
-      proposal_status: "rascunho" | "validada" | "consolidada" | "aprovada"
+      proposal_status:
+        | "rascunho"
+        | "validada"
+        | "consolidada"
+        | "aprovada"
+        | "em_analise"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -2201,7 +2206,13 @@ export const Constants = {
         "publicada",
         "arquivada",
       ],
-      proposal_status: ["rascunho", "validada", "consolidada", "aprovada"],
+      proposal_status: [
+        "rascunho",
+        "validada",
+        "consolidada",
+        "aprovada",
+        "em_analise",
+      ],
     },
   },
 } as const
