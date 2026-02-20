@@ -19,7 +19,8 @@ import {
   Bot,
   BarChart2,
   Vote,
-  ScrollText
+  ScrollText,
+  ClipboardList
 } from 'lucide-react';
 
 const Admin = () => {
@@ -208,13 +209,23 @@ const Admin = () => {
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.5 }}
         >
-          <div className="mb-8">
-            <h1 className="text-3xl font-display font-bold mb-2">
-              Bem-vindo ao Painel
-            </h1>
-            <p className="text-muted-foreground">
-              Gerencie propostas, sugestões e acompanhe o progresso do Juntos Paraná 399.
-            </p>
+          <div className="mb-8 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+            <div>
+              <h1 className="text-3xl font-display font-bold mb-2">
+                Bem-vindo ao Painel
+              </h1>
+              <p className="text-muted-foreground">
+                Gerencie propostas, sugestões e acompanhe o progresso do Juntos Paraná 399.
+              </p>
+            </div>
+            {(hasRole('lider_tematico') || isAdminMaster) && (
+              <Button asChild size="lg" className="gap-2 whitespace-nowrap font-bold shadow-md">
+                <Link to="/entrevista">
+                  <ClipboardList className="w-5 h-5" />
+                  IR PARA A ENTREVISTA TÉCNICA
+                </Link>
+              </Button>
+            )}
           </div>
 
           {roles.length === 0 && !isAdmin && (
