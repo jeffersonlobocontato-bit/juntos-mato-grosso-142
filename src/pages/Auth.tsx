@@ -50,7 +50,7 @@ const Auth = () => {
           if (userRoles.includes('admin') || userRoles.includes('admin_master')) {
             navigate('/admin');
           } else if (userRoles.includes('lider_tematico')) {
-            navigate('/entrevista');
+              navigate('/admin');
           } else {
             navigate('/');
           }
@@ -110,7 +110,7 @@ const Auth = () => {
             if (userRoles.includes('admin') || userRoles.includes('admin_master')) {
               navigate('/admin');
             } else if (userRoles.includes('lider_tematico')) {
-              navigate('/entrevista');
+              navigate('/admin');
             } else {
               navigate('/');
             }
