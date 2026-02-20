@@ -4,7 +4,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
 import { useNavigate, Link } from 'react-router-dom';
 import { motion } from 'framer-motion';
-import { ArrowLeft, Users, Shield, UserCheck, MapPin, Briefcase, Plus, Trash2, UserPlus, Lock, Bot } from 'lucide-react';
+import { ArrowLeft, Users, Shield, UserCheck, MapPin, Briefcase, Plus, Trash2, UserPlus, Lock, Bot, Pencil } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
@@ -14,6 +14,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Checkbox } from '@/components/ui/checkbox';
 import { useToast } from '@/hooks/use-toast';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
 import AdminPieChart from '@/components/admin/AdminPieChart';
 import TimelineChart from '@/components/admin/TimelineChart';
 
@@ -67,6 +68,18 @@ const AdminUsuarios = () => {
   const [selectedEixos, setSelectedEixos] = useState<string[]>([]);
   const [selectedMunicipios, setSelectedMunicipios] = useState<string[]>([]);
   const [selectedHubFunctions, setSelectedHubFunctions] = useState<string[]>([]);
+
+  // State for edit user
+  const [editingUser, setEditingUser] = useState<any | null>(null);
+  const [editUserData, setEditUserData] = useState({
+    full_name: '',
+    celular: '',
+    cargo: '',
+  });
+  const [editRoles, setEditRoles] = useState<AppRole[]>([]);
+  const [editEixos, setEditEixos] = useState<string[]>([]);
+  const [editMunicipios, setEditMunicipios] = useState<string[]>([]);
+  const [editHubFunctions, setEditHubFunctions] = useState<string[]>([]);
 
   // Fetch all profiles
   const { data: profiles, isLoading: profilesLoading } = useQuery({
@@ -299,6 +312,106 @@ const AdminUsuarios = () => {
     setSelectedMunicipios([]);
     setSelectedHubFunctions([]);
   };
+
+  const openEditUser = (profile: any) => {
+    const roles = getUserRolesRaw(profile.id);
+    const eixoIds = userEixos?.filter(ue => ue.user_id === profile.id).map(ue => ue.eixo_id) || [];
+    const municipioIds = userMunicipios?.filter(um => um.user_id === profile.id).map(um => um.municipio_id) || [];
+    const hubFuncIds = userHubFunctions?.filter(uf => uf.user_id === profile.id).map(uf => uf.function_id) || [];
+
+    setEditingUser(profile);
+    setEditUserData({
+      full_name: profile.full_name || '',
+      celular: profile.celular || '',
+      cargo: profile.cargo || '',
+    });
+    setEditRoles(roles);
+    setEditEixos(eixoIds);
+    setEditMunicipios(municipioIds);
+    setEditHubFunctions(hubFuncIds);
+  };
+
+  const getUserRolesRaw = (userId: string): AppRole[] => {
+    return userRoles?.filter(r => r.user_id === userId).map(r => r.role as AppRole) || [];
+  };
+
+  const editUserMutation = useMutation({
+    mutationFn: async () => {
+      if (!editingUser) return;
+      const userId = editingUser.id;
+
+      // Update profile
+      const { error: profileError } = await supabase
+        .from('profiles')
+        .update({
+          full_name: editUserData.full_name,
+          celular: editUserData.celular || null,
+          cargo: editUserData.cargo || null,
+        })
+        .eq('id', userId);
+      if (profileError) throw profileError;
+
+      // Sync roles
+      const currentRoles = getUserRolesRaw(userId);
+      const rolesToAdd = editRoles.filter(r => !currentRoles.includes(r));
+      const rolesToRemove = currentRoles.filter(r => !editRoles.includes(r));
+
+      for (const role of rolesToRemove) {
+        const { error } = await supabase.from('user_roles').delete().eq('user_id', userId).eq('role', role);
+        if (error) throw error;
+      }
+      for (const role of rolesToAdd) {
+        const { error } = await supabase.from('user_roles').insert({ user_id: userId, role });
+        if (error) throw error;
+      }
+
+      // Sync eixos
+      const { error: delEixos } = await supabase.from('user_eixos').delete().eq('user_id', userId);
+      if (delEixos) throw delEixos;
+      if (editEixos.length > 0) {
+        const { error: insEixos } = await supabase.from('user_eixos').insert(
+          editEixos.map(eixoId => ({ user_id: userId, eixo_id: eixoId }))
+        );
+        if (insEixos) throw insEixos;
+      }
+
+      // Sync municipios
+      const { error: delMun } = await supabase.from('user_municipios').delete().eq('user_id', userId);
+      if (delMun) throw delMun;
+      if (editMunicipios.length > 0) {
+        const { error: insMun } = await supabase.from('user_municipios').insert(
+          editMunicipios.map(munId => ({ user_id: userId, municipio_id: munId }))
+        );
+        if (insMun) throw insMun;
+      }
+
+      // Sync hub functions
+      const { error: delHub } = await supabase.from('user_ai_hub_functions').delete().eq('user_id', userId);
+      if (delHub) throw delHub;
+      if (editHubFunctions.length > 0) {
+        const { error: insHub } = await supabase.from('user_ai_hub_functions').insert(
+          editHubFunctions.map(funcId => ({ user_id: userId, function_id: funcId }))
+        );
+        if (insHub) throw insHub;
+      }
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['admin-profiles'] });
+      queryClient.invalidateQueries({ queryKey: ['admin-user-roles'] });
+      queryClient.invalidateQueries({ queryKey: ['user-eixos'] });
+      queryClient.invalidateQueries({ queryKey: ['user-municipios'] });
+      queryClient.invalidateQueries({ queryKey: ['user-ai-hub-functions'] });
+      toast({ title: 'Usuário atualizado com sucesso!' });
+      setEditingUser(null);
+    },
+    onError: (error: any) => {
+      toast({
+        title: 'Erro ao atualizar usuário',
+        description: error.message,
+        variant: 'destructive',
+      });
+    },
+  });
 
   const handleCreateUser = () => {
     if (!newUserData.full_name || !newUserData.email || !newUserData.password) {
@@ -959,18 +1072,27 @@ const AdminUsuarios = () => {
                             )}
                             {isAdminMaster && (
                               <TableCell>
-                                <Button
-                                  variant="destructive"
-                                  size="icon"
-                                  disabled={deleteUserMutation.isPending || profile.id === user?.id}
-                                  onClick={() => {
-                                    if (confirm(`Tem certeza que deseja excluir "${profile.full_name || profile.email}"? Esta ação é irreversível.`)) {
-                                      deleteUserMutation.mutate(profile.id);
-                                    }
-                                  }}
-                                >
-                                  <Trash2 className="h-4 w-4" />
-                                </Button>
+                                <div className="flex gap-2">
+                                  <Button
+                                    variant="outline"
+                                    size="icon"
+                                    onClick={() => openEditUser(profile)}
+                                  >
+                                    <Pencil className="h-4 w-4" />
+                                  </Button>
+                                  <Button
+                                    variant="destructive"
+                                    size="icon"
+                                    disabled={deleteUserMutation.isPending || profile.id === user?.id}
+                                    onClick={() => {
+                                      if (confirm(`Tem certeza que deseja excluir "${profile.full_name || profile.email}"? Esta ação é irreversível.`)) {
+                                        deleteUserMutation.mutate(profile.id);
+                                      }
+                                    }}
+                                  >
+                                    <Trash2 className="h-4 w-4" />
+                                  </Button>
+                                </div>
                               </TableCell>
                             )}
                           </TableRow>
@@ -983,6 +1105,150 @@ const AdminUsuarios = () => {
             </CardContent>
           </Card>
         </motion.div>
+        {/* Edit User Dialog */}
+        <Dialog open={!!editingUser} onOpenChange={(open) => !open && setEditingUser(null)}>
+          <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+            <DialogHeader>
+              <DialogTitle className="flex items-center gap-2">
+                <Pencil className="h-5 w-5" />
+                Editar Usuário
+              </DialogTitle>
+              <DialogDescription>
+                Edite os dados de {editingUser?.full_name || editingUser?.email}
+              </DialogDescription>
+            </DialogHeader>
+            <div className="space-y-6">
+              {/* Profile Fields */}
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                  <Label htmlFor="edit_full_name">Nome Completo</Label>
+                  <Input
+                    id="edit_full_name"
+                    value={editUserData.full_name}
+                    onChange={(e) => setEditUserData(prev => ({ ...prev, full_name: e.target.value }))}
+                  />
+                </div>
+                <div>
+                  <Label>Email</Label>
+                  <Input value={editingUser?.email || ''} disabled className="opacity-60" />
+                </div>
+                <div>
+                  <Label htmlFor="edit_celular">Celular</Label>
+                  <Input
+                    id="edit_celular"
+                    value={editUserData.celular}
+                    onChange={(e) => setEditUserData(prev => ({ ...prev, celular: e.target.value }))}
+                    placeholder="(41) 99999-9999"
+                  />
+                </div>
+                <div>
+                  <Label htmlFor="edit_cargo">Cargo/Função</Label>
+                  <Input
+                    id="edit_cargo"
+                    value={editUserData.cargo}
+                    onChange={(e) => setEditUserData(prev => ({ ...prev, cargo: e.target.value }))}
+                  />
+                </div>
+              </div>
+
+              {/* Roles */}
+              <div>
+                <Label className="mb-3 block">Funções</Label>
+                <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+                  {ASSIGNABLE_ROLES.map((role) => (
+                    <div
+                      key={role}
+                      className={`flex items-center gap-2 p-3 rounded-lg border cursor-pointer transition-colors ${
+                        editRoles.includes(role)
+                          ? 'border-primary bg-primary/10'
+                          : 'border-border hover:border-primary/50'
+                      }`}
+                      onClick={() => setEditRoles(prev => prev.includes(role) ? prev.filter(r => r !== role) : [...prev, role])}
+                    >
+                      <Checkbox checked={editRoles.includes(role)} onCheckedChange={() => setEditRoles(prev => prev.includes(role) ? prev.filter(r => r !== role) : [...prev, role])} />
+                      <span className="text-sm font-medium">{ROLE_LABELS[role]}</span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              {/* Eixos */}
+              {editRoles.some(r => ROLES_REQUIRING_EIXOS.includes(r)) && (
+                <div>
+                  <Label className="mb-3 block">Eixos Temáticos</Label>
+                  <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
+                    {eixos?.map((eixo) => (
+                      <div
+                        key={eixo.id}
+                        className={`flex items-center gap-2 p-3 rounded-lg border cursor-pointer transition-colors ${
+                          editEixos.includes(eixo.id) ? 'border-primary bg-primary/10' : 'border-border hover:border-primary/50'
+                        }`}
+                        onClick={() => setEditEixos(prev => prev.includes(eixo.id) ? prev.filter(e => e !== eixo.id) : [...prev, eixo.id])}
+                      >
+                        <Checkbox checked={editEixos.includes(eixo.id)} onCheckedChange={() => setEditEixos(prev => prev.includes(eixo.id) ? prev.filter(e => e !== eixo.id) : [...prev, eixo.id])} />
+                        <span className="text-sm font-medium">{eixo.nome}</span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {/* Municipios */}
+              {editRoles.includes('curador_municipal') && (
+                <div>
+                  <Label className="mb-3 block">Municípios</Label>
+                  <div className="max-h-48 overflow-y-auto border rounded-lg p-2">
+                    <div className="grid grid-cols-2 md:grid-cols-3 gap-2">
+                      {municipios?.map((mun) => (
+                        <div
+                          key={mun.id}
+                          className={`flex items-center gap-2 p-2 rounded-lg border cursor-pointer transition-colors ${
+                            editMunicipios.includes(mun.id) ? 'border-primary bg-primary/10' : 'border-border hover:border-primary/50'
+                          }`}
+                          onClick={() => setEditMunicipios(prev => prev.includes(mun.id) ? prev.filter(m => m !== mun.id) : [...prev, mun.id])}
+                        >
+                          <Checkbox checked={editMunicipios.includes(mun.id)} onCheckedChange={() => setEditMunicipios(prev => prev.includes(mun.id) ? prev.filter(m => m !== mun.id) : [...prev, mun.id])} />
+                          <span className="text-xs font-medium truncate">{mun.nome}</span>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {/* AI Hub Functions */}
+              {aiHubFunctions && aiHubFunctions.length > 0 && (
+                <div>
+                  <Label className="mb-3 flex items-center gap-2">
+                    <Bot className="h-4 w-4" />
+                    Funções do HUB de IA
+                  </Label>
+                  <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
+                    {aiHubFunctions.map((func) => (
+                      <div
+                        key={func.id}
+                        className={`flex items-center gap-2 p-3 rounded-lg border cursor-pointer transition-colors ${
+                          editHubFunctions.includes(func.id) ? 'border-violet-500 bg-violet-500/10' : 'border-border hover:border-violet-500/50'
+                        }`}
+                        onClick={() => setEditHubFunctions(prev => prev.includes(func.id) ? prev.filter(f => f !== func.id) : [...prev, func.id])}
+                      >
+                        <Checkbox checked={editHubFunctions.includes(func.id)} onCheckedChange={() => setEditHubFunctions(prev => prev.includes(func.id) ? prev.filter(f => f !== func.id) : [...prev, func.id])} />
+                        <span className="text-sm font-medium">{func.display_name}</span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              <div className="flex justify-end gap-3 pt-4">
+                <Button variant="outline" onClick={() => setEditingUser(null)}>Cancelar</Button>
+                <Button onClick={() => editUserMutation.mutate()} disabled={editUserMutation.isPending}>
+                  {editUserMutation.isPending ? 'Salvando...' : 'Salvar Alterações'}
+                </Button>
+              </div>
+            </div>
+          </DialogContent>
+        </Dialog>
       </main>
     </div>
   );
