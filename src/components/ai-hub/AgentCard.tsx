@@ -1,4 +1,4 @@
-import { Bot, MessageSquare, Edit2, Trash2, Power, PowerOff, Target, Users, Megaphone, Vote } from 'lucide-react';
+import { Bot, MessageSquare, Edit2, Trash2, Power, PowerOff, Target, Users, Megaphone, Vote, Settings2 } from 'lucide-react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -150,8 +150,9 @@ export const AgentCard = ({
           
           {canManage && (
             <>
-              <Button variant="outline" size="icon" onClick={onEdit}>
-                <Edit2 className="w-4 h-4" />
+              <Button variant="outline" className="gap-2" onClick={onEdit}>
+                <Settings2 className="w-4 h-4" />
+                Configurar
               </Button>
               
               <AlertDialog>
