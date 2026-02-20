@@ -21,6 +21,7 @@ import {
   RotateCcw
 } from 'lucide-react';
 import type { AnalysisMode } from '@/components/admin/AnalysisModeSelector';
+import { ModeDocumentLibrary } from '@/components/admin/ModeDocumentLibrary';
 
 type ModeConfig = {
   id: string;
@@ -235,6 +236,13 @@ export function ModeConfigPanel({ isAdmin }: ModeConfigPanelProps) {
                       className="min-h-[200px] text-sm font-mono"
                     />
                   </div>
+
+                  {configs[mode] && (
+                    <ModeDocumentLibrary
+                      agentConfigId={configs[mode].id}
+                      modeName={meta.label}
+                    />
+                  )}
 
                   <div className="flex justify-end gap-2">
                     <Button
