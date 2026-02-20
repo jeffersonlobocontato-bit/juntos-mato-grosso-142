@@ -32,7 +32,11 @@ const Admin = () => {
     if (!isLoading && !user) {
       navigate('/auth');
     }
-  }, [user, isLoading, navigate]);
+    // Redirect lider_tematico (without admin roles) to /entrevista
+    if (!isLoading && user && !isAdmin && !isAdminMaster && hasRole('lider_tematico')) {
+      navigate('/entrevista');
+    }
+  }, [user, isLoading, navigate, isAdmin, isAdminMaster, roles]);
 
   const handleSignOut = async () => {
     await signOut();
