@@ -530,6 +530,14 @@ FORMATAÇÃO GERAL:
 - Use **negrito** para destacar pontos importantes
 - Estruture respostas de forma organizada e fácil de ler
 
+REGRAS DE QUALIDADE (OBRIGATÓRIAS):
+- NÃO invente dados, números, nomes de projetos ou estatísticas que não estejam nos dados fornecidos acima
+- Se os dados disponíveis forem insuficientes para responder, diga claramente: "Os dados disponíveis não permitem concluir..."
+- Ao citar números ou fatos, indique de qual fonte vieram (sugestões populares, propostas técnicas, documentos da base)
+- Revise seu texto para garantir coerência gramatical e clareza antes de finalizar
+- Complete TODAS as frases e parágrafos — nunca interrompa no meio de uma ideia
+- Não repita informações desnecessariamente
+
 Responda em português brasileiro.`;
 
     // Build final system prompt with context
@@ -556,9 +564,11 @@ ${contextData ? `\n\nDADOS DISPONÍVEIS PARA ANÁLISE:${contextData}` : ''}`;
         "Content-Type": "application/json",
       },
       body: JSON.stringify({
-        model: "google/gemini-2.5-flash",
+        model: "google/gemini-3-flash-preview",
         messages: apiMessages,
         stream: true,
+        max_tokens: 16384,
+        temperature: 0.4,
       }),
     });
 
