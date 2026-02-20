@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useMemo } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -26,7 +26,7 @@ import {
   Check,
   FileText,
 } from "lucide-react";
-import { getBlocoFConfig, getProgramaTeste } from "@/config/entrevistaQuestions";
+import { getBlocoFConfig, getProgramaTeste, getExemplosFormulario } from "@/config/entrevistaQuestions";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { toast } from "sonner";
@@ -169,6 +169,9 @@ const EntrevistaForm = () => {
 
   // Questionário
   const [questionario, setQuestionario] = useState<QuestionarioData>(initialQuestionario);
+
+  // Exemplos contextualizados por eixo
+  const exemplos = useMemo(() => getExemplosFormulario(eixoId), [eixoId]);
 
   useEffect(() => {
     fetchEixos();
@@ -620,7 +623,7 @@ const EntrevistaForm = () => {
                 <span className="text-primary font-semibold">A1.</span> Qual é sua área de atuação específica dentro do setor? *
               </Label>
               <p className="text-xs text-gray-400 mb-2">
-                Ex: "Atenção primária em saúde no litoral" ou "Logística de grãos na região Oeste".
+                {exemplos.a1_area_atuacao}
               </p>
               <Textarea
                 value={questionario.aquecimento.area_atuacao_especifica}
@@ -635,7 +638,7 @@ const EntrevistaForm = () => {
                 <span className="text-primary font-semibold">A2.</span> Quais são os 3 principais desafios da sua área hoje? *
               </Label>
               <p className="text-xs text-gray-400 mb-2">
-                Foque nos desafios operacionais e estruturais que enfrenta no dia a dia.
+                {exemplos.a2_desafios_hint}
               </p>
               <div className="space-y-3">
                 {[0, 1, 2].map((index) => (
@@ -663,7 +666,7 @@ const EntrevistaForm = () => {
                 <span className="text-primary font-semibold">B1.</span> Cite até 3 ações, programas ou práticas que funcionam bem na sua área e devem ser mantidas *
               </Label>
               <p className="text-xs text-gray-400 mb-2">
-                O que o próximo governo NÃO deve mexer — programas que dão resultado.
+                {exemplos.b1_acoes_hint}
               </p>
               <div className="space-y-3">
                 {[0, 1, 2].map((index) => (
@@ -685,7 +688,7 @@ const EntrevistaForm = () => {
                 <span className="text-primary font-semibold">B2.</span> Se essas ações fossem interrompidas, qual seria o impacto concreto?
               </Label>
               <p className="text-xs text-gray-400 mb-2">
-                Quantifique ou descreva o impacto de descontinuar o que funciona.
+                {exemplos.b2_impacto_hint}
               </p>
               <Textarea
                 value={questionario.o_que_funciona.impacto_parar}
@@ -706,7 +709,7 @@ const EntrevistaForm = () => {
                 <span className="text-primary font-semibold">C1.</span> Quais são as causas-raiz dos principais problemas da sua área? *
               </Label>
               <p className="text-xs text-gray-400 mb-2">
-                Vá além dos sintomas — qual é a raiz do problema (regulatória, institucional, financeira, de gestão)?
+                {exemplos.c1_causas_hint}
               </p>
               <Textarea
                 value={questionario.o_que_nao_funciona.causas_raiz}
@@ -721,7 +724,7 @@ const EntrevistaForm = () => {
                 <span className="text-primary font-semibold">C2.</span> Dê um exemplo real de falha recorrente na sua área
               </Label>
               <p className="text-xs text-gray-400 mb-2">
-                Um caso concreto que exemplifique o problema — pode ser anônimo.
+                {exemplos.c2_caso_hint}
               </p>
               <Textarea
                 value={questionario.o_que_nao_funciona.caso_real}
@@ -736,7 +739,7 @@ const EntrevistaForm = () => {
                 <span className="text-primary font-semibold">C3.</span> Se pudesse corrigir uma única coisa, qual seria a prioridade?
               </Label>
               <p className="text-xs text-gray-400 mb-2">
-                A ação de maior impacto com menor resistência ou custo.
+                {exemplos.c3_prioridade_hint}
               </p>
               <Textarea
                 value={questionario.o_que_nao_funciona.prioridade_correcao}
@@ -757,7 +760,7 @@ const EntrevistaForm = () => {
                 <span className="text-primary font-semibold">D1.</span> Quais rotinas, programas ou práticas deveriam ser descontinuadas? *
               </Label>
               <p className="text-xs text-gray-400 mb-2">
-                Identifique o que consome recurso e não entrega resultado. Pode ser um processo, programa, estrutura ou hábito institucional.
+                {exemplos.d1_rotinas_hint}
               </p>
               <Textarea
                 value={questionario.parar_substituir.rotinas_ineficientes}
@@ -772,7 +775,7 @@ const EntrevistaForm = () => {
                 <span className="text-primary font-semibold">D2.</span> O que deveria substituí-las?
               </Label>
               <p className="text-xs text-gray-400 mb-2">
-                Proponha alternativas concretas ou modelos de referência (de outros estados, países ou setores).
+                {exemplos.d2_substituicao_hint}
               </p>
               <Textarea
                 value={questionario.parar_substituir.substituicao_proposta}
@@ -793,7 +796,7 @@ const EntrevistaForm = () => {
                 <span className="text-primary font-semibold">E1.</span> Na sua percepção, o Estado planeja ou anuncia? *
               </Label>
               <p className="text-xs text-gray-400 mb-2">
-                Existe diferença entre o que é comunicado e o que efetivamente se executa na sua área? Dê exemplos.
+                {exemplos.e1_planejamento_hint}
               </p>
               <Textarea
                 value={questionario.governanca.planejamento_vs_anuncio}
@@ -808,7 +811,7 @@ const EntrevistaForm = () => {
                 <span className="text-primary font-semibold">E2.</span> Como avalia a integração Estado-Municípios na sua área?
               </Label>
               <p className="text-xs text-gray-400 mb-2">
-                A cooperação funciona? Onde estão os gargalos de integração (protocolo, sistema, recurso, governança)?
+                {exemplos.e2_integracao_hint}
               </p>
               <Textarea
                 value={questionario.governanca.integracao_estado_municipio}
@@ -871,7 +874,7 @@ const EntrevistaForm = () => {
                 <span className="text-primary font-semibold">G1.</span> O que deveria ser entregue nos primeiros 90 dias de governo na sua área? *
               </Label>
               <p className="text-xs text-gray-400 mb-2">
-                Ações rápidas, visíveis e de baixa complexidade que sinalizem mudança de direção.
+                {exemplos.g1_entregas_hint}
               </p>
               <Textarea
                 value={questionario.cocriacao.entregas_90_dias}
