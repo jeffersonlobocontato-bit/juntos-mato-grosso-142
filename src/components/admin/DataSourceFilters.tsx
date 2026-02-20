@@ -21,7 +21,7 @@ export interface DataFilters {
   eixo: string;
   
   // Document specific
-  docCategory: string;
+  docCategory: string[];
   temporalStatus: string;
 }
 
@@ -221,26 +221,54 @@ export function DataSourceFilters({
 
         {/* Document-specific Filters (only when documents are included) */}
         {filters.includeDocumentos && (
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 pt-2 border-t">
+          <div className="space-y-4 pt-2 border-t">
             <div className="space-y-2">
-              <Label className="text-sm flex items-center gap-2">
-                <FileText className="w-3.5 h-3.5" />
-                Tipo de Documento
-              </Label>
-              <Select 
-                value={filters.docCategory || "__all__"} 
-                onValueChange={(v) => updateFilter('docCategory', v === "__all__" ? "" : v)}
-              >
-                <SelectTrigger>
-                  <SelectValue placeholder="Todos os tipos" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="__all__">Todos os tipos</SelectItem>
-                  {DOC_CATEGORIES.map(cat => (
-                    <SelectItem key={cat.value} value={cat.value}>{cat.label}</SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+              <div className="flex items-center justify-between">
+                <Label className="text-sm flex items-center gap-2">
+                  <FileText className="w-3.5 h-3.5" />
+                  Tipos de Documento
+                </Label>
+                <div className="flex gap-2">
+                  <button
+                    className="text-xs text-primary hover:underline"
+                    onClick={() => updateFilter('docCategory', DOC_CATEGORIES.map(c => c.value))}
+                  >
+                    Todos
+                  </button>
+                  <span className="text-xs text-muted-foreground">|</span>
+                  <button
+                    className="text-xs text-primary hover:underline"
+                    onClick={() => updateFilter('docCategory', [])}
+                  >
+                    Limpar
+                  </button>
+                </div>
+              </div>
+              <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+                {DOC_CATEGORIES.map(cat => {
+                  const isChecked = filters.docCategory.includes(cat.value);
+                  return (
+                    <label
+                      key={cat.value}
+                      className={cn(
+                        'flex items-center gap-2 p-2 rounded-lg border cursor-pointer transition-colors text-sm',
+                        isChecked ? 'border-primary bg-primary/5' : 'border-border hover:bg-muted/50'
+                      )}
+                    >
+                      <Checkbox
+                        checked={isChecked}
+                        onCheckedChange={(checked) => {
+                          const newCategories = checked
+                            ? [...filters.docCategory, cat.value]
+                            : filters.docCategory.filter(c => c !== cat.value);
+                          updateFilter('docCategory', newCategories);
+                        }}
+                      />
+                      <span className="text-xs">{cat.label}</span>
+                    </label>
+                  );
+                })}
+              </div>
             </div>
 
             <div className="space-y-2">
