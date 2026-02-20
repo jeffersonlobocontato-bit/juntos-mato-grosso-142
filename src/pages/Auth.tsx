@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
+import { supabase } from '@/integrations/supabase/client';
 import { z } from 'zod';
 import { useAuth } from '@/hooks/useAuth';
 import { Button } from '@/components/ui/button';
@@ -39,7 +40,21 @@ const Auth = () => {
 
   useEffect(() => {
     if (user) {
-      navigate('/admin');
+      // Fetch roles to determine redirect
+      supabase
+        .from('user_roles')
+        .select('role')
+        .eq('user_id', user.id)
+        .then(({ data }) => {
+          const userRoles = data?.map(r => r.role) || [];
+          if (userRoles.includes('admin') || userRoles.includes('admin_master')) {
+            navigate('/admin');
+          } else if (userRoles.includes('lider_tematico')) {
+            navigate('/entrevista');
+          } else {
+            navigate('/');
+          }
+        });
     }
   }, [user, navigate]);
 
@@ -84,7 +99,22 @@ const Auth = () => {
           }
         } else {
           toast.success('Login realizado com sucesso!');
-          navigate('/admin');
+          // Fetch roles to determine redirect
+          const { data: { user: loggedUser } } = await supabase.auth.getUser();
+          if (loggedUser) {
+            const { data: rolesData } = await supabase
+              .from('user_roles')
+              .select('role')
+              .eq('user_id', loggedUser.id);
+            const userRoles = rolesData?.map(r => r.role) || [];
+            if (userRoles.includes('admin') || userRoles.includes('admin_master')) {
+              navigate('/admin');
+            } else if (userRoles.includes('lider_tematico')) {
+              navigate('/entrevista');
+            } else {
+              navigate('/');
+            }
+          }
         }
       } else {
         const { error } = await signUp(email, password, fullName);
