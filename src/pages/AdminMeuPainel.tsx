@@ -578,25 +578,28 @@ export default function AdminMeuPainel() {
 
       {/* CTA Entrevista para líderes temáticos */}
       {(isLider || isAdminMaster) && userEixos.length > 0 && (
-        <Card className="border-primary/30 bg-primary/5">
-          <CardContent className="flex flex-col sm:flex-row items-center justify-between gap-4 py-5">
-            <div className="flex items-center gap-3">
-              <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center">
-                <FileText className="w-5 h-5 text-primary" />
+        <Card className="bg-gradient-to-r from-primary/20 via-accent/15 to-primary/20 border-primary/40 shadow-lg shadow-primary/10 overflow-hidden relative group">
+          <div className="absolute inset-0 bg-gradient-to-r from-primary/5 to-accent/5 opacity-0 group-hover:opacity-100 transition-opacity" />
+          <CardContent className="flex flex-col sm:flex-row items-center justify-between gap-4 py-6 relative z-10">
+            <div className="flex items-center gap-4">
+              <div className="w-14 h-14 rounded-xl bg-primary/20 flex items-center justify-center group-hover:scale-110 transition-transform shadow-md">
+                <FileText className="w-7 h-7 text-primary" />
               </div>
               <div>
-                <p className="font-semibold text-sm">Registrar Entrevista Técnica</p>
-                <p className="text-xs text-muted-foreground">
+                <p className="font-display font-bold text-lg text-foreground group-hover:text-primary transition-colors">
+                  Entrevista Técnica
+                </p>
+                <p className="text-sm text-muted-foreground">
                   {userEixos.length === 1
-                    ? `Eixo: ${userEixos[0].eixo_nome || 'Seu eixo'}`
-                    : `${userEixos.length} eixos vinculados`}
+                    ? `Registre entrevistas para o eixo: ${userEixos[0].eixo_nome || 'Seu eixo'}`
+                    : `Registre entrevistas para seus ${userEixos.length} eixos vinculados`}
                 </p>
               </div>
             </div>
-            <Button asChild size="sm" className="gap-2 whitespace-nowrap">
+            <Button asChild size="lg" className="gap-2 whitespace-nowrap font-bold shadow-md">
               <a href="/entrevista">
-                <FileText className="w-4 h-4" />
-                Iniciar Entrevista
+                <FileText className="w-5 h-5" />
+                IR PARA A PÁGINA DE ENTREVISTA TÉCNICA
               </a>
             </Button>
           </CardContent>
