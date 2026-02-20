@@ -27,7 +27,7 @@ interface RequestBody {
     // Thematic
     eixo?: string;
     // Document specific
-    docCategory?: string;
+    docCategory?: string[];
     temporalStatus?: string;
   };
   // For content generation mode
@@ -93,8 +93,15 @@ serve(async (req) => {
       });
     }
 
-    // Fetch custom agent config and legacy knowledge base
-    const [configResult, legacyKnowledgeResult] = await Promise.all([
+    // Fetch custom agent config: prefer mode-specific, fallback to generic
+    const modeAgentType = `plano_governo_${mode}`;
+    const [modeConfigResult, genericConfigResult, legacyKnowledgeResult] = await Promise.all([
+      supabase
+        .from("ai_agent_config")
+        .select("system_prompt, config")
+        .eq("agent_type", modeAgentType)
+        .eq("is_active", true)
+        .maybeSingle(),
       supabase
         .from("ai_agent_config")
         .select("system_prompt, config")
@@ -108,7 +115,7 @@ serve(async (req) => {
         .order("priority", { ascending: false })
     ]);
 
-    const customPrompt = configResult.data?.system_prompt || null;
+    const customPrompt = modeConfigResult.data?.system_prompt || genericConfigResult.data?.system_prompt || null;
     const legacyKnowledgeDocs = legacyKnowledgeResult.data || [];
 
     // Build context data based on filters and mode
@@ -248,8 +255,8 @@ serve(async (req) => {
         .order("priority", { ascending: false })
         .limit(20);
 
-      if (filters.docCategory) {
-        docsQuery = docsQuery.eq("doc_category", filters.docCategory);
+      if (filters.docCategory && filters.docCategory.length > 0) {
+        docsQuery = docsQuery.in("doc_category", filters.docCategory);
       }
 
       if (filters.temporalStatus) {
@@ -477,8 +484,8 @@ IMPORTANTE: Seja específico nas avaliações. Cite qual documento de referênci
       if (filters.regiao) {
         parts.push(`REGIÃO SELECIONADA: ${filters.regiao}`);
       }
-      if (filters.docCategory) {
-        parts.push(`CATEGORIA DE DOCUMENTO: ${filters.docCategory}`);
+      if (filters.docCategory && filters.docCategory.length > 0) {
+        parts.push(`CATEGORIAS DE DOCUMENTO: ${filters.docCategory.join(', ')}`);
       }
       if (filters.temporalStatus) {
         parts.push(`STATUS TEMPORAL: ${filters.temporalStatus}`);

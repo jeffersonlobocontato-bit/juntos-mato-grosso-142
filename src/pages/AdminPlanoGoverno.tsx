@@ -10,7 +10,7 @@ import { ScrollArea } from '@/components/ui/scroll-area';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useToast } from '@/hooks/use-toast';
 import MarkdownRenderer from '@/components/admin/MarkdownRenderer';
-import AIConfigPanel from '@/components/admin/AIConfigPanel';
+import ModeConfigPanel from '@/components/admin/ModeConfigPanel';
 import AnalysisModeSelector, { type AnalysisMode } from '@/components/admin/AnalysisModeSelector';
 import DataSourceFilters, { type DataFilters } from '@/components/admin/DataSourceFilters';
 import DocumentLibrary from '@/components/admin/DocumentLibrary';
@@ -84,7 +84,7 @@ const AdminPlanoGoverno = () => {
     regiao: '',
     municipio: '',
     eixo: '',
-    docCategory: '',
+    docCategory: [],
     temporalStatus: '',
   });
 
@@ -176,8 +176,8 @@ const AdminPlanoGoverno = () => {
         if (eixoId) {
           documentsQuery = documentsQuery.eq('eixo_id', eixoId);
         }
-        if (filters.docCategory) {
-          documentsQuery = documentsQuery.eq('doc_category', filters.docCategory);
+        if (filters.docCategory.length > 0) {
+          documentsQuery = documentsQuery.in('doc_category', filters.docCategory);
         }
         if (filters.temporalStatus) {
           documentsQuery = documentsQuery.eq('temporal_status', filters.temporalStatus);
@@ -352,7 +352,7 @@ const AdminPlanoGoverno = () => {
           // Thematic
           eixo: filters.eixo || undefined,
           // Document specific
-          docCategory: filters.docCategory || undefined,
+          docCategory: filters.docCategory.length > 0 ? filters.docCategory : undefined,
           temporalStatus: filters.temporalStatus || undefined,
         }
       };
@@ -764,7 +764,7 @@ const AdminPlanoGoverno = () => {
 
             {/* Config Tab */}
             <TabsContent value="config" className="mt-4">
-              <AIConfigPanel isAdmin={isAdmin} />
+              <ModeConfigPanel isAdmin={isAdmin} />
             </TabsContent>
           </Tabs>
         </div>
