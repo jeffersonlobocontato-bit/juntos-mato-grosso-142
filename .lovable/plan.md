@@ -1,46 +1,43 @@
 
+# Corrigir Listas Suspensas no Formulario Publico
 
-## Acrescentar 6a Pergunta Aberta ao Bloco F (Visao Setorial)
+## Problema Identificado
 
-### Mudanca
+As politicas de seguranca (RLS) das tabelas `municipios`, `eixos_tematicos` e `temas` estao configuradas para permitir SELECT apenas para usuarios **autenticados** (`authenticated`). Como o formulario de sugestao e publico e acessado sem login, o usuario anonimo nao consegue ler os dados, resultando em listas vazias.
 
-Adicionar a todos os 5 eixos uma 6a pergunta aberta no Bloco F, permitindo que o especialista fale livremente sobre o que pretende ou planeja para o setor.
+**Evidencia**: As requisicoes a API retornam `[]` (arrays vazios) apesar de existirem 399 municipios, 5 eixos e 34 temas no banco.
 
-### Pergunta 6 (igual para todos os eixos)
+## Solucao
 
-**"Alem do que discutimos, o que voce pessoalmente pretende ou gostaria de ver acontecer na sua area nos proximos 4 anos? Fale livremente."**
+Atualizar as politicas RLS de SELECT das tres tabelas para incluir o role `anon`, permitindo que visitantes nao autenticados visualizem os dados de referencia.
 
-Essa pergunta sera a Q6 do Bloco F em todos os eixos, apos as 5 perguntas tecnicas especificas.
+---
 
-### Impacto na estrutura
+## Detalhes Tecnicos
 
-| Item | Antes | Depois |
-|---|---|---|
-| Perguntas Bloco F | 5 por eixo | 6 por eixo (5 especificas + 1 aberta) |
-| Total questionario | ~24 perguntas | ~25 perguntas |
-| Tempo estimado | ~35 min | ~37 min (margem aceitavel) |
+Executar uma migracao SQL que:
 
-### Impacto no JSONB
+1. **Remove** as politicas de SELECT existentes (que estao restritas a `authenticated`)
+2. **Recria** as mesmas politicas sem restricao de role, permitindo acesso tanto por `anon` quanto por `authenticated`
 
-O campo `bloco_f` passa de `q1..q5` para `q1..q6`:
+Tabelas afetadas:
+- `municipios` — lista de 399 municipios do Parana
+- `eixos_tematicos` — 5 eixos tematicos
+- `temas` — 34 temas agrupados por eixo
 
-```text
-"bloco_f": {
-  "q1": "", "q2": "", "q3": "", "q4": "", "q5": "",
-  "q6": ""  // <-- NOVA: pergunta aberta "o que pretende"
-}
+As politicas de gerenciamento (ALL) para admins permanecem inalteradas.
+
+SQL a executar:
+
+```sql
+DROP POLICY "Anyone can view municipios" ON municipios;
+CREATE POLICY "Anyone can view municipios" ON municipios FOR SELECT USING (true);
+
+DROP POLICY "Anyone can view eixos" ON eixos_tematicos;
+CREATE POLICY "Anyone can view eixos" ON eixos_tematicos FOR SELECT USING (true);
+
+DROP POLICY "Anyone can view temas" ON temas;
+CREATE POLICY "Anyone can view temas" ON temas FOR SELECT USING (true);
 ```
 
-### Implementacao
-
-No arquivo `src/config/entrevistaQuestions.ts` (a ser criado), cada eixo tera 6 perguntas no array `perguntas` do Bloco F. As 5 primeiras sao tecnicas e especificas do eixo (ja definidas no plano anterior). A 6a e identica para todos:
-
-```text
-// Adicionada como ultima pergunta em todos os eixos
-"Alem do que discutimos, o que voce pessoalmente pretende ou gostaria de ver acontecer na sua area nos proximos 4 anos? Fale livremente."
-```
-
-No `EntrevistaForm.tsx`, o step do Bloco F renderizara 6 campos de textarea em vez de 5.
-
-Nenhuma migration de banco necessaria -- o campo `questionario` e JSONB livre.
-
+Nenhuma alteracao de codigo e necessaria — o componente `SuggestionForm` ja esta correto. O problema e exclusivamente de permissao no banco de dados.
