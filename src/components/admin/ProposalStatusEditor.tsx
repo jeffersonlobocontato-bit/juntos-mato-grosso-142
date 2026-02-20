@@ -28,8 +28,7 @@ interface ProposalStatusEditorProps {
 
 const STATUS_OPTIONS = [
   { value: 'rascunho', label: 'Rascunho', description: 'Proposta em elaboração inicial' },
-  { value: 'validada', label: 'Validada', description: 'Proposta revisada e validada tecnicamente' },
-  { value: 'consolidada', label: 'Consolidada', description: 'Proposta consolidada com todas as áreas' },
+  { value: 'em_analise', label: 'Em Análise', description: 'Proposta em revisão e análise técnica' },
   { value: 'aprovada', label: 'Aprovada', description: 'Proposta aprovada para implementação' },
 ];
 
@@ -57,7 +56,7 @@ export const ProposalStatusEditor = ({
       const { error } = await supabase
         .from('propostas_tecnicas')
         .update({
-          status: newStatus as 'rascunho' | 'validada' | 'consolidada' | 'aprovada',
+          status: newStatus as 'rascunho' | 'em_analise' | 'aprovada',
           updated_at: new Date().toISOString(),
         })
         .eq('id', proposal.id);

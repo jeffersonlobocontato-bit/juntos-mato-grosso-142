@@ -214,8 +214,7 @@ export default function AdminMeuPainel() {
     // Status distribution
     const statusCount = {
       rascunho: filteredPropostas.filter(p => p.status === "rascunho").length,
-      validada: filteredPropostas.filter(p => p.status === "validada").length,
-      consolidada: filteredPropostas.filter(p => p.status === "consolidada").length,
+      em_analise: filteredPropostas.filter(p => p.status === "em_analise").length,
       aprovada: filteredPropostas.filter(p => p.status === "aprovada").length,
     };
 
@@ -272,8 +271,7 @@ export default function AdminMeuPainel() {
   // Prepare chart data
   const statusChartData = [
     { name: "Rascunho", value: metrics.statusCount.rascunho, fill: "hsl(var(--muted-foreground))" },
-    { name: "Validada", value: metrics.statusCount.validada, fill: "hsl(38, 92%, 50%)" },
-    { name: "Consolidada", value: metrics.statusCount.consolidada, fill: "hsl(221, 83%, 53%)" },
+    { name: "Em Análise", value: metrics.statusCount.em_analise, fill: "hsl(221, 83%, 53%)" },
     { name: "Aprovada", value: metrics.statusCount.aprovada, fill: "hsl(142, 76%, 36%)" },
   ];
 
@@ -320,18 +318,16 @@ export default function AdminMeuPainel() {
     return eixos.map(eixo => {
       const eixoPropostas = propostas.filter(p => p.eixo_id === eixo.id);
       const rascunho = eixoPropostas.filter(p => p.status === "rascunho").length;
-      const validada = eixoPropostas.filter(p => p.status === "validada").length;
-      const consolidada = eixoPropostas.filter(p => p.status === "consolidada").length;
+      const em_analise = eixoPropostas.filter(p => p.status === "em_analise").length;
       const aprovada = eixoPropostas.filter(p => p.status === "aprovada").length;
       
       return {
         name: eixo.nome.length > 18 ? eixo.nome.substring(0, 18) + "..." : eixo.nome,
         fullName: eixo.nome,
         rascunho,
-        validada,
-        consolidada,
+        em_analise,
         aprovada,
-        total: rascunho + validada + consolidada + aprovada,
+        total: rascunho + em_analise + aprovada,
       };
     });
   }, [eixos, propostas]);
@@ -767,8 +763,7 @@ export default function AdminMeuPainel() {
             atrasadas,
             sugestoes: eixoSugestoes.length,
             rascunho: eixoPropostas.filter(p => p.status === 'rascunho').length,
-            validada: eixoPropostas.filter(p => p.status === 'validada').length,
-            consolidada: eixoPropostas.filter(p => p.status === 'consolidada').length,
+            em_analise: eixoPropostas.filter(p => p.status === 'em_analise').length,
           };
         })}
         isLoading={loadingEixos || loadingPropostas || loadingSugestoes}

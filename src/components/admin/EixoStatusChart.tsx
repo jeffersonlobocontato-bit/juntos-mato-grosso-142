@@ -4,8 +4,7 @@ import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, Legend, Cell
 interface EixoStatusData {
   name: string;
   rascunho: number;
-  validada: number;
-  consolidada: number;
+  em_analise: number;
   aprovada: number;
   total: number;
 }
@@ -18,8 +17,7 @@ interface EixoStatusChartProps {
 
 const STATUS_COLORS = {
   rascunho: "hsl(var(--muted-foreground))",
-  validada: "hsl(38, 92%, 50%)",
-  consolidada: "hsl(221, 83%, 53%)",
+  em_analise: "hsl(221, 83%, 53%)",
   aprovada: "hsl(142, 76%, 36%)",
 };
 
@@ -85,8 +83,7 @@ export function EixoStatusChart({ title, data, isLoading = false }: EixoStatusCh
               formatter={(value: number, name: string) => {
                 const labels: Record<string, string> = {
                   rascunho: "Rascunho",
-                  validada: "Validada",
-                  consolidada: "Consolidada",
+                  em_analise: "Em Análise",
                   aprovada: "Aprovada",
                 };
                 return [value, labels[name] || name];
@@ -96,16 +93,14 @@ export function EixoStatusChart({ title, data, isLoading = false }: EixoStatusCh
               formatter={(value: string) => {
                 const labels: Record<string, string> = {
                   rascunho: "Rascunho",
-                  validada: "Validada",
-                  consolidada: "Consolidada",
+                  em_analise: "Em Análise",
                   aprovada: "Aprovada",
                 };
                 return labels[value] || value;
               }}
             />
             <Bar dataKey="rascunho" stackId="a" fill={STATUS_COLORS.rascunho} radius={[0, 0, 0, 0]} />
-            <Bar dataKey="validada" stackId="a" fill={STATUS_COLORS.validada} radius={[0, 0, 0, 0]} />
-            <Bar dataKey="consolidada" stackId="a" fill={STATUS_COLORS.consolidada} radius={[0, 0, 0, 0]} />
+            <Bar dataKey="em_analise" stackId="a" fill={STATUS_COLORS.em_analise} radius={[0, 0, 0, 0]} />
             <Bar dataKey="aprovada" stackId="a" fill={STATUS_COLORS.aprovada} radius={[0, 4, 4, 0]} />
           </BarChart>
         </ResponsiveContainer>

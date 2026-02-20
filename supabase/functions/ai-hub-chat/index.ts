@@ -132,7 +132,7 @@ serve(async (req) => {
         const { data: propostas } = await supabase
           .from("propostas_tecnicas")
           .select("titulo, descricao, problema, solucao, status")
-          .in("status", ["aprovada", "consolidada", "validada"])
+          .in("status", ["aprovada", "em_analise"])
           .limit(30);
 
         if (propostas && propostas.length > 0) {

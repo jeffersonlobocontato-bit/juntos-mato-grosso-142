@@ -28,8 +28,7 @@ interface StaleProposalsAlertPanelProps {
 
 const STATUS_LABELS: Record<string, string> = {
   rascunho: 'Rascunho',
-  validada: 'Validada',
-  consolidada: 'Consolidada',
+  em_analise: 'Em Análise',
   aprovada: 'Aprovada',
 };
 

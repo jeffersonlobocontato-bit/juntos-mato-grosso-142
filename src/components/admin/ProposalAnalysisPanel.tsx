@@ -33,15 +33,13 @@ interface ProposalAnalysisPanelProps {
 
 const STATUS_COLORS: Record<string, string> = {
   rascunho: 'bg-gray-500/20 text-gray-700 border-gray-500/30',
-  validada: 'bg-yellow-500/20 text-yellow-700 border-yellow-500/30',
-  consolidada: 'bg-blue-500/20 text-blue-700 border-blue-500/30',
+  em_analise: 'bg-blue-500/20 text-blue-700 border-blue-500/30',
   aprovada: 'bg-green-500/20 text-green-700 border-green-500/30',
 };
 
 const STATUS_LABELS: Record<string, string> = {
   rascunho: 'Rascunho',
-  validada: 'Validada',
-  consolidada: 'Consolidada',
+  em_analise: 'Em Análise',
   aprovada: 'Aprovada',
 };
 
@@ -176,8 +174,7 @@ export function ProposalAnalysisPanel({
                 <SelectContent>
                   <SelectItem value="__all__">Todos Status</SelectItem>
                   <SelectItem value="rascunho">Rascunho</SelectItem>
-                  <SelectItem value="validada">Validada</SelectItem>
-                  <SelectItem value="consolidada">Consolidada</SelectItem>
+                  <SelectItem value="em_analise">Em Análise</SelectItem>
                   <SelectItem value="aprovada">Aprovada</SelectItem>
                 </SelectContent>
               </Select>
@@ -277,7 +274,7 @@ export function ProposalAnalysisPanel({
           proposal={{
             id: editingProposal.id,
             titulo: editingProposal.titulo,
-            status: editingProposal.status as 'rascunho' | 'validada' | 'consolidada' | 'aprovada',
+            status: editingProposal.status as 'rascunho' | 'em_analise' | 'aprovada',
             etapa: editingProposal.etapa,
             eixo_nome: editingProposal.eixo_nome,
             municipio_nome: editingProposal.municipio_nome,

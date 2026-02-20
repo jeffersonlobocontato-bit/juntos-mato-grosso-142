@@ -48,13 +48,13 @@ import TimelineChart from '@/components/admin/TimelineChart';
 import { ProposalDetailModal } from '@/components/admin/ProposalDetailModal';
 import { ScoreBadge } from '@/components/admin/ScoreBadge';
 
-type ProposalStatus = 'rascunho' | 'validada' | 'consolidada' | 'aprovada';
+type ProposalStatus = 'rascunho' | 'em_analise' | 'aprovada';
 
 interface Proposal {
   id: string;
   titulo: string;
   descricao: string;
-  status: ProposalStatus;
+  status: string;
   etapa: number;
   metas: string | null;
   indicadores: string | null;
@@ -106,15 +106,13 @@ const REGIOES = [
 
 const statusColors: Record<ProposalStatus, string> = {
   rascunho: 'bg-muted text-muted-foreground',
-  validada: 'bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200',
-  consolidada: 'bg-amber-100 text-amber-800 dark:bg-amber-900 dark:text-amber-200',
+  em_analise: 'bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200',
   aprovada: 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200',
 };
 
 const statusLabels: Record<ProposalStatus, string> = {
   rascunho: 'Rascunho',
-  validada: 'Validada',
-  consolidada: 'Consolidada',
+  em_analise: 'Em Análise',
   aprovada: 'Aprovada',
 };
 
@@ -561,8 +559,7 @@ const AdminPropostas = () => {
                         </SelectTrigger>
                         <SelectContent>
                           <SelectItem value="rascunho">Rascunho</SelectItem>
-                          <SelectItem value="validada">Validada</SelectItem>
-                          <SelectItem value="consolidada">Consolidada</SelectItem>
+                          <SelectItem value="em_analise">Em Análise</SelectItem>
                           <SelectItem value="aprovada">Aprovada</SelectItem>
                         </SelectContent>
                       </Select>
@@ -654,8 +651,7 @@ const AdminPropostas = () => {
                     <SelectContent>
                       <SelectItem value="all">Todos os status</SelectItem>
                       <SelectItem value="rascunho">Rascunho</SelectItem>
-                      <SelectItem value="validada">Validada</SelectItem>
-                      <SelectItem value="consolidada">Consolidada</SelectItem>
+                      <SelectItem value="em_analise">Em Análise</SelectItem>
                       <SelectItem value="aprovada">Aprovada</SelectItem>
                     </SelectContent>
                   </Select>
@@ -752,8 +748,7 @@ const AdminPropostas = () => {
               title="Propostas por Status"
               data={[
                 { name: 'Rascunho', value: proposals.filter(p => p.status === 'rascunho').length, color: 'hsl(215, 20%, 65%)' },
-                { name: 'Validada', value: proposals.filter(p => p.status === 'validada').length, color: 'hsl(210, 100%, 50%)' },
-                { name: 'Consolidada', value: proposals.filter(p => p.status === 'consolidada').length, color: 'hsl(45, 100%, 50%)' },
+                { name: 'Em Análise', value: proposals.filter(p => p.status === 'em_analise').length, color: 'hsl(210, 100%, 50%)' },
                 { name: 'Aprovada', value: proposals.filter(p => p.status === 'aprovada').length, color: 'hsl(152, 60%, 40%)' },
               ]}
             />
@@ -768,7 +763,7 @@ const AdminPropostas = () => {
 
           {/* Stats */}
           <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
-            {(['rascunho', 'validada', 'consolidada', 'aprovada'] as ProposalStatus[]).map(status => (
+            {(['rascunho', 'em_analise', 'aprovada'] as ProposalStatus[]).map(status => (
               <Card key={status}>
                 <CardContent className="py-4 text-center">
                   <p className="text-2xl font-bold">{proposals.filter(p => p.status === status).length}</p>
