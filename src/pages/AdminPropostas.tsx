@@ -793,6 +793,7 @@ const AdminPropostas = () => {
                     <TableHeader>
                       <TableRow>
                         <TableHead>Título</TableHead>
+                        <TableHead>Entrevistador</TableHead>
                         <TableHead>Eixo</TableHead>
                         <TableHead>Município</TableHead>
                         <TableHead>Status</TableHead>
@@ -814,6 +815,9 @@ const AdminPropostas = () => {
                           >
                             <TableCell className="font-medium max-w-[200px] truncate">
                               {proposal.titulo}
+                            </TableCell>
+                            <TableCell className="text-sm">
+                              {proposal.entrevistado || <span className="text-muted-foreground">—</span>}
                             </TableCell>
                             <TableCell>{getEixoNome(proposal.eixo_id)}</TableCell>
                             <TableCell>{municipio?.nome || 'Estadual'}</TableCell>
