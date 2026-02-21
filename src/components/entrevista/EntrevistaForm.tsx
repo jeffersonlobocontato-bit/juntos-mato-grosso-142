@@ -142,6 +142,7 @@ const steps = [
   { label: "Governança", icon: Building2 },
   { label: "Visão Setorial", icon: Focus },
   { label: "Cocriação", icon: Handshake },
+  { label: "Título", icon: FileText },
 ];
 
 const EntrevistaForm = () => {
@@ -152,6 +153,7 @@ const EntrevistaForm = () => {
 
   // Identificação
   const [entrevistado, setEntrevistado] = useState("");
+  const [titulo, setTitulo] = useState("");
   const [entrevistadoEmail, setEntrevistadoEmail] = useState("");
   const [entrevistadoCelular, setEntrevistadoCelular] = useState("");
   const [municipioId, setMunicipioId] = useState("");
@@ -303,6 +305,11 @@ const EntrevistaForm = () => {
           toast.error("Descreva as entregas para os primeiros 90 dias"); return false;
         }
         return true;
+      case 8: // Título
+        if (!titulo.trim()) {
+          toast.error("Informe o título da proposta"); return false;
+        }
+        return true;
       default:
         return true;
     }
@@ -318,7 +325,7 @@ const EntrevistaForm = () => {
     setIsSubmitting(true);
 
     try {
-      const titulo = `Entrevista: ${questionario.aquecimento.area_atuacao_especifica.substring(0, 150)}`;
+      const tituloFinal = titulo.trim();
       const descricao = questionario.o_que_nao_funciona.causas_raiz || questionario.aquecimento.area_atuacao_especifica;
       const metas = questionario.cocriacao.entregas_90_dias;
 
@@ -339,7 +346,7 @@ const EntrevistaForm = () => {
         subtema_id: subtemaIds.length === 1 ? subtemaIds[0] : null,
         municipio_id: municipioId,
         entrevistado: entrevistado.trim(),
-        titulo,
+        titulo: tituloFinal,
         descricao,
         metas,
         questionario: JSON.parse(JSON.stringify(questionarioCompleto)),
@@ -368,6 +375,7 @@ const EntrevistaForm = () => {
     if (!eixoLocked) setEixoId("");
     setTemaId("");
     setSubtemaIds([]);
+    setTitulo("");
     setQuestionario(initialQuestionario);
     setIsSubmitted(false);
   };
@@ -934,6 +942,41 @@ const EntrevistaForm = () => {
           </div>
         );
       }
+
+      // ── ETAPA 8: TÍTULO DA PROPOSTA ──
+      case 8:
+        return (
+          <div className="space-y-6">
+            <div className="bg-primary/10 border border-primary/30 rounded-lg p-4">
+              <p className="text-sm text-primary font-medium mb-1">💡 Por que o título é o último campo?</p>
+              <p className="text-sm text-gray-300">
+                Após responder todo o questionário, você tem uma visão mais clara e objetiva do conteúdo da proposta. 
+                Crie um título que sintetize as principais ideias e propostas registradas ao longo da entrevista.
+              </p>
+            </div>
+
+            <div>
+              <Label htmlFor="titulo" className="text-white mb-2 block">
+                Título da Proposta *
+              </Label>
+              <p className="text-xs text-gray-400 mb-3">
+                O título deve refletir o conteúdo das propostas e sugestões descritas no questionário. 
+                Seja claro, objetivo e descritivo — ele será usado para identificar esta proposta no painel de gestão.
+              </p>
+              <Input
+                id="titulo"
+                value={titulo}
+                onChange={(e) => setTitulo(e.target.value)}
+                placeholder="Ex: Reestruturação da rede de atenção primária nos municípios do interior"
+                className="bg-gray-900 border-gray-700 text-white"
+                maxLength={200}
+              />
+              <p className="text-xs text-gray-500 text-right mt-1">
+                {titulo.length}/200
+              </p>
+            </div>
+          </div>
+        );
 
       default:
         return null;
