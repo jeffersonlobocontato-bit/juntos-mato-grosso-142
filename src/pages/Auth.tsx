@@ -153,7 +153,7 @@ const Auth = () => {
         <Card className="border-border/50 shadow-xl backdrop-blur-sm">
           <CardHeader className="text-center">
             <div className="mx-auto mb-4">
-              <span className="text-3xl font-display font-black text-primary">Rota</span>
+              <span className="text-3xl font-display font-black text-primary">JuntosParaná</span>
               <span className="text-3xl font-display font-black text-accent">399</span>
             </div>
             <CardTitle className="text-2xl font-display">
