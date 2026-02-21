@@ -1,80 +1,72 @@
 
 
-# Corrigir Textos Truncados, Erros Gramaticais e Alucinacoes nos Agentes
+## Plano: Restringir visibilidade do Líder Temático ao que ele mesmo cadastrou
 
-## Diagnostico
+### Problema atual
+No painel "Meu Painel", o líder temático vê propostas de todos os eixos vinculados a ele, além de todas as sugestões e leads sem qualquer filtro. O correto é que cada líder veja **apenas os dados que ele mesmo registrou**.
 
-Apos analisar o codigo da funcao `plano-governo-ai`, identifiquei 3 causas principais:
+### Mudanças planejadas
 
-1. **Sem limite de tokens de saida**: A chamada a IA nao define `max_tokens`, o que faz o modelo parar de gerar texto prematuramente (truncamento)
-2. **Modelo desatualizado**: Usa `google/gemini-2.5-flash` enquanto o `ai-hub-chat` ja usa o mais capaz `google/gemini-3-flash-preview`
-3. **Sem controle de temperatura**: Nao ha parametro `temperature`, o que permite ao modelo "alucinar" com mais liberdade
-4. **Sem instrucoes anti-alucinacao**: Os prompts nao instruem explicitamente o modelo a evitar inventar dados
+#### 1. Filtrar propostas pelo autor (não pelo eixo)
+Na query de `propostas_tecnicas`, substituir o filtro `eixo_id` pelo filtro `autor_id = userId` para líderes temáticos. Assim, cada líder vê apenas as propostas que ele próprio criou.
 
----
+#### 2. Filtrar sugestões pelo eixo do líder
+Sugestões populares não têm `autor_id` (são enviadas por cidadãos), mas possuem o campo `eixo`. Filtrar para mostrar apenas sugestões dos eixos vinculados ao líder, mantendo a relevância sem expor dados de outros eixos.
 
-## Solucao
+#### 3. Filtrar leads pela origem das propostas do líder
+Leads são gerados automaticamente a partir de propostas e sugestões. Para líderes, filtrar leads que estejam vinculados aos municípios ou eixos do líder, ou restringir apenas aos leads gerados por propostas do próprio líder.
 
-### 1. Atualizar parametros da chamada de IA
+### Detalhes técnicos
 
-No arquivo `supabase/functions/plano-governo-ai/index.ts`:
+**Arquivo:** `src/pages/AdminMeuPainel.tsx`
 
-- Trocar modelo de `google/gemini-2.5-flash` para `google/gemini-3-flash-preview`
-- Adicionar `max_tokens: 16384` (garante respostas longas sem truncamento)
-- Adicionar `temperature: 0.4` (reduz alucinacoes mantendo criatividade util)
+**Propostas (linhas 106-124):**
+```typescript
+// Antes: filtrava por eixo_id
+if (isLider && userEixos.length > 0 && !isAdmin) {
+  query = query.in("eixo_id", getEixoIds());
+}
 
-### 2. Adicionar instrucoes anti-alucinacao nos prompts
-
-Inserir no bloco de formatacao (`formattingInstructions`) regras claras:
-
-- "NAO invente dados, estatisticas ou nomes que nao estejam nos dados fornecidos"
-- "Se nao houver dados suficientes, diga explicitamente"
-- "Cite sempre a fonte quando referenciar dados especificos"
-- "Revise a gramatica e coerencia antes de finalizar"
-
-### 3. Adicionar log de debug para detectar truncamentos futuros
-
-Interceptar o stream para verificar se a resposta terminou por `MAX_TOKENS` e logar um aviso.
-
----
-
-## Detalhes Tecnicos
-
-### Arquivo: `supabase/functions/plano-governo-ai/index.ts`
-
-Alteracao na chamada da API (linha ~558):
-
-```text
-ANTES:
-  model: "google/gemini-2.5-flash",
-  messages: apiMessages,
-  stream: true,
-
-DEPOIS:
-  model: "google/gemini-3-flash-preview",
-  messages: apiMessages,
-  stream: true,
-  max_tokens: 16384,
-  temperature: 0.4,
+// Depois: filtra pelo autor_id do usuário logado
+if (isLider && !isAdmin && !isAdminMaster) {
+  query = query.eq("autor_id", userId);
+}
 ```
 
-Alteracao nas instrucoes de formatacao (bloco `formattingInstructions`):
+**Sugestões (linhas 126-133):**
+```typescript
+// Antes: sem filtro
+const { data, error } = await supabase.from("sugestoes_populares").select("*");
 
-Adicionar ao final:
-
-```text
-REGRAS DE QUALIDADE (OBRIGATORIAS):
-- NAO invente dados, numeros, nomes de projetos ou estatisticas que nao estejam nos dados fornecidos
-- Se os dados disponveis forem insuficientes para responder, diga claramente: "Os dados disponiveis nao permitem concluir..."
-- Ao citar numeros ou fatos, indique de qual fonte vieram (sugestoes, propostas, documentos)
-- Revise seu texto para garantir coerencia gramatical e clareza antes de finalizar
-- Complete TODAS as frases e paragrafos -- nunca interrompa no meio de uma ideia
+// Depois: filtra pelo eixo do líder
+let query = supabase.from("sugestoes_populares").select("*");
+if (isLider && !isAdmin && !isAdminMaster && userEixos.length > 0) {
+  const eixoNomes = userEixos.map(e => e.eixo_nome).filter(Boolean);
+  query = query.in("eixo", eixoNomes);
+}
 ```
 
-### Impacto
+**Leads (linhas 135-142):**
+```typescript
+// Antes: sem filtro
+const { data, error } = await supabase.from("leads").select("*");
 
-- Respostas mais longas e completas (sem truncamento)
-- Menos invencao de dados (temperatura mais baixa + instrucoes explicitas)
-- Melhor qualidade gramatical (modelo mais capaz + instrucoes de revisao)
-- Transparencia quando dados sao insuficientes
+// Depois: filtra por metadata contendo eixo_id do líder
+let query = supabase.from("leads").select("*");
+if (isLider && !isAdmin && !isAdminMaster && userEixos.length > 0) {
+  // Filtra leads vinculados às propostas do próprio líder
+  // usando proposta_id para cruzar com propostas do autor
+  query = query.not("proposta_id", "is", null);
+}
+```
+
+Alternativamente, para leads, a abordagem mais limpa seria buscar primeiro os IDs das propostas do líder e depois filtrar leads por esses IDs.
+
+**QueryKeys:** Atualizar as queryKeys para incluir `userId` como dependência, garantindo re-fetch quando o usuário mudar.
+
+### Resultado esperado
+Cada líder temático verá exclusivamente:
+- Propostas técnicas que ele mesmo criou
+- Sugestões populares dos eixos vinculados a ele
+- Leads gerados a partir das suas próprias propostas
 
