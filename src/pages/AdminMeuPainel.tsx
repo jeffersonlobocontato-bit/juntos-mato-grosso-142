@@ -53,7 +53,7 @@ const getRoleBadge = (roles: string[]) => {
 
 export default function AdminMeuPainel() {
   const { roles } = useAuth();
-  const { userEixos, userMunicipios, isAdmin, isAdminMaster, isLiderTematico: isLider, isCuradorMunicipal: isCurador, getEixoIds, getMunicipioIds } = useUserAccess();
+  const { userEixos, userMunicipios, isAdmin, isAdminMaster, isLiderTematico: isLider, isCuradorMunicipal: isCurador, getEixoIds, getMunicipioIds, userId } = useUserAccess();
   const [period, setPeriod] = useState<PeriodFilter>("30d");
   const [isSeeding, setIsSeeding] = useState(false);
   const [selectedEixosForComparison, setSelectedEixosForComparison] = useState<string[]>([]);
@@ -104,17 +104,16 @@ export default function AdminMeuPainel() {
 
   // Fetch all data
   const { data: propostas, isLoading: loadingPropostas, refetch: refetchPropostas } = useQuery({
-    queryKey: ["meu-painel-propostas", userEixos, userMunicipios],
+    queryKey: ["meu-painel-propostas", userEixos, userMunicipios, userId],
     queryFn: async () => {
       let query = supabase.from("propostas_tecnicas").select(`
         *,
         eixos_tematicos(nome),
         municipios(nome)
       `);
-      if (isLider && userEixos.length > 0 && !isAdmin) {
-        query = query.in("eixo_id", getEixoIds());
-      }
-      if (isCurador && userMunicipios.length > 0 && !isAdmin && !isLider) {
+      if (isLider && !isAdmin && !isAdminMaster && userId) {
+        query = query.eq("autor_id", userId);
+      } else if (isCurador && userMunicipios.length > 0 && !isAdmin && !isLider) {
         query = query.in("municipio_id", getMunicipioIds());
       }
       const { data, error } = await query;
@@ -124,17 +123,42 @@ export default function AdminMeuPainel() {
   });
 
   const { data: sugestoes, isLoading: loadingSugestoes, refetch: refetchSugestoes } = useQuery({
-    queryKey: ["meu-painel-sugestoes"],
+    queryKey: ["meu-painel-sugestoes", userEixos, userId],
     queryFn: async () => {
-      const { data, error } = await supabase.from("sugestoes_populares").select("*");
+      let query = supabase.from("sugestoes_populares").select("*");
+      if (isLider && !isAdmin && !isAdminMaster && userEixos.length > 0) {
+        const eixoNomes = userEixos.map(e => e.eixo_nome).filter(Boolean) as string[];
+        if (eixoNomes.length > 0) {
+          query = query.in("eixo", eixoNomes);
+        }
+      }
+      const { data, error } = await query;
       if (error) throw error;
       return data || [];
     },
   });
 
   const { data: leads, isLoading: loadingLeads, refetch: refetchLeads } = useQuery({
-    queryKey: ["meu-painel-leads"],
+    queryKey: ["meu-painel-leads", userId],
     queryFn: async () => {
+      if (isLider && !isAdmin && !isAdminMaster && userId) {
+        // First get the leader's own proposal IDs
+        const { data: myPropostas } = await supabase
+          .from("propostas_tecnicas")
+          .select("id")
+          .eq("autor_id", userId);
+        const myPropostaIds = myPropostas?.map(p => p.id) || [];
+        
+        if (myPropostaIds.length === 0) return [];
+        
+        const { data, error } = await supabase
+          .from("leads")
+          .select("*")
+          .in("proposta_id", myPropostaIds);
+        if (error) throw error;
+        return data || [];
+      }
+      
       const { data, error } = await supabase.from("leads").select("*");
       if (error) throw error;
       return data || [];
