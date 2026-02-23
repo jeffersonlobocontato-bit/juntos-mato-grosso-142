@@ -648,15 +648,15 @@ const EntrevistaForm = () => {
               <p className="text-xs text-gray-400 mb-2">
                 {exemplos.a2_desafios_hint}
               </p>
-              <div className="space-y-3">
+                <div className="space-y-3">
                 {[0, 1, 2].map((index) => (
-                  <div key={index} className="flex gap-2 items-center">
-                    <span className="text-primary font-semibold w-24">Desafio {index + 1}:</span>
+                  <div key={index} className="space-y-1">
+                    <Label className="text-primary font-semibold">Desafio {index + 1}:</Label>
                     <Input
                       value={questionario.aquecimento.principais_desafios[index]}
                       onChange={(e) => updateArrayItem("aquecimento", "principais_desafios", index, e.target.value)}
                       placeholder={`Descreva o desafio ${index + 1}`}
-                      className="bg-gray-900 border-gray-700 text-white flex-1"
+                      className="bg-gray-900 border-gray-700 text-white"
                     />
                   </div>
                 ))}

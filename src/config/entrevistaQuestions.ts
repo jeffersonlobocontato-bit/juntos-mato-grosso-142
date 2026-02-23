@@ -120,10 +120,6 @@ export const programaTestePorEixo: Record<string, ProgramaTesteConfig> = {
     nome: "Licença Zero Clique",
     descricao: "Licença automática para atividades de baixo risco com checagem por dados e fiscalização posterior",
   },
-  "e5000000-0000-0000-0000-000000000005": {
-    nome: "Delegacia Inteligente",
-    descricao: "Triagem digital de ocorrências com priorização por gravidade e encaminhamento automatizado",
-  },
 };
 
 export const programaTesteGenerico: ProgramaTesteConfig = {
