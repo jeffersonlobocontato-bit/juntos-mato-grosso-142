@@ -253,6 +253,44 @@ export type Database = {
           },
         ]
       }
+      ai_document_chunks: {
+        Row: {
+          chunk_index: number
+          content: string
+          created_at: string
+          document_id: string
+          embedding: string | null
+          id: string
+          metadata: Json | null
+        }
+        Insert: {
+          chunk_index?: number
+          content: string
+          created_at?: string
+          document_id: string
+          embedding?: string | null
+          id?: string
+          metadata?: Json | null
+        }
+        Update: {
+          chunk_index?: number
+          content?: string
+          created_at?: string
+          document_id?: string
+          embedding?: string | null
+          id?: string
+          metadata?: Json | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ai_document_chunks_document_id_fkey"
+            columns: ["document_id"]
+            isOneToOne: false
+            referencedRelation: "ai_documents"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       ai_documents: {
         Row: {
           content: string
@@ -269,6 +307,7 @@ export type Database = {
           priority: number | null
           published_at: string | null
           regiao: string | null
+          scope: string
           source_url: string | null
           temporal_status: string | null
           title: string
@@ -290,6 +329,7 @@ export type Database = {
           priority?: number | null
           published_at?: string | null
           regiao?: string | null
+          scope?: string
           source_url?: string | null
           temporal_status?: string | null
           title: string
@@ -311,6 +351,7 @@ export type Database = {
           priority?: number | null
           published_at?: string | null
           regiao?: string | null
+          scope?: string
           source_url?: string | null
           temporal_status?: string | null
           title?: string
@@ -2024,6 +2065,21 @@ export type Database = {
         Returns: boolean
       }
       is_admin: { Args: { _user_id: string }; Returns: boolean }
+      match_document_chunks: {
+        Args: {
+          filter_doc_ids?: string[]
+          match_count?: number
+          match_threshold?: number
+          query_embedding: string
+        }
+        Returns: {
+          chunk_index: number
+          content: string
+          document_id: string
+          id: string
+          similarity: number
+        }[]
+      }
     }
     Enums: {
       app_role:

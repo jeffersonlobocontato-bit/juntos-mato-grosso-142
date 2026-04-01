@@ -11,20 +11,9 @@ import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 import DocumentUploadModal from './DocumentUploadModal';
 import { 
-  BookOpen, 
-  Plus, 
-  Search, 
-  FileText, 
-  Eye, 
-  EyeOff, 
-  Trash2,
-  ExternalLink,
-  Filter,
-  Loader2,
-  CheckCircle,
-  Clock,
-  AlertCircle,
-  Circle
+  BookOpen, Plus, Search, FileText, Eye, EyeOff, Trash2,
+  ExternalLink, Filter, Loader2, CheckCircle, Clock, AlertCircle, Circle,
+  Globe, Bot
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
@@ -43,6 +32,7 @@ interface AIDocument {
   regiao: string | null;
   source_url: string | null;
   is_active: boolean;
+  scope: string;
   created_at: string;
   eixos_tematicos?: { nome: string } | null;
   municipios?: { nome: string } | null;
@@ -79,10 +69,10 @@ export function DocumentLibrary({ eixos, municipios, regioes, className }: Docum
   const [isLoading, setIsLoading] = useState(true);
   const [showUploadModal, setShowUploadModal] = useState(false);
   
-  // Filters
   const [searchTerm, setSearchTerm] = useState('');
   const [categoryFilter, setCategoryFilter] = useState('');
   const [statusFilter, setStatusFilter] = useState('');
+  const [scopeFilter, setScopeFilter] = useState('');
   const [showInactive, setShowInactive] = useState(false);
 
   const fetchDocuments = async () => {
@@ -90,35 +80,20 @@ export function DocumentLibrary({ eixos, municipios, regioes, className }: Docum
     try {
       let query = supabase
         .from('ai_documents')
-        .select(`
-          *,
-          eixos_tematicos(nome),
-          municipios(nome)
-        `)
+        .select(`*, eixos_tematicos(nome), municipios(nome)`)
         .order('created_at', { ascending: false });
 
-      if (!showInactive) {
-        query = query.eq('is_active', true);
-      }
-
-      if (categoryFilter) {
-        query = query.eq('doc_category', categoryFilter);
-      }
-
-      if (statusFilter) {
-        query = query.eq('temporal_status', statusFilter);
-      }
+      if (!showInactive) query = query.eq('is_active', true);
+      if (categoryFilter) query = query.eq('doc_category', categoryFilter);
+      if (statusFilter) query = query.eq('temporal_status', statusFilter);
+      if (scopeFilter) query = query.eq('scope', scopeFilter);
 
       const { data, error } = await query;
-
       if (error) throw error;
-      setDocuments(data || []);
+      setDocuments((data as any[]) || []);
     } catch (error) {
       console.error('Error fetching documents:', error);
-      toast({
-        title: "Erro ao carregar documentos",
-        variant: "destructive"
-      });
+      toast({ title: "Erro ao carregar documentos", variant: "destructive" });
     } finally {
       setIsLoading(false);
     }
@@ -126,74 +101,35 @@ export function DocumentLibrary({ eixos, municipios, regioes, className }: Docum
 
   useEffect(() => {
     fetchDocuments();
-  }, [categoryFilter, statusFilter, showInactive]);
+  }, [categoryFilter, statusFilter, scopeFilter, showInactive]);
 
   const toggleDocumentActive = async (docId: string, currentActive: boolean) => {
     try {
-      const { error } = await supabase
-        .from('ai_documents')
-        .update({ is_active: !currentActive })
-        .eq('id', docId);
-
+      const { error } = await supabase.from('ai_documents').update({ is_active: !currentActive }).eq('id', docId);
       if (error) throw error;
-
-      setDocuments(prev => 
-        prev.map(doc => 
-          doc.id === docId ? { ...doc, is_active: !currentActive } : doc
-        )
-      );
-
-      toast({
-        title: currentActive ? "Documento desativado" : "Documento ativado",
-        description: currentActive 
-          ? "O documento não será mais usado nas análises"
-          : "O documento será usado nas análises"
-      });
+      setDocuments(prev => prev.map(doc => doc.id === docId ? { ...doc, is_active: !currentActive } : doc));
+      toast({ title: currentActive ? "Documento desativado" : "Documento ativado" });
     } catch (error) {
-      console.error('Error toggling document:', error);
-      toast({
-        title: "Erro ao atualizar documento",
-        variant: "destructive"
-      });
+      toast({ title: "Erro ao atualizar documento", variant: "destructive" });
     }
   };
 
   const deleteDocument = async (docId: string) => {
     if (!confirm('Tem certeza que deseja excluir este documento?')) return;
-
     try {
-      const { error } = await supabase
-        .from('ai_documents')
-        .delete()
-        .eq('id', docId);
-
+      const { error } = await supabase.from('ai_documents').delete().eq('id', docId);
       if (error) throw error;
-
       setDocuments(prev => prev.filter(doc => doc.id !== docId));
-
-      toast({
-        title: "Documento excluído",
-        description: "O documento foi removido da base"
-      });
+      toast({ title: "Documento excluído" });
     } catch (error) {
-      console.error('Error deleting document:', error);
-      toast({
-        title: "Erro ao excluir documento",
-        variant: "destructive"
-      });
+      toast({ title: "Erro ao excluir documento", variant: "destructive" });
     }
   };
 
   const filteredDocuments = documents.filter(doc => {
-    if (searchTerm) {
-      const search = searchTerm.toLowerCase();
-      return (
-        doc.title.toLowerCase().includes(search) ||
-        doc.description?.toLowerCase().includes(search) ||
-        doc.content.toLowerCase().includes(search)
-      );
-    }
-    return true;
+    if (!searchTerm) return true;
+    const search = searchTerm.toLowerCase();
+    return doc.title.toLowerCase().includes(search) || doc.description?.toLowerCase().includes(search) || doc.content.toLowerCase().includes(search);
   });
 
   return (
@@ -220,15 +156,21 @@ export function DocumentLibrary({ eixos, municipios, regioes, className }: Docum
             <div className="flex-1 min-w-[200px]">
               <div className="relative">
                 <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-                <Input
-                  value={searchTerm}
-                  onChange={(e) => setSearchTerm(e.target.value)}
-                  placeholder="Buscar documentos..."
-                  className="pl-9"
-                />
+                <Input value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} placeholder="Buscar documentos..." className="pl-9" />
               </div>
             </div>
             
+            <Select value={scopeFilter || "__all__"} onValueChange={(v) => setScopeFilter(v === "__all__" ? "" : v)}>
+              <SelectTrigger className="w-[160px]">
+                <SelectValue placeholder="Escopo" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="__all__">Todos escopos</SelectItem>
+                <SelectItem value="global">🌐 Globais</SelectItem>
+                <SelectItem value="agent_specific">🤖 De agente</SelectItem>
+              </SelectContent>
+            </Select>
+
             <Select value={categoryFilter || "__all__"} onValueChange={(v) => setCategoryFilter(v === "__all__" ? "" : v)}>
               <SelectTrigger className="w-[180px]">
                 <Filter className="w-4 h-4 mr-2" />
@@ -255,14 +197,8 @@ export function DocumentLibrary({ eixos, municipios, regioes, className }: Docum
             </Select>
 
             <div className="flex items-center gap-2">
-              <Switch
-                id="show-inactive"
-                checked={showInactive}
-                onCheckedChange={setShowInactive}
-              />
-              <Label htmlFor="show-inactive" className="text-sm">
-                Mostrar inativos
-              </Label>
+              <Switch id="show-inactive" checked={showInactive} onCheckedChange={setShowInactive} />
+              <Label htmlFor="show-inactive" className="text-sm">Mostrar inativos</Label>
             </div>
           </div>
 
@@ -276,20 +212,14 @@ export function DocumentLibrary({ eixos, municipios, regioes, className }: Docum
               <div className="flex flex-col items-center justify-center h-full text-muted-foreground">
                 <FileText className="w-12 h-12 mb-4 opacity-30" />
                 <p className="text-sm">Nenhum documento encontrado</p>
-                <Button 
-                  variant="link" 
-                  className="mt-2"
-                  onClick={() => setShowUploadModal(true)}
-                >
+                <Button variant="link" className="mt-2" onClick={() => setShowUploadModal(true)}>
                   Adicionar primeiro documento
                 </Button>
               </div>
             ) : (
               <div className="space-y-3">
                 {filteredDocuments.map((doc) => {
-                  const statusConfig = doc.temporal_status 
-                    ? TEMPORAL_STATUS_CONFIG[doc.temporal_status] 
-                    : null;
+                  const statusConfig = doc.temporal_status ? TEMPORAL_STATUS_CONFIG[doc.temporal_status] : null;
                   const StatusIcon = statusConfig?.icon;
 
                   return (
@@ -297,9 +227,7 @@ export function DocumentLibrary({ eixos, municipios, regioes, className }: Docum
                       key={doc.id}
                       className={cn(
                         'p-3 rounded-lg border transition-colors',
-                        doc.is_active 
-                          ? 'bg-card border-border' 
-                          : 'bg-muted/50 border-muted opacity-60'
+                        doc.is_active ? 'bg-card border-border' : 'bg-muted/50 border-muted opacity-60'
                       )}
                     >
                       <div className="flex items-start justify-between gap-4">
@@ -310,6 +238,15 @@ export function DocumentLibrary({ eixos, municipios, regioes, className }: Docum
                             <Badge variant="outline" className="text-xs">
                               {DOC_CATEGORY_LABELS[doc.doc_category] || doc.doc_category}
                             </Badge>
+                            {doc.scope === 'global' ? (
+                              <Badge variant="secondary" className="text-[10px] gap-1">
+                                <Globe className="w-3 h-3" /> Global
+                              </Badge>
+                            ) : (
+                              <Badge variant="default" className="text-[10px] gap-1">
+                                <Bot className="w-3 h-3" /> Agente
+                              </Badge>
+                            )}
                             {statusConfig && StatusIcon && (
                               <Badge variant="secondary" className={cn('text-xs gap-1', statusConfig.color)}>
                                 <StatusIcon className="w-3 h-3" />
@@ -319,57 +256,27 @@ export function DocumentLibrary({ eixos, municipios, regioes, className }: Docum
                           </div>
                           
                           {doc.description && (
-                            <p className="text-sm text-muted-foreground mt-1 line-clamp-1">
-                              {doc.description}
-                            </p>
+                            <p className="text-sm text-muted-foreground mt-1 line-clamp-1">{doc.description}</p>
                           )}
 
                           <div className="flex items-center gap-3 mt-2 text-xs text-muted-foreground">
-                            {doc.eixos_tematicos && (
-                              <span>Eixo: {doc.eixos_tematicos.nome}</span>
-                            )}
-                            {doc.regiao && (
-                              <span>Região: {doc.regiao}</span>
-                            )}
-                            {doc.municipios && (
-                              <span>Município: {doc.municipios.nome}</span>
-                            )}
-                            <span>
-                              {new Date(doc.created_at).toLocaleDateString('pt-BR')}
-                            </span>
+                            {doc.eixos_tematicos && <span>Eixo: {doc.eixos_tematicos.nome}</span>}
+                            {doc.regiao && <span>Região: {doc.regiao}</span>}
+                            {doc.municipios && <span>Município: {doc.municipios.nome}</span>}
+                            <span>{new Date(doc.created_at).toLocaleDateString('pt-BR')}</span>
                           </div>
                         </div>
 
                         <div className="flex items-center gap-1">
                           {doc.source_url && (
-                            <Button
-                              variant="ghost"
-                              size="icon"
-                              className="h-8 w-8"
-                              onClick={() => window.open(doc.source_url!, '_blank')}
-                            >
+                            <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => window.open(doc.source_url!, '_blank')}>
                               <ExternalLink className="w-4 h-4" />
                             </Button>
                           )}
-                          <Button
-                            variant="ghost"
-                            size="icon"
-                            className="h-8 w-8"
-                            onClick={() => toggleDocumentActive(doc.id, doc.is_active)}
-                            title={doc.is_active ? 'Desativar documento' : 'Ativar documento'}
-                          >
-                            {doc.is_active ? (
-                              <Eye className="w-4 h-4 text-green-500" />
-                            ) : (
-                              <EyeOff className="w-4 h-4 text-muted-foreground" />
-                            )}
+                          <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => toggleDocumentActive(doc.id, doc.is_active)} title={doc.is_active ? 'Desativar' : 'Ativar'}>
+                            {doc.is_active ? <Eye className="w-4 h-4 text-green-500" /> : <EyeOff className="w-4 h-4 text-muted-foreground" />}
                           </Button>
-                          <Button
-                            variant="ghost"
-                            size="icon"
-                            className="h-8 w-8 text-destructive hover:text-destructive"
-                            onClick={() => deleteDocument(doc.id)}
-                          >
+                          <Button variant="ghost" size="icon" className="h-8 w-8 text-destructive hover:text-destructive" onClick={() => deleteDocument(doc.id)}>
                             <Trash2 className="w-4 h-4" />
                           </Button>
                         </div>

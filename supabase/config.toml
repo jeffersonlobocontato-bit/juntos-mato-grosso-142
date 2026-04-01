@@ -41,3 +41,6 @@ verify_jwt = false
 
 [functions.analyze-suggestion]
 verify_jwt = false
+
+[functions.process-document-chunks]
+verify_jwt = false

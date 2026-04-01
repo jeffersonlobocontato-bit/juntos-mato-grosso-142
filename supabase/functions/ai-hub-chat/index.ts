@@ -59,27 +59,97 @@ serve(async (req) => {
       );
     }
 
-    // Fetch linked documents for context
+    // Fetch linked document IDs for this agent
     const { data: linkedDocs } = await supabase
       .from("ai_agent_documents")
       .select("document_id")
       .eq("agent_id", agent_id);
 
+    // Also fetch global document IDs
+    const { data: globalDocs } = await supabase
+      .from("ai_documents")
+      .select("id")
+      .eq("is_active", true)
+      .eq("scope", "global");
+
+    const allDocIds = [
+      ...(linkedDocs?.map(d => d.document_id) || []),
+      ...(globalDocs?.map(d => d.id) || []),
+    ];
+    const uniqueDocIds = [...new Set(allDocIds)];
+
     let knowledgeContext = "";
 
-    if (linkedDocs && linkedDocs.length > 0) {
-      const docIds = linkedDocs.map((d) => d.document_id);
-      
+    // Try RAG-based retrieval first
+    const lastUserMessage = messages.filter((m: any) => m.role === "user").pop();
+    let usedRag = false;
+
+    if (lastUserMessage && uniqueDocIds.length > 0) {
+      try {
+        // Generate embedding for the user query using the AI gateway
+        const embeddingResponse = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
+          method: "POST",
+          headers: {
+            Authorization: `Bearer ${LOVABLE_API_KEY}`,
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            model: "google/gemini-2.5-flash-lite",
+            messages: [
+              {
+                role: "system",
+                content: "You are an embedding generator. Given the input text, output ONLY a JSON array of exactly 768 floating point numbers representing a semantic embedding vector. No other text.",
+              },
+              { role: "user", content: `Generate a 768-dimensional embedding vector for: ${lastUserMessage.content.substring(0, 1000)}` },
+            ],
+            stream: false,
+          }),
+        });
+
+        if (embeddingResponse.ok) {
+          const embData = await embeddingResponse.json();
+          const embContent = embData.choices?.[0]?.message?.content || "";
+          const match = embContent.match(/\[[\s\S]*\]/);
+          
+          if (match) {
+            const queryEmbedding = JSON.parse(match[0]);
+            if (Array.isArray(queryEmbedding) && queryEmbedding.length === 768) {
+              // Call match_document_chunks RPC
+              const { data: chunks, error: chunkError } = await supabase.rpc("match_document_chunks", {
+                query_embedding: JSON.stringify(queryEmbedding),
+                match_threshold: 0.3,
+                match_count: 15,
+                filter_doc_ids: uniqueDocIds,
+              });
+
+              if (!chunkError && chunks && chunks.length > 0) {
+                usedRag = true;
+                knowledgeContext = "\n\n--- CONTEXTO RELEVANTE (RAG) ---\n" +
+                  chunks.map((c: any, i: number) => 
+                    `[Trecho ${i + 1} | Relevância: ${(c.similarity * 100).toFixed(0)}%]\n${c.content}`
+                  ).join("\n\n---\n\n");
+              }
+            }
+          }
+        }
+      } catch (ragError) {
+        console.error("RAG retrieval failed, falling back:", ragError);
+      }
+    }
+
+    // Fallback: if RAG didn't work, use traditional document stuffing (limited)
+    if (!usedRag && uniqueDocIds.length > 0) {
       const { data: documents } = await supabase
         .from("ai_documents")
         .select("title, content, doc_category")
-        .in("id", docIds)
-        .eq("is_active", true);
+        .in("id", uniqueDocIds)
+        .eq("is_active", true)
+        .limit(20);
 
       if (documents && documents.length > 0) {
         knowledgeContext = "\n\n--- BASE DE CONHECIMENTO DO AGENTE ---\n" +
           documents.map((doc) => 
-            `### ${doc.title} (${doc.doc_category})\n${doc.content}`
+            `### ${doc.title} (${doc.doc_category})\n${doc.content?.substring(0, 2000) || ''}`
           ).join("\n\n");
       }
     }

@@ -72,6 +72,7 @@ export function ModeDocumentLibrary({ agentConfigId, modeName }: ModeDocumentLib
       .from('ai_documents')
       .select('id, title, doc_category')
       .eq('is_active', true)
+      .eq('scope', 'global')
       .order('title');
 
     if (!error && data) setAllDocs(data);
@@ -85,6 +86,16 @@ export function ModeDocumentLibrary({ agentConfigId, modeName }: ModeDocumentLib
     };
     load();
   }, [fetchLinkedDocs, fetchAllDocs]);
+
+  const triggerChunking = async (documentId: string) => {
+    try {
+      await supabase.functions.invoke('process-document-chunks', {
+        body: { document_id: documentId },
+      });
+    } catch (e) {
+      console.error('Chunking trigger failed (non-blocking):', e);
+    }
+  };
 
   const handleUpload = async () => {
     if (!uploadTitle.trim()) {
@@ -143,6 +154,7 @@ export function ModeDocumentLibrary({ agentConfigId, modeName }: ModeDocumentLib
           doc_category: 'outro',
           uploaded_by: user?.id || null,
           is_active: true,
+          scope: 'agent_specific',
         })
         .select()
         .single();
@@ -160,6 +172,8 @@ export function ModeDocumentLibrary({ agentConfigId, modeName }: ModeDocumentLib
           doc_category: newDoc.doc_category,
           file_name: newDoc.file_name,
         }]);
+        // Trigger RAG chunking
+        triggerChunking(newDoc.id);
       }
 
       toast({ title: 'Sucesso', description: 'Documento adicionado ao modo.' });
