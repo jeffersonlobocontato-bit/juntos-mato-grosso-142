@@ -776,7 +776,11 @@ const AdminPropostas = () => {
           {/* Big Numbers por Eixo */}
           <div className="grid grid-cols-2 md:grid-cols-5 gap-4 mb-6">
             {eixos.map(eixo => (
-              <Card key={eixo.id}>
+              <Card 
+                key={eixo.id} 
+                className={`cursor-pointer transition-all hover:shadow-md ${filterEixo === eixo.id ? 'ring-2 ring-primary shadow-md' : ''}`}
+                onClick={() => setFilterEixo(filterEixo === eixo.id ? 'all' : eixo.id)}
+              >
                 <CardContent className="py-4 text-center">
                   <p className="text-2xl font-bold">{proposals.filter(p => p.eixo_id === eixo.id).length}</p>
                   <p className="text-xs text-muted-foreground truncate">{eixo.nome}</p>
