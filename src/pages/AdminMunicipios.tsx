@@ -456,7 +456,7 @@ const AdminMunicipios = () => {
               data={countByRegiao}
             />
             <AdminPieChart
-              title="Top Municípios com Sugestões"
+              title="Top Municípios com Propostas"
               data={topMunicipios}
             />
           </div>
