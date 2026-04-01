@@ -72,7 +72,11 @@ const AdminMunicipios = () => {
   
   const [municipios, setMunicipios] = useState<Municipio[]>([]);
   const [sugestaoCounts, setSugestaoCounts] = useState<Record<string, number>>({});
+  const [propostaTecnicaCounts, setPropostaTecnicaCounts] = useState<Record<string, number>>({});
+  const [propostaPoliticaTotal, setPropostaPoliticaTotal] = useState(0);
   const [sugestoes, setSugestoes] = useState<{ created_at: string }[]>([]);
+  const [totalPropostasTecnicas, setTotalPropostasTecnicas] = useState(0);
+  const [totalSugestoes, setTotalSugestoes] = useState(0);
   const [isLoading, setIsLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
   const [filterRegiao, setFilterRegiao] = useState<string>('all');
@@ -127,7 +131,31 @@ const AdminMunicipios = () => {
       });
       setSugestaoCounts(counts);
       setSugestoes(sugestoesData);
+      setTotalSugestoes(sugestoesData.length);
     }
+
+    // Fetch propostas técnicas counts per municipio
+    const { data: propostasData } = await supabase
+      .from('propostas_tecnicas')
+      .select('municipio_id');
+    
+    if (propostasData) {
+      const counts: Record<string, number> = {};
+      propostasData.forEach(p => {
+        if (p.municipio_id) {
+          counts[p.municipio_id] = (counts[p.municipio_id] || 0) + 1;
+        }
+      });
+      setPropostaTecnicaCounts(counts);
+      setTotalPropostasTecnicas(propostasData.length);
+    }
+
+    // Fetch propostas políticas total
+    const { count: politicasCount } = await supabase
+      .from('propostas_politicas')
+      .select('id', { count: 'exact', head: true });
+    
+    setPropostaPoliticaTotal(politicasCount || 0);
     
     setIsLoading(false);
   };
@@ -231,11 +259,15 @@ const AdminMunicipios = () => {
     value: municipios.filter(m => m.regiao === regiao).length,
   })).filter(r => r.value > 0);
 
-  // Top municipalities with suggestions
-  const topMunicipios = Object.entries(sugestaoCounts)
-    .sort((a, b) => b[1] - a[1])
-    .slice(0, 8)
-    .map(([name, value]) => ({ name, value }));
+  // Top municipalities with all proposals combined
+  const topMunicipios = municipios
+    .map(m => ({
+      name: m.nome,
+      value: (sugestaoCounts[m.nome] || 0) + (propostaTecnicaCounts[m.id] || 0),
+    }))
+    .filter(r => r.value > 0)
+    .sort((a, b) => b.value - a.value)
+    .slice(0, 8);
 
   if (authLoading || isLoading) {
     return (
@@ -368,7 +400,7 @@ const AdminMunicipios = () => {
           transition={{ duration: 0.5 }}
         >
           {/* Summary Stats */}
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
+          <div className="grid grid-cols-2 md:grid-cols-5 gap-4 mb-6">
             <Card>
               <CardContent className="py-6 text-center">
                 <MapPin className="w-8 h-8 mx-auto mb-2 text-primary" />
@@ -384,8 +416,20 @@ const AdminMunicipios = () => {
             </Card>
             <Card>
               <CardContent className="py-6 text-center">
-                <p className="text-3xl font-bold">{Object.keys(sugestaoCounts).length}</p>
-                <p className="text-sm text-muted-foreground">Com Sugestões</p>
+                <p className="text-3xl font-bold text-blue-600">{totalPropostasTecnicas}</p>
+                <p className="text-sm text-muted-foreground">Propostas Técnicas</p>
+              </CardContent>
+            </Card>
+            <Card>
+              <CardContent className="py-6 text-center">
+                <p className="text-3xl font-bold text-purple-600">{propostaPoliticaTotal}</p>
+                <p className="text-sm text-muted-foreground">Propostas Políticas</p>
+              </CardContent>
+            </Card>
+            <Card>
+              <CardContent className="py-6 text-center">
+                <p className="text-3xl font-bold text-emerald-600">{totalSugestoes}</p>
+                <p className="text-sm text-muted-foreground">Sugestões Populares</p>
               </CardContent>
             </Card>
           </div>
@@ -412,7 +456,7 @@ const AdminMunicipios = () => {
               data={countByRegiao}
             />
             <AdminPieChart
-              title="Top Municípios com Sugestões"
+              title="Top Municípios com Propostas"
               data={topMunicipios}
             />
           </div>
@@ -466,21 +510,27 @@ const AdminMunicipios = () => {
                     <TableHeader>
                       <TableRow>
                         <TableHead>Nome</TableHead>
-                        <TableHead>Código IBGE</TableHead>
                         <TableHead>Região</TableHead>
-                        <TableHead>Sugestões</TableHead>
+                        <TableHead className="text-center">Prop. Técnicas</TableHead>
+                        <TableHead className="text-center">Sugestões Pop.</TableHead>
+                        <TableHead className="text-center">Total</TableHead>
                         {isAdmin && <TableHead className="text-right">Ações</TableHead>}
                       </TableRow>
                     </TableHeader>
                     <TableBody>
-                      {filteredMunicipios.slice(0, 50).map(municipio => (
+                      {filteredMunicipios.slice(0, 50).map(municipio => {
+                        const tecnicas = propostaTecnicaCounts[municipio.id] || 0;
+                        const populares = sugestaoCounts[municipio.nome] || 0;
+                        const total = tecnicas + populares;
+                        return (
                         <TableRow key={municipio.id}>
                           <TableCell className="font-medium">{municipio.nome}</TableCell>
-                          <TableCell>{municipio.codigo_ibge || '-'}</TableCell>
                           <TableCell className="text-sm text-muted-foreground">
                             {municipio.regiao || '-'}
                           </TableCell>
-                          <TableCell>{sugestaoCounts[municipio.nome] || 0}</TableCell>
+                          <TableCell className="text-center">{tecnicas}</TableCell>
+                          <TableCell className="text-center">{populares}</TableCell>
+                          <TableCell className="text-center font-bold">{total}</TableCell>
                           {isAdmin && (
                             <TableCell className="text-right">
                               <div className="flex justify-end gap-2">
@@ -503,7 +553,8 @@ const AdminMunicipios = () => {
                             </TableCell>
                           )}
                         </TableRow>
-                      ))}
+                        );
+                      })}
                     </TableBody>
                   </Table>
                   {filteredMunicipios.length > 50 && (
