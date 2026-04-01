@@ -506,21 +506,27 @@ const AdminMunicipios = () => {
                     <TableHeader>
                       <TableRow>
                         <TableHead>Nome</TableHead>
-                        <TableHead>Código IBGE</TableHead>
                         <TableHead>Região</TableHead>
-                        <TableHead>Sugestões</TableHead>
+                        <TableHead className="text-center">Prop. Técnicas</TableHead>
+                        <TableHead className="text-center">Sugestões Pop.</TableHead>
+                        <TableHead className="text-center">Total</TableHead>
                         {isAdmin && <TableHead className="text-right">Ações</TableHead>}
                       </TableRow>
                     </TableHeader>
                     <TableBody>
-                      {filteredMunicipios.slice(0, 50).map(municipio => (
+                      {filteredMunicipios.slice(0, 50).map(municipio => {
+                        const tecnicas = propostaTecnicaCounts[municipio.id] || 0;
+                        const populares = sugestaoCounts[municipio.nome] || 0;
+                        const total = tecnicas + populares;
+                        return (
                         <TableRow key={municipio.id}>
                           <TableCell className="font-medium">{municipio.nome}</TableCell>
-                          <TableCell>{municipio.codigo_ibge || '-'}</TableCell>
                           <TableCell className="text-sm text-muted-foreground">
                             {municipio.regiao || '-'}
                           </TableCell>
-                          <TableCell>{sugestaoCounts[municipio.nome] || 0}</TableCell>
+                          <TableCell className="text-center">{tecnicas}</TableCell>
+                          <TableCell className="text-center">{populares}</TableCell>
+                          <TableCell className="text-center font-bold">{total}</TableCell>
                           {isAdmin && (
                             <TableCell className="text-right">
                               <div className="flex justify-end gap-2">
