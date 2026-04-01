@@ -793,7 +793,8 @@ const AdminPropostas = () => {
                     <TableHeader>
                       <TableRow>
                         <TableHead>Título</TableHead>
-                        <TableHead>Entrevistado</TableHead>
+                         <TableHead>Entrevistado</TableHead>
+                         <TableHead>Entrevistador</TableHead>
                         <TableHead>Eixo</TableHead>
                         <TableHead>Município</TableHead>
                         <TableHead>Status</TableHead>
