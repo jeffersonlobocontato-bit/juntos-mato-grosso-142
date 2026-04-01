@@ -309,7 +309,11 @@ const AdminSugestoes = () => {
           {/* Stats by Eixo */}
           <div className="grid grid-cols-2 md:grid-cols-5 gap-4 mb-6">
             {eixosList.map(eixo => (
-              <Card key={eixo}>
+              <Card 
+                key={eixo}
+                className={`cursor-pointer transition-all hover:shadow-md ${filterEixo === eixo ? 'ring-2 ring-primary shadow-md' : ''}`}
+                onClick={() => setFilterEixo(filterEixo === eixo ? 'all' : eixo)}
+              >
                 <CardContent className="py-4 text-center">
                   <p className="text-2xl font-bold">{countByEixo(eixo)}</p>
                   <p className="text-xs text-muted-foreground truncate">{eixo}</p>
