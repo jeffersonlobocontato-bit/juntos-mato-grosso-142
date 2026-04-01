@@ -218,7 +218,7 @@ const Admin = () => {
                 Gerencie propostas, sugestões e acompanhe o progresso do Juntos Paraná 399.
               </p>
             </div>
-            {(hasRole('lider_tematico') || isAdminMaster) && (
+            {(hasRole('lider_tematico') || isAdminMaster || isAdmin) && (
               <Button asChild size="lg" className="gap-2 whitespace-nowrap font-bold shadow-md">
                 <Link to="/entrevista">
                   <ClipboardList className="w-5 h-5" />
