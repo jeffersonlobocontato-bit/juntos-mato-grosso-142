@@ -793,7 +793,8 @@ const AdminPropostas = () => {
                     <TableHeader>
                       <TableRow>
                         <TableHead>Título</TableHead>
-                        <TableHead>Entrevistado</TableHead>
+                         <TableHead>Entrevistado</TableHead>
+                         <TableHead>Entrevistador</TableHead>
                         <TableHead>Eixo</TableHead>
                         <TableHead>Município</TableHead>
                         <TableHead>Status</TableHead>
@@ -818,6 +819,9 @@ const AdminPropostas = () => {
                             </TableCell>
                             <TableCell className="text-sm">
                               {proposal.entrevistado || <span className="text-muted-foreground">—</span>}
+                            </TableCell>
+                            <TableCell className="text-sm">
+                              {lideresTecnicos.find(l => l.id === proposal.autor_id)?.full_name || <span className="text-muted-foreground">—</span>}
                             </TableCell>
                             <TableCell>{getEixoNome(proposal.eixo_id)}</TableCell>
                             <TableCell>{municipio?.nome || 'Estadual'}</TableCell>
