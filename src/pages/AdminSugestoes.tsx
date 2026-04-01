@@ -307,8 +307,8 @@ const AdminSugestoes = () => {
           </div>
 
           {/* Stats by Eixo */}
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
-            {eixosList.slice(0, 4).map(eixo => (
+          <div className="grid grid-cols-2 md:grid-cols-5 gap-4 mb-6">
+            {eixosList.map(eixo => (
               <Card key={eixo}>
                 <CardContent className="py-4 text-center">
                   <p className="text-2xl font-bold">{countByEixo(eixo)}</p>
