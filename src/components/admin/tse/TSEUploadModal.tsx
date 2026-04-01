@@ -83,7 +83,7 @@ export default function TSEUploadModal({
     votesInserted: 0,
   });
   const [validationErrors, setValidationErrors] = useState<string[]>([]);
-  const [pollingInterval, setPollingInterval] = useState<NodeJS.Timeout | null>(null);
+  const [pollingInterval, setPollingInterval] = useState<ReturnType<typeof setInterval> | null>(null);
 
   // Maximum file size: 2GB to support large TSE files
   // Large files use partial decoding for validation + raw bytes for upload
