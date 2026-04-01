@@ -86,6 +86,16 @@ export function ModeDocumentLibrary({ agentConfigId, modeName }: ModeDocumentLib
     load();
   }, [fetchLinkedDocs, fetchAllDocs]);
 
+  const triggerChunking = async (documentId: string) => {
+    try {
+      await supabase.functions.invoke('process-document-chunks', {
+        body: { document_id: documentId },
+      });
+    } catch (e) {
+      console.error('Chunking trigger failed (non-blocking):', e);
+    }
+  };
+
   const handleUpload = async () => {
     if (!uploadTitle.trim()) {
       toast({ title: 'Erro', description: 'Título é obrigatório.', variant: 'destructive' });
