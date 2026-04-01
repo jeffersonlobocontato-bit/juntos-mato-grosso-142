@@ -171,6 +171,8 @@ export function ModeDocumentLibrary({ agentConfigId, modeName }: ModeDocumentLib
           doc_category: newDoc.doc_category,
           file_name: newDoc.file_name,
         }]);
+        // Trigger RAG chunking
+        triggerChunking(newDoc.id);
       }
 
       toast({ title: 'Sucesso', description: 'Documento adicionado ao modo.' });
