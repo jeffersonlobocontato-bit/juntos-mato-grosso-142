@@ -1,58 +1,32 @@
 
-## Ajustes no Questionário da Entrevista Técnica
 
-### Mudança 1 — A2: Layout vertical com label sobre cada campo de desafio
+## Adicionar CTAs "Entrevista Política" e "Entrevista Popular" no topo do dashboard
 
-**Onde:** `src/components/entrevista/EntrevistaForm.tsx`, etapa 1 (Aquecimento), linhas 651–663.
+### O que será feito
 
-**Situação atual:** Cada desafio é exibido em uma linha horizontal com o label `"Desafio X:"` à esquerda e o campo de input ao lado.
+Ao lado do botão existente "IR PARA A ENTREVISTA TÉCNICA", serão adicionados dois novos botões CTA:
 
-**Situação desejada:** Cada desafio deve ter o label acima do campo, com o placeholder descrevendo a ação esperada:
+1. **IR PARA A ENTREVISTA POLÍTICA** → link para `/liderancas` (LP de propostas políticas)
+2. **IR PARA A ENTREVISTA POPULAR** → link para `/` (LP de sugestões populares)
 
-```
-Desafio 1:
-[ Descreva o desafio 1... ]
+### Arquivo a editar
 
-Desafio 2:
-[ Descreva o desafio 2... ]
+**`src/pages/Admin.tsx`**
 
-Desafio 3:
-[ Descreva o desafio 3... ]
-```
+- Importar ícones adicionais (`Vote`, `Users2` ou similares) se necessário
+- Substituir o botão único (linhas 221-228) por um grupo de 3 botões dentro de um `flex gap-2 flex-wrap`
+- Os 3 botões compartilham a mesma condição de visibilidade (`lider_tematico || isAdminMaster || isAdmin`)
+- Usar variantes visuais distintas para diferenciar:
+  - **Entrevista Técnica**: `variant="default"` (atual)
+  - **Entrevista Política**: `variant="accent"` 
+  - **Entrevista Popular**: `variant="secondary"`
 
-**Alteração técnica:** Substituir o `flex gap-2 items-center` por um layout de coluna (`space-y-1`) com `<Label>` acima do `<Input>`.
+### Layout resultante
 
----
-
-### Mudança 2 — G2: Remover a descrição "Delegacia Inteligente" para Segurança Pública
-
-**Onde:** `src/config/entrevistaQuestions.ts`, no objeto `programaTestePorEixo` para o eixo `"e5000000-0000-0000-0000-000000000005"`.
-
-**Situação atual:**
-```typescript
-"e5000000-0000-0000-0000-000000000005": {
-  nome: "Delegacia Inteligente",
-  descricao: "Triagem digital de ocorrências com priorização por gravidade e encaminhamento automatizado",
-},
+```text
+Bem-vindo ao Painel                    [ENTREVISTA TÉCNICA] [ENTREVISTA POLÍTICA] [ENTREVISTA POPULAR]
+Gerencie propostas, sugestões...
 ```
 
-**Situação desejada:** Remover a entrada de segurança do mapeamento `programaTestePorEixo`. Com isso, o eixo de segurança cairá no fallback `programaTesteGenerico`, que exibe:
+Em telas menores, os botões empilharão verticalmente graças ao `flex-wrap`.
 
-- **Nome:** "Programa-Piloto"
-- **Descrição:** "Um programa-piloto que possa ser testado em 90 dias no seu setor"
-
-Esse texto é genérico e neutro — sem sugerir nenhuma ideia específica como "Delegacia Inteligente".
-
-O comportamento no formulário ficará:
-
-> **G2. Programa-Teste: "Programa-Piloto"**
-> Um programa-piloto que possa ser testado em 90 dias no seu setor. — Se esse programa fosse implementado como piloto, o que você ajustaria, expandiria ou criticaria?
-
----
-
-### Arquivos a editar
-
-| Arquivo | Mudança |
-|---|---|
-| `src/components/entrevista/EntrevistaForm.tsx` | Layout de A2: vertical com label acima de cada input |
-| `src/config/entrevistaQuestions.ts` | Remover entrada do eixo e5 em `programaTestePorEixo` |
