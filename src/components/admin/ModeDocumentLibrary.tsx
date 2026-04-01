@@ -72,6 +72,7 @@ export function ModeDocumentLibrary({ agentConfigId, modeName }: ModeDocumentLib
       .from('ai_documents')
       .select('id, title, doc_category')
       .eq('is_active', true)
+      .eq('scope', 'global')
       .order('title');
 
     if (!error && data) setAllDocs(data);
