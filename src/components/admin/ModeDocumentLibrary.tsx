@@ -153,6 +153,7 @@ export function ModeDocumentLibrary({ agentConfigId, modeName }: ModeDocumentLib
           doc_category: 'outro',
           uploaded_by: user?.id || null,
           is_active: true,
+          scope: 'agent_specific',
         })
         .select()
         .single();
