@@ -131,7 +131,31 @@ const AdminMunicipios = () => {
       });
       setSugestaoCounts(counts);
       setSugestoes(sugestoesData);
+      setTotalSugestoes(sugestoesData.length);
     }
+
+    // Fetch propostas técnicas counts per municipio
+    const { data: propostasData } = await supabase
+      .from('propostas_tecnicas')
+      .select('municipio_id');
+    
+    if (propostasData) {
+      const counts: Record<string, number> = {};
+      propostasData.forEach(p => {
+        if (p.municipio_id) {
+          counts[p.municipio_id] = (counts[p.municipio_id] || 0) + 1;
+        }
+      });
+      setPropostaTecnicaCounts(counts);
+      setTotalPropostasTecnicas(propostasData.length);
+    }
+
+    // Fetch propostas políticas total
+    const { count: politicasCount } = await supabase
+      .from('propostas_politicas')
+      .select('id', { count: 'exact', head: true });
+    
+    setPropostaPoliticaTotal(politicasCount || 0);
     
     setIsLoading(false);
   };
