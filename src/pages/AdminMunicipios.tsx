@@ -549,7 +549,8 @@ const AdminMunicipios = () => {
                             </TableCell>
                           )}
                         </TableRow>
-                      ))}
+                        );
+                      })}
                     </TableBody>
                   </Table>
                   {filteredMunicipios.length > 50 && (
