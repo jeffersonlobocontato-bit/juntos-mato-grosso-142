@@ -219,12 +219,26 @@ const Admin = () => {
               </p>
             </div>
             {(hasRole('lider_tematico') || isAdminMaster || isAdmin) && (
-              <Button asChild size="lg" className="gap-2 whitespace-nowrap font-bold shadow-md">
-                <Link to="/entrevista">
-                  <ClipboardList className="w-5 h-5" />
-                  IR PARA A ENTREVISTA TÉCNICA
-                </Link>
-              </Button>
+              <div className="flex flex-col sm:flex-row gap-2">
+                <Button asChild size="lg" className="gap-2 whitespace-nowrap font-bold shadow-md">
+                  <Link to="/entrevista">
+                    <ClipboardList className="w-5 h-5" />
+                    IR PARA A ENTREVISTA TÉCNICA
+                  </Link>
+                </Button>
+                <Button asChild size="lg" variant="accent" className="gap-2 whitespace-nowrap font-bold shadow-md">
+                  <Link to="/liderancas">
+                    <Vote className="w-5 h-5" />
+                    IR PARA A ENTREVISTA POLÍTICA
+                  </Link>
+                </Button>
+                <Button asChild size="lg" variant="secondary" className="gap-2 whitespace-nowrap font-bold shadow-md">
+                  <Link to="/">
+                    <Users className="w-5 h-5" />
+                    IR PARA A ENTREVISTA POPULAR
+                  </Link>
+                </Button>
+              </div>
             )}
           </div>
 
