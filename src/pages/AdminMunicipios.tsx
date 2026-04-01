@@ -259,11 +259,15 @@ const AdminMunicipios = () => {
     value: municipios.filter(m => m.regiao === regiao).length,
   })).filter(r => r.value > 0);
 
-  // Top municipalities with suggestions
-  const topMunicipios = Object.entries(sugestaoCounts)
-    .sort((a, b) => b[1] - a[1])
-    .slice(0, 8)
-    .map(([name, value]) => ({ name, value }));
+  // Top municipalities with all proposals combined
+  const topMunicipios = municipios
+    .map(m => ({
+      name: m.nome,
+      value: (sugestaoCounts[m.nome] || 0) + (propostaTecnicaCounts[m.id] || 0),
+    }))
+    .filter(r => r.value > 0)
+    .sort((a, b) => b.value - a.value)
+    .slice(0, 8);
 
   if (authLoading || isLoading) {
     return (
