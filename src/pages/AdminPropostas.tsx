@@ -773,6 +773,18 @@ const AdminPropostas = () => {
             ))}
           </div>
 
+          {/* Big Numbers por Eixo */}
+          <div className="grid grid-cols-2 md:grid-cols-5 gap-4 mb-6">
+            {eixos.map(eixo => (
+              <Card key={eixo.id}>
+                <CardContent className="py-4 text-center">
+                  <p className="text-2xl font-bold">{proposals.filter(p => p.eixo_id === eixo.id).length}</p>
+                  <p className="text-xs text-muted-foreground truncate">{eixo.nome}</p>
+                </CardContent>
+              </Card>
+            ))}
+          </div>
+
           {/* Table */}
           <Card>
             <CardHeader>
