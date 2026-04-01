@@ -396,7 +396,7 @@ const AdminMunicipios = () => {
           transition={{ duration: 0.5 }}
         >
           {/* Summary Stats */}
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
+          <div className="grid grid-cols-2 md:grid-cols-5 gap-4 mb-6">
             <Card>
               <CardContent className="py-6 text-center">
                 <MapPin className="w-8 h-8 mx-auto mb-2 text-primary" />
@@ -412,8 +412,20 @@ const AdminMunicipios = () => {
             </Card>
             <Card>
               <CardContent className="py-6 text-center">
-                <p className="text-3xl font-bold">{Object.keys(sugestaoCounts).length}</p>
-                <p className="text-sm text-muted-foreground">Com Sugestões</p>
+                <p className="text-3xl font-bold text-blue-600">{totalPropostasTecnicas}</p>
+                <p className="text-sm text-muted-foreground">Propostas Técnicas</p>
+              </CardContent>
+            </Card>
+            <Card>
+              <CardContent className="py-6 text-center">
+                <p className="text-3xl font-bold text-purple-600">{propostaPoliticaTotal}</p>
+                <p className="text-sm text-muted-foreground">Propostas Políticas</p>
+              </CardContent>
+            </Card>
+            <Card>
+              <CardContent className="py-6 text-center">
+                <p className="text-3xl font-bold text-emerald-600">{totalSugestoes}</p>
+                <p className="text-sm text-muted-foreground">Sugestões Populares</p>
               </CardContent>
             </Card>
           </div>
