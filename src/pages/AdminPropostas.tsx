@@ -820,6 +820,9 @@ const AdminPropostas = () => {
                             <TableCell className="text-sm">
                               {proposal.entrevistado || <span className="text-muted-foreground">—</span>}
                             </TableCell>
+                            <TableCell className="text-sm">
+                              {lideresTecnicos.find(l => l.id === proposal.autor_id)?.full_name || <span className="text-muted-foreground">—</span>}
+                            </TableCell>
                             <TableCell>{getEixoNome(proposal.eixo_id)}</TableCell>
                             <TableCell>{municipio?.nome || 'Estadual'}</TableCell>
                             <TableCell>
