@@ -72,7 +72,11 @@ const AdminMunicipios = () => {
   
   const [municipios, setMunicipios] = useState<Municipio[]>([]);
   const [sugestaoCounts, setSugestaoCounts] = useState<Record<string, number>>({});
+  const [propostaTecnicaCounts, setPropostaTecnicaCounts] = useState<Record<string, number>>({});
+  const [propostaPoliticaTotal, setPropostaPoliticaTotal] = useState(0);
   const [sugestoes, setSugestoes] = useState<{ created_at: string }[]>([]);
+  const [totalPropostasTecnicas, setTotalPropostasTecnicas] = useState(0);
+  const [totalSugestoes, setTotalSugestoes] = useState(0);
   const [isLoading, setIsLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
   const [filterRegiao, setFilterRegiao] = useState<string>('all');
