@@ -1000,7 +1000,31 @@ const AdminUsuarios = () => {
           />
         </motion.div>
 
-        {/* Users Table */}
+        {/* Cadastros por Entrevistador */}
+        <motion.div
+          className="mb-8"
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.18 }}
+        >
+          <HorizontalBarChart
+            title="Cadastros por Entrevistador/Líder"
+            data={cadastrosPorEntrevistador}
+            isLoading={loadingPropostas}
+            onBarClick={(item) => {
+              if ((item as any).autorId) setSelectedEntrevistadorId((item as any).autorId);
+            }}
+          />
+        </motion.div>
+
+        <EntrevistadorDetailModal
+          open={!!selectedEntrevistadorId}
+          onOpenChange={(open) => { if (!open) setSelectedEntrevistadorId(null); }}
+          entrevistadorNome={selectedEntrevistadorData.nome}
+          propostas={selectedEntrevistadorData.propostas}
+        />
+
+
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
