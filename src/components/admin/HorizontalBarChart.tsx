@@ -1,14 +1,18 @@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, Cell } from "recharts";
 
+interface BarDataItem {
+  name: string;
+  value: number;
+  color?: string;
+  [key: string]: any;
+}
+
 interface HorizontalBarChartProps {
   title: string;
-  data: {
-    name: string;
-    value: number;
-    color?: string;
-  }[];
+  data: BarDataItem[];
   isLoading?: boolean;
+  onBarClick?: (item: BarDataItem) => void;
 }
 
 const COLORS = [
@@ -22,7 +26,7 @@ const COLORS = [
   "hsl(340, 82%, 52%)",
 ];
 
-export function HorizontalBarChart({ title, data, isLoading = false }: HorizontalBarChartProps) {
+export function HorizontalBarChart({ title, data, isLoading = false, onBarClick }: HorizontalBarChartProps) {
   if (isLoading) {
     return (
       <Card>
@@ -68,7 +72,16 @@ export function HorizontalBarChart({ title, data, isLoading = false }: Horizonta
               }}
               formatter={(value: number) => [value, "Total"]}
             />
-            <Bar dataKey="value" radius={[0, 4, 4, 0]}>
+            <Bar
+              dataKey="value"
+              radius={[0, 4, 4, 0]}
+              cursor={onBarClick ? "pointer" : undefined}
+              onClick={(data) => {
+                if (onBarClick && data) {
+                  onBarClick(data);
+                }
+              }}
+            >
               {sortedData.map((entry, index) => (
                 <Cell key={`cell-${index}`} fill={entry.color || COLORS[index % COLORS.length]} />
               ))}
