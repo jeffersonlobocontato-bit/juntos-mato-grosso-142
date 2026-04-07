@@ -125,6 +125,15 @@ const AdminEixos = () => {
         .select('*')
         .order('ordem');
 
+      // Fetch propostas and sugestoes
+      const { data: propostasData } = await supabase
+        .from('propostas_tecnicas')
+        .select('eixo_id, tema_id, created_at');
+      
+      const { data: sugestoesData } = await supabase
+        .from('sugestoes_populares')
+        .select('eixo, tema_id, created_at');
+
       // Fetch user_eixos with profiles and roles
       const { data: userEixosData } = await supabase
         .from('user_eixos')
