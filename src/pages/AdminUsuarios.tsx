@@ -25,7 +25,7 @@ type AppRole = 'admin' | 'admin_master' | 'lider_tematico' | 'curador_municipal'
 const ROLE_LABELS: Record<AppRole, string> = {
   admin: 'Administrador',
   admin_master: 'Admin Master',
-  lider_tematico: 'Líder Temático',
+  lider_tematico: 'Entrevistador/Líder',
   curador_municipal: 'Curador Municipal',
   especialista: 'Especialista',
 };
@@ -600,7 +600,7 @@ const AdminUsuarios = () => {
   const roleDistributionData = [
     { name: 'Admin Master', value: adminMasterCount },
     { name: 'Administradores', value: adminCount },
-    { name: 'Líderes Temáticos', value: leaderCount },
+    { name: 'Entrevistadores/Líderes', value: leaderCount },
     { name: 'Curadores Municipais', value: curatorCount },
     { name: 'Especialistas', value: specialistCount },
   ].filter(item => item.value > 0);
@@ -934,7 +934,7 @@ const AdminUsuarios = () => {
                 <UserCheck className="h-8 w-8 text-blue-500" />
                 <div>
                   <p className="text-2xl font-bold">{leaderCount}</p>
-                  <p className="text-sm text-muted-foreground">Líderes</p>
+                  <p className="text-sm text-muted-foreground">Entrevistadores/Líderes</p>
                 </div>
               </div>
             </CardContent>

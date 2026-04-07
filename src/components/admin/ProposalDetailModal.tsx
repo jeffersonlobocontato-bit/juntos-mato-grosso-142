@@ -86,8 +86,8 @@ const statusLabels: Record<string, { label: string; color: string }> = {
 
 const questionarioLabels: Record<string, string> = {
   // Identificação
-  nome_lider: 'Nome do Líder',
-  cargo_lider: 'Cargo do Líder',
+  nome_lider: 'Nome do Entrevistador/Líder',
+  cargo_lider: 'Cargo do Entrevistador/Líder',
   area_atuacao: 'Área de Atuação',
   
   // Diagnóstico

@@ -864,7 +864,7 @@ const EntrevistaForm = ({ mode = "tecnica" }: EntrevistaFormProps) => {
             </div>
 
             <div>
-              <Label className="text-white mb-2 block">Líder Responsável</Label>
+              <Label className="text-white mb-2 block">Entrevistador/Líder Responsável</Label>
               <Input
                 value={liderNome}
                 disabled

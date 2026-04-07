@@ -518,13 +518,13 @@ const AdminPropostas = () => {
                   </div>
                   
                   <div className="space-y-2">
-                    <Label htmlFor="lider_responsavel">Líder Técnico Responsável</Label>
+                    <Label htmlFor="lider_responsavel">Entrevistador/Líder Responsável</Label>
                     <Select
                       value={formData.lider_responsavel_id}
                       onValueChange={(value) => setFormData({ ...formData, lider_responsavel_id: value })}
                     >
                       <SelectTrigger>
-                        <SelectValue placeholder="Selecione o líder responsável" />
+                        <SelectValue placeholder="Selecione o entrevistador/líder responsável" />
                       </SelectTrigger>
                       <SelectContent className="max-h-[200px]">
                         {lideresTecnicos.map(lider => (
