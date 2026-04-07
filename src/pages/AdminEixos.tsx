@@ -50,8 +50,15 @@ const EIXO_ICONS: Record<number, typeof Heart> = {
   5: Shield,     // Segurança
 };
 
+interface EixoUser {
+  user_id: string;
+  full_name: string;
+  role: string;
+}
+
 interface EixoWithTemas extends Eixo {
   temas?: TemaWithSubtemas[];
+  users?: EixoUser[];
 }
 
 interface TemaWithSubtemas extends Tema {
@@ -127,6 +134,44 @@ const AdminEixos = () => {
         .from('sugestoes_populares')
         .select('eixo, tema_id, created_at');
 
+      // Fetch user_eixos with profiles and roles
+      const { data: userEixosData } = await supabase
+        .from('user_eixos')
+        .select('eixo_id, user_id');
+
+      const { data: profilesData } = await supabase
+        .from('profiles')
+        .select('id, full_name');
+
+      const { data: rolesData } = await supabase
+        .from('user_roles')
+        .select('user_id, role');
+
+      // Build a map of user_id -> { full_name, roles }
+      const profileMap = new Map((profilesData || []).map(p => [p.id, p.full_name || 'Sem nome']));
+      const roleMap = new Map<string, string[]>();
+      (rolesData || []).forEach(r => {
+        const existing = roleMap.get(r.user_id) || [];
+        existing.push(r.role);
+        roleMap.set(r.user_id, existing);
+      });
+
+      // Group users by eixo
+      const eixoUsersMap = new Map<string, EixoUser[]>();
+      (userEixosData || []).forEach(ue => {
+        const existing = eixoUsersMap.get(ue.eixo_id) || [];
+        const roles = roleMap.get(ue.user_id) || [];
+        // Deduplicate by user_id
+        if (!existing.some(u => u.user_id === ue.user_id)) {
+          existing.push({
+            user_id: ue.user_id,
+            full_name: profileMap.get(ue.user_id) || 'Sem nome',
+            role: roles.includes('lider_tematico') ? 'Líder' : roles.includes('curador_municipal') ? 'Curador' : roles[0] || 'Membro',
+          });
+        }
+        eixoUsersMap.set(ue.eixo_id, existing);
+      });
+
       // Build hierarchical structure
       const eixosWithTemas: EixoWithTemas[] = (eixosData || []).map(eixo => {
         const temas = (temasData || [])
@@ -137,7 +182,7 @@ const AdminEixos = () => {
             propostas_count: (propostasData || []).filter(p => p.tema_id === tema.id).length,
             sugestoes_count: (sugestoesData || []).filter(s => s.tema_id === tema.id).length,
           }));
-        return { ...eixo, temas };
+        return { ...eixo, temas, users: eixoUsersMap.get(eixo.id) || [] };
       });
 
       setEixos(eixosWithTemas);
@@ -438,7 +483,7 @@ const AdminEixos = () => {
                                 </span>
                               )}
                             </div>
-                            <div className="flex gap-3 mt-1">
+                            <div className="flex flex-wrap gap-2 mt-1">
                               <Badge variant="secondary" className="text-xs">
                                 {eixo.temas?.length || 0} temas
                               </Badge>
@@ -448,7 +493,22 @@ const AdminEixos = () => {
                               <Badge variant="outline" className="text-xs">
                                 {eixoSugestoes} sugestões
                               </Badge>
+                              {eixo.users && eixo.users.length > 0 && (
+                                <Badge variant="default" className="text-xs bg-primary/10 text-primary border-primary/20">
+                                  <Users className="w-3 h-3 mr-1" />
+                                  {eixo.users.length} {eixo.users.length === 1 ? 'curador' : 'curadores'}
+                                </Badge>
+                              )}
                             </div>
+                            {eixo.users && eixo.users.length > 0 && (
+                              <div className="flex flex-wrap gap-1 mt-1">
+                                {eixo.users.map(u => (
+                                  <Badge key={u.user_id} variant="outline" className="text-[10px] font-normal py-0">
+                                    {u.full_name} <span className="text-muted-foreground ml-1">({u.role})</span>
+                                  </Badge>
+                                ))}
+                              </div>
+                            )}
                           </div>
                           {isAdmin && (
                             <div className="flex gap-1" onClick={(e) => e.stopPropagation()}>
