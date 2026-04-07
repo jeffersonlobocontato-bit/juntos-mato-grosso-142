@@ -483,7 +483,7 @@ const AdminEixos = () => {
                                 </span>
                               )}
                             </div>
-                            <div className="flex gap-3 mt-1">
+                            <div className="flex flex-wrap gap-2 mt-1">
                               <Badge variant="secondary" className="text-xs">
                                 {eixo.temas?.length || 0} temas
                               </Badge>
@@ -493,7 +493,22 @@ const AdminEixos = () => {
                               <Badge variant="outline" className="text-xs">
                                 {eixoSugestoes} sugestões
                               </Badge>
+                              {eixo.users && eixo.users.length > 0 && (
+                                <Badge variant="default" className="text-xs bg-primary/10 text-primary border-primary/20">
+                                  <Users className="w-3 h-3 mr-1" />
+                                  {eixo.users.length} {eixo.users.length === 1 ? 'curador' : 'curadores'}
+                                </Badge>
+                              )}
                             </div>
+                            {eixo.users && eixo.users.length > 0 && (
+                              <div className="flex flex-wrap gap-1 mt-1">
+                                {eixo.users.map(u => (
+                                  <Badge key={u.user_id} variant="outline" className="text-[10px] font-normal py-0">
+                                    {u.full_name} <span className="text-muted-foreground ml-1">({u.role})</span>
+                                  </Badge>
+                                ))}
+                              </div>
+                            )}
                           </div>
                           {isAdmin && (
                             <div className="flex gap-1" onClick={(e) => e.stopPropagation()}>
