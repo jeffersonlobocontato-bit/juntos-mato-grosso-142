@@ -87,6 +87,9 @@ const AdminUsuarios = () => {
   // State for entrevistador detail modal
   const [selectedEntrevistadorId, setSelectedEntrevistadorId] = useState<string | null>(null);
 
+  // State for role users modal
+  const [selectedRoleFilter, setSelectedRoleFilter] = useState<string | null>(null);
+
   const { data: profiles, isLoading: profilesLoading } = useQuery({
     queryKey: ['admin-profiles'],
     queryFn: async () => {
