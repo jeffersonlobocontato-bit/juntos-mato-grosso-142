@@ -163,11 +163,15 @@ const AdminEixos = () => {
         const roles = roleMap.get(ue.user_id) || [];
         // Deduplicate by user_id
         if (!existing.some(u => u.user_id === ue.user_id)) {
-          existing.push({
-            user_id: ue.user_id,
-            full_name: profileMap.get(ue.user_id) || 'Sem nome',
-            role: roles.includes('lider_tematico') ? 'Líder' : roles.includes('curador_municipal') ? 'Curador' : roles[0] || 'Membro',
-          });
+          const roles = roleMap.get(ue.user_id) || [];
+          // Only include curadores
+          if (roles.includes('curador_municipal')) {
+            existing.push({
+              user_id: ue.user_id,
+              full_name: profileMap.get(ue.user_id) || 'Sem nome',
+              role: 'Curador',
+            });
+          }
         }
         eixoUsersMap.set(ue.eixo_id, existing);
       });
