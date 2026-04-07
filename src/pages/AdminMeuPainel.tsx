@@ -432,12 +432,12 @@ export default function AdminMeuPainel() {
   // Cadastros por entrevistador/líder
   const cadastrosPorEntrevistador = useMemo(() => {
     if (!propostas || !profiles) return [];
-    const countMap: Record<string, { name: string; count: number }> = {};
+    const countMap: Record<string, { name: string; count: number; autorId: string }> = {};
     propostas.forEach(p => {
       if (!p.autor_id) return;
       if (!countMap[p.autor_id]) {
         const profile = profiles.find(pr => pr.id === p.autor_id);
-        countMap[p.autor_id] = { name: profile?.full_name || 'Sem nome', count: 0 };
+        countMap[p.autor_id] = { name: profile?.full_name || 'Sem nome', count: 0, autorId: p.autor_id };
       }
       countMap[p.autor_id].count++;
     });
@@ -447,8 +447,31 @@ export default function AdminMeuPainel() {
         name: item.name.length > 20 ? item.name.substring(0, 20) + '...' : item.name,
         fullName: item.name,
         value: item.count,
+        autorId: item.autorId,
       }));
   }, [propostas, profiles]);
+
+  // Propostas do entrevistador selecionado para o modal
+  const selectedEntrevistadorData = useMemo(() => {
+    if (!selectedEntrevistadorId || !propostas) return { nome: '', propostas: [] };
+    const item = cadastrosPorEntrevistador.find(e => e.autorId === selectedEntrevistadorId);
+    const filtered = propostas
+      .filter(p => p.autor_id === selectedEntrevistadorId)
+      .map(p => ({
+        id: p.id,
+        titulo: p.titulo,
+        entrevistado: p.entrevistado,
+        status: p.status,
+        etapa: p.etapa,
+        tipo_proposta: p.tipo_proposta,
+        created_at: p.created_at,
+        eixo_id: p.eixo_id,
+        eixo_nome: (p.eixos_tematicos as any)?.nome,
+        tema_nome: (p.temas as any)?.nome,
+        municipio_nome: (p.municipios as any)?.nome,
+      }));
+    return { nome: item?.fullName || '', propostas: filtered };
+  }, [selectedEntrevistadorId, propostas, cadastrosPorEntrevistador]);
 
   // Timeline data
   const timelineData = useMemo(() => {
