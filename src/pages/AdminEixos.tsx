@@ -50,8 +50,15 @@ const EIXO_ICONS: Record<number, typeof Heart> = {
   5: Shield,     // Segurança
 };
 
+interface EixoUser {
+  user_id: string;
+  full_name: string;
+  role: string;
+}
+
 interface EixoWithTemas extends Eixo {
   temas?: TemaWithSubtemas[];
+  users?: EixoUser[];
 }
 
 interface TemaWithSubtemas extends Tema {
