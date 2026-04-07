@@ -1182,13 +1182,21 @@ export type Database = {
           etapa: number
           id: string
           indicadores: string | null
+          instituicao_cnpj: string | null
+          instituicao_nome: string | null
+          instituicao_segmento: string | null
           lider_responsavel_id: string | null
           metas: string | null
           municipio_id: string | null
           questionario: Json | null
+          representante_cargo: string | null
+          representante_email: string | null
+          representante_nome: string | null
+          representante_telefone: string | null
           status: Database["public"]["Enums"]["proposal_status"]
           subtema_id: string | null
           tema_id: string | null
+          tipo_proposta: string
           titulo: string
           updated_at: string
         }
@@ -1202,13 +1210,21 @@ export type Database = {
           etapa?: number
           id?: string
           indicadores?: string | null
+          instituicao_cnpj?: string | null
+          instituicao_nome?: string | null
+          instituicao_segmento?: string | null
           lider_responsavel_id?: string | null
           metas?: string | null
           municipio_id?: string | null
           questionario?: Json | null
+          representante_cargo?: string | null
+          representante_email?: string | null
+          representante_nome?: string | null
+          representante_telefone?: string | null
           status?: Database["public"]["Enums"]["proposal_status"]
           subtema_id?: string | null
           tema_id?: string | null
+          tipo_proposta?: string
           titulo: string
           updated_at?: string
         }
@@ -1222,13 +1238,21 @@ export type Database = {
           etapa?: number
           id?: string
           indicadores?: string | null
+          instituicao_cnpj?: string | null
+          instituicao_nome?: string | null
+          instituicao_segmento?: string | null
           lider_responsavel_id?: string | null
           metas?: string | null
           municipio_id?: string | null
           questionario?: Json | null
+          representante_cargo?: string | null
+          representante_email?: string | null
+          representante_nome?: string | null
+          representante_telefone?: string | null
           status?: Database["public"]["Enums"]["proposal_status"]
           subtema_id?: string | null
           tema_id?: string | null
+          tipo_proposta?: string
           titulo?: string
           updated_at?: string
         }

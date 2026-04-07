@@ -145,7 +145,24 @@ const steps = [
   { label: "Título", icon: FileText },
 ];
 
-const EntrevistaForm = () => {
+interface EntrevistaFormProps {
+  mode?: "tecnica" | "institucional";
+}
+
+const SEGMENTOS_INSTITUCIONAIS = [
+  "Associação Comercial e Industrial",
+  "Conselho Empresarial",
+  "Sindicato Patronal",
+  "Federação da Indústria",
+  "Federação do Comércio",
+  "Federação da Agricultura",
+  "Cooperativa",
+  "Câmara de Dirigentes Lojistas",
+  "Outro",
+];
+
+const EntrevistaForm = ({ mode = "tecnica" }: EntrevistaFormProps) => {
+  const isInstitucional = mode === "institucional";
   const { user, isAdminMaster } = useAuth();
   const [currentStep, setCurrentStep] = useState(0);
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -162,6 +179,15 @@ const EntrevistaForm = () => {
   const [temaId, setTemaId] = useState("");
   const [subtemaIds, setSubtemaIds] = useState<string[]>([]);
 
+  // Campos Institucionais (PJ)
+  const [instituicaoNome, setInstituicaoNome] = useState("");
+  const [instituicaoCnpj, setInstituicaoCnpj] = useState("");
+  const [instituicaoSegmento, setInstituicaoSegmento] = useState("");
+  const [representanteNome, setRepresentanteNome] = useState("");
+  const [representanteCargo, setRepresentanteCargo] = useState("");
+  const [representanteTelefone, setRepresentanteTelefone] = useState("");
+  const [representanteEmail, setRepresentanteEmail] = useState("");
+
   // Data
   const [eixos, setEixos] = useState<Eixo[]>([]);
   const [municipios, setMunicipios] = useState<Municipio[]>([]);
@@ -176,7 +202,7 @@ const EntrevistaForm = () => {
   const exemplos = useMemo(() => getExemplosFormulario(eixoId), [eixoId]);
 
   // ── DRAFT PERSISTENCE ──
-  const DRAFT_KEY = "entrevista_draft";
+  const DRAFT_KEY = isInstitucional ? "entrevista_institucional_draft" : "entrevista_draft";
   const draftRestored = useRef(false);
   const skipEixoReset = useRef(false);
 
@@ -201,6 +227,14 @@ const EntrevistaForm = () => {
       if (draft.temaId) setTemaId(draft.temaId);
       if (draft.eixoId) setEixoId(draft.eixoId);
       if (draft.eixoLocked) setEixoLocked(draft.eixoLocked);
+      // Institutional fields
+      if (draft.instituicaoNome) setInstituicaoNome(draft.instituicaoNome);
+      if (draft.instituicaoCnpj) setInstituicaoCnpj(draft.instituicaoCnpj);
+      if (draft.instituicaoSegmento) setInstituicaoSegmento(draft.instituicaoSegmento);
+      if (draft.representanteNome) setRepresentanteNome(draft.representanteNome);
+      if (draft.representanteCargo) setRepresentanteCargo(draft.representanteCargo);
+      if (draft.representanteTelefone) setRepresentanteTelefone(draft.representanteTelefone);
+      if (draft.representanteEmail) setRepresentanteEmail(draft.representanteEmail);
 
       // Clear the skip flag after React processes state
       setTimeout(() => { skipEixoReset.current = false; }, 100);
@@ -222,12 +256,14 @@ const EntrevistaForm = () => {
           entrevistado, entrevistadoEmail, entrevistadoCelular,
           municipioId, eixoId, eixoLocked, temaId, subtemaIds,
           questionario, titulo, currentStep,
+          instituicaoNome, instituicaoCnpj, instituicaoSegmento,
+          representanteNome, representanteCargo, representanteTelefone, representanteEmail,
         };
         sessionStorage.setItem(DRAFT_KEY, JSON.stringify(draft));
       } catch { /* storage full — ignore */ }
     }, 500);
     return () => clearTimeout(saveTimer.current);
-  }, [entrevistado, entrevistadoEmail, entrevistadoCelular, municipioId, eixoId, eixoLocked, temaId, subtemaIds, questionario, titulo, currentStep]);
+  }, [entrevistado, entrevistadoEmail, entrevistadoCelular, municipioId, eixoId, eixoLocked, temaId, subtemaIds, questionario, titulo, currentStep, instituicaoNome, instituicaoCnpj, instituicaoSegmento, representanteNome, representanteCargo, representanteTelefone, representanteEmail]);
 
   useEffect(() => {
     fetchEixos();
@@ -322,6 +358,11 @@ const EntrevistaForm = () => {
 
     switch (currentStep) {
       case 0:
+        if (isInstitucional) {
+          if (!instituicaoNome.trim()) { toast.error("Informe o nome da instituição"); return false; }
+          if (!instituicaoSegmento) { toast.error("Selecione o segmento da instituição"); return false; }
+          if (!representanteNome.trim()) { toast.error("Informe o nome do representante"); return false; }
+        }
         if (!municipioId) { toast.error("Selecione o município"); return false; }
         if (!eixoId) { toast.error("Selecione o eixo temático"); return false; }
         if (!temaId) { toast.error("Selecione o tema"); return false; }
@@ -391,24 +432,46 @@ const EntrevistaForm = () => {
           entrevistado_email: entrevistadoEmail.trim(),
           entrevistado_celular: entrevistadoCelular.trim(),
           subtemas: subtemaIds,
+          ...(isInstitucional ? {
+            instituicao_nome: instituicaoNome.trim(),
+            instituicao_cnpj: instituicaoCnpj.trim(),
+            instituicao_segmento: instituicaoSegmento,
+            representante_nome: representanteNome.trim(),
+            representante_cargo: representanteCargo.trim(),
+            representante_telefone: representanteTelefone.trim(),
+            representante_email: representanteEmail.trim(),
+          } : {}),
         },
       };
 
-      const { error } = await supabase.from("propostas_tecnicas").insert([{
+      const insertData: any = {
         autor_id: user.id,
         lider_responsavel_id: user.id,
         eixo_id: eixoId,
         tema_id: temaId || null,
         subtema_id: subtemaIds.length === 1 ? subtemaIds[0] : null,
         municipio_id: municipioId,
-        entrevistado: entrevistado.trim(),
+        entrevistado: isInstitucional ? instituicaoNome.trim() : entrevistado.trim(),
         titulo: tituloFinal,
         descricao,
         metas,
         questionario: JSON.parse(JSON.stringify(questionarioCompleto)),
         status: "rascunho" as const,
         etapa: 1,
-      }]);
+        tipo_proposta: isInstitucional ? "institucional" : "tecnica",
+      };
+
+      if (isInstitucional) {
+        insertData.instituicao_nome = instituicaoNome.trim();
+        insertData.instituicao_cnpj = instituicaoCnpj.trim();
+        insertData.instituicao_segmento = instituicaoSegmento;
+        insertData.representante_nome = representanteNome.trim();
+        insertData.representante_cargo = representanteCargo.trim();
+        insertData.representante_telefone = representanteTelefone.trim();
+        insertData.representante_email = representanteEmail.trim();
+      }
+
+      const { error } = await supabase.from("propostas_tecnicas").insert([insertData]);
 
       if (error) throw error;
 
@@ -435,6 +498,13 @@ const EntrevistaForm = () => {
     setSubtemaIds([]);
     setTitulo("");
     setQuestionario(initialQuestionario);
+    setInstituicaoNome("");
+    setInstituicaoCnpj("");
+    setInstituicaoSegmento("");
+    setRepresentanteNome("");
+    setRepresentanteCargo("");
+    setRepresentanteTelefone("");
+    setRepresentanteEmail("");
     setIsSubmitted(false);
   };
 
@@ -505,11 +575,12 @@ const EntrevistaForm = () => {
               <Check className="w-10 h-10 text-primary" />
             </div>
             <h2 className="text-3xl font-bold text-white mb-4">
-              Entrevista Registrada com Sucesso!
+              {isInstitucional ? "Proposta Institucional Registrada!" : "Entrevista Registrada com Sucesso!"}
             </h2>
             <p className="text-gray-400 mb-8">
-              Sua entrevista técnica foi salva e está disponível para análise.
-              A estrutura padronizada permite consolidação entre todos os eixos.
+              {isInstitucional 
+                ? "A proposta da sua instituição foi salva e está disponível para análise. Obrigado pela contribuição ao Plano de Governo do Paraná."
+                : "Sua entrevista técnica foi salva e está disponível para análise. A estrutura padronizada permite consolidação entre todos os eixos."}
             </p>
             <Button onClick={resetForm} variant="hero" size="lg">
               Registrar Nova Entrevista
@@ -526,47 +597,171 @@ const EntrevistaForm = () => {
       case 0:
         return (
           <div className="space-y-6">
-            <div>
-              <Label htmlFor="entrevistado" className="text-white mb-2 block">
-                Nome do Entrevistado
-              </Label>
-              <Input
-                id="entrevistado"
-                value={entrevistado}
-                onChange={(e) => setEntrevistado(e.target.value)}
-                placeholder="Nome completo do especialista entrevistado"
-                className="bg-gray-900 border-gray-700 text-white"
-              />
-            </div>
+            {/* Institutional PJ Fields */}
+            {isInstitucional && (
+              <>
+                <div className="p-4 bg-amber-500/10 border border-amber-500/30 rounded-lg mb-4">
+                  <p className="text-sm text-amber-400 font-medium">
+                    📋 Cadastro Institucional — Preencha os dados da entidade representativa
+                  </p>
+                </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div>
-                <Label htmlFor="entrevistadoEmail" className="text-white mb-2 block">
-                  Email do Entrevistado
-                </Label>
-                <Input
-                  id="entrevistadoEmail"
-                  type="email"
-                  value={entrevistadoEmail}
-                  onChange={(e) => setEntrevistadoEmail(e.target.value)}
-                  placeholder="email@exemplo.com"
-                  className="bg-gray-900 border-gray-700 text-white"
-                />
-              </div>
-              <div>
-                <Label htmlFor="entrevistadoCelular" className="text-white mb-2 block">
-                  Celular do Entrevistado
-                </Label>
-                <Input
-                  id="entrevistadoCelular"
-                  type="tel"
-                  value={entrevistadoCelular}
-                  onChange={(e) => setEntrevistadoCelular(e.target.value)}
-                  placeholder="(41) 99999-9999"
-                  className="bg-gray-900 border-gray-700 text-white"
-                />
-              </div>
-            </div>
+                <div>
+                  <Label htmlFor="instituicaoNome" className="text-white mb-2 block">
+                    Razão Social / Nome da Instituição *
+                  </Label>
+                  <Input
+                    id="instituicaoNome"
+                    value={instituicaoNome}
+                    onChange={(e) => setInstituicaoNome(e.target.value)}
+                    placeholder="Ex: Associação Comercial e Industrial de Curitiba"
+                    className="bg-gray-900 border-gray-700 text-white"
+                  />
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div>
+                    <Label htmlFor="instituicaoCnpj" className="text-white mb-2 block">
+                      CNPJ
+                    </Label>
+                    <Input
+                      id="instituicaoCnpj"
+                      value={instituicaoCnpj}
+                      onChange={(e) => setInstituicaoCnpj(e.target.value)}
+                      placeholder="00.000.000/0000-00"
+                      className="bg-gray-900 border-gray-700 text-white"
+                    />
+                  </div>
+                  <div>
+                    <Label htmlFor="instituicaoSegmento" className="text-white mb-2 block">
+                      Segmento da Instituição *
+                    </Label>
+                    <Select value={instituicaoSegmento} onValueChange={setInstituicaoSegmento}>
+                      <SelectTrigger className="bg-gray-900 border-gray-700 text-white">
+                        <SelectValue placeholder="Selecione o segmento" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {SEGMENTOS_INSTITUCIONAIS.map((seg) => (
+                          <SelectItem key={seg} value={seg}>
+                            {seg}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                </div>
+
+                <div className="border-t border-gray-800 pt-4 mt-4">
+                  <p className="text-sm text-gray-400 mb-4 font-medium">Dados do Representante</p>
+                </div>
+
+                <div>
+                  <Label htmlFor="representanteNome" className="text-white mb-2 block">
+                    Nome do Representante *
+                  </Label>
+                  <Input
+                    id="representanteNome"
+                    value={representanteNome}
+                    onChange={(e) => setRepresentanteNome(e.target.value)}
+                    placeholder="Nome completo do representante legal"
+                    className="bg-gray-900 border-gray-700 text-white"
+                  />
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div>
+                    <Label htmlFor="representanteCargo" className="text-white mb-2 block">
+                      Cargo do Representante
+                    </Label>
+                    <Input
+                      id="representanteCargo"
+                      value={representanteCargo}
+                      onChange={(e) => setRepresentanteCargo(e.target.value)}
+                      placeholder="Ex: Presidente, Diretor"
+                      className="bg-gray-900 border-gray-700 text-white"
+                    />
+                  </div>
+                  <div>
+                    <Label htmlFor="representanteTelefone" className="text-white mb-2 block">
+                      Telefone Institucional
+                    </Label>
+                    <Input
+                      id="representanteTelefone"
+                      type="tel"
+                      value={representanteTelefone}
+                      onChange={(e) => setRepresentanteTelefone(e.target.value)}
+                      placeholder="(41) 3333-3333"
+                      className="bg-gray-900 border-gray-700 text-white"
+                    />
+                  </div>
+                </div>
+
+                <div>
+                  <Label htmlFor="representanteEmail" className="text-white mb-2 block">
+                    E-mail Corporativo
+                  </Label>
+                  <Input
+                    id="representanteEmail"
+                    type="email"
+                    value={representanteEmail}
+                    onChange={(e) => setRepresentanteEmail(e.target.value)}
+                    placeholder="contato@instituicao.org.br"
+                    className="bg-gray-900 border-gray-700 text-white"
+                  />
+                </div>
+
+                <div className="border-t border-gray-800 pt-4 mt-4">
+                  <p className="text-sm text-gray-400 mb-4 font-medium">Dados da Proposta</p>
+                </div>
+              </>
+            )}
+
+            {/* Standard fields (for tecnica mode) */}
+            {!isInstitucional && (
+              <>
+                <div>
+                  <Label htmlFor="entrevistado" className="text-white mb-2 block">
+                    Nome do Entrevistado
+                  </Label>
+                  <Input
+                    id="entrevistado"
+                    value={entrevistado}
+                    onChange={(e) => setEntrevistado(e.target.value)}
+                    placeholder="Nome completo do especialista entrevistado"
+                    className="bg-gray-900 border-gray-700 text-white"
+                  />
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div>
+                    <Label htmlFor="entrevistadoEmail" className="text-white mb-2 block">
+                      Email do Entrevistado
+                    </Label>
+                    <Input
+                      id="entrevistadoEmail"
+                      type="email"
+                      value={entrevistadoEmail}
+                      onChange={(e) => setEntrevistadoEmail(e.target.value)}
+                      placeholder="email@exemplo.com"
+                      className="bg-gray-900 border-gray-700 text-white"
+                    />
+                  </div>
+                  <div>
+                    <Label htmlFor="entrevistadoCelular" className="text-white mb-2 block">
+                      Celular do Entrevistado
+                    </Label>
+                    <Input
+                      id="entrevistadoCelular"
+                      type="tel"
+                      value={entrevistadoCelular}
+                      onChange={(e) => setEntrevistadoCelular(e.target.value)}
+                      placeholder="(41) 99999-9999"
+                      className="bg-gray-900 border-gray-700 text-white"
+                    />
+                  </div>
+                </div>
+              </>
+            )}
 
             <div>
               <Label htmlFor="municipio" className="text-white mb-2 block">

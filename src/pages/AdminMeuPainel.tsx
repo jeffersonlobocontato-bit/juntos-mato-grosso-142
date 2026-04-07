@@ -622,12 +622,29 @@ export default function AdminMeuPainel() {
                 </p>
               </div>
             </div>
-            <Button asChild size="lg" className="gap-2 whitespace-nowrap font-bold shadow-md">
-              <a href="/entrevista">
-                <FileText className="w-5 h-5" />
-                IR PARA A PÁGINA DE ENTREVISTA TÉCNICA
-              </a>
-            </Button>
+            <div className="flex flex-col sm:flex-row gap-2">
+              <Button asChild size="lg" className="gap-2 whitespace-nowrap font-bold shadow-md">
+                <a href="/entrevista">
+                  <FileText className="w-5 h-5" />
+                  ENTREVISTA TÉCNICA
+                </a>
+              </Button>
+              <Button asChild size="lg" variant="accent" className="gap-2 whitespace-nowrap font-bold shadow-md">
+                <a href="/liderancas">
+                  ENTREVISTA POLÍTICA
+                </a>
+              </Button>
+              <Button asChild size="lg" variant="secondary" className="gap-2 whitespace-nowrap font-bold shadow-md">
+                <a href="/">
+                  ENTREVISTA POPULAR
+                </a>
+              </Button>
+              <Button asChild size="lg" variant="outline" className="gap-2 whitespace-nowrap font-bold shadow-md border-amber-500/50 text-amber-600 hover:bg-amber-500/10">
+                <a href="/entrevista-institucional">
+                  ENTREVISTA INSTITUCIONAL
+                </a>
+              </Button>
+            </div>
           </CardContent>
         </Card>
       )}
