@@ -46,7 +46,7 @@ type PeriodFilter = "7d" | "30d" | "6m" | "12m" | "all";
 const getRoleBadge = (roles: string[]) => {
   if (roles.includes("admin_master")) return { label: "Admin Master", variant: "destructive" as const };
   if (roles.includes("admin")) return { label: "Administrador", variant: "default" as const };
-  if (roles.includes("lider_tematico")) return { label: "Líder Temático", variant: "secondary" as const };
+  if (roles.includes("lider_tematico")) return { label: "Entrevistador/Líder", variant: "secondary" as const };
   if (roles.includes("curador_municipal")) return { label: "Curador Municipal", variant: "outline" as const };
   if (roles.includes("especialista")) return { label: "Especialista", variant: "outline" as const };
   return { label: "Usuário", variant: "outline" as const };
