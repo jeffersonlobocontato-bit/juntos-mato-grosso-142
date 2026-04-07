@@ -145,7 +145,24 @@ const steps = [
   { label: "Título", icon: FileText },
 ];
 
-const EntrevistaForm = () => {
+interface EntrevistaFormProps {
+  mode?: "tecnica" | "institucional";
+}
+
+const SEGMENTOS_INSTITUCIONAIS = [
+  "Associação Comercial e Industrial",
+  "Conselho Empresarial",
+  "Sindicato Patronal",
+  "Federação da Indústria",
+  "Federação do Comércio",
+  "Federação da Agricultura",
+  "Cooperativa",
+  "Câmara de Dirigentes Lojistas",
+  "Outro",
+];
+
+const EntrevistaForm = ({ mode = "tecnica" }: EntrevistaFormProps) => {
+  const isInstitucional = mode === "institucional";
   const { user, isAdminMaster } = useAuth();
   const [currentStep, setCurrentStep] = useState(0);
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -161,6 +178,15 @@ const EntrevistaForm = () => {
   const [eixoLocked, setEixoLocked] = useState(false);
   const [temaId, setTemaId] = useState("");
   const [subtemaIds, setSubtemaIds] = useState<string[]>([]);
+
+  // Campos Institucionais (PJ)
+  const [instituicaoNome, setInstituicaoNome] = useState("");
+  const [instituicaoCnpj, setInstituicaoCnpj] = useState("");
+  const [instituicaoSegmento, setInstituicaoSegmento] = useState("");
+  const [representanteNome, setRepresentanteNome] = useState("");
+  const [representanteCargo, setRepresentanteCargo] = useState("");
+  const [representanteTelefone, setRepresentanteTelefone] = useState("");
+  const [representanteEmail, setRepresentanteEmail] = useState("");
 
   // Data
   const [eixos, setEixos] = useState<Eixo[]>([]);
