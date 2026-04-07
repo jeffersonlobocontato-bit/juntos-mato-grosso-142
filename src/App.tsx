@@ -23,6 +23,7 @@ import AdminAIHub from "./pages/AdminAIHub";
 import AdminPesquisas from "./pages/AdminPesquisas";
 import AdminTSE from "./pages/AdminTSE";
 import Entrevista from "./pages/Entrevista";
+import EntrevistaInstitucional from "./pages/EntrevistaInstitucional";
 import Liderancas from "./pages/Liderancas";
 import PublicPresentation from "./pages/PublicPresentation";
 import NotFound from "./pages/NotFound";
@@ -55,6 +56,7 @@ const App = () => (
             <Route path="/admin/pesquisas" element={<AdminPesquisas />} />
             <Route path="/admin/tse" element={<AdminTSE />} />
             <Route path="/entrevista" element={<Entrevista />} />
+            <Route path="/entrevista-institucional" element={<EntrevistaInstitucional />} />
             <Route path="/liderancas" element={<Liderancas />} />
             <Route path="/apresentacao/:publicId" element={<PublicPresentation />} />
             {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
