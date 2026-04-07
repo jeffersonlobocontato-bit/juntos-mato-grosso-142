@@ -331,7 +331,7 @@ Equipe Juntos Paraná 399`;
     const labels: Record<string, string> = {
       admin: 'Admin',
       lider_tematico: 'Entrevistador/Líder',
-      curador_municipal: 'Curador Municipal',
+      curador_municipal: 'Curador Temático',
       especialista: 'Especialista'
     };
     return labels[role] || role;
