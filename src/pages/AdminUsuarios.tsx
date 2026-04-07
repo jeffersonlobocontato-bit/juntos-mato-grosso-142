@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
@@ -17,6 +17,8 @@ import { useToast } from '@/hooks/use-toast';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
 import AdminPieChart from '@/components/admin/AdminPieChart';
 import TimelineChart from '@/components/admin/TimelineChart';
+import { HorizontalBarChart } from '@/components/admin/HorizontalBarChart';
+import { EntrevistadorDetailModal } from '@/components/admin/EntrevistadorDetailModal';
 
 type AppRole = 'admin' | 'admin_master' | 'lider_tematico' | 'curador_municipal' | 'especialista';
 
