@@ -19,6 +19,7 @@ import AdminPieChart from '@/components/admin/AdminPieChart';
 import TimelineChart from '@/components/admin/TimelineChart';
 import { HorizontalBarChart } from '@/components/admin/HorizontalBarChart';
 import { EntrevistadorDetailModal } from '@/components/admin/EntrevistadorDetailModal';
+import { RoleUsersModal } from '@/components/admin/RoleUsersModal';
 
 type AppRole = 'admin' | 'admin_master' | 'lider_tematico' | 'curador_municipal' | 'especialista';
 
