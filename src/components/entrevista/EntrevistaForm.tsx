@@ -227,6 +227,14 @@ const EntrevistaForm = ({ mode = "tecnica" }: EntrevistaFormProps) => {
       if (draft.temaId) setTemaId(draft.temaId);
       if (draft.eixoId) setEixoId(draft.eixoId);
       if (draft.eixoLocked) setEixoLocked(draft.eixoLocked);
+      // Institutional fields
+      if (draft.instituicaoNome) setInstituicaoNome(draft.instituicaoNome);
+      if (draft.instituicaoCnpj) setInstituicaoCnpj(draft.instituicaoCnpj);
+      if (draft.instituicaoSegmento) setInstituicaoSegmento(draft.instituicaoSegmento);
+      if (draft.representanteNome) setRepresentanteNome(draft.representanteNome);
+      if (draft.representanteCargo) setRepresentanteCargo(draft.representanteCargo);
+      if (draft.representanteTelefone) setRepresentanteTelefone(draft.representanteTelefone);
+      if (draft.representanteEmail) setRepresentanteEmail(draft.representanteEmail);
 
       // Clear the skip flag after React processes state
       setTimeout(() => { skipEixoReset.current = false; }, 100);
