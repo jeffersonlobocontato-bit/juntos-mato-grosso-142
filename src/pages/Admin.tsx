@@ -20,7 +20,8 @@ import {
   BarChart2,
   Vote,
   ScrollText,
-  ClipboardList
+  ClipboardList,
+  Building2
 } from 'lucide-react';
 
 const Admin = () => {
