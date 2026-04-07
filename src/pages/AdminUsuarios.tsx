@@ -26,7 +26,7 @@ const ROLE_LABELS: Record<AppRole, string> = {
   admin: 'Administrador',
   admin_master: 'Admin Master',
   lider_tematico: 'Entrevistador/Líder',
-  curador_municipal: 'Curador Municipal',
+  curador_municipal: 'Curador Temático',
   especialista: 'Especialista',
 };
 
@@ -601,7 +601,7 @@ const AdminUsuarios = () => {
     { name: 'Admin Master', value: adminMasterCount },
     { name: 'Administradores', value: adminCount },
     { name: 'Entrevistadores/Líderes', value: leaderCount },
-    { name: 'Curadores Municipais', value: curatorCount },
+    { name: 'Curadores Temáticos', value: curatorCount },
     { name: 'Especialistas', value: specialistCount },
   ].filter(item => item.value > 0);
 
