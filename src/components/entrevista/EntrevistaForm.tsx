@@ -575,11 +575,12 @@ const EntrevistaForm = ({ mode = "tecnica" }: EntrevistaFormProps) => {
               <Check className="w-10 h-10 text-primary" />
             </div>
             <h2 className="text-3xl font-bold text-white mb-4">
-              Entrevista Registrada com Sucesso!
+              {isInstitucional ? "Proposta Institucional Registrada!" : "Entrevista Registrada com Sucesso!"}
             </h2>
             <p className="text-gray-400 mb-8">
-              Sua entrevista técnica foi salva e está disponível para análise.
-              A estrutura padronizada permite consolidação entre todos os eixos.
+              {isInstitucional 
+                ? "A proposta da sua instituição foi salva e está disponível para análise. Obrigado pela contribuição ao Plano de Governo do Paraná."
+                : "Sua entrevista técnica foi salva e está disponível para análise. A estrutura padronizada permite consolidação entre todos os eixos."}
             </p>
             <Button onClick={resetForm} variant="hero" size="lg">
               Registrar Nova Entrevista
