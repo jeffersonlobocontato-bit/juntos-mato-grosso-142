@@ -1378,6 +1378,16 @@ const AdminUsuarios = () => {
             </div>
           </DialogContent>
         </Dialog>
+
+        {/* Role Users Modal */}
+        <RoleUsersModal
+          open={!!selectedRoleFilter}
+          onOpenChange={(open) => { if (!open) setSelectedRoleFilter(null); }}
+          roleLabel={roleModalLabel[selectedRoleFilter || ''] || ''}
+          users={getUsersByRole(selectedRoleFilter)}
+          eixos={getRoleEixosMap()}
+          municipios={getRoleMunicipiosMap()}
+        />
       </main>
     </div>
   );
