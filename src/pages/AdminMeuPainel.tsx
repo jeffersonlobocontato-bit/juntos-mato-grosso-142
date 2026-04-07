@@ -813,6 +813,13 @@ export default function AdminMeuPainel() {
         />
       </div>
 
+      {/* Cadastros por Entrevistador */}
+      <HorizontalBarChart
+        title="Cadastros por Entrevistador/Líder"
+        data={cadastrosPorEntrevistador}
+        isLoading={loadingPropostas}
+      />
+
       {/* Status das Propostas por Eixo */}
       <EixoStatusChart
         title="Status das Propostas por Eixo"
