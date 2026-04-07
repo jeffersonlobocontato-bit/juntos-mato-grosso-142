@@ -940,7 +940,7 @@ const AdminUsuarios = () => {
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
         >
-          <Card>
+          <Card className="cursor-pointer hover:shadow-md transition-all" onClick={() => setSelectedRoleFilter('all')}>
             <CardContent className="pt-6">
               <div className="flex items-center gap-3">
                 <Users className="h-8 w-8 text-primary" />
@@ -951,7 +951,7 @@ const AdminUsuarios = () => {
               </div>
             </CardContent>
           </Card>
-          <Card>
+          <Card className="cursor-pointer hover:shadow-md transition-all" onClick={() => setSelectedRoleFilter('admin_master')}>
             <CardContent className="pt-6">
               <div className="flex items-center gap-3">
                 <Shield className="h-8 w-8 text-primary" />
@@ -962,7 +962,7 @@ const AdminUsuarios = () => {
               </div>
             </CardContent>
           </Card>
-          <Card>
+          <Card className="cursor-pointer hover:shadow-md transition-all" onClick={() => setSelectedRoleFilter('admin')}>
             <CardContent className="pt-6">
               <div className="flex items-center gap-3">
                 <Shield className="h-8 w-8 text-destructive" />
@@ -973,7 +973,7 @@ const AdminUsuarios = () => {
               </div>
             </CardContent>
           </Card>
-          <Card>
+          <Card className="cursor-pointer hover:shadow-md transition-all" onClick={() => setSelectedRoleFilter('lider_tematico')}>
             <CardContent className="pt-6">
               <div className="flex items-center gap-3">
                 <UserCheck className="h-8 w-8 text-blue-500" />
@@ -984,7 +984,7 @@ const AdminUsuarios = () => {
               </div>
             </CardContent>
           </Card>
-          <Card>
+          <Card className="cursor-pointer hover:shadow-md transition-all" onClick={() => setSelectedRoleFilter('curador_municipal')}>
             <CardContent className="pt-6">
               <div className="flex items-center gap-3">
                 <MapPin className="h-8 w-8 text-accent" />
@@ -995,7 +995,7 @@ const AdminUsuarios = () => {
               </div>
             </CardContent>
           </Card>
-          <Card>
+          <Card className="cursor-pointer hover:shadow-md transition-all" onClick={() => setSelectedRoleFilter('especialista')}>
             <CardContent className="pt-6">
               <div className="flex items-center gap-3">
                 <Briefcase className="h-8 w-8 text-secondary-foreground" />
