@@ -83,7 +83,9 @@ const AdminUsuarios = () => {
   const [editMunicipios, setEditMunicipios] = useState<string[]>([]);
   const [editHubFunctions, setEditHubFunctions] = useState<string[]>([]);
 
-  // Fetch all profiles
+  // State for entrevistador detail modal
+  const [selectedEntrevistadorId, setSelectedEntrevistadorId] = useState<string | null>(null);
+
   const { data: profiles, isLoading: profilesLoading } = useQuery({
     queryKey: ['admin-profiles'],
     queryFn: async () => {
