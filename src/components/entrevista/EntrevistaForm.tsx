@@ -256,12 +256,14 @@ const EntrevistaForm = ({ mode = "tecnica" }: EntrevistaFormProps) => {
           entrevistado, entrevistadoEmail, entrevistadoCelular,
           municipioId, eixoId, eixoLocked, temaId, subtemaIds,
           questionario, titulo, currentStep,
+          instituicaoNome, instituicaoCnpj, instituicaoSegmento,
+          representanteNome, representanteCargo, representanteTelefone, representanteEmail,
         };
         sessionStorage.setItem(DRAFT_KEY, JSON.stringify(draft));
       } catch { /* storage full — ignore */ }
     }, 500);
     return () => clearTimeout(saveTimer.current);
-  }, [entrevistado, entrevistadoEmail, entrevistadoCelular, municipioId, eixoId, eixoLocked, temaId, subtemaIds, questionario, titulo, currentStep]);
+  }, [entrevistado, entrevistadoEmail, entrevistadoCelular, municipioId, eixoId, eixoLocked, temaId, subtemaIds, questionario, titulo, currentStep, instituicaoNome, instituicaoCnpj, instituicaoSegmento, representanteNome, representanteCargo, representanteTelefone, representanteEmail]);
 
   useEffect(() => {
     fetchEixos();
