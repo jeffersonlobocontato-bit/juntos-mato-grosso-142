@@ -54,7 +54,7 @@ export function HorizontalBarChart({ title, data, isLoading = false, onBarClick 
           <BarChart
             data={sortedData}
             layout="vertical"
-            margin={{ top: 5, right: 30, left: 20, bottom: 5 }}
+            margin={{ top: 5, right: 40, left: 20, bottom: 5 }}
           >
             <XAxis type="number" tick={{ fontSize: 12 }} />
             <YAxis
@@ -80,6 +80,12 @@ export function HorizontalBarChart({ title, data, isLoading = false, onBarClick 
                 if (onBarClick && data) {
                   onBarClick(data);
                 }
+              }}
+              label={{
+                position: "right",
+                fontSize: 12,
+                fontWeight: 600,
+                fill: "hsl(var(--foreground))",
               }}
             >
               {sortedData.map((entry, index) => (
