@@ -19,6 +19,7 @@ import AdminPieChart from '@/components/admin/AdminPieChart';
 import TimelineChart from '@/components/admin/TimelineChart';
 import { HorizontalBarChart } from '@/components/admin/HorizontalBarChart';
 import { EntrevistadorDetailModal } from '@/components/admin/EntrevistadorDetailModal';
+import { RoleUsersModal } from '@/components/admin/RoleUsersModal';
 
 type AppRole = 'admin' | 'admin_master' | 'lider_tematico' | 'curador_municipal' | 'especialista';
 
@@ -85,6 +86,9 @@ const AdminUsuarios = () => {
 
   // State for entrevistador detail modal
   const [selectedEntrevistadorId, setSelectedEntrevistadorId] = useState<string | null>(null);
+
+  // State for role users modal
+  const [selectedRoleFilter, setSelectedRoleFilter] = useState<string | null>(null);
 
   const { data: profiles, isLoading: profilesLoading } = useQuery({
     queryKey: ['admin-profiles'],
@@ -596,6 +600,47 @@ const AdminUsuarios = () => {
   const curatorCount = userRoles?.filter(r => r.role === 'curador_municipal').length || 0;
   const specialistCount = userRoles?.filter(r => r.role === 'especialista').length || 0;
 
+  // Get users by role for modal
+  const getUsersByRole = (role: string | null) => {
+    if (!role || !profiles || !userRoles) return [];
+    if (role === 'all') return profiles;
+    const userIds = userRoles.filter(r => r.role === role).map(r => r.user_id);
+    return profiles.filter(p => userIds.includes(p.id));
+  };
+
+  const getRoleEixosMap = () => {
+    const map: Record<string, string[]> = {};
+    userEixos?.forEach(ue => {
+      const eixo = eixos?.find(e => e.id === ue.eixo_id);
+      if (eixo) {
+        if (!map[ue.user_id]) map[ue.user_id] = [];
+        map[ue.user_id].push(eixo.nome);
+      }
+    });
+    return map;
+  };
+
+  const getRoleMunicipiosMap = () => {
+    const map: Record<string, string[]> = {};
+    userMunicipios?.forEach(um => {
+      const mun = municipios?.find(m => m.id === um.municipio_id);
+      if (mun) {
+        if (!map[um.user_id]) map[um.user_id] = [];
+        map[um.user_id].push(mun.nome);
+      }
+    });
+    return map;
+  };
+
+  const roleModalLabel: Record<string, string> = {
+    all: 'Todos os Usuários',
+    admin_master: 'Admin Master',
+    admin: 'Administradores',
+    lider_tematico: 'Entrevistadores/Líderes',
+    curador_municipal: 'Curadores Temáticos',
+    especialista: 'Especialistas',
+  };
+
   // Chart data
   const roleDistributionData = [
     { name: 'Admin Master', value: adminMasterCount },
@@ -895,7 +940,7 @@ const AdminUsuarios = () => {
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
         >
-          <Card>
+          <Card className="cursor-pointer hover:shadow-md transition-all" onClick={() => setSelectedRoleFilter('all')}>
             <CardContent className="pt-6">
               <div className="flex items-center gap-3">
                 <Users className="h-8 w-8 text-primary" />
@@ -906,7 +951,7 @@ const AdminUsuarios = () => {
               </div>
             </CardContent>
           </Card>
-          <Card>
+          <Card className="cursor-pointer hover:shadow-md transition-all" onClick={() => setSelectedRoleFilter('admin_master')}>
             <CardContent className="pt-6">
               <div className="flex items-center gap-3">
                 <Shield className="h-8 w-8 text-primary" />
@@ -917,7 +962,7 @@ const AdminUsuarios = () => {
               </div>
             </CardContent>
           </Card>
-          <Card>
+          <Card className="cursor-pointer hover:shadow-md transition-all" onClick={() => setSelectedRoleFilter('admin')}>
             <CardContent className="pt-6">
               <div className="flex items-center gap-3">
                 <Shield className="h-8 w-8 text-destructive" />
@@ -928,7 +973,7 @@ const AdminUsuarios = () => {
               </div>
             </CardContent>
           </Card>
-          <Card>
+          <Card className="cursor-pointer hover:shadow-md transition-all" onClick={() => setSelectedRoleFilter('lider_tematico')}>
             <CardContent className="pt-6">
               <div className="flex items-center gap-3">
                 <UserCheck className="h-8 w-8 text-blue-500" />
@@ -939,7 +984,7 @@ const AdminUsuarios = () => {
               </div>
             </CardContent>
           </Card>
-          <Card>
+          <Card className="cursor-pointer hover:shadow-md transition-all" onClick={() => setSelectedRoleFilter('curador_municipal')}>
             <CardContent className="pt-6">
               <div className="flex items-center gap-3">
                 <MapPin className="h-8 w-8 text-accent" />
@@ -950,7 +995,7 @@ const AdminUsuarios = () => {
               </div>
             </CardContent>
           </Card>
-          <Card>
+          <Card className="cursor-pointer hover:shadow-md transition-all" onClick={() => setSelectedRoleFilter('especialista')}>
             <CardContent className="pt-6">
               <div className="flex items-center gap-3">
                 <Briefcase className="h-8 w-8 text-secondary-foreground" />
@@ -1333,6 +1378,16 @@ const AdminUsuarios = () => {
             </div>
           </DialogContent>
         </Dialog>
+
+        {/* Role Users Modal */}
+        <RoleUsersModal
+          open={!!selectedRoleFilter}
+          onOpenChange={(open) => { if (!open) setSelectedRoleFilter(null); }}
+          roleLabel={roleModalLabel[selectedRoleFilter || ''] || ''}
+          users={getUsersByRole(selectedRoleFilter)}
+          eixos={getRoleEixosMap()}
+          municipios={getRoleMunicipiosMap()}
+        />
       </main>
     </div>
   );
