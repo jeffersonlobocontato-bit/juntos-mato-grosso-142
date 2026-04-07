@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo } from "react";
+import React, { useState, useEffect, useMemo, useRef, useCallback } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -175,6 +175,60 @@ const EntrevistaForm = () => {
   // Exemplos contextualizados por eixo
   const exemplos = useMemo(() => getExemplosFormulario(eixoId), [eixoId]);
 
+  // ── DRAFT PERSISTENCE ──
+  const DRAFT_KEY = "entrevista_draft";
+  const draftRestored = useRef(false);
+  const skipEixoReset = useRef(false);
+
+  // Restore draft on mount
+  useEffect(() => {
+    if (draftRestored.current) return;
+    try {
+      const raw = sessionStorage.getItem(DRAFT_KEY);
+      if (!raw) return;
+      const draft = JSON.parse(raw);
+      draftRestored.current = true;
+      skipEixoReset.current = true;
+
+      if (draft.entrevistado) setEntrevistado(draft.entrevistado);
+      if (draft.entrevistadoEmail) setEntrevistadoEmail(draft.entrevistadoEmail);
+      if (draft.entrevistadoCelular) setEntrevistadoCelular(draft.entrevistadoCelular);
+      if (draft.municipioId) setMunicipioId(draft.municipioId);
+      if (draft.titulo) setTitulo(draft.titulo);
+      if (draft.questionario) setQuestionario(draft.questionario);
+      if (typeof draft.currentStep === "number") setCurrentStep(draft.currentStep);
+      if (draft.subtemaIds) setSubtemaIds(draft.subtemaIds);
+      if (draft.temaId) setTemaId(draft.temaId);
+      if (draft.eixoId) setEixoId(draft.eixoId);
+      if (draft.eixoLocked) setEixoLocked(draft.eixoLocked);
+
+      // Clear the skip flag after React processes state
+      setTimeout(() => { skipEixoReset.current = false; }, 100);
+
+      toast.info("Rascunho restaurado", { description: "Seus dados anteriores foram recuperados." });
+    } catch {
+      sessionStorage.removeItem(DRAFT_KEY);
+    }
+  }, []);
+
+  // Auto-save draft with debounce
+  const saveTimer = useRef<ReturnType<typeof setTimeout>>();
+  useEffect(() => {
+    if (!draftRestored.current && !entrevistado && !questionario.aquecimento.area_atuacao_especifica) return;
+    clearTimeout(saveTimer.current);
+    saveTimer.current = setTimeout(() => {
+      try {
+        const draft = {
+          entrevistado, entrevistadoEmail, entrevistadoCelular,
+          municipioId, eixoId, eixoLocked, temaId, subtemaIds,
+          questionario, titulo, currentStep,
+        };
+        sessionStorage.setItem(DRAFT_KEY, JSON.stringify(draft));
+      } catch { /* storage full — ignore */ }
+    }, 500);
+    return () => clearTimeout(saveTimer.current);
+  }, [entrevistado, entrevistadoEmail, entrevistadoCelular, municipioId, eixoId, eixoLocked, temaId, subtemaIds, questionario, titulo, currentStep]);
+
   useEffect(() => {
     fetchEixos();
     fetchMunicipios();
@@ -186,14 +240,16 @@ const EntrevistaForm = () => {
     }
   }, [user]);
 
-  // Reset tema and subtemas when eixo changes
+  // Reset tema and subtemas when eixo changes (skip during draft restore)
   useEffect(() => {
+    if (skipEixoReset.current) return;
     setTemaId("");
     setSubtemaIds([]);
   }, [eixoId]);
 
-  // Reset subtemas when tema changes
+  // Reset subtemas when tema changes (skip during draft restore)
   useEffect(() => {
+    if (skipEixoReset.current) return;
     setSubtemaIds([]);
   }, [temaId]);
 
@@ -356,6 +412,7 @@ const EntrevistaForm = () => {
 
       if (error) throw error;
 
+      sessionStorage.removeItem(DRAFT_KEY);
       setIsSubmitted(true);
       toast.success("Entrevista registrada com sucesso!");
     } catch (error) {
@@ -367,6 +424,7 @@ const EntrevistaForm = () => {
   };
 
   const resetForm = () => {
+    sessionStorage.removeItem(DRAFT_KEY);
     setCurrentStep(0);
     setEntrevistado("");
     setEntrevistadoEmail("");
