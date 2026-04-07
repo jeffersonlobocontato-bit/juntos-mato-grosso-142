@@ -217,6 +217,16 @@ export default function AdminMeuPainel() {
     enabled: isAdmin,
   });
 
+  const { data: profiles } = useQuery({
+    queryKey: ["meu-painel-profiles"],
+    queryFn: async () => {
+      const { data, error } = await supabase.from("profiles").select("id, full_name");
+      if (error) throw error;
+      return data || [];
+    },
+    enabled: isAdmin || isAdminMaster,
+  });
+
   const handleRefresh = () => {
     refetchPropostas();
     refetchSugestoes();
@@ -415,6 +425,27 @@ export default function AdminMeuPainel() {
       .sort((a, b) => b.count - a.count)
       .slice(0, 10);
   }, [leads, sugestoes]);
+
+  // Cadastros por entrevistador/líder
+  const cadastrosPorEntrevistador = useMemo(() => {
+    if (!propostas || !profiles) return [];
+    const countMap: Record<string, { name: string; count: number }> = {};
+    propostas.forEach(p => {
+      if (!p.autor_id) return;
+      if (!countMap[p.autor_id]) {
+        const profile = profiles.find(pr => pr.id === p.autor_id);
+        countMap[p.autor_id] = { name: profile?.full_name || 'Sem nome', count: 0 };
+      }
+      countMap[p.autor_id].count++;
+    });
+    return Object.values(countMap)
+      .sort((a, b) => b.count - a.count)
+      .map(item => ({
+        name: item.name.length > 20 ? item.name.substring(0, 20) + '...' : item.name,
+        fullName: item.name,
+        value: item.count,
+      }));
+  }, [propostas, profiles]);
 
   // Timeline data
   const timelineData = useMemo(() => {
@@ -650,7 +681,7 @@ export default function AdminMeuPainel() {
       )}
 
       {/* Big Numbers Row 1 */}
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+      <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
         <StatCard
           title="Propostas Técnicas"
           value={metrics.totalPropostas}
@@ -678,6 +709,13 @@ export default function AdminMeuPainel() {
           icon={UserCheck}
           variant="default"
           isLoading={!userRoles && isAdmin}
+        />
+        <StatCard
+          title="Entrevistadores Ativos"
+          value={cadastrosPorEntrevistador.length}
+          icon={UserPlus}
+          variant="primary"
+          isLoading={loadingPropostas}
         />
       </div>
 
@@ -774,6 +812,13 @@ export default function AdminMeuPainel() {
           isLoading={loadingEixos || loadingSugestoes}
         />
       </div>
+
+      {/* Cadastros por Entrevistador */}
+      <HorizontalBarChart
+        title="Cadastros por Entrevistador/Líder"
+        data={cadastrosPorEntrevistador}
+        isLoading={loadingPropostas}
+      />
 
       {/* Status das Propostas por Eixo */}
       <EixoStatusChart
