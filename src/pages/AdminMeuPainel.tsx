@@ -217,6 +217,16 @@ export default function AdminMeuPainel() {
     enabled: isAdmin,
   });
 
+  const { data: profiles } = useQuery({
+    queryKey: ["meu-painel-profiles"],
+    queryFn: async () => {
+      const { data, error } = await supabase.from("profiles").select("id, full_name");
+      if (error) throw error;
+      return data || [];
+    },
+    enabled: isAdmin || isAdminMaster,
+  });
+
   const handleRefresh = () => {
     refetchPropostas();
     refetchSugestoes();
