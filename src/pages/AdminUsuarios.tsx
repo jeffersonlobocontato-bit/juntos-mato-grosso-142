@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
@@ -17,6 +17,8 @@ import { useToast } from '@/hooks/use-toast';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
 import AdminPieChart from '@/components/admin/AdminPieChart';
 import TimelineChart from '@/components/admin/TimelineChart';
+import { HorizontalBarChart } from '@/components/admin/HorizontalBarChart';
+import { EntrevistadorDetailModal } from '@/components/admin/EntrevistadorDetailModal';
 
 type AppRole = 'admin' | 'admin_master' | 'lider_tematico' | 'curador_municipal' | 'especialista';
 
@@ -81,7 +83,9 @@ const AdminUsuarios = () => {
   const [editMunicipios, setEditMunicipios] = useState<string[]>([]);
   const [editHubFunctions, setEditHubFunctions] = useState<string[]>([]);
 
-  // Fetch all profiles
+  // State for entrevistador detail modal
+  const [selectedEntrevistadorId, setSelectedEntrevistadorId] = useState<string | null>(null);
+
   const { data: profiles, isLoading: profilesLoading } = useQuery({
     queryKey: ['admin-profiles'],
     queryFn: async () => {
@@ -187,6 +191,62 @@ const AdminUsuarios = () => {
     },
     enabled: isAdminMaster,
   });
+
+  // Fetch propostas for entrevistador chart
+  const { data: propostas, isLoading: loadingPropostas } = useQuery({
+    queryKey: ['admin-propostas-entrevistadores'],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('propostas_tecnicas')
+        .select('id, titulo, autor_id, entrevistado, status, etapa, tipo_proposta, created_at, eixo_id, tema_id, municipio_id, eixos_tematicos(nome), temas(nome), municipios(nome)');
+      if (error) throw error;
+      return data;
+    },
+    enabled: isAdmin || isAdminMaster,
+  });
+
+  // Cadastros por entrevistador/líder
+  const cadastrosPorEntrevistador = useMemo(() => {
+    if (!propostas || !profiles) return [];
+    const countMap: Record<string, { name: string; count: number; autorId: string }> = {};
+    propostas.forEach(p => {
+      if (!p.autor_id) return;
+      if (!countMap[p.autor_id]) {
+        const profile = profiles.find(pr => pr.id === p.autor_id);
+        countMap[p.autor_id] = { name: profile?.full_name || 'Sem nome', count: 0, autorId: p.autor_id };
+      }
+      countMap[p.autor_id].count++;
+    });
+    return Object.values(countMap)
+      .sort((a, b) => b.count - a.count)
+      .map(item => ({
+        name: item.name.length > 20 ? item.name.substring(0, 20) + '...' : item.name,
+        fullName: item.name,
+        value: item.count,
+        autorId: item.autorId,
+      }));
+  }, [propostas, profiles]);
+
+  const selectedEntrevistadorData = useMemo(() => {
+    if (!selectedEntrevistadorId || !propostas) return { nome: '', propostas: [] };
+    const item = cadastrosPorEntrevistador.find(e => e.autorId === selectedEntrevistadorId);
+    const filtered = propostas
+      .filter(p => p.autor_id === selectedEntrevistadorId)
+      .map(p => ({
+        id: p.id,
+        titulo: p.titulo,
+        entrevistado: p.entrevistado,
+        status: p.status,
+        etapa: p.etapa,
+        tipo_proposta: p.tipo_proposta,
+        created_at: p.created_at,
+        eixo_id: p.eixo_id,
+        eixo_nome: (p.eixos_tematicos as any)?.nome,
+        tema_nome: (p.temas as any)?.nome,
+        municipio_nome: (p.municipios as any)?.nome,
+      }));
+    return { nome: item?.fullName || '', propostas: filtered };
+  }, [selectedEntrevistadorId, propostas, cadastrosPorEntrevistador]);
 
   const createUserMutation = useMutation({
     mutationFn: async (data: {
@@ -940,7 +1000,31 @@ const AdminUsuarios = () => {
           />
         </motion.div>
 
-        {/* Users Table */}
+        {/* Cadastros por Entrevistador */}
+        <motion.div
+          className="mb-8"
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.18 }}
+        >
+          <HorizontalBarChart
+            title="Cadastros por Entrevistador/Líder"
+            data={cadastrosPorEntrevistador}
+            isLoading={loadingPropostas}
+            onBarClick={(item) => {
+              if ((item as any).autorId) setSelectedEntrevistadorId((item as any).autorId);
+            }}
+          />
+        </motion.div>
+
+        <EntrevistadorDetailModal
+          open={!!selectedEntrevistadorId}
+          onOpenChange={(open) => { if (!open) setSelectedEntrevistadorId(null); }}
+          entrevistadorNome={selectedEntrevistadorData.nome}
+          propostas={selectedEntrevistadorData.propostas}
+        />
+
+
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
