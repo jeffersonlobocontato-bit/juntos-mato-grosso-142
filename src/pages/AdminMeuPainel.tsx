@@ -710,6 +710,13 @@ export default function AdminMeuPainel() {
           variant="default"
           isLoading={!userRoles && isAdmin}
         />
+        <StatCard
+          title="Entrevistadores Ativos"
+          value={cadastrosPorEntrevistador.length}
+          icon={UserPlus}
+          variant="primary"
+          isLoading={loadingPropostas}
+        />
       </div>
 
       {/* Big Numbers Row 2 - Analytics (Admin/Líder only) */}
