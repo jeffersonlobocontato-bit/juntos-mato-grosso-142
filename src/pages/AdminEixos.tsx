@@ -125,14 +125,43 @@ const AdminEixos = () => {
         .select('*')
         .order('ordem');
 
-      // Fetch propostas and sugestoes
-      const { data: propostasData } = await supabase
-        .from('propostas_tecnicas')
-        .select('eixo_id, tema_id, created_at');
-      
-      const { data: sugestoesData } = await supabase
-        .from('sugestoes_populares')
-        .select('eixo, tema_id, created_at');
+      // Fetch user_eixos with profiles and roles
+      const { data: userEixosData } = await supabase
+        .from('user_eixos')
+        .select('eixo_id, user_id');
+
+      const { data: profilesData } = await supabase
+        .from('profiles')
+        .select('id, full_name');
+
+      const { data: rolesData } = await supabase
+        .from('user_roles')
+        .select('user_id, role');
+
+      // Build a map of user_id -> { full_name, roles }
+      const profileMap = new Map((profilesData || []).map(p => [p.id, p.full_name || 'Sem nome']));
+      const roleMap = new Map<string, string[]>();
+      (rolesData || []).forEach(r => {
+        const existing = roleMap.get(r.user_id) || [];
+        existing.push(r.role);
+        roleMap.set(r.user_id, existing);
+      });
+
+      // Group users by eixo
+      const eixoUsersMap = new Map<string, EixoUser[]>();
+      (userEixosData || []).forEach(ue => {
+        const existing = eixoUsersMap.get(ue.eixo_id) || [];
+        const roles = roleMap.get(ue.user_id) || [];
+        // Deduplicate by user_id
+        if (!existing.some(u => u.user_id === ue.user_id)) {
+          existing.push({
+            user_id: ue.user_id,
+            full_name: profileMap.get(ue.user_id) || 'Sem nome',
+            role: roles.includes('lider_tematico') ? 'Líder' : roles.includes('curador_municipal') ? 'Curador' : roles[0] || 'Membro',
+          });
+        }
+        eixoUsersMap.set(ue.eixo_id, existing);
+      });
 
       // Build hierarchical structure
       const eixosWithTemas: EixoWithTemas[] = (eixosData || []).map(eixo => {
@@ -144,7 +173,7 @@ const AdminEixos = () => {
             propostas_count: (propostasData || []).filter(p => p.tema_id === tema.id).length,
             sugestoes_count: (sugestoesData || []).filter(s => s.tema_id === tema.id).length,
           }));
-        return { ...eixo, temas };
+        return { ...eixo, temas, users: eixoUsersMap.get(eixo.id) || [] };
       });
 
       setEixos(eixosWithTemas);
