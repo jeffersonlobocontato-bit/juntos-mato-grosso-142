@@ -220,29 +220,29 @@ const Admin = () => {
               </p>
             </div>
             {(hasRole('lider_tematico') || isAdminMaster || isAdmin) && (
-              <div className="flex flex-col sm:flex-row gap-2">
-                <Button asChild size="lg" className="gap-2 whitespace-nowrap font-bold shadow-md">
+              <div className="flex flex-wrap gap-2">
+                <Button asChild size="sm" className="gap-1.5 whitespace-nowrap font-bold shadow-md text-xs">
                   <Link to="/entrevista">
-                    <ClipboardList className="w-5 h-5" />
-                    IR PARA A ENTREVISTA TÉCNICA
+                    <ClipboardList className="w-4 h-4" />
+                    ENTREVISTA TÉCNICA
                   </Link>
                 </Button>
-                <Button asChild size="lg" variant="accent" className="gap-2 whitespace-nowrap font-bold shadow-md">
+                <Button asChild size="sm" variant="accent" className="gap-1.5 whitespace-nowrap font-bold shadow-md text-xs">
                   <Link to="/liderancas">
-                    <Vote className="w-5 h-5" />
-                    IR PARA A ENTREVISTA POLÍTICA
+                    <Vote className="w-4 h-4" />
+                    ENTREVISTA POLÍTICA
                   </Link>
                 </Button>
-                <Button asChild size="lg" variant="secondary" className="gap-2 whitespace-nowrap font-bold shadow-md">
+                <Button asChild size="sm" variant="secondary" className="gap-1.5 whitespace-nowrap font-bold shadow-md text-xs">
                   <Link to="/">
-                    <Users className="w-5 h-5" />
-                    IR PARA A ENTREVISTA POPULAR
+                    <Users className="w-4 h-4" />
+                    ENTREVISTA POPULAR
                   </Link>
                 </Button>
-                <Button asChild size="lg" variant="outline" className="gap-2 whitespace-nowrap font-bold shadow-md border-amber-500/50 text-amber-600 hover:bg-amber-500/10">
+                <Button asChild size="sm" variant="outline" className="gap-1.5 whitespace-nowrap font-bold shadow-md text-xs border-amber-500/50 text-amber-600 hover:bg-amber-500/10">
                   <Link to="/entrevista-institucional">
-                    <Building2 className="w-5 h-5" />
-                    IR PARA A ENTREVISTA INSTITUCIONAL
+                    <Building2 className="w-4 h-4" />
+                    ENTREVISTA INSTITUCIONAL
                   </Link>
                 </Button>
               </div>
