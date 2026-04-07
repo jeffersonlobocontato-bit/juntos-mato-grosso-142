@@ -358,6 +358,11 @@ const EntrevistaForm = ({ mode = "tecnica" }: EntrevistaFormProps) => {
 
     switch (currentStep) {
       case 0:
+        if (isInstitucional) {
+          if (!instituicaoNome.trim()) { toast.error("Informe o nome da instituição"); return false; }
+          if (!instituicaoSegmento) { toast.error("Selecione o segmento da instituição"); return false; }
+          if (!representanteNome.trim()) { toast.error("Informe o nome do representante"); return false; }
+        }
         if (!municipioId) { toast.error("Selecione o município"); return false; }
         if (!eixoId) { toast.error("Selecione o eixo temático"); return false; }
         if (!temaId) { toast.error("Selecione o tema"); return false; }
