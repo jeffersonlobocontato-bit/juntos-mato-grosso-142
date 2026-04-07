@@ -426,6 +426,27 @@ export default function AdminMeuPainel() {
       .slice(0, 10);
   }, [leads, sugestoes]);
 
+  // Cadastros por entrevistador/líder
+  const cadastrosPorEntrevistador = useMemo(() => {
+    if (!propostas || !profiles) return [];
+    const countMap: Record<string, { name: string; count: number }> = {};
+    propostas.forEach(p => {
+      if (!p.autor_id) return;
+      if (!countMap[p.autor_id]) {
+        const profile = profiles.find(pr => pr.id === p.autor_id);
+        countMap[p.autor_id] = { name: profile?.full_name || 'Sem nome', count: 0 };
+      }
+      countMap[p.autor_id].count++;
+    });
+    return Object.values(countMap)
+      .sort((a, b) => b.count - a.count)
+      .map(item => ({
+        name: item.name.length > 20 ? item.name.substring(0, 20) + '...' : item.name,
+        fullName: item.name,
+        value: item.count,
+      }));
+  }, [propostas, profiles]);
+
   // Timeline data
   const timelineData = useMemo(() => {
     const startDate = getDateRange();
