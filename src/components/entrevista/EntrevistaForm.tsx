@@ -596,47 +596,171 @@ const EntrevistaForm = ({ mode = "tecnica" }: EntrevistaFormProps) => {
       case 0:
         return (
           <div className="space-y-6">
-            <div>
-              <Label htmlFor="entrevistado" className="text-white mb-2 block">
-                Nome do Entrevistado
-              </Label>
-              <Input
-                id="entrevistado"
-                value={entrevistado}
-                onChange={(e) => setEntrevistado(e.target.value)}
-                placeholder="Nome completo do especialista entrevistado"
-                className="bg-gray-900 border-gray-700 text-white"
-              />
-            </div>
+            {/* Institutional PJ Fields */}
+            {isInstitucional && (
+              <>
+                <div className="p-4 bg-amber-500/10 border border-amber-500/30 rounded-lg mb-4">
+                  <p className="text-sm text-amber-400 font-medium">
+                    📋 Cadastro Institucional — Preencha os dados da entidade representativa
+                  </p>
+                </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div>
-                <Label htmlFor="entrevistadoEmail" className="text-white mb-2 block">
-                  Email do Entrevistado
-                </Label>
-                <Input
-                  id="entrevistadoEmail"
-                  type="email"
-                  value={entrevistadoEmail}
-                  onChange={(e) => setEntrevistadoEmail(e.target.value)}
-                  placeholder="email@exemplo.com"
-                  className="bg-gray-900 border-gray-700 text-white"
-                />
-              </div>
-              <div>
-                <Label htmlFor="entrevistadoCelular" className="text-white mb-2 block">
-                  Celular do Entrevistado
-                </Label>
-                <Input
-                  id="entrevistadoCelular"
-                  type="tel"
-                  value={entrevistadoCelular}
-                  onChange={(e) => setEntrevistadoCelular(e.target.value)}
-                  placeholder="(41) 99999-9999"
-                  className="bg-gray-900 border-gray-700 text-white"
-                />
-              </div>
-            </div>
+                <div>
+                  <Label htmlFor="instituicaoNome" className="text-white mb-2 block">
+                    Razão Social / Nome da Instituição *
+                  </Label>
+                  <Input
+                    id="instituicaoNome"
+                    value={instituicaoNome}
+                    onChange={(e) => setInstituicaoNome(e.target.value)}
+                    placeholder="Ex: Associação Comercial e Industrial de Curitiba"
+                    className="bg-gray-900 border-gray-700 text-white"
+                  />
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div>
+                    <Label htmlFor="instituicaoCnpj" className="text-white mb-2 block">
+                      CNPJ
+                    </Label>
+                    <Input
+                      id="instituicaoCnpj"
+                      value={instituicaoCnpj}
+                      onChange={(e) => setInstituicaoCnpj(e.target.value)}
+                      placeholder="00.000.000/0000-00"
+                      className="bg-gray-900 border-gray-700 text-white"
+                    />
+                  </div>
+                  <div>
+                    <Label htmlFor="instituicaoSegmento" className="text-white mb-2 block">
+                      Segmento da Instituição *
+                    </Label>
+                    <Select value={instituicaoSegmento} onValueChange={setInstituicaoSegmento}>
+                      <SelectTrigger className="bg-gray-900 border-gray-700 text-white">
+                        <SelectValue placeholder="Selecione o segmento" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {SEGMENTOS_INSTITUCIONAIS.map((seg) => (
+                          <SelectItem key={seg} value={seg}>
+                            {seg}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                </div>
+
+                <div className="border-t border-gray-800 pt-4 mt-4">
+                  <p className="text-sm text-gray-400 mb-4 font-medium">Dados do Representante</p>
+                </div>
+
+                <div>
+                  <Label htmlFor="representanteNome" className="text-white mb-2 block">
+                    Nome do Representante *
+                  </Label>
+                  <Input
+                    id="representanteNome"
+                    value={representanteNome}
+                    onChange={(e) => setRepresentanteNome(e.target.value)}
+                    placeholder="Nome completo do representante legal"
+                    className="bg-gray-900 border-gray-700 text-white"
+                  />
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div>
+                    <Label htmlFor="representanteCargo" className="text-white mb-2 block">
+                      Cargo do Representante
+                    </Label>
+                    <Input
+                      id="representanteCargo"
+                      value={representanteCargo}
+                      onChange={(e) => setRepresentanteCargo(e.target.value)}
+                      placeholder="Ex: Presidente, Diretor"
+                      className="bg-gray-900 border-gray-700 text-white"
+                    />
+                  </div>
+                  <div>
+                    <Label htmlFor="representanteTelefone" className="text-white mb-2 block">
+                      Telefone Institucional
+                    </Label>
+                    <Input
+                      id="representanteTelefone"
+                      type="tel"
+                      value={representanteTelefone}
+                      onChange={(e) => setRepresentanteTelefone(e.target.value)}
+                      placeholder="(41) 3333-3333"
+                      className="bg-gray-900 border-gray-700 text-white"
+                    />
+                  </div>
+                </div>
+
+                <div>
+                  <Label htmlFor="representanteEmail" className="text-white mb-2 block">
+                    E-mail Corporativo
+                  </Label>
+                  <Input
+                    id="representanteEmail"
+                    type="email"
+                    value={representanteEmail}
+                    onChange={(e) => setRepresentanteEmail(e.target.value)}
+                    placeholder="contato@instituicao.org.br"
+                    className="bg-gray-900 border-gray-700 text-white"
+                  />
+                </div>
+
+                <div className="border-t border-gray-800 pt-4 mt-4">
+                  <p className="text-sm text-gray-400 mb-4 font-medium">Dados da Proposta</p>
+                </div>
+              </>
+            )}
+
+            {/* Standard fields (for tecnica mode) */}
+            {!isInstitucional && (
+              <>
+                <div>
+                  <Label htmlFor="entrevistado" className="text-white mb-2 block">
+                    Nome do Entrevistado
+                  </Label>
+                  <Input
+                    id="entrevistado"
+                    value={entrevistado}
+                    onChange={(e) => setEntrevistado(e.target.value)}
+                    placeholder="Nome completo do especialista entrevistado"
+                    className="bg-gray-900 border-gray-700 text-white"
+                  />
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div>
+                    <Label htmlFor="entrevistadoEmail" className="text-white mb-2 block">
+                      Email do Entrevistado
+                    </Label>
+                    <Input
+                      id="entrevistadoEmail"
+                      type="email"
+                      value={entrevistadoEmail}
+                      onChange={(e) => setEntrevistadoEmail(e.target.value)}
+                      placeholder="email@exemplo.com"
+                      className="bg-gray-900 border-gray-700 text-white"
+                    />
+                  </div>
+                  <div>
+                    <Label htmlFor="entrevistadoCelular" className="text-white mb-2 block">
+                      Celular do Entrevistado
+                    </Label>
+                    <Input
+                      id="entrevistadoCelular"
+                      type="tel"
+                      value={entrevistadoCelular}
+                      onChange={(e) => setEntrevistadoCelular(e.target.value)}
+                      placeholder="(41) 99999-9999"
+                      className="bg-gray-900 border-gray-700 text-white"
+                    />
+                  </div>
+                </div>
+              </>
+            )}
 
             <div>
               <Label htmlFor="municipio" className="text-white mb-2 block">
