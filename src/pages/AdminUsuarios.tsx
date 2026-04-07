@@ -248,7 +248,7 @@ const AdminUsuarios = () => {
     return { nome: item?.fullName || '', propostas: filtered };
   }, [selectedEntrevistadorId, propostas, cadastrosPorEntrevistador]);
 
-
+  const createUserMutation = useMutation({
     mutationFn: async (data: {
       email: string;
       password: string;
