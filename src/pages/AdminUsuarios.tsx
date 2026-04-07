@@ -600,6 +600,47 @@ const AdminUsuarios = () => {
   const curatorCount = userRoles?.filter(r => r.role === 'curador_municipal').length || 0;
   const specialistCount = userRoles?.filter(r => r.role === 'especialista').length || 0;
 
+  // Get users by role for modal
+  const getUsersByRole = (role: string | null) => {
+    if (!role || !profiles || !userRoles) return [];
+    if (role === 'all') return profiles;
+    const userIds = userRoles.filter(r => r.role === role).map(r => r.user_id);
+    return profiles.filter(p => userIds.includes(p.id));
+  };
+
+  const getRoleEixosMap = () => {
+    const map: Record<string, string[]> = {};
+    userEixos?.forEach(ue => {
+      const eixo = eixos?.find(e => e.id === ue.eixo_id);
+      if (eixo) {
+        if (!map[ue.user_id]) map[ue.user_id] = [];
+        map[ue.user_id].push(eixo.nome);
+      }
+    });
+    return map;
+  };
+
+  const getRoleMunicipiosMap = () => {
+    const map: Record<string, string[]> = {};
+    userMunicipios?.forEach(um => {
+      const mun = municipios?.find(m => m.id === um.municipio_id);
+      if (mun) {
+        if (!map[um.user_id]) map[um.user_id] = [];
+        map[um.user_id].push(mun.nome);
+      }
+    });
+    return map;
+  };
+
+  const roleModalLabel: Record<string, string> = {
+    all: 'Todos os Usuários',
+    admin_master: 'Admin Master',
+    admin: 'Administradores',
+    lider_tematico: 'Entrevistadores/Líderes',
+    curador_municipal: 'Curadores Temáticos',
+    especialista: 'Especialistas',
+  };
+
   // Chart data
   const roleDistributionData = [
     { name: 'Admin Master', value: adminMasterCount },
