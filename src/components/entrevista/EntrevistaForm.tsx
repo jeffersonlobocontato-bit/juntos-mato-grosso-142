@@ -427,24 +427,46 @@ const EntrevistaForm = ({ mode = "tecnica" }: EntrevistaFormProps) => {
           entrevistado_email: entrevistadoEmail.trim(),
           entrevistado_celular: entrevistadoCelular.trim(),
           subtemas: subtemaIds,
+          ...(isInstitucional ? {
+            instituicao_nome: instituicaoNome.trim(),
+            instituicao_cnpj: instituicaoCnpj.trim(),
+            instituicao_segmento: instituicaoSegmento,
+            representante_nome: representanteNome.trim(),
+            representante_cargo: representanteCargo.trim(),
+            representante_telefone: representanteTelefone.trim(),
+            representante_email: representanteEmail.trim(),
+          } : {}),
         },
       };
 
-      const { error } = await supabase.from("propostas_tecnicas").insert([{
+      const insertData: any = {
         autor_id: user.id,
         lider_responsavel_id: user.id,
         eixo_id: eixoId,
         tema_id: temaId || null,
         subtema_id: subtemaIds.length === 1 ? subtemaIds[0] : null,
         municipio_id: municipioId,
-        entrevistado: entrevistado.trim(),
+        entrevistado: isInstitucional ? instituicaoNome.trim() : entrevistado.trim(),
         titulo: tituloFinal,
         descricao,
         metas,
         questionario: JSON.parse(JSON.stringify(questionarioCompleto)),
         status: "rascunho" as const,
         etapa: 1,
-      }]);
+        tipo_proposta: isInstitucional ? "institucional" : "tecnica",
+      };
+
+      if (isInstitucional) {
+        insertData.instituicao_nome = instituicaoNome.trim();
+        insertData.instituicao_cnpj = instituicaoCnpj.trim();
+        insertData.instituicao_segmento = instituicaoSegmento;
+        insertData.representante_nome = representanteNome.trim();
+        insertData.representante_cargo = representanteCargo.trim();
+        insertData.representante_telefone = representanteTelefone.trim();
+        insertData.representante_email = representanteEmail.trim();
+      }
+
+      const { error } = await supabase.from("propostas_tecnicas").insert([insertData]);
 
       if (error) throw error;
 
