@@ -508,7 +508,7 @@ const AdminEixos = () => {
                               <div className="flex flex-wrap gap-1 mt-1">
                                 {eixo.users.map(u => (
                                   <Badge key={u.user_id} variant="outline" className="text-[10px] font-normal py-0">
-                                    {u.full_name} <span className="text-muted-foreground ml-1">({u.role})</span>
+                                    {u.full_name}
                                   </Badge>
                                 ))}
                               </div>
