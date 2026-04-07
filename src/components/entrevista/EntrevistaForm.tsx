@@ -202,7 +202,7 @@ const EntrevistaForm = ({ mode = "tecnica" }: EntrevistaFormProps) => {
   const exemplos = useMemo(() => getExemplosFormulario(eixoId), [eixoId]);
 
   // ── DRAFT PERSISTENCE ──
-  const DRAFT_KEY = "entrevista_draft";
+  const DRAFT_KEY = isInstitucional ? "entrevista_institucional_draft" : "entrevista_draft";
   const draftRestored = useRef(false);
   const skipEixoReset = useRef(false);
 
