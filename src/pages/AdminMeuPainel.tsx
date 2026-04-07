@@ -844,6 +844,9 @@ export default function AdminMeuPainel() {
         title="Cadastros por Entrevistador/Líder"
         data={cadastrosPorEntrevistador}
         isLoading={loadingPropostas}
+        onBarClick={(item) => {
+          if (item.autorId) setSelectedEntrevistadorId(item.autorId);
+        }}
       />
 
       {/* Status das Propostas por Eixo */}
@@ -1008,6 +1011,14 @@ export default function AdminMeuPainel() {
           </Card>
         </div>
       )}
+
+      {/* Modal de detalhes do entrevistador */}
+      <EntrevistadorDetailModal
+        open={!!selectedEntrevistadorId}
+        onOpenChange={(open) => { if (!open) setSelectedEntrevistadorId(null); }}
+        entrevistadorNome={selectedEntrevistadorData.nome}
+        propostas={selectedEntrevistadorData.propostas}
+      />
     </div>
   );
 }
