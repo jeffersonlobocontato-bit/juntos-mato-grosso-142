@@ -239,6 +239,12 @@ const Admin = () => {
                     IR PARA A ENTREVISTA POPULAR
                   </Link>
                 </Button>
+                <Button asChild size="lg" variant="outline" className="gap-2 whitespace-nowrap font-bold shadow-md border-amber-500/50 text-amber-600 hover:bg-amber-500/10">
+                  <Link to="/entrevista-institucional">
+                    <Building2 className="w-5 h-5" />
+                    IR PARA A ENTREVISTA INSTITUCIONAL
+                  </Link>
+                </Button>
               </div>
             )}
           </div>
