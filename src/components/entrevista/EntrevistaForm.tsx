@@ -498,6 +498,13 @@ const EntrevistaForm = ({ mode = "tecnica" }: EntrevistaFormProps) => {
     setSubtemaIds([]);
     setTitulo("");
     setQuestionario(initialQuestionario);
+    setInstituicaoNome("");
+    setInstituicaoCnpj("");
+    setInstituicaoSegmento("");
+    setRepresentanteNome("");
+    setRepresentanteCargo("");
+    setRepresentanteTelefone("");
+    setRepresentanteEmail("");
     setIsSubmitted(false);
   };
 
