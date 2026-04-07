@@ -20,6 +20,7 @@ import { StaleProposalsAlertPanel } from "@/components/admin/StaleProposalsAlert
 import { ProposalAnalysisPanel } from "@/components/admin/ProposalAnalysisPanel";
 import { EixoComparisonPanel } from "@/components/admin/EixoComparisonPanel";
 import { GovernmentBalanceChart } from "@/components/admin/GovernmentBalanceChart";
+import { EntrevistadorDetailModal } from "@/components/admin/EntrevistadorDetailModal";
 import ParanaMap from "@/components/admin/ParanaMap";
 import {
   FileText,
@@ -57,6 +58,7 @@ export default function AdminMeuPainel() {
   const [period, setPeriod] = useState<PeriodFilter>("30d");
   const [isSeeding, setIsSeeding] = useState(false);
   const [selectedEixosForComparison, setSelectedEixosForComparison] = useState<string[]>([]);
+  const [selectedEntrevistadorId, setSelectedEntrevistadorId] = useState<string | null>(null);
   const roleBadge = getRoleBadge(roles);
   const { toast } = useToast();
 
@@ -109,7 +111,8 @@ export default function AdminMeuPainel() {
       let query = supabase.from("propostas_tecnicas").select(`
         *,
         eixos_tematicos(nome),
-        municipios(nome)
+        municipios(nome),
+        temas(nome)
       `);
       if (isLider && !isAdmin && !isAdminMaster && userId) {
         query = query.eq("autor_id", userId);
