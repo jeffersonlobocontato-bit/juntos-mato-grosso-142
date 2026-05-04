@@ -1,5 +1,6 @@
 import jsPDF from "jspdf";
 import { saveAs } from "file-saver";
+import { getBlocoFConfig } from "@/config/entrevistaQuestions";
 import {
   Document,
   Packer,
@@ -29,6 +30,7 @@ export interface EntrevistaExportData {
   questionario?: Record<string, unknown> | null;
   eixosMap?: Record<string, string>;
   subtemasMap?: Record<string, string>;
+  eixoId?: string | null;
 }
 
 interface QA {
