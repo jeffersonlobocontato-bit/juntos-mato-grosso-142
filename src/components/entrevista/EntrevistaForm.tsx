@@ -30,6 +30,7 @@ import { getBlocoFConfig, getProgramaTeste, getExemplosFormulario } from "@/conf
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { toast } from "sonner";
+import PropostaAnexosUpload from "./PropostaAnexosUpload";
 
 interface Eixo {
   id: string;
@@ -167,6 +168,9 @@ const EntrevistaForm = ({ mode = "tecnica" }: EntrevistaFormProps) => {
   const [currentStep, setCurrentStep] = useState(0);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isSubmitted, setIsSubmitted] = useState(false);
+  const [submittedPropostaId, setSubmittedPropostaId] = useState<string | null>(null);
+  const [submittedEixoId, setSubmittedEixoId] = useState<string>("");
+  const [submittedEixoNome, setSubmittedEixoNome] = useState<string>("");
 
   // Identificação
   const [entrevistado, setEntrevistado] = useState("");
@@ -471,11 +475,21 @@ const EntrevistaForm = ({ mode = "tecnica" }: EntrevistaFormProps) => {
         insertData.representante_email = representanteEmail.trim();
       }
 
-      const { error } = await supabase.from("propostas_tecnicas").insert([insertData]);
+      const { data: inserted, error } = await supabase
+        .from("propostas_tecnicas")
+        .insert([insertData])
+        .select("id, eixo_id")
+        .single();
 
       if (error) throw error;
 
       sessionStorage.removeItem(DRAFT_KEY);
+      if (inserted) {
+        setSubmittedPropostaId(inserted.id);
+        setSubmittedEixoId(inserted.eixo_id || eixoId);
+        const eixoNome = eixos.find((e) => e.id === (inserted.eixo_id || eixoId))?.nome || "";
+        setSubmittedEixoNome(eixoNome);
+      }
       setIsSubmitted(true);
       toast.success("Entrevista registrada com sucesso!");
     } catch (error) {
@@ -506,6 +520,9 @@ const EntrevistaForm = ({ mode = "tecnica" }: EntrevistaFormProps) => {
     setRepresentanteTelefone("");
     setRepresentanteEmail("");
     setIsSubmitted(false);
+    setSubmittedPropostaId(null);
+    setSubmittedEixoId("");
+    setSubmittedEixoNome("");
   };
 
   const updateQuestionario = <K extends keyof QuestionarioData>(
@@ -582,6 +599,17 @@ const EntrevistaForm = ({ mode = "tecnica" }: EntrevistaFormProps) => {
                 ? "A proposta da sua instituição foi salva e está disponível para análise. Obrigado pela contribuição ao Plano de Governo do Paraná."
                 : "Sua entrevista técnica foi salva e está disponível para análise. A estrutura padronizada permite consolidação entre todos os eixos."}
             </p>
+
+            {submittedPropostaId && submittedEixoId && (
+              <div className="mb-8">
+                <PropostaAnexosUpload
+                  propostaId={submittedPropostaId}
+                  eixoId={submittedEixoId}
+                  eixoNome={submittedEixoNome}
+                />
+              </div>
+            )}
+
             <Button onClick={resetForm} variant="hero" size="lg">
               Registrar Nova Entrevista
             </Button>
