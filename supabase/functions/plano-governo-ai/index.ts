@@ -567,6 +567,12 @@ IMPORTANTE: Seja específico nas avaliações. Cite qual documento de referênci
       if (filters.eixo) {
         parts.push(`EIXO TEMÁTICO SELECIONADO: ${filters.eixo}`);
       }
+      if (filters.tema) {
+        parts.push(`TEMA SELECIONADO: ${filters.tema}`);
+      }
+      if (filters.subtema) {
+        parts.push(`SUBTEMA SELECIONADO: ${filters.subtema}`);
+      }
       if (filters.cidade) {
         parts.push(`MUNICÍPIO SELECIONADO: ${filters.cidade}`);
       }
