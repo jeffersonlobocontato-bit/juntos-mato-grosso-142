@@ -595,9 +595,23 @@ IMPORTANTE: Seja específico nas avaliações. Cite qual documento de referênci
         parts.push(`FONTES DE DADOS ATIVAS: ${sources.join(', ')}`);
       }
       
-      return parts.length > 0 
-        ? `\n\n=== FILTROS APLICADOS PELO USUÁRIO ===\n${parts.join('\n')}\n\nIMPORTANTE: Os dados abaixo já estão FILTRADOS de acordo com as seleções do usuário. Analise DIRETAMENTE estes dados sem pedir mais especificações.`
+      if (parts.length === 0) return '';
+
+      // Build strict scope rule
+      const scopeParts: string[] = [];
+      if (filters.eixo) scopeParts.push(`eixo "${filters.eixo}"`);
+      if (filters.tema) scopeParts.push(`tema "${filters.tema}"`);
+      if (filters.subtema) scopeParts.push(`subtema "${filters.subtema}"`);
+      const scopeRule = scopeParts.length > 0
+        ? `\n\n🚨 ESCOPO OBRIGATÓRIO E EXCLUSIVO 🚨
+Sua resposta DEVE tratar EXCLUSIVAMENTE de ${scopeParts.join(' → ')}.
+${filters.subtema ? `O subtema selecionado é "${filters.subtema}". NÃO mencione, sugira ou inclua propostas de OUTROS subtemas (ex: telecomunicações, energia, saneamento, transportes, etc.) — somente "${filters.subtema}".` : ''}
+${filters.tema && !filters.subtema ? `Foque APENAS no tema "${filters.tema}". Não derive para outros temas do mesmo eixo.` : ''}
+Se os dados disponíveis não cobrirem suficientemente esse recorte, declare explicitamente a limitação ao invés de expandir o escopo.
+Qualquer conteúdo fora desse recorte é considerado ERRO GRAVE de execução.`
         : '';
+
+      return `\n\n=== FILTROS APLICADOS PELO USUÁRIO ===\n${parts.join('\n')}\n\nIMPORTANTE: Os dados abaixo já estão FILTRADOS de acordo com as seleções do usuário. Analise DIRETAMENTE estes dados sem pedir mais especificações.${scopeRule}`;
     };
 
     const filterDescription = buildFilterDescription();
