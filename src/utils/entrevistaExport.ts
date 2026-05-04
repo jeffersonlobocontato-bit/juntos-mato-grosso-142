@@ -400,7 +400,7 @@ export const exportEntrevistaPDF = (data: EntrevistaExportData) => {
   // ── Perguntas e Respostas ──
   writeWrapped("Perguntas e Respostas", 14, 8, true);
 
-  const secoes = buildSecoes(data.questionario || null, data.eixosMap, data.subtemasMap);
+  const secoes = buildSecoes(data.questionario || null, data.eixosMap, data.subtemasMap, data.eixoId);
   if (secoes.length === 0) {
     writeWrapped("Nenhum questionário foi preenchido para esta entrevista.", 10, 4);
   }
@@ -551,7 +551,7 @@ export const exportEntrevistaDOCX = async (data: EntrevistaExportData) => {
   // Perguntas e respostas
   children.push(heading("Perguntas e Respostas", HeadingLevel.HEADING_1));
 
-  const secoes = buildSecoes(data.questionario || null, data.eixosMap, data.subtemasMap);
+  const secoes = buildSecoes(data.questionario || null, data.eixosMap, data.subtemasMap, data.eixoId);
   if (secoes.length === 0) {
     children.push(para("Nenhum questionário foi preenchido para esta entrevista."));
   }
