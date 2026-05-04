@@ -4,7 +4,8 @@ import { Label } from '@/components/ui/label';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Badge } from '@/components/ui/badge';
-import { Filter, Users, FileText, Database, MapPin, Target, Clock } from 'lucide-react';
+import { Input } from '@/components/ui/input';
+import { Filter, Users, FileText, Database, MapPin, Target, Clock, Search } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
 export interface DataFilters {
@@ -21,8 +22,18 @@ export interface DataFilters {
   eixo: string;
   
   // Document specific
+  /** IDs dos documentos individuais selecionados (vazio = todos) */
+  documentIds: string[];
+  /** Filtro auxiliar de UI: filtra a lista visível por categoria (não envia à IA) */
   docCategory: string[];
   temporalStatus: string;
+}
+
+export interface AvailableDocument {
+  id: string;
+  title: string;
+  doc_category: string;
+  temporal_status: string | null;
 }
 
 interface DataSourceFiltersProps {
@@ -31,6 +42,7 @@ interface DataSourceFiltersProps {
   regioes: string[];
   municipios: { id: string; nome: string; regiao: string | null }[];
   eixos: { id: string; nome: string }[];
+  documents?: AvailableDocument[];
   className?: string;
 }
 
@@ -58,11 +70,14 @@ export function DataSourceFilters({
   regioes, 
   municipios, 
   eixos,
+  documents = [],
   className 
 }: DataSourceFiltersProps) {
   const updateFilter = <K extends keyof DataFilters>(key: K, value: DataFilters[K]) => {
     onChange({ ...filters, [key]: value });
   };
+
+  const [docSearch, setDocSearch] = useState('');
 
   const filteredMunicipios = filters.regiao 
     ? municipios.filter(m => m.regiao === filters.regiao)
@@ -73,6 +88,24 @@ export function DataSourceFilters({
     filters.includePropostas, 
     filters.includeDocumentos
   ].filter(Boolean).length;
+
+  // Lista visível de documentos (aplica filtro auxiliar de categoria + busca)
+  const visibleDocuments = documents.filter(doc => {
+    if (filters.docCategory.length > 0 && !filters.docCategory.includes(doc.doc_category)) {
+      return false;
+    }
+    if (docSearch.trim()) {
+      return doc.title.toLowerCase().includes(docSearch.toLowerCase());
+    }
+    return true;
+  });
+
+  const toggleDocument = (id: string, checked: boolean) => {
+    const next = checked
+      ? [...filters.documentIds, id]
+      : filters.documentIds.filter(d => d !== id);
+    updateFilter('documentIds', next);
+  };
 
   return (
     <Card className={className}>
@@ -222,53 +255,112 @@ export function DataSourceFilters({
         {/* Document-specific Filters (only when documents are included) */}
         {filters.includeDocumentos && (
           <div className="space-y-4 pt-2 border-t">
+            {/* Lista de documentos disponíveis (por nome) */}
             <div className="space-y-2">
-              <div className="flex items-center justify-between">
+              <div className="flex items-center justify-between flex-wrap gap-2">
                 <Label className="text-sm flex items-center gap-2">
                   <FileText className="w-3.5 h-3.5" />
-                  Tipos de Documento
+                  Documentos disponíveis
                 </Label>
+                <Badge variant="secondary" className="text-xs">
+                  {filters.documentIds.length === 0
+                    ? `Todos (${documents.length})`
+                    : `${filters.documentIds.length}/${documents.length} selecionado${filters.documentIds.length !== 1 ? 's' : ''}`}
+                </Badge>
+              </div>
+
+              {/* Controles: busca + filtro auxiliar de categoria + ações */}
+              <div className="flex flex-col sm:flex-row gap-2">
+                <div className="relative flex-1">
+                  <Search className="absolute left-2 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-muted-foreground" />
+                  <Input
+                    placeholder="Buscar documento por nome..."
+                    value={docSearch}
+                    onChange={(e) => setDocSearch(e.target.value)}
+                    className="pl-7 h-9 text-sm"
+                  />
+                </div>
+                <Select
+                  value={filters.docCategory.length === 1 ? filters.docCategory[0] : '__all__'}
+                  onValueChange={(v) => {
+                    updateFilter('docCategory', v === '__all__' ? [] : [v]);
+                  }}
+                >
+                  <SelectTrigger className="h-9 text-sm sm:w-[200px]">
+                    <SelectValue placeholder="Filtrar por categoria" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="__all__">Todas as categorias</SelectItem>
+                    {DOC_CATEGORIES.map(cat => (
+                      <SelectItem key={cat.value} value={cat.value}>{cat.label}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
                 <div className="flex gap-2">
                   <button
-                    className="text-xs text-primary hover:underline"
-                    onClick={() => updateFilter('docCategory', DOC_CATEGORIES.map(c => c.value))}
+                    type="button"
+                    className="text-xs text-primary hover:underline px-2"
+                    onClick={() => updateFilter('documentIds', visibleDocuments.map(d => d.id))}
                   >
-                    Todos
+                    Selecionar visíveis
                   </button>
-                  <span className="text-xs text-muted-foreground">|</span>
                   <button
-                    className="text-xs text-primary hover:underline"
-                    onClick={() => updateFilter('docCategory', [])}
+                    type="button"
+                    className="text-xs text-muted-foreground hover:underline px-2"
+                    onClick={() => updateFilter('documentIds', [])}
                   >
                     Limpar
                   </button>
                 </div>
               </div>
-              <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
-                {DOC_CATEGORIES.map(cat => {
-                  const isChecked = filters.docCategory.includes(cat.value);
-                  return (
-                    <label
-                      key={cat.value}
-                      className={cn(
-                        'flex items-center gap-2 p-2 rounded-lg border cursor-pointer transition-colors text-sm',
-                        isChecked ? 'border-primary bg-primary/5' : 'border-border hover:bg-muted/50'
-                      )}
-                    >
-                      <Checkbox
-                        checked={isChecked}
-                        onCheckedChange={(checked) => {
-                          const newCategories = checked
-                            ? [...filters.docCategory, cat.value]
-                            : filters.docCategory.filter(c => c !== cat.value);
-                          updateFilter('docCategory', newCategories);
-                        }}
-                      />
-                      <span className="text-xs">{cat.label}</span>
-                    </label>
-                  );
-                })}
+
+              <div className="border rounded-lg max-h-64 overflow-y-auto divide-y">
+                {documents.length === 0 ? (
+                  <p className="text-sm text-muted-foreground italic p-3">
+                    Nenhum documento cadastrado na biblioteca.
+                  </p>
+                ) : visibleDocuments.length === 0 ? (
+                  <p className="text-sm text-muted-foreground italic p-3">
+                    Nenhum documento corresponde à busca/filtro.
+                  </p>
+                ) : (
+                  visibleDocuments.map(doc => {
+                    const isChecked = filters.documentIds.includes(doc.id);
+                    const catLabel = DOC_CATEGORIES.find(c => c.value === doc.doc_category)?.label || doc.doc_category;
+                    return (
+                      <label
+                        key={doc.id}
+                        className={cn(
+                          'flex items-start gap-3 p-2.5 cursor-pointer transition-colors',
+                          isChecked ? 'bg-primary/5' : 'hover:bg-muted/50'
+                        )}
+                      >
+                        <Checkbox
+                          checked={isChecked}
+                          onCheckedChange={(checked) => toggleDocument(doc.id, !!checked)}
+                          className="mt-0.5"
+                        />
+                        <div className="flex-1 min-w-0">
+                          <div className="text-sm font-medium truncate">{doc.title}</div>
+                          <div className="flex items-center gap-2 mt-0.5 flex-wrap">
+                            <Badge variant="outline" className="text-[10px] py-0 h-4">
+                              {catLabel}
+                            </Badge>
+                            {doc.temporal_status && (
+                              <Badge variant="secondary" className="text-[10px] py-0 h-4">
+                                {TEMPORAL_STATUS.find(s => s.value === doc.temporal_status)?.label || doc.temporal_status}
+                              </Badge>
+                            )}
+                          </div>
+                        </div>
+                      </label>
+                    );
+                  })
+                )}
               </div>
+              <p className="text-[11px] text-muted-foreground">
+                Sem nenhum marcado, a IA usará todos os documentos ativos da biblioteca (respeitando os demais filtros).
+              </p>
             </div>
 
             <div className="space-y-2">
