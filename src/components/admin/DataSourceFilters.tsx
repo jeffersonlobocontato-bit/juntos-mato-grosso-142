@@ -20,6 +20,8 @@ export interface DataFilters {
   
   // Thematic
   eixo: string;
+  tema: string;
+  subtema: string;
   
   // Document specific
   /** IDs dos documentos individuais selecionados (vazio = todos) */
@@ -42,6 +44,8 @@ interface DataSourceFiltersProps {
   regioes: string[];
   municipios: { id: string; nome: string; regiao: string | null }[];
   eixos: { id: string; nome: string }[];
+  temas?: { id: string; nome: string; eixo_id: string }[];
+  subtemas?: { id: string; nome: string; tema_id: string }[];
   documents?: AvailableDocument[];
   className?: string;
 }
@@ -70,6 +74,8 @@ export function DataSourceFilters({
   regioes, 
   municipios, 
   eixos,
+  temas = [],
+  subtemas = [],
   documents = [],
   className 
 }: DataSourceFiltersProps) {
@@ -82,6 +88,19 @@ export function DataSourceFilters({
   const filteredMunicipios = filters.regiao 
     ? municipios.filter(m => m.regiao === filters.regiao)
     : municipios;
+
+  const selectedEixoId = filters.eixo
+    ? eixos.find(e => e.nome === filters.eixo)?.id
+    : undefined;
+  const filteredTemas = selectedEixoId
+    ? temas.filter(t => t.eixo_id === selectedEixoId)
+    : temas;
+  const selectedTemaId = filters.tema
+    ? temas.find(t => t.nome === filters.tema)?.id
+    : undefined;
+  const filteredSubtemas = selectedTemaId
+    ? subtemas.filter(s => s.tema_id === selectedTemaId)
+    : [];
 
   const activeSourcesCount = [
     filters.includeSugestoes, 
