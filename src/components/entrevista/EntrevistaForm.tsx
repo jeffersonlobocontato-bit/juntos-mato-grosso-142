@@ -472,8 +472,8 @@ const EntrevistaForm = ({ mode = "tecnica" }: EntrevistaFormProps) => {
         autor_id: user.id,
         lider_responsavel_id: user.id,
         eixo_id: eixoIdSan,
-        tema_id: toUuidOrNull(temaId),
-        subtema_id: subtemaIds.length === 1 ? toUuidOrNull(subtemaIds[0]) : null,
+        tema_id: temaId === "outros" ? null : toUuidOrNull(temaId),
+        subtema_id: temaId === "outros" ? null : (subtemaIds.length === 1 ? toUuidOrNull(subtemaIds[0]) : null),
         municipio_id: municipioIdSan,
         entrevistado: isInstitucional ? instituicaoNome.trim() : entrevistado.trim(),
         titulo: tituloFinal,
@@ -918,14 +918,26 @@ const EntrevistaForm = ({ mode = "tecnica" }: EntrevistaFormProps) => {
                         <span className="font-medium">{t.codigo}</span> - {t.nome}
                       </SelectItem>
                     ))}
+                  {isInstitucional && (
+                    <SelectItem value="outros">
+                      <span className="font-medium">OUTROS</span> - Temas diversos
+                    </SelectItem>
+                  )}
                 </SelectContent>
               </Select>
+              {isInstitucional && temaId === "outros" && (
+                <p className="text-xs text-amber-400 mt-1">
+                  A entrevista será classificada como "Temas Diversos" (sem tema/subtema específico).
+                </p>
+              )}
             </div>
 
             <div>
               <Label className="text-white mb-2 block">Subtemas</Label>
               {!temaId ? (
                 <p className="text-sm text-gray-500">Selecione um tema primeiro</p>
+              ) : temaId === "outros" ? (
+                <p className="text-sm text-gray-500">Não aplicável para "Temas Diversos".</p>
               ) : (
                 <>
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-2 p-3 bg-gray-900 border border-gray-700 rounded-md max-h-48 overflow-y-auto">
