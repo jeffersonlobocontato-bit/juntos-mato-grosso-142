@@ -1,5 +1,5 @@
 import { useState, useEffect, useMemo } from 'react';
-import { useNavigate, Link, useSearchParams } from 'react-router-dom';
+import { useNavigate, Link, useSearchParams, useLocation } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { useAuth } from '@/hooks/useAuth';
 import { supabase } from '@/integrations/supabase/client';
@@ -120,9 +120,12 @@ const AdminPropostas = () => {
   const { user, isLoading: authLoading } = useAuth();
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
-  // Default to 'tecnica' so institutional proposals never mix with technical ones
-  const tipoFilter = (searchParams.get('tipo') || 'tecnica') as 'tecnica' | 'institucional';
-  const isInstitucional = tipoFilter === 'institucional';
+  const location = useLocation();
+  // Detect institutional view either by path or by ?tipo= param
+  const isInstitucional =
+    location.pathname.includes('propostas-institucionais') ||
+    searchParams.get('tipo') === 'institucional';
+  const tipoFilter: 'tecnica' | 'institucional' = isInstitucional ? 'institucional' : 'tecnica';
   
   const [proposals, setProposals] = useState<Proposal[]>([]);
   const [evaluations, setEvaluations] = useState<ProposalEvaluation[]>([]);
