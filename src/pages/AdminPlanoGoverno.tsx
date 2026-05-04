@@ -575,6 +575,32 @@ const AdminPlanoGoverno = () => {
 
       const decoder = new TextDecoder();
       let assistantContent = '';
+      let sseBuffer = '';
+
+      const processStreamLine = (line: string) => {
+        if (!line.startsWith('data: ')) return;
+
+        const data = line.slice(6).trim();
+        if (!data || data === '[DONE]') return;
+
+        try {
+          const parsed = JSON.parse(data);
+          const content = parsed.choices?.[0]?.delta?.content;
+          if (content) {
+            assistantContent += content;
+            setMessages(prev => {
+              const newMessages = [...prev];
+              newMessages[newMessages.length - 1] = {
+                role: 'assistant',
+                content: assistantContent
+              };
+              return newMessages;
+            });
+          }
+        } catch {
+          console.warn('Evento de stream inválido ignorado');
+        }
+      };
 
       // Add empty assistant message
       setMessages(prev => [...prev, { role: 'assistant', content: '' }]);
@@ -583,33 +609,15 @@ const AdminPlanoGoverno = () => {
         const { done, value } = await reader.read();
         if (done) break;
 
-        const chunk = decoder.decode(value, { stream: true });
-        const lines = chunk.split('\n');
+        sseBuffer += decoder.decode(value, { stream: true });
+        const lines = sseBuffer.split(/\r?\n/);
+        sseBuffer = lines.pop() || '';
+        lines.forEach(processStreamLine);
+      }
 
-        for (const line of lines) {
-          if (line.startsWith('data: ')) {
-            const data = line.slice(6).trim();
-            if (data === '[DONE]') continue;
-
-            try {
-              const parsed = JSON.parse(data);
-              const content = parsed.choices?.[0]?.delta?.content;
-              if (content) {
-                assistantContent += content;
-                setMessages(prev => {
-                  const newMessages = [...prev];
-                  newMessages[newMessages.length - 1] = {
-                    role: 'assistant',
-                    content: assistantContent
-                  };
-                  return newMessages;
-                });
-              }
-            } catch {
-              // Ignore parse errors for incomplete chunks
-            }
-          }
-        }
+      sseBuffer += decoder.decode();
+      if (sseBuffer.trim()) {
+        processStreamLine(sseBuffer.trim());
       }
 
       // After streaming is complete, parse cross-reference results if in cruzamento mode

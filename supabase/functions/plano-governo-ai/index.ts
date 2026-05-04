@@ -677,14 +677,14 @@ Sempre que você fizer uma afirmação que se baseie em algum item da seção "D
 
 2. Use o MESMO número [^N] sempre que voltar a citar a mesma fonte (não duplique).
 
-3. AO FINAL da sua resposta, OBRIGATORIAMENTE inclua um bloco JSON com a lista de fontes, no seguinte formato EXATO:
+3. AO FINAL da sua resposta, OBRIGATORIAMENTE inclua um bloco JSON com a lista de fontes, no seguinte formato EXATO. Para propostas técnicas, o campo "excerpt" é obrigatório e deve registrar o ponto/menção da proposta que fundamentou a frase citada:
 
 \`\`\`json
 {
   "sources": [
-    { "id": 1, "type": "documento", "label": "Plano Estadual de Saúde 2024", "excerpt": "trecho curto opcional" },
-    { "id": 2, "type": "proposta", "label": "Proposta — Dr. João Silva (Saúde)" },
-    { "id": 3, "type": "sugestao", "label": "Sugestão popular — Cascavel/PR" }
+    { "id": 1, "type": "documento", "label": "Plano Estadual de Saúde 2024", "excerpt": "trecho curto que comprova a afirmação" },
+    { "id": 2, "type": "proposta", "label": "Proposta — Dr. João Silva (Saúde)", "excerpt": "Menção usada: ampliação das equipes de atenção primária" },
+    { "id": 3, "type": "sugestao", "label": "Sugestão popular — Cascavel/PR", "excerpt": "demanda por atendimento mais próximo" }
   ]
 }
 \`\`\`
@@ -692,9 +692,10 @@ Sempre que você fizer uma afirmação que se baseie em algum item da seção "D
 REGRAS DO BLOCO JSON (ANTI-ALUCINAÇÃO — SIGA ESTRITAMENTE):
 - Tipos válidos: "documento", "proposta", "sugestao", "pesquisa", "entrevista".
 - O campo "label" DEVE ser o nome real do item conforme aparece nos dados fornecidos (título do documento, nome do entrevistado, município da sugestão etc.). NÃO invente.
+- O campo "excerpt" DEVE aparecer em TODAS as fontes citadas e conter a menção/ponto específico usado no texto principal, com até 180 caracteres.
 - Só cite itens que EFETIVAMENTE constam nas seções "DOCUMENTOS DA BASE DE CONHECIMENTO", "PROPOSTAS TÉCNICAS", "SUGESTÕES POPULARES" ou similares acima. Se não houver fonte verificável para uma afirmação, NÃO insira o marcador [^N].
 - Se não houver NENHUMA fonte verificável (contexto vazio), OMITA tanto os marcadores quanto o bloco JSON.
-- Use aspas duplas em todas as strings, sem vírgulas finais e sem comentários no JSON.
+- Use aspas duplas em todas as strings, sem vírgulas finais e sem comentários no JSON. NÃO quebre objetos JSON no meio de uma linha e NÃO omita campos.
 - O bloco JSON deve ser o ÚLTIMO conteúdo da resposta.
 
 Responda em português brasileiro.`;
