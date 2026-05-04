@@ -655,6 +655,8 @@ const EntrevistaForm = ({ mode = "tecnica" }: EntrevistaFormProps) => {
                   propostaId={submittedPropostaId}
                   eixoId={submittedEixoId}
                   eixoNome={submittedEixoNome}
+                  temas={temas}
+                  subtemas={subtemas}
                 />
               </div>
             )}
