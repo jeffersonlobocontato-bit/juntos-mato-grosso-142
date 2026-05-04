@@ -26,6 +26,14 @@ interface ParanaMapProps {
   onMarkerClick?: (markerId: string) => void;
 }
 
+const escHtml = (s: unknown): string =>
+  String(s ?? '')
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;');
+
 const defaultStatusColors: Record<string, string> = {
   rascunho: '#6b7280',
   em_analise: '#3b82f6',
@@ -176,18 +184,18 @@ const ParanaMap: React.FC<ParanaMapProps> = ({
 
       const popupContent = `
         <div style="max-width: 280px; padding: 10px;">
-          <h3 style="font-weight: bold; margin-bottom: 6px; font-size: 14px;">${group.municipio}</h3>
+          <h3 style="font-weight: bold; margin-bottom: 6px; font-size: 14px;">${escHtml(group.municipio)}</h3>
           <p style="color: #666; font-size: 12px; margin-bottom: 10px;">${group.count || 1} item(ns)</p>
           ${group.items.slice(0, 5).map(item => `
             <div 
               style="background: #f5f5f5; padding: 8px; border-radius: 6px; margin-bottom: 6px; font-size: 11px; border-left: 4px solid ${getStatusColor(item.status)}; cursor: pointer;"
               class="popup-item"
-              data-id="${item.id}"
+              data-id="${escHtml(item.id)}"
             >
-              <strong>${item.title}</strong>
+              <strong>${escHtml(item.title)}</strong>
               <div style="display: flex; gap: 8px; margin-top: 4px;">
-                <span style="background: ${getStatusColor(item.status)}; color: white; padding: 2px 6px; border-radius: 3px; font-size: 10px;">${item.status || 'N/A'}</span>
-                <span style="background: ${getEixoColor(item.eixo)}; color: white; padding: 2px 6px; border-radius: 3px; font-size: 10px;">${item.eixo || 'N/A'}</span>
+                <span style="background: ${getStatusColor(item.status)}; color: white; padding: 2px 6px; border-radius: 3px; font-size: 10px;">${escHtml(item.status || 'N/A')}</span>
+                <span style="background: ${getEixoColor(item.eixo)}; color: white; padding: 2px 6px; border-radius: 3px; font-size: 10px;">${escHtml(item.eixo || 'N/A')}</span>
               </div>
             </div>
           `).join('')}

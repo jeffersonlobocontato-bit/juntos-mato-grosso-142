@@ -12,6 +12,14 @@ interface ProposalConfirmationMapProps {
 
 const MAPBOX_TOKEN = import.meta.env.VITE_MAPBOX_PUBLIC_TOKEN;
 
+const escHtml = (s: unknown): string =>
+  String(s ?? '')
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;');
+
 const eixoColors: Record<string, string> = {
   "Desenvolvimento Social": "#3B82F6",
   "Desenvolvimento Econômico Sustentável": "#22C55E",
@@ -120,9 +128,9 @@ const ProposalConfirmationMap = ({
         className: "confirmation-popup",
       }).setHTML(`
         <div style="padding: 8px;">
-          <div style="font-weight: 600; color: #fff; margin-bottom: 4px;">${municipioNome}</div>
-          <div style="font-size: 12px; color: rgba(255,255,255,0.7);">${eixoNome}</div>
-          <div style="font-size: 11px; color: rgba(255,255,255,0.5); margin-top: 4px; max-width: 180px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">${titulo}</div>
+          <div style="font-weight: 600; color: #fff; margin-bottom: 4px;">${escHtml(municipioNome)}</div>
+          <div style="font-size: 12px; color: rgba(255,255,255,0.7);">${escHtml(eixoNome)}</div>
+          <div style="font-size: 11px; color: rgba(255,255,255,0.5); margin-top: 4px; max-width: 180px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">${escHtml(titulo)}</div>
         </div>
       `);
 
