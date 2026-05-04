@@ -84,6 +84,7 @@ const AdminPlanoGoverno = () => {
     regiao: '',
     municipio: '',
     eixo: '',
+    documentIds: [],
     docCategory: [],
     temporalStatus: '',
   });
@@ -91,6 +92,7 @@ const AdminPlanoGoverno = () => {
   // Data
   const [municipios, setMunicipios] = useState<Municipio[]>([]);
   const [eixos, setEixos] = useState<Eixo[]>([]);
+  const [availableDocuments, setAvailableDocuments] = useState<{ id: string; title: string; doc_category: string; temporal_status: string | null }[]>([]);
 
   // Chat state
   const [messages, setMessages] = useState<Message[]>([]);
@@ -176,7 +178,9 @@ const AdminPlanoGoverno = () => {
         if (eixoId) {
           documentsQuery = documentsQuery.eq('eixo_id', eixoId);
         }
-        if (filters.docCategory.length > 0) {
+        if (filters.documentIds.length > 0) {
+          documentsQuery = documentsQuery.in('id', filters.documentIds);
+        } else if (filters.docCategory.length > 0) {
           documentsQuery = documentsQuery.in('doc_category', filters.docCategory);
         }
         if (filters.temporalStatus) {
@@ -352,6 +356,7 @@ const AdminPlanoGoverno = () => {
           // Thematic
           eixo: filters.eixo || undefined,
           // Document specific
+          documentIds: filters.documentIds.length > 0 ? filters.documentIds : undefined,
           docCategory: filters.docCategory.length > 0 ? filters.docCategory : undefined,
           temporalStatus: filters.temporalStatus || undefined,
         }
