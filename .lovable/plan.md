@@ -1,52 +1,36 @@
-Vou corrigir a geração do Plano de Governo para que a seleção `Infraestrutura > Logística de Transportes > Portos` seja tratada como um recorte obrigatório, e não apenas como uma sugestão de prompt.
+## Problema
 
-Diagnóstico encontrado:
-- A última execução no backend recebeu apenas o eixo (`Desenvolvimento das Cidades e Infraestrutura`). Não há logs de `Tema filter` nem `Subtema filter`, então o tema/subtema não chegaram efetivamente à função nessa execução.
-- Como só o eixo foi aplicado, o backend buscou uma proposta de `Conectividade e Telecomunicações > Segurança - Roubo de Cabos`, que foi exatamente a fonte usada no texto gerado.
-- Documentos da base hoje são filtrados só por `eixo_id`; como `ai_documents` ainda não tem vínculo direto com tema/subtema, um documento amplo como PELTi pode trazer conteúdo de energia, telecom, rodovias etc. mesmo quando o usuário escolhe Portos.
-- A chamada ainda usa `fetch` direto para a função, contrariando o padrão do projeto de usar `supabase.functions.invoke`, o que dificulta consistência e depuração.
+Hoje cada documento na biblioteca exibe a tarja vermelha "Sem tema vinculado — atualizar", mas **não existe nenhum controle na interface** para fazer essa vinculação. O componente `TemasMultiSelect` (que grava em `ai_document_temas`) já existe no projeto, mas nunca foi conectado ao `DocumentLibrary` nem ao `DocumentUploadModal`. Resultado: o usuário vê o alerta e fica sem ação possível.
 
-Plano de correção:
+## O que será feito
 
-1. Corrigir o envio de filtros no frontend
-- Atualizar `AdminPlanoGoverno.tsx` para enviar a função via `supabase.functions.invoke('plano-governo-ai', ...)`, mantendo autenticação e integração correta.
-- Enviar explicitamente não só os nomes, mas também os IDs selecionados: `eixoId`, `temaId`, `subtemaId`.
-- Montar esses IDs a partir das listas já carregadas (`eixos`, `temas`, `subtemas`) para eliminar ambiguidade de nomes.
-- Adicionar no resumo do fichamento/exportação os filtros `Tema` e `Subtema`, além do eixo.
+### 1. Editor inline de temas no card de cada documento (`DocumentLibrary.tsx`)
 
-2. Endurecer a validação na função `plano-governo-ai`
-- Ajustar o contrato da função para aceitar `eixoId`, `temaId`, `subtemaId`.
-- Preferir IDs enviados pelo frontend e usar busca por nome apenas como fallback.
-- Registrar logs explícitos com eixo/tema/subtema resolvidos para facilitar confirmação em produção.
-- Se o usuário escolher tema/subtema e o backend não conseguir resolver o ID, retornar erro claro em vez de gerar um plano amplo.
+Substituir o badge vermelho estático por um controle clicável que abre um popover com o `TemasMultiSelect` (lista hierárquica Eixo → Temas, com checkboxes). Ao marcar/desmarcar:
 
-3. Aplicar filtro hierárquico obrigatório nas propostas técnicas
-- Quando `subtemaId` existir, buscar somente propostas com esse `subtema_id`.
-- Quando só `temaId` existir, buscar somente propostas com esse `tema_id`.
-- Quando só `eixoId` existir, buscar pelo eixo.
-- Se não houver propostas no subtema/tema escolhido, o agente deve dizer que não há propostas técnicas específicas naquele recorte, em vez de puxar outro subtema.
+- Insere/remove linhas em `ai_document_temas` (`document_id` + `tema_id`).
+- Atualiza o estado local para mostrar imediatamente os badges dos temas selecionados.
+- Exibe toast de confirmação.
 
-4. Impedir documentos amplos de contaminarem o subtema
-- Para geração com subtema/tema selecionado, não incluir automaticamente documentos amplos apenas por eixo quando eles não tiverem vínculo específico ao tema/subtema.
-- Incluir documentos amplos somente se o usuário selecionar manualmente o documento na lista.
-- No prompt, instruir que documentos selecionados manualmente podem ser usados apenas para contexto geral, mas não podem introduzir ações de outros subtemas.
-- Isso evita que PELTi ou outro documento de infraestrutura amplo traga telecomunicações/energia para uma proposta de Portos.
+Quando o documento já tem temas vinculados, manter os badges atuais e adicionar um botão pequeno "Editar" ao lado para reabrir o seletor.
 
-5. Adicionar pós-filtro de contexto antes da IA
-- Antes de chamar o modelo, verificar as fontes carregadas no contexto.
-- Se alguma proposta/documento claramente pertencer a outro tema/subtema quando há subtema selecionado, removê-la do contexto.
-- Adicionar uma seção de “escopo efetivo” no prompt com a hierarquia exata resolvida: `Eixo > Tema > Subtema`.
+### 2. Seleção de temas já no upload (`DocumentUploadModal.tsx`)
 
-6. Reduzir deriva do modelo
-- Diminuir a temperatura da chamada de IA para respostas mais determinísticas.
-- Tornar a instrução de escopo mais operacional: “não criar seções, metas, indicadores ou fontes fora do subtema selecionado”.
-- Bloquear exemplos explícitos como telecomunicações, energia, saneamento, smart cities e roubo de cabos quando o subtema for `Portos`.
+Incluir o mesmo `TemasMultiSelect` no formulário de criação, para que documentos novos já entrem na base com o vínculo correto. Após o `INSERT` em `ai_documents`, gravar as linhas em `ai_document_temas` na mesma operação.
 
-7. Validar com um teste real
-- Após implementar, testar a função com: `Desenvolvimento das Cidades e Infraestrutura > Logística de Transportes > Portos`.
-- Confirmar nos logs que aparecem `Tema filter` e `Subtema filter` resolvidos.
-- Confirmar que a proposta resultante não usa a fonte “Reordenação e Fiscalização das Redes de Telecomunicações” e não cria seção sobre telecomunicações/roubo de cabos.
+### 3. Pequenos ajustes de UX
 
-Resultado esperado:
-- Ao selecionar `Infraestrutura / Logística de Transportes / Portos`, o agente só produzirá conteúdo sobre portos e logística portuária.
-- Se não houver base suficiente específica para Portos, ele avisará a limitação e não preencherá com telecomunicações, energia ou outros subtemas.
+- Trocar o tom da tarja vermelha por amarelo/aviso enquanto o popover não estiver aberto (continua visível, mas menos agressivo).
+- Tooltip explicando que vincular temas melhora a precisão do RAG e do gerador de Plano de Governo.
+
+## Detalhes técnicos
+
+- Tabela usada: `ai_document_temas (document_id uuid, tema_id uuid)`. Já tem RLS (`is_admin` para escrita, admin/líder para leitura) — nada novo a criar.
+- A query atual já traz os temas via `ai_document_temas(temas(id, nome))`, então basta refazer `fetchDocuments()` ou atualizar o estado local após cada toggle.
+- Componente `TemasMultiSelect` recebe `value: string[]` e `onChange(ids)` — encaixa direto.
+- Nenhuma mudança de schema necessária.
+
+## Arquivos afetados
+
+- `src/components/admin/DocumentLibrary.tsx` — adicionar popover de edição de temas + handler de persistência.
+- `src/components/admin/DocumentUploadModal.tsx` — adicionar seletor de temas no formulário e gravar vínculos após o insert.
