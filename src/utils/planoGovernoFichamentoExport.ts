@@ -164,6 +164,10 @@ function extractRefsFromText(text: string): number[] {
   ));
 }
 
+function renderRefsAsInlineLabels(text: string): string {
+  return String(text).replace(/\[\^?(\d+)\]/g, '[$1]');
+}
+
 // Blocos: parágrafo de texto, tabela markdown, ou heading
 type Block =
   | { kind: 'para'; text: string }
@@ -435,12 +439,14 @@ export function exportFichamentoPDF(data: FichamentoData): void {
       // Renderiza tabela na coluna principal usando autoTable
       ensureSpace(lineH * 3);
       const startY = cursorY - 1;
+      const tableHeaders = block.headers.map(renderRefsAsInlineLabels);
+      const tableRows = block.rows.map(row => row.map(renderRefsAsInlineLabels));
       autoTable(doc, {
         startY,
         margin: { left: mainX, right: pageW - (mainX + mainColW) },
         tableWidth: mainColW,
-        head: [block.headers],
-        body: block.rows,
+        head: [tableHeaders],
+        body: tableRows,
         theme: 'grid',
         styles: {
           font: 'helvetica',
@@ -459,6 +465,19 @@ export function exportFichamentoPDF(data: FichamentoData): void {
           fontSize: 8.5,
         },
         alternateRowStyles: { fillColor: [248, 246, 240] },
+        didDrawCell: (cellData) => {
+          const refs = extractRefsFromText(String(cellData.cell.raw || ''));
+          if (refs.length === 0 || cellData.section === 'head') return;
+          const currentPage = (doc as any).internal?.getCurrentPageInfo?.().pageNumber || doc.getNumberOfPages();
+          refs.forEach((ref, idx) => {
+            refPositions.push({
+              ref,
+              page: currentPage,
+              x: cellData.cell.x + cellData.cell.width,
+              y: cellData.cell.y + 4 + idx * 3.2,
+            });
+          });
+        },
         didDrawPage: () => {
           // Quando autoTable cria nova página, redesenha header/footer
           drawHeaderFooter(doc.getNumberOfPages(), '');
