@@ -659,11 +659,6 @@ export async function exportFichamentoDOCX(data: FichamentoData): Promise<void> 
   const noBorder = { style: BorderStyle.NONE, size: 0, color: 'FFFFFF' };
   const allNoBorders = { top: noBorder, bottom: noBorder, left: noBorder, right: noBorder };
 
-  // A4 retrato content width ≈ 9026 DXA (descontando margens 1440 cada lado)
-  const tableWidth = 9026;
-  const leftW = Math.round(tableWidth * 0.66);
-  const rightW = tableWidth - leftW;
-
   const table = new Table({
     width: { size: tableWidth, type: WidthType.DXA },
     columnWidths: [leftW, rightW],
@@ -680,7 +675,7 @@ export async function exportFichamentoDOCX(data: FichamentoData): Promise<void> 
               right: { style: BorderStyle.SINGLE, size: 4, color: 'D4AF37' },
             },
             margins: { top: 80, bottom: 80, left: 0, right: 200 },
-            children: leftParagraphs.length ? leftParagraphs : [new Paragraph({ text: '' })],
+            children: leftChildren.length ? leftChildren : [new Paragraph({ text: '' })],
           }),
           new TableCell({
             width: { size: rightW, type: WidthType.DXA },
