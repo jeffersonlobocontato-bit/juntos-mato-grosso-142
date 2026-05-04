@@ -135,6 +135,24 @@ serve(async (req) => {
       eixoId = eixoData?.id || null;
       console.log("Eixo filter active:", filters.eixo, "-> ID:", eixoId);
     }
+
+    // Resolve tema/subtema IDs
+    let temaId: string | null = null;
+    if (filters.tema) {
+      let q = supabase.from("temas").select("id").eq("nome", filters.tema);
+      if (eixoId) q = q.eq("eixo_id", eixoId);
+      const { data: temaData } = await q.maybeSingle();
+      temaId = temaData?.id || null;
+      console.log("Tema filter:", filters.tema, "->", temaId);
+    }
+    let subtemaId: string | null = null;
+    if (filters.subtema) {
+      let q = supabase.from("subtemas").select("id").eq("nome", filters.subtema);
+      if (temaId) q = q.eq("tema_id", temaId);
+      const { data: sData } = await q.maybeSingle();
+      subtemaId = sData?.id || null;
+      console.log("Subtema filter:", filters.subtema, "->", subtemaId);
+    }
     
     // Get municipalities for region filtering
     let municipioNames: string[] = [];
