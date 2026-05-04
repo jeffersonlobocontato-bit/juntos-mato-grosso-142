@@ -84,6 +84,7 @@ const AdminPlanoGoverno = () => {
     regiao: '',
     municipio: '',
     eixo: '',
+    documentIds: [],
     docCategory: [],
     temporalStatus: '',
   });
@@ -91,6 +92,7 @@ const AdminPlanoGoverno = () => {
   // Data
   const [municipios, setMunicipios] = useState<Municipio[]>([]);
   const [eixos, setEixos] = useState<Eixo[]>([]);
+  const [availableDocuments, setAvailableDocuments] = useState<{ id: string; title: string; doc_category: string; temporal_status: string | null }[]>([]);
 
   // Chat state
   const [messages, setMessages] = useState<Message[]>([]);
@@ -146,13 +148,19 @@ const AdminPlanoGoverno = () => {
   // Fetch municipios and eixos
   useEffect(() => {
     const fetchData = async () => {
-      const [municipiosRes, eixosRes] = await Promise.all([
+      const [municipiosRes, eixosRes, docsRes] = await Promise.all([
         supabase.from('municipios').select('id, nome, regiao').order('nome'),
-        supabase.from('eixos_tematicos').select('id, nome').order('nome')
+        supabase.from('eixos_tematicos').select('id, nome').order('nome'),
+        supabase
+          .from('ai_documents')
+          .select('id, title, doc_category, temporal_status')
+          .eq('is_active', true)
+          .order('title')
       ]);
 
       if (municipiosRes.data) setMunicipios(municipiosRes.data);
       if (eixosRes.data) setEixos(eixosRes.data);
+      if (docsRes.data) setAvailableDocuments(docsRes.data);
     };
 
     if (user && isAuthorized) {
@@ -176,7 +184,9 @@ const AdminPlanoGoverno = () => {
         if (eixoId) {
           documentsQuery = documentsQuery.eq('eixo_id', eixoId);
         }
-        if (filters.docCategory.length > 0) {
+        if (filters.documentIds.length > 0) {
+          documentsQuery = documentsQuery.in('id', filters.documentIds);
+        } else if (filters.docCategory.length > 0) {
           documentsQuery = documentsQuery.in('doc_category', filters.docCategory);
         }
         if (filters.temporalStatus) {
@@ -352,6 +362,7 @@ const AdminPlanoGoverno = () => {
           // Thematic
           eixo: filters.eixo || undefined,
           // Document specific
+          documentIds: filters.documentIds.length > 0 ? filters.documentIds : undefined,
           docCategory: filters.docCategory.length > 0 ? filters.docCategory : undefined,
           temporalStatus: filters.temporalStatus || undefined,
         }
@@ -626,6 +637,7 @@ const AdminPlanoGoverno = () => {
                 regioes={REGIOES}
                 municipios={municipios}
                 eixos={eixos}
+                documents={availableDocuments}
               />
 
               {/* Contextual Charts based on mode */}

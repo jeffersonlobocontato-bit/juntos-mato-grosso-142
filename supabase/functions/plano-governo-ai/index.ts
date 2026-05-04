@@ -27,6 +27,7 @@ interface RequestBody {
     // Thematic
     eixo?: string;
     // Document specific
+    documentIds?: string[];
     docCategory?: string[];
     temporalStatus?: string;
   };
@@ -255,7 +256,10 @@ serve(async (req) => {
         .order("priority", { ascending: false })
         .limit(20);
 
-      if (filters.docCategory && filters.docCategory.length > 0) {
+      if (filters.documentIds && filters.documentIds.length > 0) {
+        // Seleção explícita de documentos por ID tem prioridade
+        docsQuery = docsQuery.in("id", filters.documentIds);
+      } else if (filters.docCategory && filters.docCategory.length > 0) {
         docsQuery = docsQuery.in("doc_category", filters.docCategory);
       }
 
