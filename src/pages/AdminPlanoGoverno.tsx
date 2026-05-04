@@ -720,7 +720,21 @@ const AdminPlanoGoverno = () => {
                             >
                               {message.role === 'assistant' ? (
                                 message.content ? (
-                                  <MarkdownRenderer content={message.content} />
+                                  <>
+                                    <MarkdownRenderer content={message.content} />
+                                    <div className="flex justify-end mt-2 -mb-1">
+                                      <FichamentoExportButton
+                                        content={message.content}
+                                        title={`${MODE_LABELS[analysisMode] || 'Plano de Governo'}`}
+                                        modeLabel={MODE_LABELS[analysisMode]}
+                                        filtersSummary={[
+                                          filters.eixo && `Eixo: ${filters.eixo}`,
+                                          filters.regiao && `Região: ${filters.regiao}`,
+                                          filters.municipio && `Município: ${filters.municipio}`,
+                                        ].filter(Boolean).join(' · ')}
+                                      />
+                                    </div>
+                                  </>
                                 ) : (
                                   <span className="flex items-center gap-2 text-muted-foreground text-sm">
                                     <Loader2 className="w-4 h-4 animate-spin" />
@@ -855,7 +869,21 @@ const AdminPlanoGoverno = () => {
                       >
                         {message.role === 'assistant' ? (
                           message.content ? (
-                            <MarkdownRenderer content={message.content} />
+                            <>
+                              <MarkdownRenderer content={message.content} />
+                              <div className="flex justify-end mt-2 -mb-1">
+                                <FichamentoExportButton
+                                  content={message.content}
+                                  title={`${MODE_LABELS[analysisMode] || 'Plano de Governo'}`}
+                                  modeLabel={MODE_LABELS[analysisMode]}
+                                  filtersSummary={[
+                                    filters.eixo && `Eixo: ${filters.eixo}`,
+                                    filters.regiao && `Região: ${filters.regiao}`,
+                                    filters.municipio && `Município: ${filters.municipio}`,
+                                  ].filter(Boolean).join(' · ')}
+                                />
+                              </div>
+                            </>
                           ) : (
                             <span className="flex items-center gap-2 text-muted-foreground text-sm">
                               <Loader2 className="w-4 h-4 animate-spin" />
