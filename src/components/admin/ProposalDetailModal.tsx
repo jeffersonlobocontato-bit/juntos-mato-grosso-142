@@ -145,6 +145,7 @@ export const ProposalDetailModal = ({
     pesquisaIds: [],
   });
   const [liderNome, setLiderNome] = useState<string>("");
+  const [subtemasMap, setSubtemasMap] = useState<Record<string, string>>({});
 
   useEffect(() => {
     if (open && proposalId) {
@@ -152,6 +153,23 @@ export const ProposalDetailModal = ({
       fetchEvaluation();
     }
   }, [open, proposalId]);
+
+  useEffect(() => {
+    const loadSubtemas = async () => {
+      const { data } = await supabase
+        .from('subtemas')
+        .select('id, nome, tema_id, temas(nome)');
+      if (data) {
+        const map: Record<string, string> = {};
+        for (const s of data as any[]) {
+          const temaNome = s.temas?.nome;
+          map[s.id] = temaNome ? `${temaNome} › ${s.nome}` : s.nome;
+        }
+        setSubtemasMap(map);
+      }
+    };
+    if (open) loadSubtemas();
+  }, [open]);
 
   const fetchProposal = async () => {
     if (!proposalId) return;
@@ -286,6 +304,8 @@ export const ProposalDetailModal = ({
 
   const buildExportPayload = () => {
     if (!proposal) return null;
+    const eixosMap: Record<string, string> = {};
+    for (const e of eixos) eixosMap[e.id] = e.nome;
     return {
       titulo: proposal.titulo,
       status: statusLabels[proposal.status]?.label || proposal.status,
@@ -299,6 +319,8 @@ export const ProposalDetailModal = ({
       metas: proposal.metas,
       indicadores: proposal.indicadores,
       questionario: proposal.questionario as Record<string, unknown> | null,
+      eixosMap,
+      subtemasMap,
     };
   };
 
