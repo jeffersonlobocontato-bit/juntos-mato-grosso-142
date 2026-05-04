@@ -117,7 +117,7 @@ export function parseFichamento(rawContent: string): { body: string; sources: Fi
   }
 
   if (sources.length === 0) {
-    const trailingJson = body.match(/```+\s*json\s*([\s\S]*)$/i);
+    const trailingJson = body.match(/`{2,}\s*json\s*([\s\S]*)$/i);
     if (trailingJson && /"sources"\s*:/.test(trailingJson[1])) {
       sources = parseSourcesPayload(trailingJson[1]);
       body = body.slice(0, trailingJson.index).trim();
