@@ -1,10 +1,11 @@
 import { useState, useEffect, useRef } from "react";
 import { motion, useInView } from "framer-motion";
-import { FileText, MessageSquare, MapPin, Users } from "lucide-react";
+import { FileText, MessageSquare, MapPin, Users, Building2 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 
 interface StatsData {
   totalPropostas: number;
+  totalInstitucionais: number;
   totalSugestoes: number;
   municipiosAtivos: number;
   totalEixos: number;
@@ -36,6 +37,7 @@ const CountUp = ({ end, duration = 2 }: { end: number; duration?: number }) => {
 const EntrevistaStats = () => {
   const [stats, setStats] = useState<StatsData>({
     totalPropostas: 0,
+    totalInstitucionais: 0,
     totalSugestoes: 0,
     municipiosAtivos: 0,
     totalEixos: 8,
@@ -43,10 +45,17 @@ const EntrevistaStats = () => {
 
   useEffect(() => {
     const fetchStats = async () => {
-      // Fetch proposals count
+      // Fetch technical proposals count
       const { count: propostasCount } = await supabase
         .from("propostas_tecnicas")
-        .select("*", { count: "exact", head: true });
+        .select("*", { count: "exact", head: true })
+        .eq("tipo_proposta", "tecnica");
+
+      // Fetch institutional proposals count
+      const { count: institucionaisCount } = await supabase
+        .from("propostas_tecnicas")
+        .select("*", { count: "exact", head: true })
+        .eq("tipo_proposta", "institucional");
 
       // Fetch suggestions count
       const { count: sugestoesCount } = await supabase
@@ -68,6 +77,7 @@ const EntrevistaStats = () => {
 
       setStats({
         totalPropostas: propostasCount || 0,
+        totalInstitucionais: institucionaisCount || 0,
         totalSugestoes: sugestoesCount || 0,
         municipiosAtivos: uniqueMunicipios,
         totalEixos: eixosCount || 8,
@@ -84,6 +94,13 @@ const EntrevistaStats = () => {
       label: "Propostas Técnicas",
       color: "text-primary",
       bgColor: "bg-primary/10",
+    },
+    {
+      icon: Building2,
+      value: stats.totalInstitucionais,
+      label: "Propostas Institucionais",
+      color: "text-amber-500",
+      bgColor: "bg-amber-500/10",
     },
     {
       icon: MessageSquare,
@@ -126,7 +143,7 @@ const EntrevistaStats = () => {
           </h2>
         </motion.div>
 
-        <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-4">
+        <div className="grid sm:grid-cols-2 lg:grid-cols-5 gap-4">
           {statsConfig.map((stat, index) => (
             <motion.div
               key={stat.label}
