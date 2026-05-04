@@ -28,7 +28,13 @@ import {
   MessageSquare,
   Settings,
   Maximize2,
-  Minimize2
+  Minimize2,
+  Plus,
+  History,
+  Trash2,
+  Pencil,
+  Check,
+  X
 } from 'lucide-react';
 import {
   Dialog,
@@ -52,6 +58,16 @@ type Municipio = {
 type Eixo = {
   id: string;
   nome: string;
+};
+
+type Tema = { id: string; nome: string; eixo_id: string };
+type Subtema = { id: string; nome: string; tema_id: string };
+
+type ConversationListItem = {
+  id: string;
+  title: string;
+  mode: string;
+  updated_at: string;
 };
 
 const REGIOES = [
@@ -94,6 +110,8 @@ const AdminPlanoGoverno = () => {
     regiao: '',
     municipio: '',
     eixo: '',
+    tema: '',
+    subtema: '',
     documentIds: [],
     docCategory: [],
     temporalStatus: '',
@@ -102,12 +120,21 @@ const AdminPlanoGoverno = () => {
   // Data
   const [municipios, setMunicipios] = useState<Municipio[]>([]);
   const [eixos, setEixos] = useState<Eixo[]>([]);
+  const [temas, setTemas] = useState<Tema[]>([]);
+  const [subtemas, setSubtemas] = useState<Subtema[]>([]);
   const [availableDocuments, setAvailableDocuments] = useState<{ id: string; title: string; doc_category: string; temporal_status: string | null }[]>([]);
 
   // Chat state
   const [messages, setMessages] = useState<Message[]>([]);
   const [inputMessage, setInputMessage] = useState('');
   const [isStreaming, setIsStreaming] = useState(false);
+
+  // History state
+  const [conversations, setConversations] = useState<ConversationListItem[]>([]);
+  const [currentConversationId, setCurrentConversationId] = useState<string | null>(null);
+  const [historyOpen, setHistoryOpen] = useState(true);
+  const [renamingId, setRenamingId] = useState<string | null>(null);
+  const [renameValue, setRenameValue] = useState('');
 
   // Balance and cross-reference data
   const [balanceData, setBalanceData] = useState<BalanceData[]>([]);
@@ -158,19 +185,23 @@ const AdminPlanoGoverno = () => {
   // Fetch municipios and eixos
   useEffect(() => {
     const fetchData = async () => {
-      const [municipiosRes, eixosRes, docsRes] = await Promise.all([
+      const [municipiosRes, eixosRes, docsRes, temasRes, subtemasRes] = await Promise.all([
         supabase.from('municipios').select('id, nome, regiao').order('nome'),
         supabase.from('eixos_tematicos').select('id, nome').order('nome'),
         supabase
           .from('ai_documents')
           .select('id, title, doc_category, temporal_status')
           .eq('is_active', true)
-          .order('title')
+          .order('title'),
+        supabase.from('temas').select('id, nome, eixo_id').order('nome'),
+        supabase.from('subtemas').select('id, nome, tema_id').order('nome'),
       ]);
 
       if (municipiosRes.data) setMunicipios(municipiosRes.data);
       if (eixosRes.data) setEixos(eixosRes.data);
       if (docsRes.data) setAvailableDocuments(docsRes.data);
+      if (temasRes.data) setTemas(temasRes.data as Tema[]);
+      if (subtemasRes.data) setSubtemas(subtemasRes.data as Subtema[]);
     };
 
     if (user && isAuthorized) {
