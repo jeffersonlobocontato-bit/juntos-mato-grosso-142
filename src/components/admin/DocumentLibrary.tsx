@@ -211,7 +211,7 @@ export function DocumentLibrary({ eixos, municipios, regioes, className }: Docum
           </div>
 
           {/* Documents List */}
-          <ScrollArea className="h-[350px]">
+          <ScrollArea className="h-[calc(100vh-320px)] min-h-[480px]">
             {isLoading ? (
               <div className="flex items-center justify-center h-full">
                 <Loader2 className="w-8 h-8 animate-spin text-muted-foreground" />
