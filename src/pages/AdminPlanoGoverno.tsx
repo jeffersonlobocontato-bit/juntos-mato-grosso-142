@@ -8,6 +8,8 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Badge } from '@/components/ui/badge';
+import { cn } from '@/lib/utils';
 import { useToast } from '@/hooks/use-toast';
 import MarkdownRenderer from '@/components/admin/MarkdownRenderer';
 import ModeConfigPanel from '@/components/admin/ModeConfigPanel';
