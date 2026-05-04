@@ -375,6 +375,123 @@ const AdminPlanoGoverno = () => {
     });
   };
 
+  // ---------------------------------------------------------------------------
+  // Histórico de conversas
+  // ---------------------------------------------------------------------------
+  const loadConversations = async () => {
+    if (!user) return;
+    const { data, error } = await supabase
+      .from('plano_governo_conversations' as any)
+      .select('id, title, mode, updated_at')
+      .eq('user_id', user.id)
+      .order('updated_at', { ascending: false })
+      .limit(80);
+    if (!error && data) setConversations(data as unknown as ConversationListItem[]);
+  };
+
+  useEffect(() => {
+    if (user && isAuthorized) loadConversations();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [user, isAuthorized]);
+
+  const persistConversation = async (
+    nextMessages: Message[],
+    overrideTitle?: string
+  ): Promise<string | null> => {
+    if (!user || nextMessages.length === 0) return currentConversationId;
+
+    const firstUser = nextMessages.find(m => m.role === 'user');
+    const inferredTitle = (overrideTitle ?? firstUser?.content ?? 'Nova conversa')
+      .replace(/\s+/g, ' ')
+      .trim()
+      .slice(0, 80) || 'Nova conversa';
+
+    if (currentConversationId) {
+      const { error } = await supabase
+        .from('plano_governo_conversations' as any)
+        .update({
+          messages: nextMessages as any,
+          mode: analysisMode,
+          filters: filters as any,
+          ...(overrideTitle ? { title: inferredTitle } : {}),
+        } as any)
+        .eq('id', currentConversationId);
+      if (error) console.error('Erro atualizando conversa:', error);
+      loadConversations();
+      return currentConversationId;
+    }
+
+    const { data, error } = await supabase
+      .from('plano_governo_conversations' as any)
+      .insert({
+        user_id: user.id,
+        title: inferredTitle,
+        mode: analysisMode,
+        filters: filters as any,
+        messages: nextMessages as any,
+      } as any)
+      .select('id')
+      .single();
+    if (error) {
+      console.error('Erro criando conversa:', error);
+      return null;
+    }
+    const newId = (data as any)?.id ?? null;
+    if (newId) setCurrentConversationId(newId);
+    loadConversations();
+    return newId;
+  };
+
+  const startNewConversation = () => {
+    setCurrentConversationId(null);
+    setMessages([]);
+    setCrossRefResults([]);
+  };
+
+  const openConversation = async (id: string) => {
+    const { data, error } = await supabase
+      .from('plano_governo_conversations' as any)
+      .select('id, title, mode, filters, messages')
+      .eq('id', id)
+      .single();
+    if (error || !data) {
+      toast({ title: 'Erro', description: 'Não foi possível abrir a conversa', variant: 'destructive' });
+      return;
+    }
+    const c = data as any;
+    setCurrentConversationId(c.id);
+    setMessages((c.messages as Message[]) || []);
+    if (c.mode) setAnalysisMode(c.mode as AnalysisMode);
+    if (c.filters) {
+      setFilters(prev => ({ ...prev, ...(c.filters as Partial<DataFilters>) }));
+    }
+    setActiveTab('chat');
+  };
+
+  const deleteConversation = async (id: string) => {
+    const { error } = await supabase
+      .from('plano_governo_conversations' as any)
+      .delete()
+      .eq('id', id);
+    if (error) {
+      toast({ title: 'Erro', description: 'Não foi possível excluir', variant: 'destructive' });
+      return;
+    }
+    if (currentConversationId === id) startNewConversation();
+    loadConversations();
+  };
+
+  const renameConversation = async (id: string, newTitle: string) => {
+    const t = newTitle.trim().slice(0, 80);
+    if (!t) return;
+    await supabase
+      .from('plano_governo_conversations' as any)
+      .update({ title: t } as any)
+      .eq('id', id);
+    setRenamingId(null);
+    loadConversations();
+  };
+
   // Scroll to bottom when messages change
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
