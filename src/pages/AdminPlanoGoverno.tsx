@@ -15,7 +15,6 @@ import MarkdownRenderer from '@/components/admin/MarkdownRenderer';
 import ModeConfigPanel from '@/components/admin/ModeConfigPanel';
 import AnalysisModeSelector, { type AnalysisMode } from '@/components/admin/AnalysisModeSelector';
 import DataSourceFilters, { type DataFilters } from '@/components/admin/DataSourceFilters';
-import DocumentLibrary from '@/components/admin/DocumentLibrary';
 import { FichamentoExportButton } from '@/components/admin/FichamentoExportButton';
 import { GovernmentBalanceChart, type BalanceData } from '@/components/admin/GovernmentBalanceChart';
 import { CrossReferenceResultsPanel } from '@/components/admin/CrossReferenceResultsPanel';
@@ -26,7 +25,6 @@ import {
   Sparkles, 
   Copy,
   Loader2,
-  BookOpen,
   MessageSquare,
   Settings,
   Maximize2,
@@ -892,14 +890,10 @@ const AdminPlanoGoverno = () => {
 
           {/* Tabs: Chat / Documents / Config */}
           <Tabs value={activeTab} onValueChange={setActiveTab}>
-            <TabsList className="grid w-full grid-cols-3">
+            <TabsList className="grid w-full grid-cols-2">
               <TabsTrigger value="chat" className="flex items-center gap-2">
                 <MessageSquare className="w-4 h-4" />
                 Chat de Análise
-              </TabsTrigger>
-              <TabsTrigger value="documents" className="flex items-center gap-2">
-                <BookOpen className="w-4 h-4" />
-                Biblioteca de Documentos
               </TabsTrigger>
               <TabsTrigger value="config" className="flex items-center gap-2">
                 <Settings className="w-4 h-4" />
@@ -1058,15 +1052,6 @@ const AdminPlanoGoverno = () => {
                   )}
                 </Button>
               </div>
-            </TabsContent>
-
-            {/* Documents Tab */}
-            <TabsContent value="documents" className="mt-4">
-              <DocumentLibrary
-                eixos={eixos}
-                municipios={municipios}
-                regioes={REGIOES}
-              />
             </TabsContent>
 
             {/* Config Tab */}

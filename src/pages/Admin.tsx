@@ -21,7 +21,8 @@ import {
   Vote,
   ScrollText,
   ClipboardList,
-  Building2
+  Building2,
+  BookOpen
 } from 'lucide-react';
 
 const Admin = () => {
@@ -140,6 +141,14 @@ const Admin = () => {
       href: '/admin/plano-governo',
       color: 'primary',
       roles: ['admin']
+    },
+    {
+      icon: BookOpen,
+      title: 'Biblioteca de Documentos',
+      description: 'Gerenciar documentos e vínculos com agentes/ferramentas',
+      href: '/admin/biblioteca',
+      color: 'secondary',
+      roles: ['admin', 'admin_master', 'lider_tematico']
     },
     { 
       icon: BarChart3, 

@@ -22,6 +22,7 @@ import AdminMeuPainel from "./pages/AdminMeuPainel";
 import AdminAIHub from "./pages/AdminAIHub";
 import AdminPesquisas from "./pages/AdminPesquisas";
 import AdminTSE from "./pages/AdminTSE";
+import AdminBiblioteca from "./pages/AdminBiblioteca";
 import Entrevista from "./pages/Entrevista";
 import EntrevistaInstitucional from "./pages/EntrevistaInstitucional";
 import Liderancas from "./pages/Liderancas";
@@ -55,6 +56,7 @@ const App = () => (
             <Route path="/admin/ai-hub" element={<AdminAIHub />} />
             <Route path="/admin/pesquisas" element={<AdminPesquisas />} />
             <Route path="/admin/tse" element={<AdminTSE />} />
+            <Route path="/admin/biblioteca" element={<AdminBiblioteca />} />
             <Route path="/entrevista" element={<Entrevista />} />
             <Route path="/entrevista-institucional" element={<EntrevistaInstitucional />} />
             <Route path="/liderancas" element={<Liderancas />} />
