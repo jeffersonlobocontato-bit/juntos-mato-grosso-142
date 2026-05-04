@@ -525,6 +525,8 @@ const AdminPlanoGoverno = () => {
           cidade: filters.municipio || undefined,
           // Thematic
           eixo: filters.eixo || undefined,
+          tema: filters.tema || undefined,
+          subtema: filters.subtema || undefined,
           // Document specific
           documentIds: filters.documentIds.length > 0 ? filters.documentIds : undefined,
           docCategory: filters.docCategory.length > 0 ? filters.docCategory : undefined,
