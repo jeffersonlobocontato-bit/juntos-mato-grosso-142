@@ -10,6 +10,7 @@ import { Label } from '@/components/ui/label';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 import DocumentUploadModal from './DocumentUploadModal';
+import { DocumentAgentLinker } from './DocumentAgentLinker';
 import { 
   BookOpen, Plus, Search, FileText, Eye, EyeOff, Trash2,
   ExternalLink, Filter, Loader2, CheckCircle, Clock, AlertCircle, Circle,
@@ -251,7 +252,7 @@ export function DocumentLibrary({ eixos, municipios, regioes, className }: Docum
                               </Badge>
                             ) : (
                               <Badge variant="default" className="text-[10px] gap-1">
-                                <Bot className="w-3 h-3" /> Agente
+                                <Bot className="w-3 h-3" /> Específico de agente
                               </Badge>
                             )}
                             {statusConfig && StatusIcon && (
@@ -289,6 +290,12 @@ export function DocumentLibrary({ eixos, municipios, regioes, className }: Docum
                               </Badge>
                             </div>
                           )}
+
+                          {/* Agentes/ferramentas vinculados */}
+                          <DocumentAgentLinker
+                            documentId={doc.id}
+                            onChanged={fetchDocuments}
+                          />
 
                           <div className="flex items-center gap-3 mt-2 text-xs text-muted-foreground">
                             {doc.eixos_tematicos && <span>Eixo: {doc.eixos_tematicos.nome}</span>}
