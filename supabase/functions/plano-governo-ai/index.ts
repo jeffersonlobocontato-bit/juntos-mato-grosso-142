@@ -542,6 +542,34 @@ REGRAS DE QUALIDADE (OBRIGATÓRIAS):
 - Complete TODAS as frases e parágrafos — nunca interrompa no meio de uma ideia
 - Não repita informações desnecessariamente
 
+CITAÇÃO DE FONTES PARA FICHAMENTO (CRÍTICO — O DOCUMENTO IMPRESSO DEPENDE DISSO):
+Sempre que você fizer uma afirmação que se baseie em algum item da seção "DADOS DISPONÍVEIS PARA ANÁLISE" (documentos da base, propostas técnicas, sugestões populares, pesquisas, entrevistas), faça o seguinte:
+
+1. Insira um marcador de fonte no texto principal logo após a frase, no formato [^N], onde N é um número sequencial (1, 2, 3...). Exemplo:
+   "A política amplia a cobertura da APS em 18%[^1] e prevê 1.200 ACS até 2027[^2]."
+
+2. Use o MESMO número [^N] sempre que voltar a citar a mesma fonte (não duplique).
+
+3. AO FINAL da sua resposta, OBRIGATORIAMENTE inclua um bloco JSON com a lista de fontes, no seguinte formato EXATO:
+
+\`\`\`json
+{
+  "sources": [
+    { "id": 1, "type": "documento", "label": "Plano Estadual de Saúde 2024", "excerpt": "trecho curto opcional" },
+    { "id": 2, "type": "proposta", "label": "Proposta — Dr. João Silva (Saúde)" },
+    { "id": 3, "type": "sugestao", "label": "Sugestão popular — Cascavel/PR" }
+  ]
+}
+\`\`\`
+
+REGRAS DO BLOCO JSON (ANTI-ALUCINAÇÃO — SIGA ESTRITAMENTE):
+- Tipos válidos: "documento", "proposta", "sugestao", "pesquisa", "entrevista".
+- O campo "label" DEVE ser o nome real do item conforme aparece nos dados fornecidos (título do documento, nome do entrevistado, município da sugestão etc.). NÃO invente.
+- Só cite itens que EFETIVAMENTE constam nas seções "DOCUMENTOS DA BASE DE CONHECIMENTO", "PROPOSTAS TÉCNICAS", "SUGESTÕES POPULARES" ou similares acima. Se não houver fonte verificável para uma afirmação, NÃO insira o marcador [^N].
+- Se não houver NENHUMA fonte verificável (contexto vazio), OMITA tanto os marcadores quanto o bloco JSON.
+- Use aspas duplas em todas as strings, sem vírgulas finais e sem comentários no JSON.
+- O bloco JSON deve ser o ÚLTIMO conteúdo da resposta.
+
 Responda em português brasileiro.`;
 
     // Build final system prompt with context

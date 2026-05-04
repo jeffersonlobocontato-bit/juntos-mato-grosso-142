@@ -14,6 +14,7 @@ import ModeConfigPanel from '@/components/admin/ModeConfigPanel';
 import AnalysisModeSelector, { type AnalysisMode } from '@/components/admin/AnalysisModeSelector';
 import DataSourceFilters, { type DataFilters } from '@/components/admin/DataSourceFilters';
 import DocumentLibrary from '@/components/admin/DocumentLibrary';
+import { FichamentoExportButton } from '@/components/admin/FichamentoExportButton';
 import { GovernmentBalanceChart, type BalanceData } from '@/components/admin/GovernmentBalanceChart';
 import { CrossReferenceResultsPanel } from '@/components/admin/CrossReferenceResultsPanel';
 import { BalanceDetailModal, type BalanceItem } from '@/components/admin/BalanceDetailModal';
@@ -65,6 +66,15 @@ const REGIOES = [
   'Oeste',
   'Sudoeste'
 ];
+
+const MODE_LABELS: Record<string, string> = {
+  plano: 'Plano de Governo',
+  brainstorm: 'Brainstorm',
+  cruzamento: 'Cruzamento de Dados',
+  balanco: 'Balanço de Governo',
+  conteudo: 'Geração de Conteúdo',
+  coerencia: 'Análise de Coerência',
+};
 
 const AdminPlanoGoverno = () => {
   const { user, roles, isLoading: authLoading, isAdmin, hasRole } = useAuth();
@@ -710,7 +720,21 @@ const AdminPlanoGoverno = () => {
                             >
                               {message.role === 'assistant' ? (
                                 message.content ? (
-                                  <MarkdownRenderer content={message.content} />
+                                  <>
+                                    <MarkdownRenderer content={message.content} />
+                                    <div className="flex justify-end mt-2 -mb-1">
+                                      <FichamentoExportButton
+                                        content={message.content}
+                                        title={`${MODE_LABELS[analysisMode] || 'Plano de Governo'}`}
+                                        modeLabel={MODE_LABELS[analysisMode]}
+                                        filtersSummary={[
+                                          filters.eixo && `Eixo: ${filters.eixo}`,
+                                          filters.regiao && `Região: ${filters.regiao}`,
+                                          filters.municipio && `Município: ${filters.municipio}`,
+                                        ].filter(Boolean).join(' · ')}
+                                      />
+                                    </div>
+                                  </>
                                 ) : (
                                   <span className="flex items-center gap-2 text-muted-foreground text-sm">
                                     <Loader2 className="w-4 h-4 animate-spin" />
@@ -845,7 +869,21 @@ const AdminPlanoGoverno = () => {
                       >
                         {message.role === 'assistant' ? (
                           message.content ? (
-                            <MarkdownRenderer content={message.content} />
+                            <>
+                              <MarkdownRenderer content={message.content} />
+                              <div className="flex justify-end mt-2 -mb-1">
+                                <FichamentoExportButton
+                                  content={message.content}
+                                  title={`${MODE_LABELS[analysisMode] || 'Plano de Governo'}`}
+                                  modeLabel={MODE_LABELS[analysisMode]}
+                                  filtersSummary={[
+                                    filters.eixo && `Eixo: ${filters.eixo}`,
+                                    filters.regiao && `Região: ${filters.regiao}`,
+                                    filters.municipio && `Município: ${filters.municipio}`,
+                                  ].filter(Boolean).join(' · ')}
+                                />
+                              </div>
+                            </>
                           ) : (
                             <span className="flex items-center gap-2 text-muted-foreground text-sm">
                               <Loader2 className="w-4 h-4 animate-spin" />
