@@ -55,34 +55,72 @@ const BRAND_COLOR_RGB: [number, number, number] = [212, 175, 55]; // dourado da 
 // PARSER — extrai texto + bloco JSON de fontes da resposta da IA
 // =====================================================================
 
+function normalizeSource(raw: any): FichamentoSource | null {
+  if (!raw || typeof raw.id !== 'number' || !raw.label) return null;
+  const type = String(raw.type || 'outro');
+  return {
+    id: raw.id,
+    type: (['documento', 'proposta', 'sugestao', 'pesquisa', 'entrevista'].includes(type) ? type : 'outro') as SourceType,
+    label: String(raw.label).replace(/\s+/g, ' ').trim(),
+    excerpt: raw.excerpt ? String(raw.excerpt).replace(/\s+/g, ' ').trim() : undefined,
+  };
+}
+
+function parseSourcesPayload(payload: string): FichamentoSource[] {
+  try {
+    const parsed = JSON.parse(payload.trim());
+    if (parsed && Array.isArray(parsed.sources)) {
+      return parsed.sources.map(normalizeSource).filter(Boolean) as FichamentoSource[];
+    }
+  } catch {
+    // abaixo há um parser tolerante para blocos JSON truncados pelo stream
+  }
+
+  const sources: FichamentoSource[] = [];
+  const seen = new Set<number>();
+  const objectRegex = /\{\s*"id"\s*:\s*(\d+)([\s\S]*?)(?=\n\s*,?\s*\{\s*"id"\s*:|\n\s*\]\s*\}|$)/g;
+  let match: RegExpExecArray | null;
+
+  while ((match = objectRegex.exec(payload)) !== null) {
+    const id = Number(match[1]);
+    if (!Number.isFinite(id) || seen.has(id)) continue;
+    const tail = match[2];
+    const type = tail.match(/"type"\s*:\s*"([^"]+)"/)?.[1] || 'outro';
+    const label = tail.match(/"label"\s*:\s*"([\s\S]*?)"(?=\s*[,}])/i)?.[1];
+    if (!label) continue;
+    const excerpt = tail.match(/"excerpt"\s*:\s*"([\s\S]*?)"(?=\s*[,}])/i)?.[1];
+    const source = normalizeSource({ id, type, label, excerpt });
+    if (source) {
+      sources.push(source);
+      seen.add(id);
+    }
+  }
+
+  return sources;
+}
+
 export function parseFichamento(rawContent: string): { body: string; sources: FichamentoSource[] } {
   let body = rawContent || '';
   let sources: FichamentoSource[] = [];
 
-  // Procura ```json { "sources": [...] } ``` no final
-  const jsonBlockRegex = /```json\s*([\s\S]*?)\s*```/gi;
+  // Procura ```json { "sources": [...] } ``` no final (com tolerância a JSON incompleto)
+  const jsonBlockRegex = /```(?:json)?\s*([\s\S]*?)\s*```/gi;
   const matches = Array.from(body.matchAll(jsonBlockRegex));
 
   for (const m of matches) {
-    try {
-      const parsed = JSON.parse(m[1].trim());
-      if (parsed && Array.isArray(parsed.sources)) {
-        sources = parsed.sources
-          .filter((s: any) => s && typeof s.id === 'number' && typeof s.label === 'string')
-          .map((s: any) => ({
-            id: s.id,
-            type: (['documento', 'proposta', 'sugestao', 'pesquisa', 'entrevista'].includes(s.type)
-              ? s.type
-              : 'outro') as SourceType,
-            label: String(s.label).trim(),
-            excerpt: s.excerpt ? String(s.excerpt).trim() : undefined,
-          }));
-        // Remove o bloco JSON do corpo para não aparecer no documento final
-        body = body.replace(m[0], '').trim();
-        break;
-      }
-    } catch {
-      // ignora bloco JSON malformado
+    if (/"sources"\s*:/.test(m[1])) {
+      sources = parseSourcesPayload(m[1]);
+      // Remove o bloco JSON mesmo quando veio truncado/malformado
+      body = body.replace(m[0], '').trim();
+      break;
+    }
+  }
+
+  if (sources.length === 0) {
+    const trailingJson = body.match(/```+\s*json\s*([\s\S]*)$/i);
+    if (trailingJson && /"sources"\s*:/.test(trailingJson[1])) {
+      sources = parseSourcesPayload(trailingJson[1]);
+      body = body.slice(0, trailingJson.index).trim();
     }
   }
 
@@ -118,6 +156,12 @@ function tokenizeText(text: string): BodySpan[] {
   }
   if (lastIdx < cleaned.length) spans.push({ text: cleaned.slice(lastIdx) });
   return spans;
+}
+
+function extractRefsFromText(text: string): number[] {
+  return Array.from(new Set(
+    Array.from(String(text).matchAll(/\[\^?(\d+)\]/g)).map(m => parseInt(m[1], 10)).filter(Number.isFinite)
+  ));
 }
 
 // Blocos: parágrafo de texto, tabela markdown, ou heading
