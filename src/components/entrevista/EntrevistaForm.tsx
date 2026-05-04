@@ -30,7 +30,7 @@ import { getBlocoFConfig, getProgramaTeste, getExemplosFormulario } from "@/conf
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { toast } from "sonner";
-import PropostaAnexosUpload, { ALLOWED_EXT, MAX_SIZE_MB } from "./PropostaAnexosUpload";
+import PropostaAnexosUpload, { ALLOWED_EXT, MAX_SIZE_MB, type PendingAnexo } from "./PropostaAnexosUpload";
 
 interface Eixo {
   id: string;
@@ -173,7 +173,7 @@ const EntrevistaForm = ({ mode = "tecnica" }: EntrevistaFormProps) => {
   const [submittedEixoNome, setSubmittedEixoNome] = useState<string>("");
 
   // Anexos staged na etapa 8 (antes do submit)
-  const [pendingAnexos, setPendingAnexos] = useState<{ file: File; description: string }[]>([]);
+  const [pendingAnexos, setPendingAnexos] = useState<PendingAnexo[]>([]);
 
   // Identificação
   const [entrevistado, setEntrevistado] = useState("");
