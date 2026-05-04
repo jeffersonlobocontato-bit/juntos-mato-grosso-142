@@ -7,9 +7,15 @@ import { toast } from "sonner";
 import { Upload, FileText, Loader2, Trash2, CheckCircle2 } from "lucide-react";
 
 interface PropostaAnexosUploadProps {
-  propostaId: string;
-  eixoId: string;
+  propostaId?: string;
+  eixoId?: string;
   eixoNome?: string;
+  /**
+   * "live" (default): faz upload imediato ao Supabase usando propostaId/eixoId.
+   * "staging": mantém arquivos em memória; chama onFilesChange para o pai persistir depois.
+   */
+  mode?: "live" | "staging";
+  onFilesChange?: (items: { file: File; description: string }[]) => void;
 }
 
 interface AnexoItem {
@@ -20,16 +26,19 @@ interface AnexoItem {
   uploaded_at: string;
 }
 
-const MAX_SIZE_MB = 20;
-const ALLOWED_EXT = ["pdf", "doc", "docx", "xls", "xlsx", "ppt", "pptx", "txt", "csv", "png", "jpg", "jpeg"];
+export const MAX_SIZE_MB = 20;
+export const ALLOWED_EXT = ["pdf", "doc", "docx", "xls", "xlsx", "ppt", "pptx", "txt", "csv", "png", "jpg", "jpeg"];
 
-export const PropostaAnexosUpload = ({ propostaId, eixoId, eixoNome }: PropostaAnexosUploadProps) => {
+export const PropostaAnexosUpload = ({ propostaId, eixoId, eixoNome, mode = "live", onFilesChange }: PropostaAnexosUploadProps) => {
   const [anexos, setAnexos] = useState<AnexoItem[]>([]);
   const [isUploading, setIsUploading] = useState(false);
   const [description, setDescription] = useState("");
+  // Staging-mode local queue
+  const [pending, setPending] = useState<{ file: File; description: string }[]>([]);
 
-  // Carrega anexos atuais
+  // Carrega anexos atuais (apenas live)
   useEffect(() => {
+    if (mode !== "live" || !propostaId) return;
     const fetchAnexos = async () => {
       const { data } = await supabase
         .from("propostas_tecnicas")
@@ -46,7 +55,7 @@ export const PropostaAnexosUpload = ({ propostaId, eixoId, eixoNome }: PropostaA
       }
     };
     fetchAnexos();
-  }, [propostaId]);
+  }, [propostaId, mode]);
 
   const persist = async (next: AnexoItem[]) => {
     const serialized = next.map((a) => JSON.stringify(a));
@@ -61,11 +70,9 @@ export const PropostaAnexosUpload = ({ propostaId, eixoId, eixoNome }: PropostaA
     const files = e.target.files;
     if (!files || files.length === 0) return;
 
-    setIsUploading(true);
-    const newItems: AnexoItem[] = [];
-
-    try {
-      for (const file of Array.from(files)) {
+    // Validação comum
+    const accepted: File[] = [];
+    for (const file of Array.from(files)) {
         const ext = file.name.split(".").pop()?.toLowerCase() || "";
         if (!ALLOWED_EXT.includes(ext)) {
           toast.error(`Formato não permitido: ${file.name}`);
@@ -75,6 +82,29 @@ export const PropostaAnexosUpload = ({ propostaId, eixoId, eixoNome }: PropostaA
           toast.error(`Arquivo maior que ${MAX_SIZE_MB}MB: ${file.name}`);
           continue;
         }
+      accepted.push(file);
+    }
+
+    // Staging mode: só guarda em memória
+    if (mode === "staging") {
+      const desc = description.trim();
+      const items = accepted.map((file) => ({ file, description: desc }));
+      const next = [...pending, ...items];
+      setPending(next);
+      onFilesChange?.(next);
+      setDescription("");
+      e.target.value = "";
+      if (items.length > 0) {
+        toast.success(`${items.length} arquivo(s) adicionado(s). Serão enviados após registrar a entrevista.`);
+      }
+      return;
+    }
+
+    setIsUploading(true);
+    const newItems: AnexoItem[] = [];
+
+    try {
+      for (const file of accepted) {
 
         const safeName = file.name.replace(/[^a-zA-Z0-9._-]/g, "_");
         const path = `${eixoId}/${propostaId}/${Date.now()}-${safeName}`;
@@ -128,6 +158,12 @@ export const PropostaAnexosUpload = ({ propostaId, eixoId, eixoNome }: PropostaA
     }
   };
 
+  const handleRemovePending = (idx: number) => {
+    const next = pending.filter((_, i) => i !== idx);
+    setPending(next);
+    onFilesChange?.(next);
+  };
+
   return (
     <div className="bg-gray-900/60 border border-gray-700 rounded-lg p-6 text-left">
       <div className="flex items-center gap-2 mb-1">
@@ -139,6 +175,11 @@ export const PropostaAnexosUpload = ({ propostaId, eixoId, eixoNome }: PropostaA
         {eixoNome ? <> — eixo <span className="text-primary font-medium">{eixoNome}</span></> : null}.
         Formatos: PDF, DOC, XLS, PPT, TXT, CSV, imagens. Máx. {MAX_SIZE_MB}MB por arquivo.
       </p>
+      {mode === "staging" && (
+        <p className="text-xs text-amber-400 mb-3">
+          ⚠️ Os arquivos só serão enviados após você clicar em "Registrar Entrevista". Eles não ficam salvos no rascunho.
+        </p>
+      )}
 
       <div className="space-y-3">
         <div>
@@ -205,6 +246,40 @@ export const PropostaAnexosUpload = ({ propostaId, eixoId, eixoNome }: PropostaA
                   variant="ghost"
                   size="sm"
                   onClick={() => handleRemove(item)}
+                  className="text-gray-400 hover:text-destructive"
+                >
+                  <Trash2 className="w-4 h-4" />
+                </Button>
+              </div>
+            ))}
+          </div>
+        )}
+
+        {mode === "staging" && pending.length > 0 && (
+          <div className="space-y-2 mt-4">
+            <p className="text-sm font-medium text-white flex items-center gap-2">
+              <CheckCircle2 className="w-4 h-4 text-primary" />
+              {pending.length} arquivo(s) prontos para envio
+            </p>
+            {pending.map((item, idx) => (
+              <div
+                key={`${item.file.name}-${idx}`}
+                className="flex items-center justify-between gap-2 p-2 bg-gray-800/60 rounded border border-gray-700"
+              >
+                <div className="flex items-center gap-2 text-sm text-gray-200 truncate flex-1">
+                  <FileText className="w-4 h-4 flex-shrink-0" />
+                  <span className="truncate">
+                    {item.description ? `${item.description} — ${item.file.name}` : item.file.name}
+                  </span>
+                  <span className="text-xs text-gray-500 flex-shrink-0">
+                    ({(item.file.size / 1024).toFixed(0)} KB)
+                  </span>
+                </div>
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => handleRemovePending(idx)}
                   className="text-gray-400 hover:text-destructive"
                 >
                   <Trash2 className="w-4 h-4" />

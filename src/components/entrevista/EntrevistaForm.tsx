@@ -30,7 +30,7 @@ import { getBlocoFConfig, getProgramaTeste, getExemplosFormulario } from "@/conf
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { toast } from "sonner";
-import PropostaAnexosUpload from "./PropostaAnexosUpload";
+import PropostaAnexosUpload, { ALLOWED_EXT, MAX_SIZE_MB } from "./PropostaAnexosUpload";
 
 interface Eixo {
   id: string;
@@ -171,6 +171,9 @@ const EntrevistaForm = ({ mode = "tecnica" }: EntrevistaFormProps) => {
   const [submittedPropostaId, setSubmittedPropostaId] = useState<string | null>(null);
   const [submittedEixoId, setSubmittedEixoId] = useState<string>("");
   const [submittedEixoNome, setSubmittedEixoNome] = useState<string>("");
+
+  // Anexos staged na etapa 8 (antes do submit)
+  const [pendingAnexos, setPendingAnexos] = useState<{ file: File; description: string }[]>([]);
 
   // Identificação
   const [entrevistado, setEntrevistado] = useState("");
@@ -489,6 +492,45 @@ const EntrevistaForm = ({ mode = "tecnica" }: EntrevistaFormProps) => {
         setSubmittedEixoId(inserted.eixo_id || eixoId);
         const eixoNome = eixos.find((e) => e.id === (inserted.eixo_id || eixoId))?.nome || "";
         setSubmittedEixoNome(eixoNome);
+
+        // Upload de anexos pendentes (staged na etapa 8)
+        if (pendingAnexos.length > 0) {
+          try {
+            const finalEixoId = inserted.eixo_id || eixoId;
+            const uploadedItems: any[] = [];
+            for (const { file, description } of pendingAnexos) {
+              const safeName = file.name.replace(/[^a-zA-Z0-9._-]/g, "_");
+              const path = `${finalEixoId}/${inserted.id}/${Date.now()}-${safeName}`;
+              const { error: upErr } = await supabase.storage
+                .from("proposta-anexos")
+                .upload(path, file, { contentType: file.type, upsert: false });
+              if (upErr) {
+                toast.error(`Erro ao enviar ${file.name}: ${upErr.message}`);
+                continue;
+              }
+              const { data: pub } = supabase.storage.from("proposta-anexos").getPublicUrl(path);
+              uploadedItems.push({
+                url: pub.publicUrl,
+                name: description ? `${description} — ${file.name}` : file.name,
+                path,
+                size: file.size,
+                uploaded_at: new Date().toISOString(),
+              });
+            }
+            if (uploadedItems.length > 0) {
+              const serialized = uploadedItems.map((a) => JSON.stringify(a));
+              await supabase
+                .from("propostas_tecnicas")
+                .update({ anexos: serialized })
+                .eq("id", inserted.id);
+              toast.success(`${uploadedItems.length} anexo(s) enviado(s) com sucesso!`);
+            }
+            setPendingAnexos([]);
+          } catch (anexoErr) {
+            console.error("Erro ao enviar anexos:", anexoErr);
+            toast.error("Alguns anexos não foram enviados. Você pode tentar novamente abaixo.");
+          }
+        }
       }
       setIsSubmitted(true);
       toast.success("Entrevista registrada com sucesso!");
@@ -523,6 +565,7 @@ const EntrevistaForm = ({ mode = "tecnica" }: EntrevistaFormProps) => {
     setSubmittedPropostaId(null);
     setSubmittedEixoId("");
     setSubmittedEixoNome("");
+    setPendingAnexos([]);
   };
 
   const updateQuestionario = <K extends keyof QuestionarioData>(
@@ -1256,6 +1299,12 @@ const EntrevistaForm = ({ mode = "tecnica" }: EntrevistaFormProps) => {
                 {titulo.length}/200
               </p>
             </div>
+
+            <PropostaAnexosUpload
+              mode="staging"
+              eixoNome={eixos.find((e) => e.id === eixoId)?.nome}
+              onFilesChange={setPendingAnexos}
+            />
           </div>
         );
 
