@@ -1004,6 +1004,39 @@ export type Database = {
           },
         ]
       }
+      plano_governo_conversations: {
+        Row: {
+          created_at: string
+          filters: Json
+          id: string
+          messages: Json
+          mode: string
+          title: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          filters?: Json
+          id?: string
+          messages?: Json
+          mode?: string
+          title?: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          filters?: Json
+          id?: string
+          messages?: Json
+          mode?: string
+          title?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       profiles: {
         Row: {
           cargo: string | null
