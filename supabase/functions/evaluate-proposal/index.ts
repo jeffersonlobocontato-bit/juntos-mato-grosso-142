@@ -101,10 +101,41 @@ Deno.serve(async (req) => {
         // Filter by specific document IDs
         docsQuery = docsQuery.in('id', sources.documentIds);
       } else {
-        // Default: get all relevant categories
-        docsQuery = docsQuery
-          .in('doc_category', ['documento_tecnico', 'plano_governo', 'promessa'])
-          .limit(10);
+        // Default: restringir aos documentos vinculados ao tema da proposta
+        // (evita alucinação por mistura de fontes não relacionadas).
+        const propostaTemaId: string | null = proposal.tema_id || null;
+
+        if (propostaTemaId) {
+          const { data: vinculos } = await supabase
+            .from('ai_document_temas')
+            .select('document_id')
+            .eq('tema_id', propostaTemaId);
+
+          const allowedIds = (vinculos || []).map((v: any) => v.document_id);
+          console.log(`Tema ${propostaTemaId}: ${allowedIds.length} documento(s) vinculado(s)`);
+
+          if (allowedIds.length === 0) {
+            // Sem documentos vinculados ao tema => contexto vazio (sem fallback aleatório)
+            documents = [];
+            console.log('Nenhum documento vinculado ao tema. IA usará apenas conhecimento próprio.');
+            // pular query
+            const skip = true;
+            if (skip) {
+              // continua para próximo bloco
+            }
+            return await continueEvaluation();
+          }
+
+          docsQuery = docsQuery
+            .in('id', allowedIds)
+            .in('doc_category', ['documento_tecnico', 'plano_governo', 'promessa'])
+            .limit(20);
+        } else {
+          console.warn('Proposta sem tema_id — fallback restritivo (categorias-chave, limit 5)');
+          docsQuery = docsQuery
+            .in('doc_category', ['documento_tecnico', 'plano_governo', 'promessa'])
+            .limit(5);
+        }
       }
       
       const { data: docsData } = await docsQuery;
