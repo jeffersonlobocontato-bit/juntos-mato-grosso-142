@@ -512,59 +512,97 @@ export function exportFichamentoPDF(data: FichamentoData): void {
 // =====================================================================
 
 export async function exportFichamentoDOCX(data: FichamentoData): Promise<void> {
-  const spans = tokenizeBody(data.body);
+  const blocks = parseBlocks(data.body);
   const sourcesById = new Map<number, FichamentoSource>();
   data.sources.forEach(s => sourcesById.set(s.id, s));
 
-  // ---- Coluna esquerda: parágrafos ------------------------------------
-  // Quebra spans em parágrafos por kind 'parabreak'
-  type ParaToken = { text?: string; ref?: number };
-  const paragraphsTokens: ParaToken[][] = [[]];
-  spans.forEach(sp => {
-    if (sp.ref !== undefined) {
-      paragraphsTokens[paragraphsTokens.length - 1].push({ ref: sp.ref });
-      return;
-    }
-    const text = (sp.text || '').replace(/\r/g, '');
-    const parts = text.split(/\n\s*\n/);
-    parts.forEach((part, i) => {
-      if (i > 0) paragraphsTokens.push([]);
-      const cleaned = part.replace(/\n/g, ' ').replace(/\s+/g, ' ');
-      if (cleaned) paragraphsTokens[paragraphsTokens.length - 1].push({ text: cleaned });
+  // Helper: spans -> runs
+  const spansToRuns = (spans: BodySpan[]): TextRun[] => {
+    const runs: TextRun[] = [];
+    spans.forEach(t => {
+      if (t.ref !== undefined) {
+        const src = sourcesById.get(t.ref);
+        const color = src ? SOURCE_COLORS[src.type].hex : SOURCE_COLORS.outro.hex;
+        runs.push(new TextRun({ text: ` [${t.ref}] `, bold: true, color, size: 18, font: 'Arial' }));
+      } else if (t.text) {
+        runs.push(new TextRun({ text: t.text.replace(/\n/g, ' ').replace(/\s+/g, ' '), font: 'Arial', size: 22 }));
+      }
     });
-  });
+    return runs;
+  };
 
-  const leftParagraphs: Paragraph[] = paragraphsTokens
-    .filter(toks => toks.length > 0)
-    .map(toks => {
-      const runs: TextRun[] = [];
-      toks.forEach(t => {
-        if (t.text !== undefined) {
-          runs.push(new TextRun({ text: t.text, font: 'Arial', size: 22 })); // 11pt
-        } else if (t.ref !== undefined) {
-          const src = sourcesById.get(t.ref);
-          const color = src ? SOURCE_COLORS[src.type].hex : SOURCE_COLORS.outro.hex;
-          runs.push(
-            new TextRun({
-              text: ` [${t.ref}] `,
-              bold: true,
-              color,
-              size: 18, // 9pt
-              font: 'Arial',
+  // ---- Coluna esquerda: parágrafos + tabelas --------------------------
+  const usedRefs = new Set<number>();
+  const leftChildren: (Paragraph | Table)[] = [];
+
+  // Largura da célula esquerda definida abaixo (leftW). Calculada antes:
+  const tableWidth = 9026;
+  const leftW = Math.round(tableWidth * 0.66);
+  const rightW = tableWidth - leftW;
+  const innerLeftW = leftW - 200; // descontando margem direita interna
+
+  for (const block of blocks) {
+    if (block.kind === 'heading') {
+      leftChildren.push(
+        new Paragraph({
+          children: [new TextRun({ text: cleanMarkdownInline(block.text), bold: true, size: block.level <= 2 ? 26 : 24, font: 'Arial' })],
+          spacing: { before: 200, after: 120 },
+        })
+      );
+    } else if (block.kind === 'para') {
+      const spans = tokenizeText(block.text);
+      spans.forEach(s => s.ref !== undefined && usedRefs.add(s.ref));
+      leftChildren.push(
+        new Paragraph({
+          children: spansToRuns(spans),
+          spacing: { after: 160, line: 300 },
+          alignment: AlignmentType.JUSTIFIED,
+        })
+      );
+    } else if (block.kind === 'table') {
+      const colCount = block.headers.length || 1;
+      const colW = Math.floor(innerLeftW / colCount);
+      const colWidths = Array(colCount).fill(colW);
+      const cellBorder = { style: BorderStyle.SINGLE, size: 4, color: 'CCCCCC' };
+      const allBorders = { top: cellBorder, bottom: cellBorder, left: cellBorder, right: cellBorder };
+
+      const headerRow = new TableRow({
+        tableHeader: true,
+        children: block.headers.map((h, i) =>
+          new TableCell({
+            width: { size: colWidths[i], type: WidthType.DXA },
+            borders: allBorders,
+            shading: { fill: 'D4AF37', type: ShadingType.CLEAR, color: 'auto' },
+            margins: { top: 60, bottom: 60, left: 80, right: 80 },
+            children: [new Paragraph({ children: [new TextRun({ text: h, bold: true, color: 'FFFFFF', size: 18, font: 'Arial' })] })],
+          })
+        ),
+      });
+      const bodyRows = block.rows.map((r, ri) =>
+        new TableRow({
+          children: r.map((c, i) =>
+            new TableCell({
+              width: { size: colWidths[i], type: WidthType.DXA },
+              borders: allBorders,
+              shading: ri % 2 === 1 ? { fill: 'FAF7EE', type: ShadingType.CLEAR, color: 'auto' } : undefined,
+              margins: { top: 60, bottom: 60, left: 80, right: 80 },
+              children: [new Paragraph({ children: [new TextRun({ text: c, size: 18, font: 'Arial' })] })],
             })
-          );
-        }
-      });
-      return new Paragraph({
-        children: runs,
-        spacing: { after: 160, line: 300 },
-        alignment: AlignmentType.JUSTIFIED,
-      });
-    });
+          ),
+        })
+      );
+      leftChildren.push(
+        new Table({
+          width: { size: innerLeftW, type: WidthType.DXA },
+          columnWidths: colWidths,
+          rows: [headerRow, ...bodyRows],
+        })
+      );
+      leftChildren.push(new Paragraph({ children: [new TextRun({ text: '' })], spacing: { after: 120 } }));
+    }
+  }
 
   // ---- Coluna direita: lista de notas ---------------------------------
-  const usedRefs = new Set<number>();
-  spans.forEach(sp => sp.ref !== undefined && usedRefs.add(sp.ref));
   const notesInOrder = data.sources.filter(s => usedRefs.has(s.id));
 
   const rightParagraphs: Paragraph[] = [];
