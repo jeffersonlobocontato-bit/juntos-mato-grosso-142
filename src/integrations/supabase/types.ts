@@ -2157,6 +2157,10 @@ export type Database = {
         }
         Returns: boolean
       }
+      increment_shared_presentation_view: {
+        Args: { _public_id: string }
+        Returns: undefined
+      }
       is_admin: { Args: { _user_id: string }; Returns: boolean }
       match_document_chunks: {
         Args: {
