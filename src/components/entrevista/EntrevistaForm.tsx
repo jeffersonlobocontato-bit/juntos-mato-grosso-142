@@ -1308,7 +1308,10 @@ const EntrevistaForm = ({ mode = "tecnica" }: EntrevistaFormProps) => {
 
             <PropostaAnexosUpload
               mode="staging"
+              eixoId={eixoId}
               eixoNome={eixos.find((e) => e.id === eixoId)?.nome}
+              temas={temas}
+              subtemas={subtemas}
               onFilesChange={setPendingAnexos}
             />
           </div>
