@@ -28,6 +28,10 @@ interface RequestBody {
     eixo?: string;
     tema?: string;
     subtema?: string;
+    // Thematic IDs (preferred when provided)
+    eixoId?: string;
+    temaId?: string;
+    subtemaId?: string;
     // Document specific
     documentIds?: string[];
     docCategory?: string[];
@@ -125,34 +129,37 @@ serve(async (req) => {
     let contextData = "";
     
     // Get eixo_id first if eixo filter is active (reuse for all queries)
-    let eixoId: string | null = null;
-    if (filters.eixo) {
+    let eixoId: string | null = filters.eixoId || null;
+    if (!eixoId && filters.eixo) {
       const { data: eixoData } = await supabase
         .from("eixos_tematicos")
         .select("id")
         .eq("nome", filters.eixo)
         .maybeSingle();
       eixoId = eixoData?.id || null;
-      console.log("Eixo filter active:", filters.eixo, "-> ID:", eixoId);
     }
+    if (eixoId) console.log("Eixo filter active:", filters.eixo, "-> ID:", eixoId);
 
     // Resolve tema/subtema IDs
-    let temaId: string | null = null;
-    if (filters.tema) {
+    let temaId: string | null = filters.temaId || null;
+    if (!temaId && filters.tema) {
       let q = supabase.from("temas").select("id").eq("nome", filters.tema);
       if (eixoId) q = q.eq("eixo_id", eixoId);
       const { data: temaData } = await q.maybeSingle();
       temaId = temaData?.id || null;
-      console.log("Tema filter:", filters.tema, "->", temaId);
     }
-    let subtemaId: string | null = null;
-    if (filters.subtema) {
+    if (temaId) console.log("Tema filter:", filters.tema, "->", temaId);
+    let subtemaId: string | null = filters.subtemaId || null;
+    if (!subtemaId && filters.subtema) {
       let q = supabase.from("subtemas").select("id").eq("nome", filters.subtema);
       if (temaId) q = q.eq("tema_id", temaId);
       const { data: sData } = await q.maybeSingle();
       subtemaId = sData?.id || null;
-      console.log("Subtema filter:", filters.subtema, "->", subtemaId);
     }
+    if (subtemaId) console.log("Subtema filter:", filters.subtema, "->", subtemaId);
+
+    // Strict scope flag — quando há tema/subtema, restringimos drasticamente o contexto
+    const hasNarrowScope = !!(temaId || subtemaId);
     
     // Get municipalities for region filtering
     let municipioNames: string[] = [];
@@ -325,6 +332,14 @@ serve(async (req) => {
 
     // 3. Fetch AI documents if enabled
     if (filters.includeDocumentos !== false) {
+      // Quando o usuário restringe por tema/subtema, NÃO injetamos documentos amplos
+      // automaticamente (eles podem trazer outros subtemas, ex: PELTi com telecom).
+      // Só carregamos documentos se o usuário tiver SELECIONADO explicitamente
+      // documentos por ID na lista.
+      const hasExplicitDocs = !!(filters.documentIds && filters.documentIds.length > 0);
+      if (hasNarrowScope && !hasExplicitDocs) {
+        console.log("Narrow scope ativo (tema/subtema) sem documentos explícitos — pulando documentos amplos");
+      } else {
       let docsQuery = supabase
         .from("ai_documents")
         .select(`
@@ -399,6 +414,7 @@ serve(async (req) => {
           if (doc.description) contextData += `Descrição: ${doc.description}\n`;
           contextData += `Conteúdo:\n${doc.content.substring(0, 2000)}${doc.content.length > 2000 ? '\n[...]' : ''}\n`;
         });
+      }
       }
     }
 
@@ -608,7 +624,13 @@ Sua resposta DEVE tratar EXCLUSIVAMENTE de ${scopeParts.join(' → ')}.
 ${filters.subtema ? `O subtema selecionado é "${filters.subtema}". NÃO mencione, sugira ou inclua propostas de OUTROS subtemas (ex: telecomunicações, energia, saneamento, transportes, etc.) — somente "${filters.subtema}".` : ''}
 ${filters.tema && !filters.subtema ? `Foque APENAS no tema "${filters.tema}". Não derive para outros temas do mesmo eixo.` : ''}
 Se os dados disponíveis não cobrirem suficientemente esse recorte, declare explicitamente a limitação ao invés de expandir o escopo.
-Qualquer conteúdo fora desse recorte é considerado ERRO GRAVE de execução.`
+Qualquer conteúdo fora desse recorte é considerado ERRO GRAVE de execução.
+
+REGRAS OPERACIONAIS DE ESCOPO (siga literalmente):
+- NÃO crie seções, metas, indicadores, tabelas ou parágrafos sobre temas/subtemas diferentes do recorte acima.
+- NÃO cite fontes (documentos ou propostas) cujo título/assunto seja de outro tema/subtema, mesmo que apareçam no contexto. Se aparecerem, IGNORE-AS.
+- Se a única fonte disponível for de outro subtema, NÃO a use; em vez disso, escreva: "Não há propostas técnicas nem documentos específicos sobre ${filters.subtema || filters.tema || filters.eixo} na base atual. Recomendo coletar entrevistas e documentos sobre este recorte antes de produzir o plano."
+- O título do plano DEVE conter explicitamente "${filters.subtema || filters.tema || filters.eixo}".`
         : '';
 
       return `\n\n=== FILTROS APLICADOS PELO USUÁRIO ===\n${parts.join('\n')}\n\nIMPORTANTE: Os dados abaixo já estão FILTRADOS de acordo com as seleções do usuário. Analise DIRETAMENTE estes dados sem pedir mais especificações.${scopeRule}`;
@@ -705,7 +727,7 @@ ${contextData ? `\n\nDADOS DISPONÍVEIS PARA ANÁLISE:${contextData}` : ''}`;
         messages: apiMessages,
         stream: true,
         max_tokens: 16384,
-        temperature: 0.4,
+        temperature: 0.2,
       }),
     });
 

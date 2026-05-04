@@ -527,6 +527,20 @@ const AdminPlanoGoverno = () => {
           eixo: filters.eixo || undefined,
           tema: filters.tema || undefined,
           subtema: filters.subtema || undefined,
+          // Thematic IDs (preferred — eliminam ambiguidade de nome)
+          eixoId: filters.eixo
+            ? eixos.find(e => e.nome === filters.eixo)?.id
+            : undefined,
+          temaId: filters.tema
+            ? temas.find(t => t.nome === filters.tema && (filters.eixo
+                ? t.eixo_id === eixos.find(e => e.nome === filters.eixo)?.id
+                : true))?.id
+            : undefined,
+          subtemaId: filters.subtema
+            ? subtemas.find(s => s.nome === filters.subtema && (filters.tema
+                ? s.tema_id === temas.find(t => t.nome === filters.tema)?.id
+                : true))?.id
+            : undefined,
           // Document specific
           documentIds: filters.documentIds.length > 0 ? filters.documentIds : undefined,
           docCategory: filters.docCategory.length > 0 ? filters.docCategory : undefined,
