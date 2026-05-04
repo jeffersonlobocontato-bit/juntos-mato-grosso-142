@@ -251,6 +251,22 @@ serve(async (req) => {
         proposalsQuery = proposalsQuery.eq("eixo_id", eixoId);
       }
 
+      // Filtro opcional por status temporal (espelha mapeamento usado para documentos).
+      // REGRA: se NENHUM status for selecionado pelo usuário, incluímos TODAS as
+      // propostas (rascunho, em_analise e aprovada). Só restringimos quando o
+      // usuário escolher explicitamente um status no setup.
+      const temporalToProposalStatus: Record<string, string> = {
+        realizado: 'aprovada',
+        em_andamento: 'em_analise',
+        nao_iniciado: 'rascunho',
+      };
+      const proposalStatusFilter = filters.temporalStatus
+        ? temporalToProposalStatus[filters.temporalStatus]
+        : null;
+      if (proposalStatusFilter) {
+        proposalsQuery = proposalsQuery.eq('status', proposalStatusFilter);
+      }
+
       // Filtros de localização
       if (municipioId) {
         proposalsQuery = proposalsQuery.eq("municipio_id", municipioId);
@@ -275,7 +291,9 @@ serve(async (req) => {
           totalProposals && totalProposals > proposals.length ? ` de ${totalProposals}` : ''
         }) ===\n`;
         contextData += headerLine;
-        contextData += `OBRIGATÓRIO: Considere CADA UMA das propostas abaixo na construção do plano. Cite os técnicos/entrevistados pelo nome quando relevante.\n\n`;
+        contextData += proposalStatusFilter
+          ? `OBRIGATÓRIO: O usuário restringiu o status para "${filters.temporalStatus}". Considere CADA UMA das ${proposals.length} propostas abaixo (já filtradas por status). Cite os técnicos/entrevistados pelo nome quando relevante.\n\n`
+          : `OBRIGATÓRIO: NENHUM filtro de status foi aplicado — você DEVE considerar TODAS as ${proposals.length} propostas abaixo (rascunho, em análise e aprovadas), sem distinção. Cite os técnicos/entrevistados pelo nome quando relevante.\n\n`;
 
         proposals.forEach((p: any, i: number) => {
           const eixoNome = p.eixos_tematicos?.nome || 'N/A';
@@ -313,6 +331,7 @@ serve(async (req) => {
           else if (temaId) extraQuery = extraQuery.eq("tema_id", temaId);
           else if (eixoId) extraQuery = extraQuery.eq("eixo_id", eixoId);
           if (municipioId) extraQuery = extraQuery.eq("municipio_id", municipioId);
+          if (proposalStatusFilter) extraQuery = extraQuery.eq('status', proposalStatusFilter);
           const { data: extras } = await extraQuery;
 
           if (extras && extras.length > 0) {
