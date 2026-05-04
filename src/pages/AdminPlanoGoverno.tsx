@@ -802,6 +802,8 @@ const AdminPlanoGoverno = () => {
                 regioes={REGIOES}
                 municipios={municipios}
                 eixos={eixos}
+                temas={temas}
+                subtemas={subtemas}
                 documents={availableDocuments}
               />
 
