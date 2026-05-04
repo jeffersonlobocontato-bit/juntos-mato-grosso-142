@@ -26,6 +26,8 @@ interface RequestBody {
     cidade?: string;
     // Thematic
     eixo?: string;
+    tema?: string;
+    subtema?: string;
     // Document specific
     documentIds?: string[];
     docCategory?: string[];
