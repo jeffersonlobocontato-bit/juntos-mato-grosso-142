@@ -1090,8 +1090,8 @@ const AdminPlanoGoverno = () => {
               <ModeConfigPanel isAdmin={isAdmin} />
             </TabsContent>
           </Tabs>
-        </div>
-      </main>
+        </main>
+      </div>
 
       {/* Balance Detail Modal */}
       <BalanceDetailModal
