@@ -8,10 +8,25 @@ interface MarkdownRendererProps {
   className?: string;
 }
 
+const stripExportSourcesJson = (content: string) => {
+  return content.replace(/```json\s*([\s\S]*?)\s*```/gi, (fullMatch, jsonContent) => {
+    try {
+      const parsed = JSON.parse(String(jsonContent).trim());
+      if (parsed && Array.isArray(parsed.sources)) {
+        return '';
+      }
+    } catch {
+      return fullMatch;
+    }
+
+    return fullMatch;
+  }).trim();
+};
+
 const MarkdownRenderer = ({ content, className = '' }: MarkdownRendererProps) => {
   // Pre-process content to fix malformed tables
   const normalizedContent = useMemo(() => {
-    return normalizeMarkdownTables(content);
+    return normalizeMarkdownTables(stripExportSourcesJson(content));
   }, [content]);
 
   return (
