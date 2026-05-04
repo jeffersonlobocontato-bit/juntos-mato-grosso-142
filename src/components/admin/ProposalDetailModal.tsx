@@ -14,7 +14,14 @@ import { EvaluationBreakdown } from "./EvaluationBreakdown";
 import { EvaluationSourceSelector, SourceSelection } from "./EvaluationSourceSelector";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
-import { Edit, Save, X, FileText, Brain, Info, Settings2 } from "lucide-react";
+import { Edit, Save, X, FileText, Brain, Info, Settings2, Printer, FileDown } from "lucide-react";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import { exportEntrevistaPDF, exportEntrevistaDOCX } from "@/utils/entrevistaExport";
 import type { Json } from "@/integrations/supabase/types";
 
 interface Proposal {
@@ -137,6 +144,7 @@ export const ProposalDetailModal = ({
     includeSugestoes: true,
     pesquisaIds: [],
   });
+  const [liderNome, setLiderNome] = useState<string>("");
 
   useEffect(() => {
     if (open && proposalId) {
@@ -161,6 +169,18 @@ export const ProposalDetailModal = ({
     } else {
       setProposal(data as Proposal);
       setEditData(data as Proposal);
+      // Buscar nome do líder responsável
+      const liderId = (data as Proposal).lider_responsavel_id || (data as Proposal).autor_id;
+      if (liderId) {
+        const { data: profile } = await supabase
+          .from('profiles')
+          .select('full_name')
+          .eq('id', liderId)
+          .maybeSingle();
+        setLiderNome(profile?.full_name || '');
+      } else {
+        setLiderNome('');
+      }
     }
     setIsLoading(false);
   };
@@ -264,6 +284,48 @@ export const ProposalDetailModal = ({
     return municipios.find(m => m.id === municipioId)?.nome || 'N/A';
   };
 
+  const buildExportPayload = () => {
+    if (!proposal) return null;
+    return {
+      titulo: proposal.titulo,
+      status: statusLabels[proposal.status]?.label || proposal.status,
+      eixoNome: getEixoNome(proposal.eixo_id),
+      municipioNome: getMunicipioNome(proposal.municipio_id),
+      entrevistado: proposal.entrevistado,
+      liderNome,
+      createdAt: proposal.created_at,
+      updatedAt: proposal.updated_at,
+      descricao: proposal.descricao,
+      metas: proposal.metas,
+      indicadores: proposal.indicadores,
+      questionario: proposal.questionario as Record<string, unknown> | null,
+    };
+  };
+
+  const handleExportPDF = () => {
+    const payload = buildExportPayload();
+    if (!payload) return;
+    try {
+      exportEntrevistaPDF(payload);
+      toast.success('PDF gerado com sucesso');
+    } catch (e) {
+      console.error(e);
+      toast.error('Erro ao gerar PDF');
+    }
+  };
+
+  const handleExportDOCX = async () => {
+    const payload = buildExportPayload();
+    if (!payload) return;
+    try {
+      await exportEntrevistaDOCX(payload);
+      toast.success('Documento Word gerado com sucesso');
+    } catch (e) {
+      console.error(e);
+      toast.error('Erro ao gerar Word');
+    }
+  };
+
   // Helper to render any value (handles nested objects)
   const renderValue = (value: unknown): React.ReactNode => {
     if (value === null || value === undefined) return null;
@@ -363,6 +425,24 @@ export const ProposalDetailModal = ({
               {proposal.titulo}
             </DialogTitle>
             <div className="flex items-center gap-2 flex-shrink-0">
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button variant="outline" size="sm" className="gap-1">
+                    <Printer className="h-4 w-4" />
+                    Imprimir / Exportar
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end">
+                  <DropdownMenuItem onClick={handleExportPDF}>
+                    <FileDown className="h-4 w-4 mr-2" />
+                    Exportar como PDF
+                  </DropdownMenuItem>
+                  <DropdownMenuItem onClick={handleExportDOCX}>
+                    <FileText className="h-4 w-4 mr-2" />
+                    Exportar como Word (.docx)
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
               <Badge className={statusLabels[proposal.status]?.color}>
                 {statusLabels[proposal.status]?.label}
               </Badge>
