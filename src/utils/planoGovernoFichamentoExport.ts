@@ -224,7 +224,6 @@ export function exportFichamentoPDF(data: FichamentoData): void {
   const lineH = 5.2; // mm
   const paraGap = 2.5;
   const refPositions: { ref: number; page: number; x: number; y: number }[] = [];
-  const noteSlots: Map<number, { ref: number; page: number; mainY: number }> = new Map();
 
   let cursorX = mainX;
   let cursorY = contentTop + 2;
@@ -292,9 +291,6 @@ export function exportFichamentoPDF(data: FichamentoData): void {
     doc.text(label, cursorX + w / 2, cursorY - 0.8, { align: 'center', baseline: 'middle' });
     // Posição do marcador para o conector
     refPositions.push({ ref: n, page: pageNum, x: cursorX + w, y: cursorY - 1.5 });
-    if (!noteSlots.has(`${pageNum}-${n}` as any)) {
-      noteSlots.set(n, { ref: n, page: pageNum, mainY: cursorY - 1.5 });
-    }
     cursorX += w + 0.5;
   };
 
