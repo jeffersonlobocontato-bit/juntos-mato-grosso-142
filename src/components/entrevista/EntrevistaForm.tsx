@@ -498,7 +498,8 @@ const EntrevistaForm = ({ mode = "tecnica" }: EntrevistaFormProps) => {
           try {
             const finalEixoId = inserted.eixo_id || eixoId;
             const uploadedItems: any[] = [];
-            for (const { file, description } of pendingAnexos) {
+            for (const anexo of pendingAnexos) {
+              const { file, title, tema_id, subtema_id, tema_nome, subtema_nome } = anexo;
               const safeName = file.name.replace(/[^a-zA-Z0-9._-]/g, "_");
               const path = `${finalEixoId}/${inserted.id}/${Date.now()}-${safeName}`;
               const { error: upErr } = await supabase.storage
@@ -511,10 +512,15 @@ const EntrevistaForm = ({ mode = "tecnica" }: EntrevistaFormProps) => {
               const { data: pub } = supabase.storage.from("proposta-anexos").getPublicUrl(path);
               uploadedItems.push({
                 url: pub.publicUrl,
-                name: description ? `${description} — ${file.name}` : file.name,
+                name: title || file.name,
+                title: title || file.name,
                 path,
                 size: file.size,
                 uploaded_at: new Date().toISOString(),
+                tema_id: tema_id ?? null,
+                subtema_id: subtema_id ?? null,
+                tema_nome: tema_nome ?? null,
+                subtema_nome: subtema_nome ?? null,
               });
             }
             if (uploadedItems.length > 0) {
