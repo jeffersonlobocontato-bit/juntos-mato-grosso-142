@@ -1,42 +1,41 @@
-## Problema
+## Objetivo
 
-No PDF/DOCX exportado a partir do `ProposalDetailModal`, dois campos do questionário aparecem como UUIDs em vez de nomes:
+Permitir que o entrevistador anexe documentos relacionados à proposta diretamente na **última aba do questionário (Etapa 8 — Título)**, antes de clicar em "Registrar Entrevista" — em vez de só aparecer na tela de sucesso após o envio.
 
-- **Identificação → Subtemas selecionados:** `1. 276ef2a6-efdb-40da-8276-59ef1ac86b74`
-- **Cocriação → G3.b Eixos relacionados:** `1. e5000000-0000-0000-0000-000000000005`
+## Situação atual
 
-Outros campos (Eixo Temático, Município) já vêm resolvidos via `getEixoNome` / `getMunicipioNome` no payload, mas os arrays internos do `questionario` (`identificacao.subtemas` e `cocriacao.cross_eixo_ids`) são serializados como string sem lookup.
+- O componente `PropostaAnexosUpload` já existe e funciona, mas só é renderizado **após** o submit (tela `isSubmitted`), pois depende de `propostaId` (gerado pelo insert no banco).
+- Na etapa 8, hoje só há o campo "Título da Proposta".
 
-## Correção
+## Solução
 
-### 1. `src/utils/entrevistaExport.ts`
+Criar um **modo pré-submit**: o usuário seleciona/descreve os arquivos na etapa 8, eles ficam em memória (staging), e após o submit bem-sucedido (quando a proposta é criada e temos o `id`), o upload ao Storage acontece automaticamente em background, persistindo no campo `anexos` da `propostas_tecnicas`.
 
-- Estender `EntrevistaExportData` com dois mapas opcionais de lookup:
-  - `subtemasMap?: Record<string, string>` (id → nome do subtema, idealmente "Tema › Subtema")
-  - `eixosMap?: Record<string, string>` (id → nome do eixo)
-- Adicionar uma etapa de "resolução" antes de `formatValue` em `buildSecoes`:
-  - Para `identificacao.subtemas`: mapear cada id para `subtemasMap[id]` (fallback: manter id se não achar).
-  - Para `cocriacao.cross_eixo_ids`: mapear cada id para `eixosMap[id]`.
-- Manter compatibilidade: se os mapas não forem passados, comportamento atual permanece.
+A tela de sucesso continua mostrando o `PropostaAnexosUpload` para permitir adicionar/remover mais anexos depois (sem regressão).
 
-### 2. `src/components/admin/ProposalDetailModal.tsx`
+### Mudanças
 
-- Já existe estado `eixos` e provavelmente acesso a `temas`/`subtemas`. Garantir busca de `subtemas` (com `tema_id` para compor "Tema › Subtema" se desejado, ou apenas o nome do subtema).
-- Em `buildExportPayload()`:
-  - Construir `eixosMap` a partir do array `eixos` já carregado.
-  - Buscar (ou usar cache existente) os `subtemas` e construir `subtemasMap`. Como subtemas globais são poucos (~80), uma única query `select id, nome` é suficiente; pode ser feita no `useEffect` inicial do modal junto com `eixos` e `municipios`.
-- Passar `eixosMap` e `subtemasMap` no payload para `exportEntrevistaPDF` / `exportEntrevistaDOCX`.
+**1. `src/components/entrevista/PropostaAnexosUpload.tsx`**
+- Adicionar prop opcional `mode?: "staging" | "live"` (default `"live"`).
+- No modo `"staging"`: não recebe `propostaId`/`eixoId`, não acessa Supabase. Mantém apenas a lista de `File` selecionados em estado local e expõe via callback `onFilesChange(files: File[], descriptions: string[])`.
+- Reaproveita a mesma UI (dropzone, lista, validação de tamanho/extensão, botão remover).
 
-### 3. Validação
+**2. `src/components/entrevista/EntrevistaForm.tsx`**
+- Novo estado: `pendingAnexos: { file: File; description: string }[]`.
+- **Etapa 8 (Título):** abaixo do campo de título, renderizar `<PropostaAnexosUpload mode="staging" onFilesChange={...} />` com um título tipo "Anexar documentos (opcional)".
+- Após `submitEntrevista` retornar o `propostaId` (linhas próximas a 459), executar uma rotina `uploadPendingAnexos(propostaId, eixoId)` que:
+  - Faz upload de cada arquivo para o bucket `proposta-anexos` no path `${eixoId}/${propostaId}/${ts}-${safeName}`.
+  - Monta o array `AnexoItem[]` e faz `update` em `propostas_tecnicas.anexos` (mesma serialização JSON usada hoje).
+  - Mostra toast de sucesso/erro; falhas não bloqueiam o submit (a proposta já foi criada).
+- Reaproveitar as constantes `MAX_SIZE_MB` e `ALLOWED_EXT` (exportá-las do componente).
+- Manter o `PropostaAnexosUpload` na tela de sucesso (modo `"live"`) — assim o usuário ainda pode adicionar mais arquivos depois, e os já enviados aparecem na lista.
 
-Após a alteração, reabrir uma proposta existente, exportar PDF e DOCX, e confirmar:
-- "Subtemas selecionados" → exibe nomes (ex.: "Portos", "Logística rodoviária").
-- "G3.b Eixos relacionados" → exibe nomes (ex.: "Desenvolvimento Econômico Sustentável").
-- Demais seções permanecem inalteradas.
+**3. Rascunho (auto-save)**
+- O auto-save atual de rascunho (linhas ~262/270) NÃO inclui os anexos pendentes (objetos `File` não serializam). Adicionar um aviso curto na seção de upload da etapa 8: "Os arquivos só são enviados após registrar a entrevista — não ficam salvos no rascunho."
 
 ## Arquivos afetados
 
-- `src/utils/entrevistaExport.ts` — adicionar mapas de lookup e resolver UUIDs antes da formatação.
-- `src/components/admin/ProposalDetailModal.tsx` — carregar subtemas, montar mapas e incluí-los no payload de exportação.
+- `src/components/entrevista/PropostaAnexosUpload.tsx` — adicionar modo `staging` + callback.
+- `src/components/entrevista/EntrevistaForm.tsx` — renderizar uploader na etapa 8, gerenciar fila pendente, fazer upload pós-submit.
 
-Sem alterações de banco de dados nem de Edge Functions.
+Sem mudanças de banco, RLS, edge functions ou bucket (já existem).
