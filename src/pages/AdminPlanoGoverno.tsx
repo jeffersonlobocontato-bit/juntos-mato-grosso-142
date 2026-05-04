@@ -594,6 +594,14 @@ const AdminPlanoGoverno = () => {
       if (analysisMode === 'cruzamento' && assistantContent) {
         parseCrossReferenceResults(assistantContent);
       }
+
+      // Persiste a conversa após cada resposta da IA
+      const finalMessages: Message[] = [
+        ...messages,
+        userMessage,
+        { role: 'assistant', content: assistantContent },
+      ];
+      persistConversation(finalMessages);
     } catch (error) {
       console.error('Error sending message:', error);
       toast({
@@ -642,8 +650,7 @@ const AdminPlanoGoverno = () => {
   };
 
   const clearChat = () => {
-    setMessages([]);
-    setCrossRefResults([]);
+    startNewConversation();
   };
 
   const getModeDescription = () => {
