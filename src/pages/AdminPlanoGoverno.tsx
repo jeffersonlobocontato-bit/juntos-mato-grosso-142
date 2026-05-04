@@ -87,11 +87,8 @@ const REGIOES = [
 
 const MODE_LABELS: Record<string, string> = {
   plano: 'Plano de Governo',
-  brainstorm: 'Brainstorm',
   cruzamento: 'Cruzamento de Dados',
   balanco: 'Balanço de Governo',
-  conteudo: 'Geração de Conteúdo',
-  coerencia: 'Análise de Coerência',
 };
 
 const AdminPlanoGoverno = () => {
@@ -668,16 +665,10 @@ const AdminPlanoGoverno = () => {
     switch (analysisMode) {
       case 'plano':
         return 'Crie planos de governo técnicos e profissionais';
-      case 'brainstorm':
-        return 'Gere ideias criativas baseadas nas demandas populares';
       case 'cruzamento':
         return 'Compare documentos, propostas e sugestões';
       case 'balanco':
         return 'Analise o que foi feito vs. prometido';
-      case 'conteudo':
-        return 'Gere releases, discursos e notas técnicas';
-      case 'coerencia':
-        return 'Avalie alinhamento entre propostas e documentos';
       default:
         return 'Solicite análises e insights baseados nos dados';
     }
@@ -691,12 +682,6 @@ const AdminPlanoGoverno = () => {
           '"Elabore metas e indicadores para educação"',
           '"Estruture um plano integrado para desenvolvimento econômico"',
         ];
-      case 'brainstorm':
-        return [
-          '"Sugira propostas para saúde baseadas nas demandas da população"',
-          '"Crie pontos de discurso sobre educação para esta região"',
-          '"Quais são as principais demandas da população sobre infraestrutura?"',
-        ];
       case 'cruzamento':
         return [
           '"Compare as propostas técnicas com as sugestões populares de infraestrutura"',
@@ -708,18 +693,6 @@ const AdminPlanoGoverno = () => {
           '"Analise o que foi realizado no eixo de saúde"',
           '"Compare o prometido vs. realizado em infraestrutura"',
           '"Gere um relatório de cumprimento de metas por região"',
-        ];
-      case 'conteudo':
-        return [
-          '"Crie um release de imprensa sobre as realizações em educação"',
-          '"Elabore um discurso político sobre desenvolvimento regional"',
-          '"Gere uma nota técnica sobre os investimentos em infraestrutura"',
-        ];
-      case 'coerencia':
-        return [
-          '"Avalie a coerência das propostas de saúde com o plano de governo"',
-          '"Identifique propostas desalinhadas com as diretrizes oficiais"',
-          '"Classifique as propostas por exequibilidade técnica"',
         ];
       default:
         return [];

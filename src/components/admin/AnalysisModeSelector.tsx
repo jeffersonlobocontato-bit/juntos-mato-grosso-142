@@ -1,20 +1,7 @@
 import { cn } from '@/lib/utils';
-import { 
-  FileText, 
-  Lightbulb, 
-  GitCompareArrows, 
-  Scale, 
-  PenTool, 
-  CheckCircle2 
-} from 'lucide-react';
+import { FileText, GitCompareArrows, Scale } from 'lucide-react';
 
-export type AnalysisMode = 
-  | 'plano' 
-  | 'brainstorm' 
-  | 'cruzamento' 
-  | 'balanco' 
-  | 'conteudo' 
-  | 'coerencia';
+export type AnalysisMode = 'plano' | 'cruzamento' | 'balanco';
 
 interface AnalysisModeSelectorProps {
   value: AnalysisMode;
@@ -30,12 +17,6 @@ const MODES: { value: AnalysisMode; label: string; description: string; icon: Re
     icon: FileText 
   },
   { 
-    value: 'brainstorm', 
-    label: 'Brainstorming', 
-    description: 'Ideias criativas',
-    icon: Lightbulb 
-  },
-  { 
     value: 'cruzamento', 
     label: 'Cruzamento', 
     description: 'Comparar dados e documentos',
@@ -47,23 +28,11 @@ const MODES: { value: AnalysisMode; label: string; description: string; icon: Re
     description: 'Feito vs. Prometido',
     icon: Scale 
   },
-  { 
-    value: 'conteudo', 
-    label: 'Gerador de Conteúdo', 
-    description: 'Releases, discursos, notas',
-    icon: PenTool 
-  },
-  { 
-    value: 'coerencia', 
-    label: 'Análise Coerência', 
-    description: 'Avaliar alinhamento',
-    icon: CheckCircle2 
-  },
 ];
 
 export function AnalysisModeSelector({ value, onChange, className }: AnalysisModeSelectorProps) {
   return (
-    <div className={cn('grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-2', className)}>
+    <div className={cn('grid grid-cols-1 sm:grid-cols-3 gap-2', className)}>
       {MODES.map((mode) => {
         const Icon = mode.icon;
         const isSelected = value === mode.value;

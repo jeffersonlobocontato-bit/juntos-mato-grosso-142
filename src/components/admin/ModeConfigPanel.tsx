@@ -34,14 +34,11 @@ type ModeConfig = {
 
 const MODE_META: Record<string, { label: string; icon: React.ElementType; agentType: string }> = {
   plano: { label: 'Plano de Governo', icon: FileText, agentType: 'plano_governo_plano' },
-  brainstorm: { label: 'Brainstorming', icon: Lightbulb, agentType: 'plano_governo_brainstorm' },
   cruzamento: { label: 'Cruzamento', icon: GitCompareArrows, agentType: 'plano_governo_cruzamento' },
   balanco: { label: 'Balanço', icon: Scale, agentType: 'plano_governo_balanco' },
-  conteudo: { label: 'Conteúdo', icon: PenTool, agentType: 'plano_governo_conteudo' },
-  coerencia: { label: 'Coerência', icon: CheckCircle2, agentType: 'plano_governo_coerencia' },
 };
 
-const MODES: AnalysisMode[] = ['plano', 'brainstorm', 'cruzamento', 'balanco', 'conteudo', 'coerencia'];
+const MODES: AnalysisMode[] = ['plano', 'cruzamento', 'balanco'];
 
 interface ModeConfigPanelProps {
   isAdmin: boolean;
