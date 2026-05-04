@@ -87,11 +87,8 @@ const REGIOES = [
 
 const MODE_LABELS: Record<string, string> = {
   plano: 'Plano de Governo',
-  brainstorm: 'Brainstorm',
   cruzamento: 'Cruzamento de Dados',
   balanco: 'Balanço de Governo',
-  conteudo: 'Geração de Conteúdo',
-  coerencia: 'Análise de Coerência',
 };
 
 const AdminPlanoGoverno = () => {
