@@ -332,6 +332,14 @@ serve(async (req) => {
 
     // 3. Fetch AI documents if enabled
     if (filters.includeDocumentos !== false) {
+      // Quando o usuário restringe por tema/subtema, NÃO injetamos documentos amplos
+      // automaticamente (eles podem trazer outros subtemas, ex: PELTi com telecom).
+      // Só carregamos documentos se o usuário tiver SELECIONADO explicitamente
+      // documentos por ID na lista.
+      const hasExplicitDocs = !!(filters.documentIds && filters.documentIds.length > 0);
+      if (hasNarrowScope && !hasExplicitDocs) {
+        console.log("Narrow scope ativo (tema/subtema) sem documentos explícitos — pulando documentos amplos");
+      } else {
       let docsQuery = supabase
         .from("ai_documents")
         .select(`
@@ -406,6 +414,7 @@ serve(async (req) => {
           if (doc.description) contextData += `Descrição: ${doc.description}\n`;
           contextData += `Conteúdo:\n${doc.content.substring(0, 2000)}${doc.content.length > 2000 ? '\n[...]' : ''}\n`;
         });
+      }
       }
     }
 
