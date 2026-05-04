@@ -256,7 +256,10 @@ export function DataSourceFilters({
             </Label>
             <Select 
               value={filters.eixo || "__all__"} 
-              onValueChange={(v) => updateFilter('eixo', v === "__all__" ? "" : v)}
+              onValueChange={(v) => {
+                const newEixo = v === "__all__" ? "" : v;
+                onChange({ ...filters, eixo: newEixo, tema: '', subtema: '' });
+              }}
             >
               <SelectTrigger>
                 <SelectValue placeholder="Todos os eixos" />
@@ -270,6 +273,60 @@ export function DataSourceFilters({
             </Select>
           </div>
         </div>
+
+        {/* Tema / Subtema */}
+        {temas.length > 0 && (
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div className="space-y-2">
+              <Label className="text-sm flex items-center gap-2">
+                <Target className="w-3.5 h-3.5" />
+                Tema
+              </Label>
+              <Select
+                value={filters.tema || "__all__"}
+                onValueChange={(v) => {
+                  const newTema = v === "__all__" ? "" : v;
+                  onChange({ ...filters, tema: newTema, subtema: '' });
+                }}
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder={selectedEixoId ? "Todos os temas do eixo" : "Selecione um eixo primeiro"} />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="__all__">Todos os temas</SelectItem>
+                  {filteredTemas.map(tema => (
+                    <SelectItem key={tema.id} value={tema.nome}>{tema.nome}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              <p className="text-[11px] text-muted-foreground">
+                Filtra propostas técnicas e sugestões pelo tema (ex.: "Rodovias", "Portos", "Segurança Pública").
+              </p>
+            </div>
+
+            <div className="space-y-2">
+              <Label className="text-sm flex items-center gap-2">
+                <Target className="w-3.5 h-3.5" />
+                Subtema
+              </Label>
+              <Select
+                value={filters.subtema || "__all__"}
+                onValueChange={(v) => updateFilter('subtema', v === "__all__" ? "" : v)}
+                disabled={!selectedTemaId || filteredSubtemas.length === 0}
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder={selectedTemaId ? (filteredSubtemas.length === 0 ? "Sem subtemas" : "Todos os subtemas") : "Selecione um tema primeiro"} />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="__all__">Todos os subtemas</SelectItem>
+                  {filteredSubtemas.map(s => (
+                    <SelectItem key={s.id} value={s.nome}>{s.nome}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
+        )}
 
         {/* Document-specific Filters (only when documents are included) */}
         {filters.includeDocumentos && (
