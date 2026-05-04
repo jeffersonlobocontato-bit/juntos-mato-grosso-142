@@ -246,11 +246,7 @@ export function DocumentLibrary({ eixos, municipios, regioes, className }: Docum
                             <Badge variant="outline" className="text-xs">
                               {DOC_CATEGORY_LABELS[doc.doc_category] || doc.doc_category}
                             </Badge>
-                            {doc.scope === 'global' ? (
-                              <Badge variant="secondary" className="text-[10px] gap-1">
-                                <Globe className="w-3 h-3" /> Global
-                              </Badge>
-                            ) : (
+                            {doc.scope !== 'global' && (
                               <Badge variant="default" className="text-[10px] gap-1">
                                 <Bot className="w-3 h-3" /> Específico de agente
                               </Badge>
