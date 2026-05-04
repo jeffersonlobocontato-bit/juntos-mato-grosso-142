@@ -361,18 +361,23 @@ const EntrevistaForm = ({ mode = "tecnica" }: EntrevistaFormProps) => {
   };
 
   const validateCurrentStep = (): boolean => {
+    // Campos-chave sempre obrigatórios, mesmo para admin_master
+    if (currentStep === 0) {
+      if (isInstitucional) {
+        if (!instituicaoNome.trim()) { toast.error("Informe o nome da instituição"); return false; }
+        if (!instituicaoSegmento) { toast.error("Selecione o segmento da instituição"); return false; }
+        if (!representanteNome.trim()) { toast.error("Informe o nome do representante"); return false; }
+      }
+      if (!municipioId) { toast.error("Selecione o município"); return false; }
+      if (!eixoId) { toast.error("Selecione o eixo temático"); return false; }
+      if (!temaId) { toast.error("Selecione o tema"); return false; }
+      return true;
+    }
+
     if (isAdminMaster) return true;
 
     switch (currentStep) {
       case 0:
-        if (isInstitucional) {
-          if (!instituicaoNome.trim()) { toast.error("Informe o nome da instituição"); return false; }
-          if (!instituicaoSegmento) { toast.error("Selecione o segmento da instituição"); return false; }
-          if (!representanteNome.trim()) { toast.error("Informe o nome do representante"); return false; }
-        }
-        if (!municipioId) { toast.error("Selecione o município"); return false; }
-        if (!eixoId) { toast.error("Selecione o eixo temático"); return false; }
-        if (!temaId) { toast.error("Selecione o tema"); return false; }
         return true;
       case 1:
         if (!questionario.aquecimento.area_atuacao_especifica.trim()) {
@@ -451,13 +456,25 @@ const EntrevistaForm = ({ mode = "tecnica" }: EntrevistaFormProps) => {
         },
       };
 
+      const toUuidOrNull = (v?: string | null) =>
+        v && typeof v === "string" && v.trim().length > 0 ? v : null;
+
+      const eixoIdSan = toUuidOrNull(eixoId);
+      const municipioIdSan = toUuidOrNull(municipioId);
+
+      if (!eixoIdSan || !municipioIdSan) {
+        toast.error("Selecione município e eixo antes de registrar.");
+        setIsSubmitting(false);
+        return;
+      }
+
       const insertData: any = {
         autor_id: user.id,
         lider_responsavel_id: user.id,
-        eixo_id: eixoId,
-        tema_id: temaId || null,
-        subtema_id: subtemaIds.length === 1 ? subtemaIds[0] : null,
-        municipio_id: municipioId,
+        eixo_id: eixoIdSan,
+        tema_id: toUuidOrNull(temaId),
+        subtema_id: subtemaIds.length === 1 ? toUuidOrNull(subtemaIds[0]) : null,
+        municipio_id: municipioIdSan,
         entrevistado: isInstitucional ? instituicaoNome.trim() : entrevistado.trim(),
         titulo: tituloFinal,
         descricao,

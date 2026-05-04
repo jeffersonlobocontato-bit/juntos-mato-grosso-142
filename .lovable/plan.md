@@ -1,41 +1,69 @@
-## Objetivo
+## Diagnóstico
 
-Permitir que o entrevistador anexe documentos relacionados à proposta diretamente na **última aba do questionário (Etapa 8 — Título)**, antes de clicar em "Registrar Entrevista" — em vez de só aparecer na tela de sucesso após o envio.
+Os logs do banco mostram erros recorrentes ao tentar inserir propostas:
 
-## Situação atual
+```
+ERROR: invalid input syntax for type uuid: ""
+```
 
-- O componente `PropostaAnexosUpload` já existe e funciona, mas só é renderizado **após** o submit (tela `isSubmitted`), pois depende de `propostaId` (gerado pelo insert no banco).
-- Na etapa 8, hoje só há o campo "Título da Proposta".
+(8 ocorrências nos últimos minutos, batendo com o relato dos usuários)
 
-## Solução
+A causa está em `src/components/entrevista/EntrevistaForm.tsx`:
 
-Criar um **modo pré-submit**: o usuário seleciona/descreve os arquivos na etapa 8, eles ficam em memória (staging), e após o submit bem-sucedido (quando a proposta é criada e temos o `id`), o upload ao Storage acontece automaticamente em background, persistindo no campo `anexos` da `propostas_tecnicas`.
+1. No `handleSubmit` (linhas 454-469), os campos `eixo_id` e `municipio_id` são enviados **diretamente** do estado, sem coerção de string vazia para `null`. Se qualquer um estiver `""`, o Postgres rejeita com o erro acima.
+2. A validação `validateCurrentStep` faz `if (isAdminMaster) return true;` no início (linha 364) — usuários `admin_master` (e potencialmente o entrevistador institucional em alguns fluxos) **pulam** a checagem de campos obrigatórios e conseguem chegar à submissão com IDs vazios.
+3. Na LP institucional, o eixo pode vir "trancado" via `setEixoId` automático (linha 348). Se o usuário não tem eixo atribuído (`user_eixos`), o estado fica `""` e nunca é validado por causa do bypass acima.
+4. `tema_id` já tem fallback `temaId || null`, mas `subtema_id` usa `subtemaIds[0]` direto — se vier `""` no array, mesmo problema.
 
-A tela de sucesso continua mostrando o `PropostaAnexosUpload` para permitir adicionar/remover mais anexos depois (sem regressão).
+## Plano de correção
 
-### Mudanças
+Arquivo: `src/components/entrevista/EntrevistaForm.tsx`
 
-**1. `src/components/entrevista/PropostaAnexosUpload.tsx`**
-- Adicionar prop opcional `mode?: "staging" | "live"` (default `"live"`).
-- No modo `"staging"`: não recebe `propostaId`/`eixoId`, não acessa Supabase. Mantém apenas a lista de `File` selecionados em estado local e expõe via callback `onFilesChange(files: File[], descriptions: string[])`.
-- Reaproveita a mesma UI (dropzone, lista, validação de tamanho/extensão, botão remover).
+1. **Sanitizar UUIDs no `insertData`** — converter `""` → `null` para `eixo_id`, `municipio_id`, `tema_id`, `subtema_id`, `lider_responsavel_id`. Helper simples `toUuidOrNull(v)`.
 
-**2. `src/components/entrevista/EntrevistaForm.tsx`**
-- Novo estado: `pendingAnexos: { file: File; description: string }[]`.
-- **Etapa 8 (Título):** abaixo do campo de título, renderizar `<PropostaAnexosUpload mode="staging" onFilesChange={...} />` com um título tipo "Anexar documentos (opcional)".
-- Após `submitEntrevista` retornar o `propostaId` (linhas próximas a 459), executar uma rotina `uploadPendingAnexos(propostaId, eixoId)` que:
-  - Faz upload de cada arquivo para o bucket `proposta-anexos` no path `${eixoId}/${propostaId}/${ts}-${safeName}`.
-  - Monta o array `AnexoItem[]` e faz `update` em `propostas_tecnicas.anexos` (mesma serialização JSON usada hoje).
-  - Mostra toast de sucesso/erro; falhas não bloqueiam o submit (a proposta já foi criada).
-- Reaproveitar as constantes `MAX_SIZE_MB` e `ALLOWED_EXT` (exportá-las do componente).
-- Manter o `PropostaAnexosUpload` na tela de sucesso (modo `"live"`) — assim o usuário ainda pode adicionar mais arquivos depois, e os já enviados aparecem na lista.
+2. **Validar campos obrigatórios mesmo para admin_master** na etapa 0 (município + eixo + tema). O bypass total é perigoso; manter apenas para etapas de questionário se necessário, mas exigir os IDs base sempre.
 
-**3. Rascunho (auto-save)**
-- O auto-save atual de rascunho (linhas ~262/270) NÃO inclui os anexos pendentes (objetos `File` não serializam). Adicionar um aviso curto na seção de upload da etapa 8: "Os arquivos só são enviados após registrar a entrevista — não ficam salvos no rascunho."
+3. **Bloquear submissão** caso `eixo_id` ou `municipio_id` resultem em `null` após sanitização, com toast claro ("Selecione município e eixo antes de registrar").
 
-## Arquivos afetados
+4. **Smoke test** após o fix: simular submissão na LP `/entrevista` (institucional) com campos preenchidos e verificar nos logs do Postgres que o insert retorna sucesso.
 
-- `src/components/entrevista/PropostaAnexosUpload.tsx` — adicionar modo `staging` + callback.
-- `src/components/entrevista/EntrevistaForm.tsx` — renderizar uploader na etapa 8, gerenciar fila pendente, fazer upload pós-submit.
+## Detalhes técnicos
 
-Sem mudanças de banco, RLS, edge functions ou bucket (já existem).
+```ts
+const toUuidOrNull = (v?: string | null) =>
+  v && v.trim().length > 0 ? v : null;
+
+const insertData: any = {
+  autor_id: user.id,
+  lider_responsavel_id: user.id,
+  eixo_id: toUuidOrNull(eixoId),
+  tema_id: toUuidOrNull(temaId),
+  subtema_id: subtemaIds.length === 1 ? toUuidOrNull(subtemaIds[0]) : null,
+  municipio_id: toUuidOrNull(municipioId),
+  // ...resto igual
+};
+
+if (!insertData.eixo_id || !insertData.municipio_id) {
+  toast.error("Selecione município e eixo antes de registrar.");
+  setIsSubmitting(false);
+  return;
+}
+```
+
+E na validação:
+
+```ts
+const validateCurrentStep = (): boolean => {
+  // Campos-chave sempre obrigatórios, mesmo para admin_master
+  if (currentStep === 0) {
+    if (isInstitucional) { /* checks institucionais */ }
+    if (!municipioId) { toast.error("Selecione o município"); return false; }
+    if (!eixoId)      { toast.error("Selecione o eixo temático"); return false; }
+    if (!temaId)      { toast.error("Selecione o tema"); return false; }
+  }
+  if (isAdminMaster) return true; // bypass apenas das etapas seguintes
+  // ...resto da lógica atual
+};
+```
+
+Sem mudanças de schema, sem migração, sem alteração no fluxo de anexos (que já está funcional).
