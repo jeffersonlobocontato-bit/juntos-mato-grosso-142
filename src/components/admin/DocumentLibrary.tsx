@@ -11,10 +11,12 @@ import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 import DocumentUploadModal from './DocumentUploadModal';
 import { DocumentAgentLinker } from './DocumentAgentLinker';
+import { TemasMultiSelect } from './TemasMultiSelect';
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { 
   BookOpen, Plus, Search, FileText, Eye, EyeOff, Trash2,
   ExternalLink, Filter, Loader2, CheckCircle, Clock, AlertCircle, Circle,
-  Globe, Bot, Tag, AlertTriangle
+  Globe, Bot, Tag, AlertTriangle, Pencil
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
@@ -157,6 +159,29 @@ export function DocumentLibrary({ eixos, municipios, regioes, className }: Docum
       toast({ title: 'Eixo atualizado' });
     } catch (error) {
       toast({ title: 'Erro ao atualizar eixo', variant: 'destructive' });
+    }
+  };
+
+  const updateDocumentTemas = async (docId: string, newTemaIds: string[]) => {
+    try {
+      const { error: delError } = await supabase
+        .from('ai_document_temas')
+        .delete()
+        .eq('document_id', docId);
+      if (delError) throw delError;
+
+      if (newTemaIds.length > 0) {
+        const rows = newTemaIds.map((tema_id) => ({ document_id: docId, tema_id }));
+        const { error: insError } = await supabase.from('ai_document_temas').insert(rows);
+        if (insError) throw insError;
+      }
+
+      // Refresh to get tema names
+      await fetchDocuments();
+      toast({ title: 'Temas atualizados' });
+    } catch (error) {
+      console.error('Erro ao atualizar temas:', error);
+      toast({ title: 'Erro ao atualizar temas', variant: 'destructive' });
     }
   };
 
@@ -303,13 +328,40 @@ export function DocumentLibrary({ eixos, municipios, regioes, className }: Docum
                                   +{doc.temas.length - 6}
                                 </span>
                               )}
+                              <Popover>
+                                <PopoverTrigger asChild>
+                                  <Button variant="ghost" size="sm" className="h-6 px-2 text-[10px] gap-1">
+                                    <Pencil className="w-3 h-3" /> Editar
+                                  </Button>
+                                </PopoverTrigger>
+                                <PopoverContent className="w-[360px] p-2" align="start">
+                                  <TemasMultiSelect
+                                    value={(doc.temas || []).map((t) => t.id)}
+                                    onChange={(ids) => updateDocumentTemas(doc.id, ids)}
+                                  />
+                                </PopoverContent>
+                              </Popover>
                             </div>
                           ) : (
                             <div className="flex items-center gap-1.5 mt-2">
-                              <Badge variant="destructive" className="text-[10px] gap-1">
-                                <AlertTriangle className="w-3 h-3" />
-                                Sem tema vinculado — atualizar
-                              </Badge>
+                              <Popover>
+                                <PopoverTrigger asChild>
+                                  <Button
+                                    variant="ghost"
+                                    size="sm"
+                                    className="h-6 px-2 gap-1 text-[10px] text-amber-600 hover:text-amber-700 border border-amber-500/40 bg-amber-500/10"
+                                  >
+                                    <AlertTriangle className="w-3 h-3" />
+                                    Sem tema vinculado — clique para vincular
+                                  </Button>
+                                </PopoverTrigger>
+                                <PopoverContent className="w-[360px] p-2" align="start">
+                                  <TemasMultiSelect
+                                    value={[]}
+                                    onChange={(ids) => updateDocumentTemas(doc.id, ids)}
+                                  />
+                                </PopoverContent>
+                              </Popover>
                             </div>
                           )}
 
