@@ -199,9 +199,21 @@ const buildSecoes = (
   questionario: Record<string, unknown> | null | undefined,
   eixosMap?: Record<string, string>,
   subtemasMap?: Record<string, string>,
+  eixoId?: string | null,
 ): Secao[] => {
   if (!questionario) return [];
   const secoes: Secao[] = [];
+
+  // Sobrescreve labels do bloco_f com as perguntas reais do eixo
+  const blocoFLabels: Record<string, string> = { ...PERGUNTAS_LABELS.bloco_f };
+  if (eixoId) {
+    const cfg = getBlocoFConfig(eixoId);
+    const keys = ["q1", "q2", "q3", "q4", "q5", "q6"];
+    keys.forEach((k, i) => {
+      const prefix = i < 5 ? `F${i + 1}. ` : "F6. ";
+      if (cfg.perguntas[i]) blocoFLabels[k] = `${prefix}${cfg.perguntas[i]}`;
+    });
+  }
 
   // Ordem fixa
   const ordem = [
@@ -220,7 +232,7 @@ const buildSecoes = (
     if (!conteudo || typeof conteudo !== "object") continue;
 
     const tituloSecao = SECOES_LABELS[secaoKey] || humanizeKey(secaoKey);
-    const labelsSecao = PERGUNTAS_LABELS[secaoKey] || {};
+    const labelsSecao = secaoKey === "bloco_f" ? blocoFLabels : (PERGUNTAS_LABELS[secaoKey] || {});
     const perguntas: QA[] = [];
 
     for (const [campo, rawValor] of Object.entries(conteudo as Record<string, unknown>)) {
