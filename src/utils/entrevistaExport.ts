@@ -27,6 +27,8 @@ export interface EntrevistaExportData {
   metas?: string | null;
   indicadores?: string | null;
   questionario?: Record<string, unknown> | null;
+  eixosMap?: Record<string, string>;
+  subtemasMap?: Record<string, string>;
 }
 
 interface QA {
@@ -170,8 +172,32 @@ const reviseAnswer = (raw: string): string => {
   return ensurePunctuation(capitalizeFirst(cleaned));
 };
 
+/** Resolve UUIDs em arrays específicos antes da formatação. */
+const resolveIds = (
+  secaoKey: string,
+  campo: string,
+  valor: unknown,
+  eixosMap?: Record<string, string>,
+  subtemasMap?: Record<string, string>,
+): unknown => {
+  if (!Array.isArray(valor)) return valor;
+  const isUuidArray = valor.every((v) => typeof v === 'string');
+  if (!isUuidArray) return valor;
+  if (secaoKey === 'identificacao' && campo === 'subtemas' && subtemasMap) {
+    return valor.map((id) => subtemasMap[id as string] || (id as string));
+  }
+  if (secaoKey === 'cocriacao' && campo === 'cross_eixo_ids' && eixosMap) {
+    return valor.map((id) => eixosMap[id as string] || (id as string));
+  }
+  return valor;
+};
+
 /** Constrói as seções de Q&A a partir do questionário. */
-const buildSecoes = (questionario: Record<string, unknown> | null | undefined): Secao[] => {
+const buildSecoes = (
+  questionario: Record<string, unknown> | null | undefined,
+  eixosMap?: Record<string, string>,
+  subtemasMap?: Record<string, string>,
+): Secao[] => {
   if (!questionario) return [];
   const secoes: Secao[] = [];
 
@@ -195,7 +221,8 @@ const buildSecoes = (questionario: Record<string, unknown> | null | undefined): 
     const labelsSecao = PERGUNTAS_LABELS[secaoKey] || {};
     const perguntas: QA[] = [];
 
-    for (const [campo, valor] of Object.entries(conteudo as Record<string, unknown>)) {
+    for (const [campo, rawValor] of Object.entries(conteudo as Record<string, unknown>)) {
+      const valor = resolveIds(secaoKey, campo, rawValor, eixosMap, subtemasMap);
       if (valor === null || valor === undefined || valor === "") continue;
       if (Array.isArray(valor) && valor.length === 0) continue;
       if (Array.isArray(valor) && !valor.some((v) => String(v).trim().length > 0)) continue;
@@ -359,7 +386,7 @@ export const exportEntrevistaPDF = (data: EntrevistaExportData) => {
   // ── Perguntas e Respostas ──
   writeWrapped("Perguntas e Respostas", 14, 8, true);
 
-  const secoes = buildSecoes(data.questionario || null);
+  const secoes = buildSecoes(data.questionario || null, data.eixosMap, data.subtemasMap);
   if (secoes.length === 0) {
     writeWrapped("Nenhum questionário foi preenchido para esta entrevista.", 10, 4);
   }
@@ -510,7 +537,7 @@ export const exportEntrevistaDOCX = async (data: EntrevistaExportData) => {
   // Perguntas e respostas
   children.push(heading("Perguntas e Respostas", HeadingLevel.HEADING_1));
 
-  const secoes = buildSecoes(data.questionario || null);
+  const secoes = buildSecoes(data.questionario || null, data.eixosMap, data.subtemasMap);
   if (secoes.length === 0) {
     children.push(para("Nenhum questionário foi preenchido para esta entrevista."));
   }
