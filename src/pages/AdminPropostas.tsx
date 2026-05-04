@@ -1,5 +1,5 @@
 import { useState, useEffect, useMemo } from 'react';
-import { useNavigate, Link } from 'react-router-dom';
+import { useNavigate, Link, useSearchParams } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { useAuth } from '@/hooks/useAuth';
 import { supabase } from '@/integrations/supabase/client';
@@ -119,6 +119,8 @@ const statusLabels: Record<ProposalStatus, string> = {
 const AdminPropostas = () => {
   const { user, isLoading: authLoading } = useAuth();
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
+  const tipoFilter = searchParams.get('tipo'); // 'institucional' | 'tecnica' | null
   
   const [proposals, setProposals] = useState<Proposal[]>([]);
   const [evaluations, setEvaluations] = useState<ProposalEvaluation[]>([]);
@@ -365,6 +367,9 @@ const AdminPropostas = () => {
       const matchesStatus = filterStatus === 'all' || p.status === filterStatus;
       const matchesEixo = filterEixo === 'all' || p.eixo_id === filterEixo;
       
+      // Tipo filter from URL
+      const matchesTipo = !tipoFilter || (p as any).tipo_proposta === tipoFilter;
+      
       // Geographic filters
       let matchesGeography = true;
       if (filterMunicipio !== 'all') {
@@ -374,9 +379,9 @@ const AdminPropostas = () => {
         matchesGeography = municipio?.regiao === filterRegiao;
       }
       
-      return matchesSearch && matchesStatus && matchesEixo && matchesGeography;
+      return matchesSearch && matchesStatus && matchesEixo && matchesGeography && matchesTipo;
     });
-  }, [proposals, searchTerm, filterStatus, filterEixo, filterRegiao, filterMunicipio, municipios]);
+  }, [proposals, searchTerm, filterStatus, filterEixo, filterRegiao, filterMunicipio, municipios, tipoFilter]);
 
   const getEixoNome = (eixoId: string) => {
     return eixos.find(e => e.id === eixoId)?.nome || 'N/A';

@@ -87,6 +87,14 @@ const Admin = () => {
       roles: ['admin', 'admin_master']
     },
     { 
+      icon: Building2, 
+      title: 'Propostas Institucionais', 
+      description: 'Propostas de associações e instituições',
+      href: '/admin/propostas?tipo=institucional',
+      color: 'accent',
+      roles: ['admin', 'admin_master', 'lider_tematico']
+    },
+    { 
       icon: Users, 
       title: 'Sugestões Populares', 
       description: 'Visualizar sugestões da população',
