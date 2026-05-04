@@ -598,7 +598,7 @@ const AdminPlanoGoverno = () => {
             });
           }
         } catch {
-          sseBuffer = `${line}\n${sseBuffer}`;
+          console.warn('Evento de stream inválido ignorado');
         }
       };
 
