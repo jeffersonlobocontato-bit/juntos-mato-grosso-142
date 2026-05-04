@@ -918,14 +918,26 @@ const EntrevistaForm = ({ mode = "tecnica" }: EntrevistaFormProps) => {
                         <span className="font-medium">{t.codigo}</span> - {t.nome}
                       </SelectItem>
                     ))}
+                  {isInstitucional && (
+                    <SelectItem value="outros">
+                      <span className="font-medium">OUTROS</span> - Temas diversos
+                    </SelectItem>
+                  )}
                 </SelectContent>
               </Select>
+              {isInstitucional && temaId === "outros" && (
+                <p className="text-xs text-amber-400 mt-1">
+                  A entrevista será classificada como "Temas Diversos" (sem tema/subtema específico).
+                </p>
+              )}
             </div>
 
             <div>
               <Label className="text-white mb-2 block">Subtemas</Label>
               {!temaId ? (
                 <p className="text-sm text-gray-500">Selecione um tema primeiro</p>
+              ) : temaId === "outros" ? (
+                <p className="text-sm text-gray-500">Não aplicável para "Temas Diversos".</p>
               ) : (
                 <>
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-2 p-3 bg-gray-900 border border-gray-700 rounded-md max-h-48 overflow-y-auto">
