@@ -726,7 +726,7 @@ ${contextData ? `\n\nDADOS DISPONÍVEIS PARA ANÁLISE:${contextData}` : ''}`;
         model: "google/gemini-3-flash-preview",
         messages: apiMessages,
         stream: true,
-        max_tokens: 16384,
+        max_tokens: 32768,
         temperature: 0.2,
       }),
     });
