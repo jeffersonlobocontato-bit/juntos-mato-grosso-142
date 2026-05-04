@@ -727,7 +727,7 @@ ${contextData ? `\n\nDADOS DISPONÍVEIS PARA ANÁLISE:${contextData}` : ''}`;
         messages: apiMessages,
         stream: true,
         max_tokens: 16384,
-        temperature: 0.4,
+        temperature: 0.2,
       }),
     });
 
