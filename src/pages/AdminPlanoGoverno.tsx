@@ -14,6 +14,7 @@ import ModeConfigPanel from '@/components/admin/ModeConfigPanel';
 import AnalysisModeSelector, { type AnalysisMode } from '@/components/admin/AnalysisModeSelector';
 import DataSourceFilters, { type DataFilters } from '@/components/admin/DataSourceFilters';
 import DocumentLibrary from '@/components/admin/DocumentLibrary';
+import { FichamentoExportButton } from '@/components/admin/FichamentoExportButton';
 import { GovernmentBalanceChart, type BalanceData } from '@/components/admin/GovernmentBalanceChart';
 import { CrossReferenceResultsPanel } from '@/components/admin/CrossReferenceResultsPanel';
 import { BalanceDetailModal, type BalanceItem } from '@/components/admin/BalanceDetailModal';
@@ -65,6 +66,15 @@ const REGIOES = [
   'Oeste',
   'Sudoeste'
 ];
+
+const MODE_LABELS: Record<string, string> = {
+  plano: 'Plano de Governo',
+  brainstorm: 'Brainstorm',
+  cruzamento: 'Cruzamento de Dados',
+  balanco: 'Balanço de Governo',
+  conteudo: 'Geração de Conteúdo',
+  coerencia: 'Análise de Coerência',
+};
 
 const AdminPlanoGoverno = () => {
   const { user, roles, isLoading: authLoading, isAdmin, hasRole } = useAuth();
