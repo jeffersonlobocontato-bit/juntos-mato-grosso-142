@@ -623,6 +623,8 @@ export async function exportFichamentoDOCX(data: FichamentoData): Promise<void> 
         })
       );
     } else if (block.kind === 'table') {
+      block.headers.forEach(h => extractRefsFromText(h).forEach(ref => usedRefs.add(ref)));
+      block.rows.forEach(row => row.forEach(c => extractRefsFromText(c).forEach(ref => usedRefs.add(ref))));
       const colCount = block.headers.length || 1;
       const colW = Math.floor(innerLeftW / colCount);
       const colWidths = Array(colCount).fill(colW);
@@ -637,7 +639,7 @@ export async function exportFichamentoDOCX(data: FichamentoData): Promise<void> 
             borders: allBorders,
             shading: { fill: 'D4AF37', type: ShadingType.CLEAR, color: 'auto' },
             margins: { top: 60, bottom: 60, left: 80, right: 80 },
-            children: [new Paragraph({ children: [new TextRun({ text: h, bold: true, color: 'FFFFFF', size: 18, font: 'Arial' })] })],
+            children: [new Paragraph({ children: [new TextRun({ text: renderRefsAsInlineLabels(h), bold: true, color: 'FFFFFF', size: 18, font: 'Arial' })] })],
           })
         ),
       });
@@ -649,7 +651,7 @@ export async function exportFichamentoDOCX(data: FichamentoData): Promise<void> 
               borders: allBorders,
               shading: ri % 2 === 1 ? { fill: 'FAF7EE', type: ShadingType.CLEAR, color: 'auto' } : undefined,
               margins: { top: 60, bottom: 60, left: 80, right: 80 },
-              children: [new Paragraph({ children: [new TextRun({ text: c, size: 18, font: 'Arial' })] })],
+              children: [new Paragraph({ children: [new TextRun({ text: renderRefsAsInlineLabels(c), size: 18, font: 'Arial' })] })],
             })
           ),
         })
