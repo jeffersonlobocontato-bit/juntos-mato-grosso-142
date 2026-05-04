@@ -13,7 +13,7 @@ import DocumentUploadModal from './DocumentUploadModal';
 import { 
   BookOpen, Plus, Search, FileText, Eye, EyeOff, Trash2,
   ExternalLink, Filter, Loader2, CheckCircle, Clock, AlertCircle, Circle,
-  Globe, Bot
+  Globe, Bot, Tag, AlertTriangle
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
@@ -36,6 +36,7 @@ interface AIDocument {
   created_at: string;
   eixos_tematicos?: { nome: string } | null;
   municipios?: { nome: string } | null;
+  temas?: { id: string; nome: string }[];
 }
 
 interface DocumentLibraryProps {
@@ -80,7 +81,7 @@ export function DocumentLibrary({ eixos, municipios, regioes, className }: Docum
     try {
       let query = supabase
         .from('ai_documents')
-        .select(`*, eixos_tematicos(nome), municipios(nome)`)
+        .select(`*, eixos_tematicos(nome), municipios(nome), ai_document_temas(temas(id, nome))`)
         .order('created_at', { ascending: false });
 
       if (!showInactive) query = query.eq('is_active', true);
@@ -90,7 +91,13 @@ export function DocumentLibrary({ eixos, municipios, regioes, className }: Docum
 
       const { data, error } = await query;
       if (error) throw error;
-      setDocuments((data as any[]) || []);
+      const normalized = ((data as any[]) || []).map((d: any) => ({
+        ...d,
+        temas: (d.ai_document_temas || [])
+          .map((link: any) => link.temas)
+          .filter(Boolean),
+      }));
+      setDocuments(normalized);
     } catch (error) {
       console.error('Error fetching documents:', error);
       toast({ title: "Erro ao carregar documentos", variant: "destructive" });
@@ -257,6 +264,30 @@ export function DocumentLibrary({ eixos, municipios, regioes, className }: Docum
                           
                           {doc.description && (
                             <p className="text-sm text-muted-foreground mt-1 line-clamp-1">{doc.description}</p>
+                          )}
+
+                          {/* Temas vinculados */}
+                          {doc.temas && doc.temas.length > 0 ? (
+                            <div className="flex items-center gap-1.5 flex-wrap mt-2">
+                              <Tag className="w-3 h-3 text-muted-foreground" />
+                              {doc.temas.slice(0, 6).map(t => (
+                                <Badge key={t.id} variant="outline" className="text-[10px] py-0">
+                                  {t.nome}
+                                </Badge>
+                              ))}
+                              {doc.temas.length > 6 && (
+                                <span className="text-[10px] text-muted-foreground">
+                                  +{doc.temas.length - 6}
+                                </span>
+                              )}
+                            </div>
+                          ) : (
+                            <div className="flex items-center gap-1.5 mt-2">
+                              <Badge variant="destructive" className="text-[10px] gap-1">
+                                <AlertTriangle className="w-3 h-3" />
+                                Sem tema vinculado — atualizar
+                              </Badge>
+                            </div>
                           )}
 
                           <div className="flex items-center gap-3 mt-2 text-xs text-muted-foreground">

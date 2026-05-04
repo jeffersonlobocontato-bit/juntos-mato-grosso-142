@@ -291,6 +291,42 @@ export type Database = {
           },
         ]
       }
+      ai_document_temas: {
+        Row: {
+          created_at: string
+          document_id: string
+          id: string
+          tema_id: string
+        }
+        Insert: {
+          created_at?: string
+          document_id: string
+          id?: string
+          tema_id: string
+        }
+        Update: {
+          created_at?: string
+          document_id?: string
+          id?: string
+          tema_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ai_document_temas_document_id_fkey"
+            columns: ["document_id"]
+            isOneToOne: false
+            referencedRelation: "ai_documents"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ai_document_temas_tema_id_fkey"
+            columns: ["tema_id"]
+            isOneToOne: false
+            referencedRelation: "temas"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       ai_documents: {
         Row: {
           content: string
