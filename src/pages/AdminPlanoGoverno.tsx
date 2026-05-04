@@ -187,7 +187,7 @@ const AdminPlanoGoverno = () => {
   // Fetch municipios and eixos
   useEffect(() => {
     const fetchData = async () => {
-      const [municipiosRes, eixosRes, docsRes, temasRes, subtemasRes] = await Promise.all([
+      const [municipiosRes, eixosRes, docsRes, temasRes, subtemasRes, agentDocsRes] = await Promise.all([
         supabase.from('municipios').select('id, nome, regiao').order('nome'),
         supabase.from('eixos_tematicos').select('id, nome').order('nome'),
         supabase
@@ -197,11 +197,20 @@ const AdminPlanoGoverno = () => {
           .order('title'),
         supabase.from('temas').select('id, nome, eixo_id').order('nome'),
         supabase.from('subtemas').select('id, nome, tema_id').order('nome'),
+        supabase.from('ai_agent_documents').select('document_id'),
       ]);
 
       if (municipiosRes.data) setMunicipios(municipiosRes.data);
       if (eixosRes.data) setEixos(eixosRes.data);
-      if (docsRes.data) setAvailableDocuments(docsRes.data);
+      if (docsRes.data) {
+        // Exibe apenas documentos relacionados aos eixos técnicos.
+        // Documentos vinculados a agentes de IA ficam exclusivamente
+        // visíveis na configuração do agente.
+        const agentDocIds = new Set(
+          (agentDocsRes.data || []).map((r: { document_id: string }) => r.document_id)
+        );
+        setAvailableDocuments(docsRes.data.filter(d => !agentDocIds.has(d.id)));
+      }
       if (temasRes.data) setTemas(temasRes.data as Tema[]);
       if (subtemasRes.data) setSubtemas(subtemasRes.data as Subtema[]);
     };
