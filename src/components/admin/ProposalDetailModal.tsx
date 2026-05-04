@@ -321,6 +321,7 @@ export const ProposalDetailModal = ({
       questionario: proposal.questionario as Record<string, unknown> | null,
       eixosMap,
       subtemasMap,
+      eixoId: proposal.eixo_id,
     };
   };
 

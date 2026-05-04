@@ -1,5 +1,6 @@
 import jsPDF from "jspdf";
 import { saveAs } from "file-saver";
+import { getBlocoFConfig } from "@/config/entrevistaQuestions";
 import {
   Document,
   Packer,
@@ -29,6 +30,7 @@ export interface EntrevistaExportData {
   questionario?: Record<string, unknown> | null;
   eixosMap?: Record<string, string>;
   subtemasMap?: Record<string, string>;
+  eixoId?: string | null;
 }
 
 interface QA {
@@ -197,9 +199,21 @@ const buildSecoes = (
   questionario: Record<string, unknown> | null | undefined,
   eixosMap?: Record<string, string>,
   subtemasMap?: Record<string, string>,
+  eixoId?: string | null,
 ): Secao[] => {
   if (!questionario) return [];
   const secoes: Secao[] = [];
+
+  // Sobrescreve labels do bloco_f com as perguntas reais do eixo
+  const blocoFLabels: Record<string, string> = { ...PERGUNTAS_LABELS.bloco_f };
+  if (eixoId) {
+    const cfg = getBlocoFConfig(eixoId);
+    const keys = ["q1", "q2", "q3", "q4", "q5", "q6"];
+    keys.forEach((k, i) => {
+      const prefix = i < 5 ? `F${i + 1}. ` : "F6. ";
+      if (cfg.perguntas[i]) blocoFLabels[k] = `${prefix}${cfg.perguntas[i]}`;
+    });
+  }
 
   // Ordem fixa
   const ordem = [
@@ -218,7 +232,7 @@ const buildSecoes = (
     if (!conteudo || typeof conteudo !== "object") continue;
 
     const tituloSecao = SECOES_LABELS[secaoKey] || humanizeKey(secaoKey);
-    const labelsSecao = PERGUNTAS_LABELS[secaoKey] || {};
+    const labelsSecao = secaoKey === "bloco_f" ? blocoFLabels : (PERGUNTAS_LABELS[secaoKey] || {});
     const perguntas: QA[] = [];
 
     for (const [campo, rawValor] of Object.entries(conteudo as Record<string, unknown>)) {
@@ -386,7 +400,7 @@ export const exportEntrevistaPDF = (data: EntrevistaExportData) => {
   // ── Perguntas e Respostas ──
   writeWrapped("Perguntas e Respostas", 14, 8, true);
 
-  const secoes = buildSecoes(data.questionario || null, data.eixosMap, data.subtemasMap);
+  const secoes = buildSecoes(data.questionario || null, data.eixosMap, data.subtemasMap, data.eixoId);
   if (secoes.length === 0) {
     writeWrapped("Nenhum questionário foi preenchido para esta entrevista.", 10, 4);
   }
@@ -537,7 +551,7 @@ export const exportEntrevistaDOCX = async (data: EntrevistaExportData) => {
   // Perguntas e respostas
   children.push(heading("Perguntas e Respostas", HeadingLevel.HEADING_1));
 
-  const secoes = buildSecoes(data.questionario || null, data.eixosMap, data.subtemasMap);
+  const secoes = buildSecoes(data.questionario || null, data.eixosMap, data.subtemasMap, data.eixoId);
   if (secoes.length === 0) {
     children.push(para("Nenhum questionário foi preenchido para esta entrevista."));
   }
