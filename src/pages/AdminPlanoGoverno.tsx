@@ -754,12 +754,142 @@ const AdminPlanoGoverno = () => {
                 Limpar Chat
               </Button>
             )}
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setHistoryOpen(v => !v)}
+              title={historyOpen ? 'Ocultar histórico' : 'Mostrar histórico'}
+            >
+              <History className="w-4 h-4 mr-1.5" />
+              {historyOpen ? 'Ocultar' : 'Histórico'}
+            </Button>
+            <Button
+              variant="default"
+              size="sm"
+              onClick={startNewConversation}
+              title="Nova conversa"
+            >
+              <Plus className="w-4 h-4 mr-1.5" />
+              Nova
+            </Button>
           </div>
         </div>
       </header>
 
-      <main className="container mx-auto px-4 py-6">
-        <div className="max-w-6xl mx-auto space-y-6">
+      <div className="container mx-auto px-4 py-6 flex gap-6">
+        {/* Sidebar de histórico */}
+        {historyOpen && (
+          <aside className="hidden lg:block w-64 shrink-0">
+            <Card className="sticky top-24">
+              <CardHeader className="pb-2 flex flex-row items-center justify-between">
+                <CardTitle className="text-sm flex items-center gap-2">
+                  <History className="w-4 h-4 text-primary" />
+                  Histórico
+                </CardTitle>
+                <Badge variant="secondary" className="text-[10px]">
+                  {conversations.length}
+                </Badge>
+              </CardHeader>
+              <CardContent className="p-2">
+                <ScrollArea className="h-[70vh]">
+                  {conversations.length === 0 ? (
+                    <p className="text-xs text-muted-foreground p-3 italic">
+                      Nenhuma conversa salva ainda. Envie uma mensagem para criar.
+                    </p>
+                  ) : (
+                    <ul className="space-y-1">
+                      {conversations.map(c => {
+                        const isActive = c.id === currentConversationId;
+                        const isRenaming = renamingId === c.id;
+                        return (
+                          <li
+                            key={c.id}
+                            className={cn(
+                              'group rounded-md px-2 py-1.5 text-sm transition-colors',
+                              isActive ? 'bg-primary/10 border border-primary/30' : 'hover:bg-muted'
+                            )}
+                          >
+                            {isRenaming ? (
+                              <div className="flex items-center gap-1">
+                                <Input
+                                  value={renameValue}
+                                  onChange={e => setRenameValue(e.target.value)}
+                                  className="h-7 text-xs"
+                                  autoFocus
+                                  onKeyDown={e => {
+                                    if (e.key === 'Enter') renameConversation(c.id, renameValue);
+                                    if (e.key === 'Escape') setRenamingId(null);
+                                  }}
+                                />
+                                <Button
+                                  size="icon"
+                                  variant="ghost"
+                                  className="h-6 w-6"
+                                  onClick={() => renameConversation(c.id, renameValue)}
+                                >
+                                  <Check className="h-3 w-3" />
+                                </Button>
+                                <Button
+                                  size="icon"
+                                  variant="ghost"
+                                  className="h-6 w-6"
+                                  onClick={() => setRenamingId(null)}
+                                >
+                                  <X className="h-3 w-3" />
+                                </Button>
+                              </div>
+                            ) : (
+                              <div className="flex items-center gap-1">
+                                <button
+                                  onClick={() => openConversation(c.id)}
+                                  className="flex-1 text-left min-w-0"
+                                >
+                                  <div className="truncate font-medium text-xs">{c.title}</div>
+                                  <div className="text-[10px] text-muted-foreground flex items-center gap-1">
+                                    <span>{MODE_LABELS[c.mode] || c.mode}</span>
+                                    <span>·</span>
+                                    <span>{new Date(c.updated_at).toLocaleDateString('pt-BR')}</span>
+                                  </div>
+                                </button>
+                                <div className="opacity-0 group-hover:opacity-100 flex">
+                                  <Button
+                                    size="icon"
+                                    variant="ghost"
+                                    className="h-6 w-6"
+                                    title="Renomear"
+                                    onClick={() => {
+                                      setRenamingId(c.id);
+                                      setRenameValue(c.title);
+                                    }}
+                                  >
+                                    <Pencil className="h-3 w-3" />
+                                  </Button>
+                                  <Button
+                                    size="icon"
+                                    variant="ghost"
+                                    className="h-6 w-6 text-destructive"
+                                    title="Excluir"
+                                    onClick={() => {
+                                      if (confirm('Excluir esta conversa?')) deleteConversation(c.id);
+                                    }}
+                                  >
+                                    <Trash2 className="h-3 w-3" />
+                                  </Button>
+                                </div>
+                              </div>
+                            )}
+                          </li>
+                        );
+                      })}
+                    </ul>
+                  )}
+                </ScrollArea>
+              </CardContent>
+            </Card>
+          </aside>
+        )}
+
+        <main className="flex-1 min-w-0 space-y-6">
           {/* Mode Selector */}
           <Card>
             <CardHeader className="pb-3">
