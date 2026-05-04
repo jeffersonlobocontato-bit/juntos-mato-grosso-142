@@ -8,6 +8,8 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Badge } from '@/components/ui/badge';
+import { cn } from '@/lib/utils';
 import { useToast } from '@/hooks/use-toast';
 import MarkdownRenderer from '@/components/admin/MarkdownRenderer';
 import ModeConfigPanel from '@/components/admin/ModeConfigPanel';
@@ -28,7 +30,13 @@ import {
   MessageSquare,
   Settings,
   Maximize2,
-  Minimize2
+  Minimize2,
+  Plus,
+  History,
+  Trash2,
+  Pencil,
+  Check,
+  X
 } from 'lucide-react';
 import {
   Dialog,
@@ -52,6 +60,16 @@ type Municipio = {
 type Eixo = {
   id: string;
   nome: string;
+};
+
+type Tema = { id: string; nome: string; eixo_id: string };
+type Subtema = { id: string; nome: string; tema_id: string };
+
+type ConversationListItem = {
+  id: string;
+  title: string;
+  mode: string;
+  updated_at: string;
 };
 
 const REGIOES = [
@@ -94,6 +112,8 @@ const AdminPlanoGoverno = () => {
     regiao: '',
     municipio: '',
     eixo: '',
+    tema: '',
+    subtema: '',
     documentIds: [],
     docCategory: [],
     temporalStatus: '',
@@ -102,12 +122,21 @@ const AdminPlanoGoverno = () => {
   // Data
   const [municipios, setMunicipios] = useState<Municipio[]>([]);
   const [eixos, setEixos] = useState<Eixo[]>([]);
+  const [temas, setTemas] = useState<Tema[]>([]);
+  const [subtemas, setSubtemas] = useState<Subtema[]>([]);
   const [availableDocuments, setAvailableDocuments] = useState<{ id: string; title: string; doc_category: string; temporal_status: string | null }[]>([]);
 
   // Chat state
   const [messages, setMessages] = useState<Message[]>([]);
   const [inputMessage, setInputMessage] = useState('');
   const [isStreaming, setIsStreaming] = useState(false);
+
+  // History state
+  const [conversations, setConversations] = useState<ConversationListItem[]>([]);
+  const [currentConversationId, setCurrentConversationId] = useState<string | null>(null);
+  const [historyOpen, setHistoryOpen] = useState(true);
+  const [renamingId, setRenamingId] = useState<string | null>(null);
+  const [renameValue, setRenameValue] = useState('');
 
   // Balance and cross-reference data
   const [balanceData, setBalanceData] = useState<BalanceData[]>([]);
@@ -158,19 +187,23 @@ const AdminPlanoGoverno = () => {
   // Fetch municipios and eixos
   useEffect(() => {
     const fetchData = async () => {
-      const [municipiosRes, eixosRes, docsRes] = await Promise.all([
+      const [municipiosRes, eixosRes, docsRes, temasRes, subtemasRes] = await Promise.all([
         supabase.from('municipios').select('id, nome, regiao').order('nome'),
         supabase.from('eixos_tematicos').select('id, nome').order('nome'),
         supabase
           .from('ai_documents')
           .select('id, title, doc_category, temporal_status')
           .eq('is_active', true)
-          .order('title')
+          .order('title'),
+        supabase.from('temas').select('id, nome, eixo_id').order('nome'),
+        supabase.from('subtemas').select('id, nome, tema_id').order('nome'),
       ]);
 
       if (municipiosRes.data) setMunicipios(municipiosRes.data);
       if (eixosRes.data) setEixos(eixosRes.data);
       if (docsRes.data) setAvailableDocuments(docsRes.data);
+      if (temasRes.data) setTemas(temasRes.data as Tema[]);
+      if (subtemasRes.data) setSubtemas(subtemasRes.data as Subtema[]);
     };
 
     if (user && isAuthorized) {
@@ -344,6 +377,123 @@ const AdminPlanoGoverno = () => {
     });
   };
 
+  // ---------------------------------------------------------------------------
+  // Histórico de conversas
+  // ---------------------------------------------------------------------------
+  const loadConversations = async () => {
+    if (!user) return;
+    const { data, error } = await supabase
+      .from('plano_governo_conversations' as any)
+      .select('id, title, mode, updated_at')
+      .eq('user_id', user.id)
+      .order('updated_at', { ascending: false })
+      .limit(80);
+    if (!error && data) setConversations(data as unknown as ConversationListItem[]);
+  };
+
+  useEffect(() => {
+    if (user && isAuthorized) loadConversations();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [user, isAuthorized]);
+
+  const persistConversation = async (
+    nextMessages: Message[],
+    overrideTitle?: string
+  ): Promise<string | null> => {
+    if (!user || nextMessages.length === 0) return currentConversationId;
+
+    const firstUser = nextMessages.find(m => m.role === 'user');
+    const inferredTitle = (overrideTitle ?? firstUser?.content ?? 'Nova conversa')
+      .replace(/\s+/g, ' ')
+      .trim()
+      .slice(0, 80) || 'Nova conversa';
+
+    if (currentConversationId) {
+      const { error } = await supabase
+        .from('plano_governo_conversations' as any)
+        .update({
+          messages: nextMessages as any,
+          mode: analysisMode,
+          filters: filters as any,
+          ...(overrideTitle ? { title: inferredTitle } : {}),
+        } as any)
+        .eq('id', currentConversationId);
+      if (error) console.error('Erro atualizando conversa:', error);
+      loadConversations();
+      return currentConversationId;
+    }
+
+    const { data, error } = await supabase
+      .from('plano_governo_conversations' as any)
+      .insert({
+        user_id: user.id,
+        title: inferredTitle,
+        mode: analysisMode,
+        filters: filters as any,
+        messages: nextMessages as any,
+      } as any)
+      .select('id')
+      .single();
+    if (error) {
+      console.error('Erro criando conversa:', error);
+      return null;
+    }
+    const newId = (data as any)?.id ?? null;
+    if (newId) setCurrentConversationId(newId);
+    loadConversations();
+    return newId;
+  };
+
+  const startNewConversation = () => {
+    setCurrentConversationId(null);
+    setMessages([]);
+    setCrossRefResults([]);
+  };
+
+  const openConversation = async (id: string) => {
+    const { data, error } = await supabase
+      .from('plano_governo_conversations' as any)
+      .select('id, title, mode, filters, messages')
+      .eq('id', id)
+      .single();
+    if (error || !data) {
+      toast({ title: 'Erro', description: 'Não foi possível abrir a conversa', variant: 'destructive' });
+      return;
+    }
+    const c = data as any;
+    setCurrentConversationId(c.id);
+    setMessages((c.messages as Message[]) || []);
+    if (c.mode) setAnalysisMode(c.mode as AnalysisMode);
+    if (c.filters) {
+      setFilters(prev => ({ ...prev, ...(c.filters as Partial<DataFilters>) }));
+    }
+    setActiveTab('chat');
+  };
+
+  const deleteConversation = async (id: string) => {
+    const { error } = await supabase
+      .from('plano_governo_conversations' as any)
+      .delete()
+      .eq('id', id);
+    if (error) {
+      toast({ title: 'Erro', description: 'Não foi possível excluir', variant: 'destructive' });
+      return;
+    }
+    if (currentConversationId === id) startNewConversation();
+    loadConversations();
+  };
+
+  const renameConversation = async (id: string, newTitle: string) => {
+    const t = newTitle.trim().slice(0, 80);
+    if (!t) return;
+    await supabase
+      .from('plano_governo_conversations' as any)
+      .update({ title: t } as any)
+      .eq('id', id);
+    setRenamingId(null);
+    loadConversations();
+  };
+
   // Scroll to bottom when messages change
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
@@ -446,6 +596,14 @@ const AdminPlanoGoverno = () => {
       if (analysisMode === 'cruzamento' && assistantContent) {
         parseCrossReferenceResults(assistantContent);
       }
+
+      // Persiste a conversa após cada resposta da IA
+      const finalMessages: Message[] = [
+        ...messages,
+        userMessage,
+        { role: 'assistant', content: assistantContent },
+      ];
+      persistConversation(finalMessages);
     } catch (error) {
       console.error('Error sending message:', error);
       toast({
@@ -494,8 +652,7 @@ const AdminPlanoGoverno = () => {
   };
 
   const clearChat = () => {
-    setMessages([]);
-    setCrossRefResults([]);
+    startNewConversation();
   };
 
   const getModeDescription = () => {
@@ -599,12 +756,142 @@ const AdminPlanoGoverno = () => {
                 Limpar Chat
               </Button>
             )}
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setHistoryOpen(v => !v)}
+              title={historyOpen ? 'Ocultar histórico' : 'Mostrar histórico'}
+            >
+              <History className="w-4 h-4 mr-1.5" />
+              {historyOpen ? 'Ocultar' : 'Histórico'}
+            </Button>
+            <Button
+              variant="default"
+              size="sm"
+              onClick={startNewConversation}
+              title="Nova conversa"
+            >
+              <Plus className="w-4 h-4 mr-1.5" />
+              Nova
+            </Button>
           </div>
         </div>
       </header>
 
-      <main className="container mx-auto px-4 py-6">
-        <div className="max-w-6xl mx-auto space-y-6">
+      <div className="container mx-auto px-4 py-6 flex gap-6">
+        {/* Sidebar de histórico */}
+        {historyOpen && (
+          <aside className="hidden lg:block w-64 shrink-0">
+            <Card className="sticky top-24">
+              <CardHeader className="pb-2 flex flex-row items-center justify-between">
+                <CardTitle className="text-sm flex items-center gap-2">
+                  <History className="w-4 h-4 text-primary" />
+                  Histórico
+                </CardTitle>
+                <Badge variant="secondary" className="text-[10px]">
+                  {conversations.length}
+                </Badge>
+              </CardHeader>
+              <CardContent className="p-2">
+                <ScrollArea className="h-[70vh]">
+                  {conversations.length === 0 ? (
+                    <p className="text-xs text-muted-foreground p-3 italic">
+                      Nenhuma conversa salva ainda. Envie uma mensagem para criar.
+                    </p>
+                  ) : (
+                    <ul className="space-y-1">
+                      {conversations.map(c => {
+                        const isActive = c.id === currentConversationId;
+                        const isRenaming = renamingId === c.id;
+                        return (
+                          <li
+                            key={c.id}
+                            className={cn(
+                              'group rounded-md px-2 py-1.5 text-sm transition-colors',
+                              isActive ? 'bg-primary/10 border border-primary/30' : 'hover:bg-muted'
+                            )}
+                          >
+                            {isRenaming ? (
+                              <div className="flex items-center gap-1">
+                                <Input
+                                  value={renameValue}
+                                  onChange={e => setRenameValue(e.target.value)}
+                                  className="h-7 text-xs"
+                                  autoFocus
+                                  onKeyDown={e => {
+                                    if (e.key === 'Enter') renameConversation(c.id, renameValue);
+                                    if (e.key === 'Escape') setRenamingId(null);
+                                  }}
+                                />
+                                <Button
+                                  size="icon"
+                                  variant="ghost"
+                                  className="h-6 w-6"
+                                  onClick={() => renameConversation(c.id, renameValue)}
+                                >
+                                  <Check className="h-3 w-3" />
+                                </Button>
+                                <Button
+                                  size="icon"
+                                  variant="ghost"
+                                  className="h-6 w-6"
+                                  onClick={() => setRenamingId(null)}
+                                >
+                                  <X className="h-3 w-3" />
+                                </Button>
+                              </div>
+                            ) : (
+                              <div className="flex items-center gap-1">
+                                <button
+                                  onClick={() => openConversation(c.id)}
+                                  className="flex-1 text-left min-w-0"
+                                >
+                                  <div className="truncate font-medium text-xs">{c.title}</div>
+                                  <div className="text-[10px] text-muted-foreground flex items-center gap-1">
+                                    <span>{MODE_LABELS[c.mode] || c.mode}</span>
+                                    <span>·</span>
+                                    <span>{new Date(c.updated_at).toLocaleDateString('pt-BR')}</span>
+                                  </div>
+                                </button>
+                                <div className="opacity-0 group-hover:opacity-100 flex">
+                                  <Button
+                                    size="icon"
+                                    variant="ghost"
+                                    className="h-6 w-6"
+                                    title="Renomear"
+                                    onClick={() => {
+                                      setRenamingId(c.id);
+                                      setRenameValue(c.title);
+                                    }}
+                                  >
+                                    <Pencil className="h-3 w-3" />
+                                  </Button>
+                                  <Button
+                                    size="icon"
+                                    variant="ghost"
+                                    className="h-6 w-6 text-destructive"
+                                    title="Excluir"
+                                    onClick={() => {
+                                      if (confirm('Excluir esta conversa?')) deleteConversation(c.id);
+                                    }}
+                                  >
+                                    <Trash2 className="h-3 w-3" />
+                                  </Button>
+                                </div>
+                              </div>
+                            )}
+                          </li>
+                        );
+                      })}
+                    </ul>
+                  )}
+                </ScrollArea>
+              </CardContent>
+            </Card>
+          </aside>
+        )}
+
+        <main className="flex-1 min-w-0 space-y-6">
           {/* Mode Selector */}
           <Card>
             <CardHeader className="pb-3">
@@ -647,6 +934,8 @@ const AdminPlanoGoverno = () => {
                 regioes={REGIOES}
                 municipios={municipios}
                 eixos={eixos}
+                temas={temas}
+                subtemas={subtemas}
                 documents={availableDocuments}
               />
 
@@ -803,8 +1092,8 @@ const AdminPlanoGoverno = () => {
               <ModeConfigPanel isAdmin={isAdmin} />
             </TabsContent>
           </Tabs>
-        </div>
-      </main>
+        </main>
+      </div>
 
       {/* Balance Detail Modal */}
       <BalanceDetailModal

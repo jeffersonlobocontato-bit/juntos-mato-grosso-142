@@ -26,6 +26,8 @@ interface RequestBody {
     cidade?: string;
     // Thematic
     eixo?: string;
+    tema?: string;
+    subtema?: string;
     // Document specific
     documentIds?: string[];
     docCategory?: string[];
@@ -133,6 +135,24 @@ serve(async (req) => {
       eixoId = eixoData?.id || null;
       console.log("Eixo filter active:", filters.eixo, "-> ID:", eixoId);
     }
+
+    // Resolve tema/subtema IDs
+    let temaId: string | null = null;
+    if (filters.tema) {
+      let q = supabase.from("temas").select("id").eq("nome", filters.tema);
+      if (eixoId) q = q.eq("eixo_id", eixoId);
+      const { data: temaData } = await q.maybeSingle();
+      temaId = temaData?.id || null;
+      console.log("Tema filter:", filters.tema, "->", temaId);
+    }
+    let subtemaId: string | null = null;
+    if (filters.subtema) {
+      let q = supabase.from("subtemas").select("id").eq("nome", filters.subtema);
+      if (temaId) q = q.eq("tema_id", temaId);
+      const { data: sData } = await q.maybeSingle();
+      subtemaId = sData?.id || null;
+      console.log("Subtema filter:", filters.subtema, "->", subtemaId);
+    }
     
     // Get municipalities for region filtering
     let municipioNames: string[] = [];
@@ -185,6 +205,11 @@ serve(async (req) => {
 
     // 2. Fetch technical proposals if enabled
     if (filters.includePropostas !== false) {
+      // Estratégia: buscar TODAS as propostas correspondentes ao tema/subtema/eixo,
+      // detalhar até 200 e, se exceder, resumir as demais agregadamente para
+      // garantir que nenhum técnico ouvido seja omitido.
+      const PROPOSAL_DETAIL_LIMIT = 200;
+
       let proposalsQuery = supabase
         .from("propostas_tecnicas")
         .select(`
@@ -196,21 +221,33 @@ serve(async (req) => {
           metas,
           municipio_id,
           eixo_id,
+          tema_id,
+          subtema_id,
+          entrevistado,
+          representante_nome,
+          representante_cargo,
+          instituicao_nome,
+          tipo_proposta,
           municipios(nome, regiao),
-          eixos_tematicos(nome)
-        `)
-        .limit(30);
+          eixos_tematicos(nome),
+          temas(nome),
+          subtemas(nome)
+        `, { count: "exact" })
+        .order("updated_at", { ascending: false });
 
-      // Filter by eixo_id directly (correct way)
-      if (eixoId) {
+      // Filtros temáticos hierárquicos
+      if (subtemaId) {
+        proposalsQuery = proposalsQuery.eq("subtema_id", subtemaId);
+      } else if (temaId) {
+        proposalsQuery = proposalsQuery.eq("tema_id", temaId);
+      } else if (eixoId) {
         proposalsQuery = proposalsQuery.eq("eixo_id", eixoId);
       }
 
-      // Filter by municipio_id directly (correct way)
+      // Filtros de localização
       if (municipioId) {
         proposalsQuery = proposalsQuery.eq("municipio_id", municipioId);
       } else if (filters.regiao && municipioNames.length > 0) {
-        // Get municipio IDs for the region
         const { data: municipiosIds } = await supabase
           .from("municipios")
           .select("id")
@@ -220,21 +257,69 @@ serve(async (req) => {
         }
       }
 
-      const { data: proposals } = await proposalsQuery;
-      console.log("Proposals fetched:", proposals?.length || 0);
+      // Aplica limite de detalhamento (mas usamos `count` para ver o total real)
+      proposalsQuery = proposalsQuery.limit(PROPOSAL_DETAIL_LIMIT);
+
+      const { data: proposals, count: totalProposals } = await proposalsQuery;
+      console.log(`Proposals fetched: ${proposals?.length || 0} of ${totalProposals ?? '?'} total matching`);
 
       if (proposals && proposals.length > 0) {
-        contextData += "\n\n=== PROPOSTAS TÉCNICAS ===\n";
+        const headerLine = `\n\n=== PROPOSTAS TÉCNICAS DOS ESPECIALISTAS (${proposals.length}${
+          totalProposals && totalProposals > proposals.length ? ` de ${totalProposals}` : ''
+        }) ===\n`;
+        contextData += headerLine;
+        contextData += `OBRIGATÓRIO: Considere CADA UMA das propostas abaixo na construção do plano. Cite os técnicos/entrevistados pelo nome quando relevante.\n\n`;
+
         proposals.forEach((p: any, i: number) => {
           const eixoNome = p.eixos_tematicos?.nome || 'N/A';
+          const temaNome = p.temas?.nome || '';
+          const subNome = p.subtemas?.nome || '';
           const municipioNome = p.municipios?.nome || 'Estadual';
+          const autor = p.entrevistado
+            || p.representante_nome
+            || p.instituicao_nome
+            || 'Técnico/entrevistado';
+          const cargo = p.representante_cargo ? ` (${p.representante_cargo})` : '';
+
           contextData += `${i + 1}. [${p.status}] ${p.titulo}\n`;
-          contextData += `   Eixo: ${eixoNome} | Município: ${municipioNome} | Etapa: ${p.etapa}\n`;
-          contextData += `   Descrição: ${p.descricao?.substring(0, 300)}${p.descricao?.length > 300 ? '...' : ''}\n`;
-          if (p.metas) contextData += `   Metas: ${p.metas.substring(0, 150)}...\n`;
-          if (p.indicadores) contextData += `   Indicadores: ${p.indicadores.substring(0, 150)}...\n`;
+          contextData += `   Autor/Entrevistado: ${autor}${cargo}\n`;
+          contextData += `   Eixo: ${eixoNome}`;
+          if (temaNome) contextData += ` | Tema: ${temaNome}`;
+          if (subNome) contextData += ` | Subtema: ${subNome}`;
+          contextData += ` | Município: ${municipioNome} | Etapa: ${p.etapa}\n`;
+          if (p.descricao) {
+            contextData += `   Descrição: ${p.descricao.substring(0, 400)}${p.descricao.length > 400 ? '...' : ''}\n`;
+          }
+          if (p.metas) contextData += `   Metas: ${p.metas.substring(0, 200)}${p.metas.length > 200 ? '...' : ''}\n`;
+          if (p.indicadores) contextData += `   Indicadores: ${p.indicadores.substring(0, 200)}${p.indicadores.length > 200 ? '...' : ''}\n`;
           contextData += '\n';
         });
+
+        // Se excedeu o limite, traz um sumário agregado das demais
+        if (totalProposals && totalProposals > proposals.length) {
+          let extraQuery = supabase
+            .from("propostas_tecnicas")
+            .select("titulo, entrevistado, representante_nome, instituicao_nome, status")
+            .order("updated_at", { ascending: false })
+            .range(proposals.length, Math.min(totalProposals, proposals.length + 500) - 1);
+          if (subtemaId) extraQuery = extraQuery.eq("subtema_id", subtemaId);
+          else if (temaId) extraQuery = extraQuery.eq("tema_id", temaId);
+          else if (eixoId) extraQuery = extraQuery.eq("eixo_id", eixoId);
+          if (municipioId) extraQuery = extraQuery.eq("municipio_id", municipioId);
+          const { data: extras } = await extraQuery;
+
+          if (extras && extras.length > 0) {
+            contextData += `--- PROPOSTAS ADICIONAIS DO MESMO TEMA (resumo, ${extras.length}) ---\n`;
+            contextData += `As propostas abaixo também devem ser consideradas no plano. Citação resumida por limite de espaço — todas pertencem ao mesmo tema/eixo selecionado:\n`;
+            extras.forEach((e: any, i: number) => {
+              const autor = e.entrevistado || e.representante_nome || e.instituicao_nome || '—';
+              contextData += `${proposals.length + i + 1}. [${e.status}] ${e.titulo} — Autor: ${autor}\n`;
+            });
+            contextData += '\n';
+          }
+        }
+      } else if (temaId || subtemaId) {
+        contextData += `\n\n=== PROPOSTAS TÉCNICAS ===\nNenhuma proposta técnica encontrada para o tema/subtema selecionado. Avise o usuário antes de inventar conteúdo.\n`;
       }
     }
 
@@ -481,6 +566,12 @@ IMPORTANTE: Seja específico nas avaliações. Cite qual documento de referênci
       
       if (filters.eixo) {
         parts.push(`EIXO TEMÁTICO SELECIONADO: ${filters.eixo}`);
+      }
+      if (filters.tema) {
+        parts.push(`TEMA SELECIONADO: ${filters.tema}`);
+      }
+      if (filters.subtema) {
+        parts.push(`SUBTEMA SELECIONADO: ${filters.subtema}`);
       }
       if (filters.cidade) {
         parts.push(`MUNICÍPIO SELECIONADO: ${filters.cidade}`);
