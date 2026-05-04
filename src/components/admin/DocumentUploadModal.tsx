@@ -394,6 +394,19 @@ export function DocumentUploadModal({
             </Select>
           </div>
 
+          {/* Temas vinculados (obrigatório) */}
+          <div className="space-y-2">
+            <Label className="flex items-center gap-2">
+              Temas vinculados <span className="text-destructive">*</span>
+            </Label>
+            <p className="text-xs text-muted-foreground">
+              Selecione os temas a que este documento se refere. A IA usará apenas
+              documentos vinculados ao tema da entrevista para fazer o cruzamento,
+              evitando misturar fontes não relacionadas.
+            </p>
+            <TemasMultiSelect value={temaIds} onChange={setTemaIds} />
+          </div>
+
           {/* Location */}
           <div className="grid grid-cols-2 gap-4">
             <div className="space-y-2">
