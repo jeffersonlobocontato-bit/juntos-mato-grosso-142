@@ -134,6 +134,32 @@ export function DocumentLibrary({ eixos, municipios, regioes, className }: Docum
     }
   };
 
+  const updateDocumentEixo = async (docId: string, newEixoId: string | null) => {
+    try {
+      const { error } = await supabase
+        .from('ai_documents')
+        .update({ eixo_id: newEixoId })
+        .eq('id', docId);
+      if (error) throw error;
+      setDocuments(prev =>
+        prev.map(doc =>
+          doc.id === docId
+            ? {
+                ...doc,
+                eixo_id: newEixoId,
+                eixos_tematicos: newEixoId
+                  ? { nome: eixos.find(e => e.id === newEixoId)?.nome || '' }
+                  : null,
+              }
+            : doc,
+        ),
+      );
+      toast({ title: 'Eixo atualizado' });
+    } catch (error) {
+      toast({ title: 'Erro ao atualizar eixo', variant: 'destructive' });
+    }
+  };
+
   const filteredDocuments = documents.filter(doc => {
     if (!searchTerm) return true;
     const search = searchTerm.toLowerCase();
@@ -293,8 +319,30 @@ export function DocumentLibrary({ eixos, municipios, regioes, className }: Docum
                             onChanged={fetchDocuments}
                           />
 
+                          {/* Vincular Eixo Temático */}
+                          <div className="flex items-center gap-2 mt-2">
+                            <Label className="text-xs text-muted-foreground">Eixo:</Label>
+                            <Select
+                              value={doc.eixo_id || '__none__'}
+                              onValueChange={(v) =>
+                                updateDocumentEixo(doc.id, v === '__none__' ? null : v)
+                              }
+                            >
+                              <SelectTrigger className="h-7 text-xs w-[260px]">
+                                <SelectValue placeholder="Selecionar eixo" />
+                              </SelectTrigger>
+                              <SelectContent>
+                                <SelectItem value="__none__">Sem eixo</SelectItem>
+                                {eixos.map((e) => (
+                                  <SelectItem key={e.id} value={e.id}>
+                                    {e.nome}
+                                  </SelectItem>
+                                ))}
+                              </SelectContent>
+                            </Select>
+                          </div>
+
                           <div className="flex items-center gap-3 mt-2 text-xs text-muted-foreground">
-                            {doc.eixos_tematicos && <span>Eixo: {doc.eixos_tematicos.nome}</span>}
                             {doc.regiao && <span>Região: {doc.regiao}</span>}
                             {doc.municipios && <span>Município: {doc.municipios.nome}</span>}
                             <span>{new Date(doc.created_at).toLocaleDateString('pt-BR')}</span>
