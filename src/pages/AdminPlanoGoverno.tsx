@@ -25,7 +25,6 @@ import {
   Sparkles, 
   Copy,
   Loader2,
-  BookOpen,
   MessageSquare,
   Settings,
   Maximize2,
