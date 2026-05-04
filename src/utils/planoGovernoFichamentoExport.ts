@@ -255,45 +255,14 @@ export function exportFichamentoPDF(data: FichamentoData): void {
     doc.line(mainX + mainColW + gap / 2, contentTop, mainX + mainColW + gap / 2, contentBottom);
   };
 
-  // ---- TOKENIZAÇÃO ------------------------------------------------------
-  const spans = tokenizeBody(data.body);
+  // ---- PARSE EM BLOCOS --------------------------------------------------
+  const blocks = parseBlocks(data.body);
   const sourcesById = new Map<number, FichamentoSource>();
   data.sources.forEach(s => sourcesById.set(s.id, s));
 
-  // Quebra spans em parágrafos (separados por \n\n) e depois em linhas que cabem na coluna principal
   doc.setFont('helvetica', 'normal');
   doc.setFontSize(10.5);
 
-  // Estrutura de renderização: lista de tokens visuais por página
-  type VisualToken = { kind: 'word'; text: string } | { kind: 'ref'; n: number } | { kind: 'space' } | { kind: 'br' } | { kind: 'parabreak' };
-  const tokens: VisualToken[] = [];
-  spans.forEach(sp => {
-    if (sp.ref !== undefined) {
-      tokens.push({ kind: 'ref', n: sp.ref });
-      return;
-    }
-    const text = sp.text || '';
-    // separa por \n
-    const parts = text.split(/\n/);
-    parts.forEach((part, i) => {
-      const words = part.split(/\s+/).filter(Boolean);
-      const wasBlankLineBefore = i > 0 && (parts[i - 1] === '' || parts[i - 1].trim() === '');
-      if (i > 0) {
-        // detectar parágrafo (linha em branco)
-        if (wasBlankLineBefore || part.trim() === '') {
-          tokens.push({ kind: 'parabreak' });
-        } else {
-          tokens.push({ kind: 'br' });
-        }
-      }
-      words.forEach((w, wi) => {
-        if (wi > 0) tokens.push({ kind: 'space' });
-        tokens.push({ kind: 'word', text: w });
-      });
-    });
-  });
-
-  // Renderiza por palavra/referência calculando wrap e capturando posição (x, y) de cada ref
   const lineH = 5.2; // mm
   const paraGap = 2.5;
   const refPositions: { ref: number; page: number; x: number; y: number }[] = [];
@@ -357,27 +326,106 @@ export function exportFichamentoPDF(data: FichamentoData): void {
       cursorX = mainX;
       ensureSpace(lineH);
     }
-    // Pequena bolinha colorida de fundo
+    // Bolinha colorida com número centralizado
+    const cx = cursorX + w / 2;
+    const cy = cursorY - 1.6;
     doc.setFillColor(color[0], color[1], color[2]);
-    doc.circle(cursorX + w / 2, cursorY - 1.6, 1.6, 'F');
+    doc.circle(cx, cy, 1.9, 'F');
     doc.setTextColor(255, 255, 255);
-    doc.text(label, cursorX + w / 2, cursorY - 0.8, { align: 'center', baseline: 'middle' });
-    // Posição do marcador para o conector
-    refPositions.push({ ref: n, page: pageNum, x: cursorX + w, y: cursorY - 1.5 });
-    cursorX += w + 0.5;
+    doc.text(String(n), cx, cy, { align: 'center', baseline: 'middle' });
+    refPositions.push({ ref: n, page: pageNum, x: cursorX + w, y: cy });
+    cursorX += w + 0.6;
   };
 
-  for (const t of tokens) {
-    if (t.kind === 'word') writeWord(t.text);
-    else if (t.kind === 'space') writeSpace();
-    else if (t.kind === 'ref') writeRef(t.n);
-    else if (t.kind === 'br') {
-      cursorY += lineH;
+  const renderTextSpans = (spans: BodySpan[]) => {
+    spans.forEach(sp => {
+      if (sp.ref !== undefined) {
+        writeRef(sp.ref);
+        return;
+      }
+      const text = sp.text || '';
+      const lines = text.split(/\n/);
+      lines.forEach((part, li) => {
+        if (li > 0) {
+          cursorY += lineH;
+          cursorX = mainX;
+          ensureSpace(lineH);
+        }
+        const words = part.split(/(\s+)/);
+        words.forEach(token => {
+          if (!token) return;
+          if (/^\s+$/.test(token)) {
+            writeSpace();
+          } else {
+            writeWord(token);
+          }
+        });
+      });
+    });
+  };
+
+  // Render blocos
+  for (const block of blocks) {
+    if (block.kind === 'heading') {
+      ensureSpace(lineH + 2);
       cursorX = mainX;
-      ensureSpace(lineH);
-    } else if (t.kind === 'parabreak') {
+      doc.setFont('helvetica', 'bold');
+      doc.setFontSize(block.level <= 2 ? 12 : 11);
+      doc.setTextColor(20, 20, 20);
+      const lines = doc.splitTextToSize(cleanMarkdownInline(block.text), mainColW);
+      lines.forEach((ln: string) => {
+        ensureSpace(lineH);
+        doc.text(ln, mainX, cursorY);
+        cursorY += lineH;
+      });
+      cursorY += paraGap;
+      cursorX = mainX;
+    } else if (block.kind === 'para') {
+      const spans = tokenizeText(block.text);
+      cursorX = mainX;
+      renderTextSpans(spans);
       cursorY += lineH + paraGap;
       cursorX = mainX;
+      ensureSpace(lineH);
+    } else if (block.kind === 'table') {
+      // Renderiza tabela na coluna principal usando autoTable
+      ensureSpace(lineH * 3);
+      const startY = cursorY - 1;
+      autoTable(doc, {
+        startY,
+        margin: { left: mainX, right: pageW - (mainX + mainColW) },
+        tableWidth: mainColW,
+        head: [block.headers],
+        body: block.rows,
+        theme: 'grid',
+        styles: {
+          font: 'helvetica',
+          fontSize: 8.5,
+          cellPadding: 1.5,
+          textColor: [25, 25, 25],
+          lineColor: [200, 200, 200],
+          lineWidth: 0.15,
+          overflow: 'linebreak',
+          valign: 'top',
+        },
+        headStyles: {
+          fillColor: BRAND_COLOR_RGB,
+          textColor: [255, 255, 255],
+          fontStyle: 'bold',
+          fontSize: 8.5,
+        },
+        alternateRowStyles: { fillColor: [248, 246, 240] },
+        didDrawPage: () => {
+          // Quando autoTable cria nova página, redesenha header/footer
+          drawHeaderFooter(doc.getNumberOfPages(), '');
+        },
+      });
+      // @ts-ignore - lastAutoTable é injetado pelo plugin
+      const finalY = (doc as any).lastAutoTable?.finalY ?? cursorY;
+      cursorY = finalY + paraGap + 2;
+      cursorX = mainX;
+      // autoTable pode ter avançado de página
+      pageNum = doc.getNumberOfPages();
       ensureSpace(lineH);
     }
   }
