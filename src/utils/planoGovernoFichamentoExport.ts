@@ -95,30 +95,102 @@ interface BodySpan {
   ref?: number;
 }
 
-function tokenizeBody(body: string): BodySpan[] {
-  const spans: BodySpan[] = [];
-  // Remove markdown leve para impressão (#, **, *) — preserva quebras de linha
-  const cleaned = body
-    .replace(/^#{1,6}\s*/gm, '') // headings
+function cleanMarkdownInline(s: string): string {
+  return s
     .replace(/\*\*(.+?)\*\*/g, '$1')
     .replace(/__(.+?)__/g, '$1')
-    .replace(/(?<!\*)\*(?!\*)(.+?)(?<!\*)\*(?!\*)/g, '$1')
-    .replace(/`([^`]+)`/g, '$1');
+    .replace(/(?<!\*)\*(?!\*)([^*\n]+?)(?<!\*)\*(?!\*)/g, '$1')
+    .replace(/`([^`]+)`/g, '$1')
+    // remove asteriscos órfãos restantes (markdown malformado)
+    .replace(/\*+/g, '');
+}
 
+function tokenizeText(text: string): BodySpan[] {
+  const spans: BodySpan[] = [];
+  const cleaned = cleanMarkdownInline(text.replace(/^#{1,6}\s*/gm, ''));
   const refRegex = /\[\^(\d+)\]/g;
   let lastIdx = 0;
   let match: RegExpExecArray | null;
   while ((match = refRegex.exec(cleaned)) !== null) {
-    if (match.index > lastIdx) {
-      spans.push({ text: cleaned.slice(lastIdx, match.index) });
-    }
+    if (match.index > lastIdx) spans.push({ text: cleaned.slice(lastIdx, match.index) });
     spans.push({ ref: parseInt(match[1], 10) });
     lastIdx = match.index + match[0].length;
   }
-  if (lastIdx < cleaned.length) {
-    spans.push({ text: cleaned.slice(lastIdx) });
-  }
+  if (lastIdx < cleaned.length) spans.push({ text: cleaned.slice(lastIdx) });
   return spans;
+}
+
+// Blocos: parágrafo de texto, tabela markdown, ou heading
+type Block =
+  | { kind: 'para'; text: string }
+  | { kind: 'heading'; level: number; text: string }
+  | { kind: 'table'; headers: string[]; rows: string[][] };
+
+function isTableSeparatorLine(line: string): boolean {
+  // | --- | :---: | ---: |
+  return /^\s*\|?\s*:?-{3,}:?\s*(\|\s*:?-{3,}:?\s*)+\|?\s*$/.test(line);
+}
+
+function splitTableRow(line: string): string[] {
+  let s = line.trim();
+  if (s.startsWith('|')) s = s.slice(1);
+  if (s.endsWith('|')) s = s.slice(0, -1);
+  return s.split('|').map(c => cleanMarkdownInline(c.trim()));
+}
+
+function parseBlocks(body: string): Block[] {
+  const lines = body.replace(/\r/g, '').split('\n');
+  const blocks: Block[] = [];
+  let i = 0;
+  let buffer: string[] = [];
+
+  const flushPara = () => {
+    const text = buffer.join('\n').trim();
+    buffer = [];
+    if (!text) return;
+    // Detecta heading isolado
+    const hMatch = text.match(/^(#{1,6})\s+(.+)$/);
+    if (hMatch && !text.includes('\n')) {
+      blocks.push({ kind: 'heading', level: hMatch[1].length, text: hMatch[2].trim() });
+      return;
+    }
+    blocks.push({ kind: 'para', text });
+  };
+
+  while (i < lines.length) {
+    const line = lines[i];
+    // Tabela markdown: header line + separator
+    const isPipeLine = /\|/.test(line) && line.trim().startsWith('|');
+    if (isPipeLine && i + 1 < lines.length && isTableSeparatorLine(lines[i + 1])) {
+      flushPara();
+      const headers = splitTableRow(line);
+      i += 2;
+      const rows: string[][] = [];
+      while (i < lines.length && /\|/.test(lines[i]) && lines[i].trim().startsWith('|')) {
+        rows.push(splitTableRow(lines[i]));
+        i++;
+      }
+      // Normaliza nº de colunas
+      const colCount = headers.length;
+      const normRows = rows.map(r => {
+        const c = r.slice(0, colCount);
+        while (c.length < colCount) c.push('');
+        return c;
+      });
+      blocks.push({ kind: 'table', headers, rows: normRows });
+      continue;
+    }
+    // Linha em branco => fecha parágrafo
+    if (line.trim() === '') {
+      flushPara();
+      i++;
+      continue;
+    }
+    buffer.push(line);
+    i++;
+  }
+  flushPara();
+  return blocks;
 }
 
 // =====================================================================
