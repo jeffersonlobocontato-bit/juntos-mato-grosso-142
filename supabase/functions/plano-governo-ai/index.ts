@@ -624,7 +624,13 @@ Sua resposta DEVE tratar EXCLUSIVAMENTE de ${scopeParts.join(' → ')}.
 ${filters.subtema ? `O subtema selecionado é "${filters.subtema}". NÃO mencione, sugira ou inclua propostas de OUTROS subtemas (ex: telecomunicações, energia, saneamento, transportes, etc.) — somente "${filters.subtema}".` : ''}
 ${filters.tema && !filters.subtema ? `Foque APENAS no tema "${filters.tema}". Não derive para outros temas do mesmo eixo.` : ''}
 Se os dados disponíveis não cobrirem suficientemente esse recorte, declare explicitamente a limitação ao invés de expandir o escopo.
-Qualquer conteúdo fora desse recorte é considerado ERRO GRAVE de execução.`
+Qualquer conteúdo fora desse recorte é considerado ERRO GRAVE de execução.
+
+REGRAS OPERACIONAIS DE ESCOPO (siga literalmente):
+- NÃO crie seções, metas, indicadores, tabelas ou parágrafos sobre temas/subtemas diferentes do recorte acima.
+- NÃO cite fontes (documentos ou propostas) cujo título/assunto seja de outro tema/subtema, mesmo que apareçam no contexto. Se aparecerem, IGNORE-AS.
+- Se a única fonte disponível for de outro subtema, NÃO a use; em vez disso, escreva: "Não há propostas técnicas nem documentos específicos sobre ${filters.subtema || filters.tema || filters.eixo} na base atual. Recomendo coletar entrevistas e documentos sobre este recorte antes de produzir o plano."
+- O título do plano DEVE conter explicitamente "${filters.subtema || filters.tema || filters.eixo}".`
         : '';
 
       return `\n\n=== FILTROS APLICADOS PELO USUÁRIO ===\n${parts.join('\n')}\n\nIMPORTANTE: Os dados abaixo já estão FILTRADOS de acordo com as seleções do usuário. Analise DIRETAMENTE estes dados sem pedir mais especificações.${scopeRule}`;
