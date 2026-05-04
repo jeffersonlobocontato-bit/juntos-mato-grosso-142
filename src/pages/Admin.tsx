@@ -90,7 +90,7 @@ const Admin = () => {
       icon: Building2, 
       title: 'Propostas Institucionais', 
       description: 'Propostas de associações e instituições',
-      href: '/admin/propostas?tipo=institucional',
+      href: '/admin/propostas-institucionais',
       color: 'accent',
       roles: ['admin', 'admin_master', 'lider_tematico']
     },
