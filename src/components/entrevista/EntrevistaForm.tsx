@@ -30,7 +30,7 @@ import { getBlocoFConfig, getProgramaTeste, getExemplosFormulario } from "@/conf
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { toast } from "sonner";
-import PropostaAnexosUpload, { ALLOWED_EXT, MAX_SIZE_MB } from "./PropostaAnexosUpload";
+import PropostaAnexosUpload, { ALLOWED_EXT, MAX_SIZE_MB, type PendingAnexo } from "./PropostaAnexosUpload";
 
 interface Eixo {
   id: string;
@@ -173,7 +173,7 @@ const EntrevistaForm = ({ mode = "tecnica" }: EntrevistaFormProps) => {
   const [submittedEixoNome, setSubmittedEixoNome] = useState<string>("");
 
   // Anexos staged na etapa 8 (antes do submit)
-  const [pendingAnexos, setPendingAnexos] = useState<{ file: File; description: string }[]>([]);
+  const [pendingAnexos, setPendingAnexos] = useState<PendingAnexo[]>([]);
 
   // Identificação
   const [entrevistado, setEntrevistado] = useState("");
@@ -498,7 +498,8 @@ const EntrevistaForm = ({ mode = "tecnica" }: EntrevistaFormProps) => {
           try {
             const finalEixoId = inserted.eixo_id || eixoId;
             const uploadedItems: any[] = [];
-            for (const { file, description } of pendingAnexos) {
+            for (const anexo of pendingAnexos) {
+              const { file, title, tema_id, subtema_id, tema_nome, subtema_nome } = anexo;
               const safeName = file.name.replace(/[^a-zA-Z0-9._-]/g, "_");
               const path = `${finalEixoId}/${inserted.id}/${Date.now()}-${safeName}`;
               const { error: upErr } = await supabase.storage
@@ -511,10 +512,15 @@ const EntrevistaForm = ({ mode = "tecnica" }: EntrevistaFormProps) => {
               const { data: pub } = supabase.storage.from("proposta-anexos").getPublicUrl(path);
               uploadedItems.push({
                 url: pub.publicUrl,
-                name: description ? `${description} — ${file.name}` : file.name,
+                name: title || file.name,
+                title: title || file.name,
                 path,
                 size: file.size,
                 uploaded_at: new Date().toISOString(),
+                tema_id: tema_id ?? null,
+                subtema_id: subtema_id ?? null,
+                tema_nome: tema_nome ?? null,
+                subtema_nome: subtema_nome ?? null,
               });
             }
             if (uploadedItems.length > 0) {
@@ -649,6 +655,8 @@ const EntrevistaForm = ({ mode = "tecnica" }: EntrevistaFormProps) => {
                   propostaId={submittedPropostaId}
                   eixoId={submittedEixoId}
                   eixoNome={submittedEixoNome}
+                  temas={temas}
+                  subtemas={subtemas}
                 />
               </div>
             )}
@@ -1302,7 +1310,10 @@ const EntrevistaForm = ({ mode = "tecnica" }: EntrevistaFormProps) => {
 
             <PropostaAnexosUpload
               mode="staging"
+              eixoId={eixoId}
               eixoNome={eixos.find((e) => e.id === eixoId)?.nome}
+              temas={temas}
+              subtemas={subtemas}
               onFilesChange={setPendingAnexos}
             />
           </div>
