@@ -1,4 +1,5 @@
 import jsPDF from 'jspdf';
+import autoTable from 'jspdf-autotable';
 import {
   Document,
   Packer,
@@ -94,30 +95,102 @@ interface BodySpan {
   ref?: number;
 }
 
-function tokenizeBody(body: string): BodySpan[] {
-  const spans: BodySpan[] = [];
-  // Remove markdown leve para impressão (#, **, *) — preserva quebras de linha
-  const cleaned = body
-    .replace(/^#{1,6}\s*/gm, '') // headings
+function cleanMarkdownInline(s: string): string {
+  return s
     .replace(/\*\*(.+?)\*\*/g, '$1')
     .replace(/__(.+?)__/g, '$1')
-    .replace(/(?<!\*)\*(?!\*)(.+?)(?<!\*)\*(?!\*)/g, '$1')
-    .replace(/`([^`]+)`/g, '$1');
+    .replace(/(?<!\*)\*(?!\*)([^*\n]+?)(?<!\*)\*(?!\*)/g, '$1')
+    .replace(/`([^`]+)`/g, '$1')
+    // remove asteriscos órfãos restantes (markdown malformado)
+    .replace(/\*+/g, '');
+}
 
+function tokenizeText(text: string): BodySpan[] {
+  const spans: BodySpan[] = [];
+  const cleaned = cleanMarkdownInline(text.replace(/^#{1,6}\s*/gm, ''));
   const refRegex = /\[\^(\d+)\]/g;
   let lastIdx = 0;
   let match: RegExpExecArray | null;
   while ((match = refRegex.exec(cleaned)) !== null) {
-    if (match.index > lastIdx) {
-      spans.push({ text: cleaned.slice(lastIdx, match.index) });
-    }
+    if (match.index > lastIdx) spans.push({ text: cleaned.slice(lastIdx, match.index) });
     spans.push({ ref: parseInt(match[1], 10) });
     lastIdx = match.index + match[0].length;
   }
-  if (lastIdx < cleaned.length) {
-    spans.push({ text: cleaned.slice(lastIdx) });
-  }
+  if (lastIdx < cleaned.length) spans.push({ text: cleaned.slice(lastIdx) });
   return spans;
+}
+
+// Blocos: parágrafo de texto, tabela markdown, ou heading
+type Block =
+  | { kind: 'para'; text: string }
+  | { kind: 'heading'; level: number; text: string }
+  | { kind: 'table'; headers: string[]; rows: string[][] };
+
+function isTableSeparatorLine(line: string): boolean {
+  // | --- | :---: | ---: |
+  return /^\s*\|?\s*:?-{3,}:?\s*(\|\s*:?-{3,}:?\s*)+\|?\s*$/.test(line);
+}
+
+function splitTableRow(line: string): string[] {
+  let s = line.trim();
+  if (s.startsWith('|')) s = s.slice(1);
+  if (s.endsWith('|')) s = s.slice(0, -1);
+  return s.split('|').map(c => cleanMarkdownInline(c.trim()));
+}
+
+function parseBlocks(body: string): Block[] {
+  const lines = body.replace(/\r/g, '').split('\n');
+  const blocks: Block[] = [];
+  let i = 0;
+  let buffer: string[] = [];
+
+  const flushPara = () => {
+    const text = buffer.join('\n').trim();
+    buffer = [];
+    if (!text) return;
+    // Detecta heading isolado
+    const hMatch = text.match(/^(#{1,6})\s+(.+)$/);
+    if (hMatch && !text.includes('\n')) {
+      blocks.push({ kind: 'heading', level: hMatch[1].length, text: hMatch[2].trim() });
+      return;
+    }
+    blocks.push({ kind: 'para', text });
+  };
+
+  while (i < lines.length) {
+    const line = lines[i];
+    // Tabela markdown: header line + separator
+    const isPipeLine = /\|/.test(line) && line.trim().startsWith('|');
+    if (isPipeLine && i + 1 < lines.length && isTableSeparatorLine(lines[i + 1])) {
+      flushPara();
+      const headers = splitTableRow(line);
+      i += 2;
+      const rows: string[][] = [];
+      while (i < lines.length && /\|/.test(lines[i]) && lines[i].trim().startsWith('|')) {
+        rows.push(splitTableRow(lines[i]));
+        i++;
+      }
+      // Normaliza nº de colunas
+      const colCount = headers.length;
+      const normRows = rows.map(r => {
+        const c = r.slice(0, colCount);
+        while (c.length < colCount) c.push('');
+        return c;
+      });
+      blocks.push({ kind: 'table', headers, rows: normRows });
+      continue;
+    }
+    // Linha em branco => fecha parágrafo
+    if (line.trim() === '') {
+      flushPara();
+      i++;
+      continue;
+    }
+    buffer.push(line);
+    i++;
+  }
+  flushPara();
+  return blocks;
 }
 
 // =====================================================================
@@ -182,45 +255,14 @@ export function exportFichamentoPDF(data: FichamentoData): void {
     doc.line(mainX + mainColW + gap / 2, contentTop, mainX + mainColW + gap / 2, contentBottom);
   };
 
-  // ---- TOKENIZAÇÃO ------------------------------------------------------
-  const spans = tokenizeBody(data.body);
+  // ---- PARSE EM BLOCOS --------------------------------------------------
+  const blocks = parseBlocks(data.body);
   const sourcesById = new Map<number, FichamentoSource>();
   data.sources.forEach(s => sourcesById.set(s.id, s));
 
-  // Quebra spans em parágrafos (separados por \n\n) e depois em linhas que cabem na coluna principal
   doc.setFont('helvetica', 'normal');
   doc.setFontSize(10.5);
 
-  // Estrutura de renderização: lista de tokens visuais por página
-  type VisualToken = { kind: 'word'; text: string } | { kind: 'ref'; n: number } | { kind: 'space' } | { kind: 'br' } | { kind: 'parabreak' };
-  const tokens: VisualToken[] = [];
-  spans.forEach(sp => {
-    if (sp.ref !== undefined) {
-      tokens.push({ kind: 'ref', n: sp.ref });
-      return;
-    }
-    const text = sp.text || '';
-    // separa por \n
-    const parts = text.split(/\n/);
-    parts.forEach((part, i) => {
-      const words = part.split(/\s+/).filter(Boolean);
-      const wasBlankLineBefore = i > 0 && (parts[i - 1] === '' || parts[i - 1].trim() === '');
-      if (i > 0) {
-        // detectar parágrafo (linha em branco)
-        if (wasBlankLineBefore || part.trim() === '') {
-          tokens.push({ kind: 'parabreak' });
-        } else {
-          tokens.push({ kind: 'br' });
-        }
-      }
-      words.forEach((w, wi) => {
-        if (wi > 0) tokens.push({ kind: 'space' });
-        tokens.push({ kind: 'word', text: w });
-      });
-    });
-  });
-
-  // Renderiza por palavra/referência calculando wrap e capturando posição (x, y) de cada ref
   const lineH = 5.2; // mm
   const paraGap = 2.5;
   const refPositions: { ref: number; page: number; x: number; y: number }[] = [];
@@ -284,27 +326,106 @@ export function exportFichamentoPDF(data: FichamentoData): void {
       cursorX = mainX;
       ensureSpace(lineH);
     }
-    // Pequena bolinha colorida de fundo
+    // Bolinha colorida com número centralizado
+    const cx = cursorX + w / 2;
+    const cy = cursorY - 1.6;
     doc.setFillColor(color[0], color[1], color[2]);
-    doc.circle(cursorX + w / 2, cursorY - 1.6, 1.6, 'F');
+    doc.circle(cx, cy, 1.9, 'F');
     doc.setTextColor(255, 255, 255);
-    doc.text(label, cursorX + w / 2, cursorY - 0.8, { align: 'center', baseline: 'middle' });
-    // Posição do marcador para o conector
-    refPositions.push({ ref: n, page: pageNum, x: cursorX + w, y: cursorY - 1.5 });
-    cursorX += w + 0.5;
+    doc.text(String(n), cx, cy, { align: 'center', baseline: 'middle' });
+    refPositions.push({ ref: n, page: pageNum, x: cursorX + w, y: cy });
+    cursorX += w + 0.6;
   };
 
-  for (const t of tokens) {
-    if (t.kind === 'word') writeWord(t.text);
-    else if (t.kind === 'space') writeSpace();
-    else if (t.kind === 'ref') writeRef(t.n);
-    else if (t.kind === 'br') {
-      cursorY += lineH;
+  const renderTextSpans = (spans: BodySpan[]) => {
+    spans.forEach(sp => {
+      if (sp.ref !== undefined) {
+        writeRef(sp.ref);
+        return;
+      }
+      const text = sp.text || '';
+      const lines = text.split(/\n/);
+      lines.forEach((part, li) => {
+        if (li > 0) {
+          cursorY += lineH;
+          cursorX = mainX;
+          ensureSpace(lineH);
+        }
+        const words = part.split(/(\s+)/);
+        words.forEach(token => {
+          if (!token) return;
+          if (/^\s+$/.test(token)) {
+            writeSpace();
+          } else {
+            writeWord(token);
+          }
+        });
+      });
+    });
+  };
+
+  // Render blocos
+  for (const block of blocks) {
+    if (block.kind === 'heading') {
+      ensureSpace(lineH + 2);
       cursorX = mainX;
-      ensureSpace(lineH);
-    } else if (t.kind === 'parabreak') {
+      doc.setFont('helvetica', 'bold');
+      doc.setFontSize(block.level <= 2 ? 12 : 11);
+      doc.setTextColor(20, 20, 20);
+      const lines = doc.splitTextToSize(cleanMarkdownInline(block.text), mainColW);
+      lines.forEach((ln: string) => {
+        ensureSpace(lineH);
+        doc.text(ln, mainX, cursorY);
+        cursorY += lineH;
+      });
+      cursorY += paraGap;
+      cursorX = mainX;
+    } else if (block.kind === 'para') {
+      const spans = tokenizeText(block.text);
+      cursorX = mainX;
+      renderTextSpans(spans);
       cursorY += lineH + paraGap;
       cursorX = mainX;
+      ensureSpace(lineH);
+    } else if (block.kind === 'table') {
+      // Renderiza tabela na coluna principal usando autoTable
+      ensureSpace(lineH * 3);
+      const startY = cursorY - 1;
+      autoTable(doc, {
+        startY,
+        margin: { left: mainX, right: pageW - (mainX + mainColW) },
+        tableWidth: mainColW,
+        head: [block.headers],
+        body: block.rows,
+        theme: 'grid',
+        styles: {
+          font: 'helvetica',
+          fontSize: 8.5,
+          cellPadding: 1.5,
+          textColor: [25, 25, 25],
+          lineColor: [200, 200, 200],
+          lineWidth: 0.15,
+          overflow: 'linebreak',
+          valign: 'top',
+        },
+        headStyles: {
+          fillColor: BRAND_COLOR_RGB,
+          textColor: [255, 255, 255],
+          fontStyle: 'bold',
+          fontSize: 8.5,
+        },
+        alternateRowStyles: { fillColor: [248, 246, 240] },
+        didDrawPage: () => {
+          // Quando autoTable cria nova página, redesenha header/footer
+          drawHeaderFooter(doc.getNumberOfPages(), '');
+        },
+      });
+      // @ts-ignore - lastAutoTable é injetado pelo plugin
+      const finalY = (doc as any).lastAutoTable?.finalY ?? cursorY;
+      cursorY = finalY + paraGap + 2;
+      cursorX = mainX;
+      // autoTable pode ter avançado de página
+      pageNum = doc.getNumberOfPages();
       ensureSpace(lineH);
     }
   }
@@ -391,59 +512,97 @@ export function exportFichamentoPDF(data: FichamentoData): void {
 // =====================================================================
 
 export async function exportFichamentoDOCX(data: FichamentoData): Promise<void> {
-  const spans = tokenizeBody(data.body);
+  const blocks = parseBlocks(data.body);
   const sourcesById = new Map<number, FichamentoSource>();
   data.sources.forEach(s => sourcesById.set(s.id, s));
 
-  // ---- Coluna esquerda: parágrafos ------------------------------------
-  // Quebra spans em parágrafos por kind 'parabreak'
-  type ParaToken = { text?: string; ref?: number };
-  const paragraphsTokens: ParaToken[][] = [[]];
-  spans.forEach(sp => {
-    if (sp.ref !== undefined) {
-      paragraphsTokens[paragraphsTokens.length - 1].push({ ref: sp.ref });
-      return;
-    }
-    const text = (sp.text || '').replace(/\r/g, '');
-    const parts = text.split(/\n\s*\n/);
-    parts.forEach((part, i) => {
-      if (i > 0) paragraphsTokens.push([]);
-      const cleaned = part.replace(/\n/g, ' ').replace(/\s+/g, ' ');
-      if (cleaned) paragraphsTokens[paragraphsTokens.length - 1].push({ text: cleaned });
+  // Helper: spans -> runs
+  const spansToRuns = (spans: BodySpan[]): TextRun[] => {
+    const runs: TextRun[] = [];
+    spans.forEach(t => {
+      if (t.ref !== undefined) {
+        const src = sourcesById.get(t.ref);
+        const color = src ? SOURCE_COLORS[src.type].hex : SOURCE_COLORS.outro.hex;
+        runs.push(new TextRun({ text: ` [${t.ref}] `, bold: true, color, size: 18, font: 'Arial' }));
+      } else if (t.text) {
+        runs.push(new TextRun({ text: t.text.replace(/\n/g, ' ').replace(/\s+/g, ' '), font: 'Arial', size: 22 }));
+      }
     });
-  });
+    return runs;
+  };
 
-  const leftParagraphs: Paragraph[] = paragraphsTokens
-    .filter(toks => toks.length > 0)
-    .map(toks => {
-      const runs: TextRun[] = [];
-      toks.forEach(t => {
-        if (t.text !== undefined) {
-          runs.push(new TextRun({ text: t.text, font: 'Arial', size: 22 })); // 11pt
-        } else if (t.ref !== undefined) {
-          const src = sourcesById.get(t.ref);
-          const color = src ? SOURCE_COLORS[src.type].hex : SOURCE_COLORS.outro.hex;
-          runs.push(
-            new TextRun({
-              text: ` [${t.ref}] `,
-              bold: true,
-              color,
-              size: 18, // 9pt
-              font: 'Arial',
+  // ---- Coluna esquerda: parágrafos + tabelas --------------------------
+  const usedRefs = new Set<number>();
+  const leftChildren: (Paragraph | Table)[] = [];
+
+  // Largura da célula esquerda definida abaixo (leftW). Calculada antes:
+  const tableWidth = 9026;
+  const leftW = Math.round(tableWidth * 0.66);
+  const rightW = tableWidth - leftW;
+  const innerLeftW = leftW - 200; // descontando margem direita interna
+
+  for (const block of blocks) {
+    if (block.kind === 'heading') {
+      leftChildren.push(
+        new Paragraph({
+          children: [new TextRun({ text: cleanMarkdownInline(block.text), bold: true, size: block.level <= 2 ? 26 : 24, font: 'Arial' })],
+          spacing: { before: 200, after: 120 },
+        })
+      );
+    } else if (block.kind === 'para') {
+      const spans = tokenizeText(block.text);
+      spans.forEach(s => s.ref !== undefined && usedRefs.add(s.ref));
+      leftChildren.push(
+        new Paragraph({
+          children: spansToRuns(spans),
+          spacing: { after: 160, line: 300 },
+          alignment: AlignmentType.JUSTIFIED,
+        })
+      );
+    } else if (block.kind === 'table') {
+      const colCount = block.headers.length || 1;
+      const colW = Math.floor(innerLeftW / colCount);
+      const colWidths = Array(colCount).fill(colW);
+      const cellBorder = { style: BorderStyle.SINGLE, size: 4, color: 'CCCCCC' };
+      const allBorders = { top: cellBorder, bottom: cellBorder, left: cellBorder, right: cellBorder };
+
+      const headerRow = new TableRow({
+        tableHeader: true,
+        children: block.headers.map((h, i) =>
+          new TableCell({
+            width: { size: colWidths[i], type: WidthType.DXA },
+            borders: allBorders,
+            shading: { fill: 'D4AF37', type: ShadingType.CLEAR, color: 'auto' },
+            margins: { top: 60, bottom: 60, left: 80, right: 80 },
+            children: [new Paragraph({ children: [new TextRun({ text: h, bold: true, color: 'FFFFFF', size: 18, font: 'Arial' })] })],
+          })
+        ),
+      });
+      const bodyRows = block.rows.map((r, ri) =>
+        new TableRow({
+          children: r.map((c, i) =>
+            new TableCell({
+              width: { size: colWidths[i], type: WidthType.DXA },
+              borders: allBorders,
+              shading: ri % 2 === 1 ? { fill: 'FAF7EE', type: ShadingType.CLEAR, color: 'auto' } : undefined,
+              margins: { top: 60, bottom: 60, left: 80, right: 80 },
+              children: [new Paragraph({ children: [new TextRun({ text: c, size: 18, font: 'Arial' })] })],
             })
-          );
-        }
-      });
-      return new Paragraph({
-        children: runs,
-        spacing: { after: 160, line: 300 },
-        alignment: AlignmentType.JUSTIFIED,
-      });
-    });
+          ),
+        })
+      );
+      leftChildren.push(
+        new Table({
+          width: { size: innerLeftW, type: WidthType.DXA },
+          columnWidths: colWidths,
+          rows: [headerRow, ...bodyRows],
+        })
+      );
+      leftChildren.push(new Paragraph({ children: [new TextRun({ text: '' })], spacing: { after: 120 } }));
+    }
+  }
 
   // ---- Coluna direita: lista de notas ---------------------------------
-  const usedRefs = new Set<number>();
-  spans.forEach(sp => sp.ref !== undefined && usedRefs.add(sp.ref));
   const notesInOrder = data.sources.filter(s => usedRefs.has(s.id));
 
   const rightParagraphs: Paragraph[] = [];
@@ -500,11 +659,6 @@ export async function exportFichamentoDOCX(data: FichamentoData): Promise<void> 
   const noBorder = { style: BorderStyle.NONE, size: 0, color: 'FFFFFF' };
   const allNoBorders = { top: noBorder, bottom: noBorder, left: noBorder, right: noBorder };
 
-  // A4 retrato content width ≈ 9026 DXA (descontando margens 1440 cada lado)
-  const tableWidth = 9026;
-  const leftW = Math.round(tableWidth * 0.66);
-  const rightW = tableWidth - leftW;
-
   const table = new Table({
     width: { size: tableWidth, type: WidthType.DXA },
     columnWidths: [leftW, rightW],
@@ -521,7 +675,7 @@ export async function exportFichamentoDOCX(data: FichamentoData): Promise<void> 
               right: { style: BorderStyle.SINGLE, size: 4, color: 'D4AF37' },
             },
             margins: { top: 80, bottom: 80, left: 0, right: 200 },
-            children: leftParagraphs.length ? leftParagraphs : [new Paragraph({ text: '' })],
+            children: leftChildren.length ? leftChildren : [new Paragraph({ text: '' })],
           }),
           new TableCell({
             width: { size: rightW, type: WidthType.DXA },
