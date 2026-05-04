@@ -615,6 +615,7 @@ const AdminPlanoGoverno = () => {
         lines.forEach(processStreamLine);
       }
 
+      sseBuffer += decoder.decode();
       if (sseBuffer.trim()) {
         processStreamLine(sseBuffer.trim());
       }
