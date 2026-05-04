@@ -1,5 +1,5 @@
 import { useState, useEffect, useMemo } from 'react';
-import { useNavigate, Link, useSearchParams } from 'react-router-dom';
+import { useNavigate, Link, useSearchParams, useLocation } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { useAuth } from '@/hooks/useAuth';
 import { supabase } from '@/integrations/supabase/client';
@@ -120,7 +120,12 @@ const AdminPropostas = () => {
   const { user, isLoading: authLoading } = useAuth();
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
-  const tipoFilter = searchParams.get('tipo'); // 'institucional' | 'tecnica' | null
+  const location = useLocation();
+  // Detect institutional view either by path or by ?tipo= param
+  const isInstitucional =
+    location.pathname.includes('propostas-institucionais') ||
+    searchParams.get('tipo') === 'institucional';
+  const tipoFilter: 'tecnica' | 'institucional' = isInstitucional ? 'institucional' : 'tecnica';
   
   const [proposals, setProposals] = useState<Proposal[]>([]);
   const [evaluations, setEvaluations] = useState<ProposalEvaluation[]>([]);
@@ -367,8 +372,9 @@ const AdminPropostas = () => {
       const matchesStatus = filterStatus === 'all' || p.status === filterStatus;
       const matchesEixo = filterEixo === 'all' || p.eixo_id === filterEixo;
       
-      // Tipo filter from URL
-      const matchesTipo = !tipoFilter || (p as any).tipo_proposta === tipoFilter;
+      // Tipo filter (defaults to tecnica). Treat legacy null as 'tecnica'.
+      const pTipo = (p as any).tipo_proposta || 'tecnica';
+      const matchesTipo = pTipo === tipoFilter;
       
       // Geographic filters
       let matchesGeography = true;
@@ -440,8 +446,14 @@ const AdminPropostas = () => {
                 <ArrowLeft className="w-5 h-5" />
               </Link>
               <div>
-                <h1 className="text-xl font-display font-bold">Propostas Técnicas</h1>
-                <p className="text-sm text-muted-foreground">Gerenciar propostas dos especialistas</p>
+                <h1 className="text-xl font-display font-bold">
+                  {isInstitucional ? 'Propostas Institucionais' : 'Propostas Técnicas'}
+                </h1>
+                <p className="text-sm text-muted-foreground">
+                  {isInstitucional
+                    ? 'Gerenciar propostas de associações e instituições'
+                    : 'Gerenciar propostas dos especialistas'}
+                </p>
               </div>
             </div>
             
