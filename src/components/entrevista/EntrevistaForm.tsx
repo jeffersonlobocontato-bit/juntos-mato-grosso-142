@@ -565,6 +565,7 @@ const EntrevistaForm = ({ mode = "tecnica" }: EntrevistaFormProps) => {
     setSubmittedPropostaId(null);
     setSubmittedEixoId("");
     setSubmittedEixoNome("");
+    setPendingAnexos([]);
   };
 
   const updateQuestionario = <K extends keyof QuestionarioData>(
