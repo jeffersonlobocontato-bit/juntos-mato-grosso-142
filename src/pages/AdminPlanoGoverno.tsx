@@ -15,7 +15,6 @@ import MarkdownRenderer from '@/components/admin/MarkdownRenderer';
 import ModeConfigPanel from '@/components/admin/ModeConfigPanel';
 import AnalysisModeSelector, { type AnalysisMode } from '@/components/admin/AnalysisModeSelector';
 import DataSourceFilters, { type DataFilters } from '@/components/admin/DataSourceFilters';
-import DocumentLibrary from '@/components/admin/DocumentLibrary';
 import { FichamentoExportButton } from '@/components/admin/FichamentoExportButton';
 import { GovernmentBalanceChart, type BalanceData } from '@/components/admin/GovernmentBalanceChart';
 import { CrossReferenceResultsPanel } from '@/components/admin/CrossReferenceResultsPanel';
