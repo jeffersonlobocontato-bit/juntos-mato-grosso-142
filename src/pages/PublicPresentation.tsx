@@ -36,30 +36,22 @@ const PublicPresentation = () => {
       }
 
       try {
-        const { data, error: fetchError } = await supabase
-          .from('shared_presentations')
-          .select('*')
-          .eq('public_id', publicId)
-          .single();
+        const { data, error: fetchError } = await (supabase as any)
+          .rpc('get_shared_presentation_public', { _public_id: publicId });
 
-        if (fetchError) {
-          if (fetchError.code === 'PGRST116') {
-            setError('Apresentação não encontrada');
-          } else {
-            throw fetchError;
-          }
+        if (fetchError) throw fetchError;
+        const row = Array.isArray(data) ? data[0] : data;
+        if (!row) {
+          setError('Apresentação não encontrada');
           return;
         }
 
-        const sharedData = data as unknown as SharedPresentation;
-        setPresentation(sharedData.presentation_data);
-        setTitle(sharedData.title);
+        setPresentation(row.presentation_data as Presentation);
+        setTitle(row.title);
 
-        // Increment view count (fire and forget)
-        supabase
-          .from('shared_presentations')
-          .update({ view_count: (sharedData.view_count || 0) + 1 })
-          .eq('id', sharedData.id)
+        // Increment view count (fire and forget) via secure RPC
+        (supabase as any)
+          .rpc('increment_shared_presentation_view', { _public_id: publicId })
           .then(() => {});
 
       } catch (err) {

@@ -2131,6 +2131,17 @@ export type Database = {
           user_id: string
         }[]
       }
+      get_shared_presentation_public: {
+        Args: { _public_id: string }
+        Returns: {
+          created_at: string
+          id: string
+          presentation_data: Json
+          public_id: string
+          title: string
+          view_count: number
+        }[]
+      }
       get_stale_proposals: {
         Args: { hours_threshold?: number }
         Returns: {
