@@ -43,6 +43,7 @@ const App = () => (
             <Route path="/auth" element={<Auth />} />
             <Route path="/admin" element={<Admin />} />
             <Route path="/admin/propostas" element={<AdminPropostas />} />
+            <Route path="/admin/propostas-institucionais" element={<AdminPropostas />} />
             <Route path="/admin/propostas-politicas" element={<AdminPropostasPoliticas />} />
             <Route path="/admin/sugestoes" element={<AdminSugestoes />} />
             <Route path="/admin/eixos" element={<AdminEixos />} />
