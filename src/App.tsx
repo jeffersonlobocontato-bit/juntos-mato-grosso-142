@@ -28,6 +28,7 @@ import EntrevistaInstitucional from "./pages/EntrevistaInstitucional";
 import Liderancas from "./pages/Liderancas";
 import PublicPresentation from "./pages/PublicPresentation";
 import NotFound from "./pages/NotFound";
+import ProtectedRoute from "./components/auth/ProtectedRoute";
 const queryClient = new QueryClient();
 
 const App = () => (
@@ -41,23 +42,23 @@ const App = () => (
             <Route path="/" element={<Index />} />
             <Route path="/dashboard" element={<Dashboard />} />
             <Route path="/auth" element={<Auth />} />
-            <Route path="/admin" element={<Admin />} />
-            <Route path="/admin/propostas" element={<AdminPropostas />} />
-            <Route path="/admin/propostas-institucionais" element={<AdminPropostas />} />
-            <Route path="/admin/propostas-politicas" element={<AdminPropostasPoliticas />} />
-            <Route path="/admin/sugestoes" element={<AdminSugestoes />} />
-            <Route path="/admin/eixos" element={<AdminEixos />} />
-            <Route path="/admin/municipios" element={<AdminMunicipios />} />
-            <Route path="/admin/usuarios" element={<AdminUsuarios />} />
-            <Route path="/admin/leads" element={<AdminLeads />} />
-            <Route path="/admin/mensageria" element={<AdminMensageria />} />
-            <Route path="/admin/plano-governo" element={<AdminPlanoGoverno />} />
-            <Route path="/admin/analytics" element={<AdminAnalytics />} />
-            <Route path="/admin/meu-painel" element={<AdminMeuPainel />} />
-            <Route path="/admin/ai-hub" element={<AdminAIHub />} />
-            <Route path="/admin/pesquisas" element={<AdminPesquisas />} />
-            <Route path="/admin/tse" element={<AdminTSE />} />
-            <Route path="/admin/biblioteca" element={<AdminBiblioteca />} />
+            <Route path="/admin" element={<ProtectedRoute><Admin /></ProtectedRoute>} />
+            <Route path="/admin/propostas" element={<ProtectedRoute requiredRoles={['lider_tematico','curador_municipal','especialista']}><AdminPropostas /></ProtectedRoute>} />
+            <Route path="/admin/propostas-institucionais" element={<ProtectedRoute requiredRoles={['lider_tematico']}><AdminPropostas /></ProtectedRoute>} />
+            <Route path="/admin/propostas-politicas" element={<ProtectedRoute requiredRoles={[]}><AdminPropostasPoliticas /></ProtectedRoute>} />
+            <Route path="/admin/sugestoes" element={<ProtectedRoute requiredRoles={['curador_municipal']}><AdminSugestoes /></ProtectedRoute>} />
+            <Route path="/admin/eixos" element={<ProtectedRoute requiredRoles={[]}><AdminEixos /></ProtectedRoute>} />
+            <Route path="/admin/municipios" element={<ProtectedRoute requiredRoles={[]}><AdminMunicipios /></ProtectedRoute>} />
+            <Route path="/admin/usuarios" element={<ProtectedRoute requiredRoles={[]}><AdminUsuarios /></ProtectedRoute>} />
+            <Route path="/admin/leads" element={<ProtectedRoute requiredRoles={['lider_tematico','curador_municipal']}><AdminLeads /></ProtectedRoute>} />
+            <Route path="/admin/mensageria" element={<ProtectedRoute requiredRoles={['lider_tematico']}><AdminMensageria /></ProtectedRoute>} />
+            <Route path="/admin/plano-governo" element={<ProtectedRoute requiredRoles={[]}><AdminPlanoGoverno /></ProtectedRoute>} />
+            <Route path="/admin/analytics" element={<ProtectedRoute requiredRoles={[]}><AdminAnalytics /></ProtectedRoute>} />
+            <Route path="/admin/meu-painel" element={<ProtectedRoute requiredRoles={['lider_tematico','curador_municipal','especialista']}><AdminMeuPainel /></ProtectedRoute>} />
+            <Route path="/admin/ai-hub" element={<ProtectedRoute requiredRoles={[]}><AdminAIHub /></ProtectedRoute>} />
+            <Route path="/admin/pesquisas" element={<ProtectedRoute requiredRoles={[]}><AdminPesquisas /></ProtectedRoute>} />
+            <Route path="/admin/tse" element={<ProtectedRoute requiredRoles={[]}><AdminTSE /></ProtectedRoute>} />
+            <Route path="/admin/biblioteca" element={<ProtectedRoute requiredRoles={['lider_tematico']}><AdminBiblioteca /></ProtectedRoute>} />
             <Route path="/entrevista" element={<Entrevista />} />
             <Route path="/entrevista-institucional" element={<EntrevistaInstitucional />} />
             <Route path="/liderancas" element={<Liderancas />} />
