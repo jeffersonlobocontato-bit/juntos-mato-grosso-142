@@ -146,7 +146,8 @@ function cleanMarkdownInline(s: string): string {
 function tokenizeText(text: string): BodySpan[] {
   const spans: BodySpan[] = [];
   const cleaned = cleanMarkdownInline(text.replace(/^#{1,6}\s*/gm, ''));
-  const refRegex = /\[\^(\d+)\]/g;
+  // Reconhece tanto [^N] (formato canônico) quanto [N] (formato compacto que a IA às vezes emite)
+  const refRegex = /\[\^?(\d+)\]/g;
   let lastIdx = 0;
   let match: RegExpExecArray | null;
   while ((match = refRegex.exec(cleaned)) !== null) {
