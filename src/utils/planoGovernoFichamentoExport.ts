@@ -146,7 +146,8 @@ function cleanMarkdownInline(s: string): string {
 function tokenizeText(text: string): BodySpan[] {
   const spans: BodySpan[] = [];
   const cleaned = cleanMarkdownInline(text.replace(/^#{1,6}\s*/gm, ''));
-  const refRegex = /\[\^(\d+)\]/g;
+  // Reconhece tanto [^N] (formato canônico) quanto [N] (formato compacto que a IA às vezes emite)
+  const refRegex = /\[\^?(\d+)\]/g;
   let lastIdx = 0;
   let match: RegExpExecArray | null;
   while ((match = refRegex.exec(cleaned)) !== null) {
@@ -166,6 +167,17 @@ function extractRefsFromText(text: string): number[] {
 
 function renderRefsAsInlineLabels(text: string): string {
   return String(text).replace(/\[\^?(\d+)\]/g, '[$1]');
+}
+
+// Remove os marcadores [N] / [^N] do texto — usado quando vamos desenhar
+// bolinhas numeradas por cima da célula em vez de exibir o número como texto.
+function stripRefMarkers(text: string): string {
+  return String(text)
+    .replace(/\s*\[\^?\d+\](?=\s*\[\^?\d+\])/g, '') // refs consecutivas
+    .replace(/\s*\[\^?\d+\]/g, '')
+    .replace(/\s+([.,;:!?])/g, '$1')
+    .replace(/\s{2,}/g, ' ')
+    .trim();
 }
 
 // Blocos: parágrafo de texto, tabela markdown, ou heading
@@ -439,8 +451,12 @@ export function exportFichamentoPDF(data: FichamentoData): void {
       // Renderiza tabela na coluna principal usando autoTable
       ensureSpace(lineH * 3);
       const startY = cursorY - 1;
-      const tableHeaders = block.headers.map(renderRefsAsInlineLabels);
-      const tableRows = block.rows.map(row => row.map(renderRefsAsInlineLabels));
+      // Guardamos as refs por célula para desenhar bolinhas numeradas
+      // sobre a célula (em vez de mostrar [N] como texto).
+      const headerRefs = block.headers.map(extractRefsFromText);
+      const rowsRefs = block.rows.map(row => row.map(extractRefsFromText));
+      const tableHeaders = block.headers.map(stripRefMarkers);
+      const tableRows = block.rows.map(row => row.map(stripRefMarkers));
       autoTable(doc, {
         startY,
         margin: { left: mainX, right: pageW - (mainX + mainColW) },
@@ -466,16 +482,35 @@ export function exportFichamentoPDF(data: FichamentoData): void {
         },
         alternateRowStyles: { fillColor: [248, 246, 240] },
         didDrawCell: (cellData) => {
-          const refs = extractRefsFromText(String(cellData.cell.raw || ''));
-          if (refs.length === 0 || cellData.section === 'head') return;
+          if (cellData.section !== 'body') return;
+          const rIdx = cellData.row.index;
+          const cIdx = cellData.column.index;
+          const refs = rowsRefs[rIdx]?.[cIdx] || [];
+          if (refs.length === 0) return;
           const currentPage = (doc as any).internal?.getCurrentPageInfo?.().pageNumber || doc.getNumberOfPages();
-          refs.forEach((ref, idx) => {
+          // Desenha as bolinhas no canto superior-direito da célula, empilhando horizontalmente.
+          const radius = 1.9;
+          const spacing = 4.6;
+          const totalW = refs.length * spacing;
+          let bx = cellData.cell.x + cellData.cell.width - totalW - 0.4;
+          const by = cellData.cell.y + radius + 1.2;
+          refs.forEach((ref) => {
+            const src = sourcesById.get(ref);
+            const color = src ? SOURCE_COLORS[src.type].rgb : SOURCE_COLORS.outro.rgb;
+            doc.setFillColor(color[0], color[1], color[2]);
+            doc.circle(bx + radius, by, radius, 'F');
+            doc.setTextColor(255, 255, 255);
+            doc.setFont('helvetica', 'bold');
+            doc.setFontSize(6.8);
+            doc.text(String(ref), bx + radius, by + 0.15, { align: 'center', baseline: 'middle' });
+            // Conector sai do centro-direita da bolinha
             refPositions.push({
               ref,
               page: currentPage,
-              x: cellData.cell.x + cellData.cell.width,
-              y: cellData.cell.y + 4 + idx * 3.2,
+              x: bx + radius * 2,
+              y: by,
             });
+            bx += spacing;
           });
         },
         didDrawPage: () => {
