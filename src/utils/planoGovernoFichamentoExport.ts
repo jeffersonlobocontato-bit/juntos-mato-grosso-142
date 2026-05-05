@@ -168,6 +168,17 @@ function renderRefsAsInlineLabels(text: string): string {
   return String(text).replace(/\[\^?(\d+)\]/g, '[$1]');
 }
 
+// Remove os marcadores [N] / [^N] do texto — usado quando vamos desenhar
+// bolinhas numeradas por cima da célula em vez de exibir o número como texto.
+function stripRefMarkers(text: string): string {
+  return String(text)
+    .replace(/\s*\[\^?\d+\](?=\s*\[\^?\d+\])/g, '') // refs consecutivas
+    .replace(/\s*\[\^?\d+\]/g, '')
+    .replace(/\s+([.,;:!?])/g, '$1')
+    .replace(/\s{2,}/g, ' ')
+    .trim();
+}
+
 // Blocos: parágrafo de texto, tabela markdown, ou heading
 type Block =
   | { kind: 'para'; text: string }

@@ -1,49 +1,35 @@
-## Problema
+Vou ajustar apenas o exportador de PDF do fichamento para que cada nota da coluna direita tenha uma marcação clara no trecho correspondente da coluna esquerda.
 
-No PDF gerado pelo "Fichamento" do Gerador de Plano de Governo, as notas da coluna lateral direita (fontes citadas) ficam **encavaladas/truncadas** quando há muitas referências numa mesma página, como mostra a captura. As bolinhas (3, 10) e os textos das fontes se sobrepõem.
+Arquivos a modificar:
 
-## Causa raiz
+1. `src/utils/planoGovernoFichamentoExport.ts`
 
-Em `src/utils/planoGovernoFichamentoExport.ts` (função `exportFichamentoPDF`, bloco da coluna direita, linhas ~506‑566):
+Alterações específicas:
 
-1. As notas são desenhadas em ordem do `mainY` (posição da âncora no texto), mas o cálculo `targetY = Math.max(noteY, mainY - 1.5)` apenas empurra para baixo. Quando a altura real da nota anterior + a próxima ultrapassa o espaço, o código **força** `startY = Math.min(targetY, contentBottom - 12)`, fazendo a nova nota ser desenhada por cima da anterior.
-2. A altura de cada nota não é pré‑calculada — depende de quantas linhas o `splitTextToSize` produz para `label` e `excerpt`. Sem essa medição, não há como saber se cabe na página.
-3. Não há fallback quando a coluna lateral enche: notas extras simplesmente colidem.
+- Corrigir o parser de referências do texto principal para reconhecer tanto o formato `[^N]` quanto o formato `[N]`.
+  - Hoje os parágrafos só transformam `[^N]` em bolinha numerada.
+  - As tabelas transformam as referências em texto `[N]`, e por isso a referência fica visualmente comum dentro da célula, sem a mesma marcação clara usada na nota lateral.
 
-## Solução
+- Substituir, no PDF, a renderização textual das referências dentro das tabelas por marcadores visuais numerados.
+  - Em vez de apenas mostrar `[1]`, `[12]`, `[10]`, etc. como texto preto comum dentro da célula, cada referência será desenhada como uma bolinha colorida numerada no próprio local do trecho citado.
+  - Essa bolinha terá a mesma cor e número da nota correspondente na coluna direita.
+  - O ponto de conexão da linha lateral passará a sair dessa bolinha, e não apenas de uma posição aproximada da célula.
 
-Reescrever o trecho de renderização da coluna lateral com **layout em duas passadas**:
+- Ajustar o cálculo das posições registradas em `refPositions`.
+  - Para parágrafos, manter o registro no ponto exato da bolinha já existente.
+  - Para tabelas, registrar a posição de cada bolinha desenhada dentro da célula, evitando conectores genéricos no canto direito da linha da tabela.
 
-### Passo 1 — pré-medir cada nota
-Para cada `ref` da página, calcular a altura total em mm:
-- 1 linha da etiqueta de tipo (ex. "PROPOSTA TÉCNICA")
-- N linhas do `label` (via `doc.splitTextToSize(label, sideColW - 6.5)` × 3.4 mm)
-- M linhas do `excerpt` se houver (× 3.0 mm)
-- + padding inferior (`minGap`)
+- Melhorar o desenho dos conectores.
+  - As linhas verdes/douradas/por tipo continuarão conectando coluna esquerda e nota direita.
+  - Com a nova marcação, o leitor verá duas confirmações visuais: a bolinha numerada no texto/tabela e a mesma bolinha na nota lateral.
 
-### Passo 2 — posicionar respeitando o anterior
-- `startY = max(prevBottom, mainY - 1.5)`
-- Se `startY + altura > contentBottom`, **empilhar a partir do anterior** (não clampar). 
-- Se ainda assim não couber, mover as notas excedentes para uma **página "Notas (continuação)"** ao final do PDF, com o mesmo cabeçalho/rodapé. Conector vira "↪ ver continuação" no lugar da curva.
+- Manter a lógica já corrigida anteriormente contra sobreposição/truncamento das notas laterais.
+  - Não vou mexer no DOCX, backend, parser da IA ou UI.
+  - A alteração será restrita ao PDF do fichamento.
 
-### Passo 3 — conector recalculado
-Desenhar a poly-line usando o `startY` final (já compensado), não o `mainY` original isolado.
+Critério visual esperado após a correção:
 
-### Ajustes finos
-- Reduzir `minGap` de 11 → 8 mm e usar gap dinâmico baseado na altura real.
-- Quando o `excerpt` for longo, truncar para no máximo 4 linhas com `…` para evitar engolir a página inteira.
-- Garantir que duas refs muito próximas no texto principal não gerem duas notas colando: aplicar `startY = max(prevBottom + 2, mainY - 1.5)`.
-
-## Arquivo afetado
-
-- `src/utils/planoGovernoFichamentoExport.ts` — somente a seção "COLUNA DIREITA: NOTAS POR PÁGINA" (linhas ~496–566) e o helper de medição.
-
-Sem mudanças no DOCX, no parser, no backend ou na UI. Sem migrações.
-
-## Validação
-
-Após aplicar, gerar um fichamento com ≥6 fontes citadas próximas (caso reproduzido na imagem) e conferir visualmente que:
-1. Nenhuma bolinha sobrepõe outra.
-2. Nenhum texto de fonte invade a fonte seguinte.
-3. Conectores apontam corretamente para a posição final da nota.
-4. Quando exceder a página, aparece página de continuação ao final.
+- Onde hoje aparece algo como `região de fronteira [1].`, passará a aparecer o marcador numerado destacado no local da citação.
+- A nota direita `1` ficará claramente associada à bolinha `1` no trecho da proposta.
+- Em células com múltiplas fontes, como `[3][7]` ou `[17][27]`, cada número será destacado individualmente no mesmo local do texto.
+- As notas que forem para `Notas (continuação)` continuarão com sua numeração correspondente no texto original.
