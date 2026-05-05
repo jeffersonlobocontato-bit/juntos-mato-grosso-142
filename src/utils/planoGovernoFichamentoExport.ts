@@ -503,55 +503,104 @@ export function exportFichamentoPDF(data: FichamentoData): void {
     if (!arr.find(a => a.ref === rp.ref)) arr.push({ ref: rp.ref, mainY: rp.y });
   });
 
+  // Layout em duas passadas: pré-mede cada nota e empilha respeitando o anterior.
+  // Notas que não couberem na coluna lateral da página vão para uma seção
+  // "Notas (continuação)" no final do PDF.
+  const LABEL_LH = 3.4;
+  const EXCERPT_LH = 3.0;
+  const TYPE_LH = 3.2;
+  const NOTE_GAP = 3.5;
+  const MAX_EXCERPT_LINES = 4;
+  const textWidth = sideColW - 6.5;
+
+  type NoteOverflow = { ref: number; src: FichamentoSource; fromPage: number; mainY: number };
+  const overflow: NoteOverflow[] = [];
+
+  const measureNote = (src: FichamentoSource): { labelLines: string[]; exLines: string[]; height: number } => {
+    doc.setFont('helvetica', 'bold');
+    doc.setFontSize(8.2);
+    const labelLines = doc.splitTextToSize(src.label, textWidth) as string[];
+    let exLines: string[] = [];
+    if (src.excerpt) {
+      doc.setFont('helvetica', 'italic');
+      doc.setFontSize(7.4);
+      const all = doc.splitTextToSize(`"${src.excerpt}"`, textWidth) as string[];
+      if (all.length > MAX_EXCERPT_LINES) {
+        exLines = all.slice(0, MAX_EXCERPT_LINES);
+        const last = exLines[MAX_EXCERPT_LINES - 1].replace(/[\s"]+$/, '');
+        exLines[MAX_EXCERPT_LINES - 1] = last + '…"';
+      } else {
+        exLines = all;
+      }
+    }
+    const height = TYPE_LH + labelLines.length * LABEL_LH + exLines.length * EXCERPT_LH + 2;
+    return { labelLines, exLines, height };
+  };
+
+  const drawNote = (
+    src: FichamentoSource,
+    ref: number,
+    startY: number,
+    labelLines: string[],
+    exLines: string[],
+  ): number => {
+    const color = SOURCE_COLORS[src.type].rgb;
+    // Bolinha + número
+    doc.setFillColor(color[0], color[1], color[2]);
+    doc.circle(sideX + 2.2, startY - 1.6, 2, 'F');
+    doc.setTextColor(255, 255, 255);
+    doc.setFont('helvetica', 'bold');
+    doc.setFontSize(7);
+    doc.text(String(ref), sideX + 2.2, startY - 0.9, { align: 'center', baseline: 'middle' });
+
+    // Tipo
+    doc.setTextColor(color[0], color[1], color[2]);
+    doc.setFont('helvetica', 'bold');
+    doc.setFontSize(7);
+    doc.text(SOURCE_COLORS[src.type].label.toUpperCase(), sideX + 6.5, startY - 1.6);
+
+    // Label
+    doc.setTextColor(40, 40, 40);
+    doc.setFont('helvetica', 'bold');
+    doc.setFontSize(8.2);
+    let lineY = startY + 1.6;
+    labelLines.forEach((ln) => {
+      doc.text(ln, sideX + 6.5, lineY);
+      lineY += LABEL_LH;
+    });
+
+    // Excerto
+    if (exLines.length) {
+      doc.setFont('helvetica', 'italic');
+      doc.setFontSize(7.4);
+      doc.setTextColor(90, 90, 90);
+      exLines.forEach((ln) => {
+        doc.text(ln, sideX + 6.5, lineY);
+        lineY += EXCERPT_LH;
+      });
+    }
+    return lineY;
+  };
+
   for (let p = 1; p <= totalPages; p++) {
     doc.setPage(p);
     const refs = (refsByPage.get(p) || []).sort((a, b) => a.mainY - b.mainY);
-    let noteY = contentTop + 2;
-    const minGap = 11; // espaço mínimo entre notas
+    let prevBottom = contentTop + 2;
     refs.forEach(({ ref, mainY }) => {
       const src = sourcesById.get(ref);
       if (!src) return;
-      const color = SOURCE_COLORS[src.type].rgb;
-      const targetY = Math.max(noteY, mainY - 1.5);
-      const startY = Math.min(targetY, contentBottom - 12);
-      // Bolinha + número
-      doc.setFillColor(color[0], color[1], color[2]);
-      doc.circle(sideX + 2.2, startY - 1.6, 2, 'F');
-      doc.setTextColor(255, 255, 255);
-      doc.setFont('helvetica', 'bold');
-      doc.setFontSize(7);
-      doc.text(String(ref), sideX + 2.2, startY - 0.9, { align: 'center', baseline: 'middle' });
-
-      // Tipo (etiqueta)
-      doc.setTextColor(color[0], color[1], color[2]);
-      doc.setFont('helvetica', 'bold');
-      doc.setFontSize(7);
-      doc.text(SOURCE_COLORS[src.type].label.toUpperCase(), sideX + 6.5, startY - 1.6);
-
-      // Label do documento/entrevista
-      doc.setTextColor(40, 40, 40);
-      doc.setFont('helvetica', 'bold');
-      doc.setFontSize(8.2);
-      const labelLines = doc.splitTextToSize(src.label, sideColW - 6.5);
-      let lineY = startY + 1.6;
-      labelLines.forEach((ln: string) => {
-        doc.text(ln, sideX + 6.5, lineY);
-        lineY += 3.4;
-      });
-
-      // Excerto
-      if (src.excerpt) {
-        doc.setFont('helvetica', 'italic');
-        doc.setFontSize(7.4);
-        doc.setTextColor(90, 90, 90);
-        const exLines = doc.splitTextToSize(`"${src.excerpt}"`, sideColW - 6.5);
-        exLines.forEach((ln: string) => {
-          doc.text(ln, sideX + 6.5, lineY);
-          lineY += 3.0;
-        });
+      const { labelLines, exLines, height } = measureNote(src);
+      const desired = Math.max(prevBottom, mainY - 1.5);
+      // Não cabe nem empilhada? manda pra continuação
+      if (desired + height > contentBottom) {
+        overflow.push({ ref, src, fromPage: p, mainY });
+        return;
       }
+      const startY = desired;
+      const color = SOURCE_COLORS[src.type].rgb;
+      const lineEndY = drawNote(src, ref, startY, labelLines, exLines);
 
-      // Linha conectora — desenhada com pequena curva visual (poliline)
+      // Conector
       doc.setDrawColor(color[0], color[1], color[2]);
       doc.setLineWidth(0.3);
       const fromX = mainX + mainColW + 0.5;
@@ -561,7 +610,68 @@ export function exportFichamentoPDF(data: FichamentoData): void {
       doc.line(midX, mainY, midX, startY - 1.5);
       doc.line(midX, startY - 1.5, toX, startY - 1.5);
 
-      noteY = lineY + 4;
+      prevBottom = lineEndY + NOTE_GAP;
+    });
+  }
+
+  // Página de continuação para notas que não couberam
+  if (overflow.length > 0) {
+    doc.addPage();
+    pageNum = doc.getNumberOfPages();
+    drawHeaderFooter(pageNum, '');
+    doc.setFont('helvetica', 'bold');
+    doc.setFontSize(12);
+    doc.setTextColor(20, 20, 20);
+    doc.text('Notas (continuação)', mainX, contentTop + 4);
+    let yCol = contentTop + 12;
+    const colW = pageW - margin * 2;
+    const noteWidth = colW - 8;
+    overflow.forEach(({ ref, src, fromPage }) => {
+      doc.setFont('helvetica', 'bold');
+      doc.setFontSize(8.2);
+      const labelLines = doc.splitTextToSize(src.label, noteWidth) as string[];
+      let exLines: string[] = [];
+      if (src.excerpt) {
+        doc.setFont('helvetica', 'italic');
+        doc.setFontSize(7.4);
+        const all = doc.splitTextToSize(`"${src.excerpt}"`, noteWidth) as string[];
+        exLines = all.length > MAX_EXCERPT_LINES
+          ? [...all.slice(0, MAX_EXCERPT_LINES - 1), all[MAX_EXCERPT_LINES - 1].replace(/[\s"]+$/, '') + '…"']
+          : all;
+      }
+      const height = TYPE_LH + labelLines.length * LABEL_LH + exLines.length * EXCERPT_LH + 4;
+      if (yCol + height > contentBottom) {
+        doc.addPage();
+        pageNum = doc.getNumberOfPages();
+        drawHeaderFooter(pageNum, '');
+        doc.setFont('helvetica', 'bold');
+        doc.setFontSize(12);
+        doc.setTextColor(20, 20, 20);
+        doc.text('Notas (continuação)', mainX, contentTop + 4);
+        yCol = contentTop + 12;
+      }
+      const color = SOURCE_COLORS[src.type].rgb;
+      doc.setFillColor(color[0], color[1], color[2]);
+      doc.circle(mainX + 2.2, yCol - 1.6, 2, 'F');
+      doc.setTextColor(255, 255, 255);
+      doc.setFont('helvetica', 'bold');
+      doc.setFontSize(7);
+      doc.text(String(ref), mainX + 2.2, yCol - 0.9, { align: 'center', baseline: 'middle' });
+      doc.setTextColor(color[0], color[1], color[2]);
+      doc.setFontSize(7);
+      doc.text(`${SOURCE_COLORS[src.type].label.toUpperCase()} — pág. ${fromPage}`, mainX + 6.5, yCol - 1.6);
+      doc.setTextColor(40, 40, 40);
+      doc.setFont('helvetica', 'bold');
+      doc.setFontSize(8.2);
+      let lineY = yCol + 1.6;
+      labelLines.forEach((ln) => { doc.text(ln, mainX + 6.5, lineY); lineY += LABEL_LH; });
+      if (exLines.length) {
+        doc.setFont('helvetica', 'italic');
+        doc.setFontSize(7.4);
+        doc.setTextColor(90, 90, 90);
+        exLines.forEach((ln) => { doc.text(ln, mainX + 6.5, lineY); lineY += EXCERPT_LH; });
+      }
+      yCol = lineY + NOTE_GAP + 1;
     });
   }
 

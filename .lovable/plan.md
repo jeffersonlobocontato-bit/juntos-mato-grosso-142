@@ -1,47 +1,49 @@
-# Fase 5 — Storage: SELECT por owner/admin
+## Problema
 
-## Objetivo
-Bloquear listagem/leitura anônima via API nos buckets `ai-documents` e `proposta-anexos`, sem quebrar links públicos já compartilhados (CDN).
+No PDF gerado pelo "Fichamento" do Gerador de Plano de Governo, as notas da coluna lateral direita (fontes citadas) ficam **encavaladas/truncadas** quando há muitas referências numa mesma página, como mostra a captura. As bolinhas (3, 10) e os textos das fontes se sobrepõem.
 
-## Estado atual (confirmado no banco)
-- `ai-documents`: policy `"Anyone can view documents"` permite `SELECT` para qualquer um.
-- `proposta-anexos`: policy `"Public can view proposta anexos"` permite `SELECT` para qualquer um.
-- Uploads, updates e deletes já estão restritos (admin / owner).
+## Causa raiz
 
-## Mudanças
-- Remover policy `"Anyone can view documents"` (ai-documents).
-- Remover policy `"Public can view proposta anexos"` (proposta-anexos).
-- Criar `SELECT` apenas para admins em `ai-documents`.
-- Criar `SELECT` apenas para owner ou admin em `proposta-anexos`.
-- Buckets permanecem `public = true` → `getPublicUrl()` continua servindo arquivos pelo CDN sem login.
+Em `src/utils/planoGovernoFichamentoExport.ts` (função `exportFichamentoPDF`, bloco da coluna direita, linhas ~506‑566):
 
-## Impacto operacional
-- Visualização de PDFs/anexos via link público: **inalterado** (CDN).
-- Upload de documentos por admin (`ai-documents`): **inalterado**.
-- Upload de anexos em entrevistas/propostas: **inalterado**.
-- Remoção de anexo pelo dono: **inalterado**.
-- Listagem anônima dos arquivos via API: **bloqueada** (objetivo da fase).
-- RAG/busca semântica: **inalterado** (lê de `ai_document_chunks`, não do storage).
+1. As notas são desenhadas em ordem do `mainY` (posição da âncora no texto), mas o cálculo `targetY = Math.max(noteY, mainY - 1.5)` apenas empurra para baixo. Quando a altura real da nota anterior + a próxima ultrapassa o espaço, o código **força** `startY = Math.min(targetY, contentBottom - 12)`, fazendo a nova nota ser desenhada por cima da anterior.
+2. A altura de cada nota não é pré‑calculada — depende de quantas linhas o `splitTextToSize` produz para `label` e `excerpt`. Sem essa medição, não há como saber se cabe na página.
+3. Não há fallback quando a coluna lateral enche: notas extras simplesmente colidem.
 
-## SQL da migração
+## Solução
 
-```sql
-DROP POLICY IF EXISTS "Anyone can view documents" ON storage.objects;
-DROP POLICY IF EXISTS "Public can view proposta anexos" ON storage.objects;
+Reescrever o trecho de renderização da coluna lateral com **layout em duas passadas**:
 
-CREATE POLICY "Admins can view ai-documents"
-ON storage.objects FOR SELECT
-USING (bucket_id = 'ai-documents' AND is_admin(auth.uid()));
+### Passo 1 — pré-medir cada nota
+Para cada `ref` da página, calcular a altura total em mm:
+- 1 linha da etiqueta de tipo (ex. "PROPOSTA TÉCNICA")
+- N linhas do `label` (via `doc.splitTextToSize(label, sideColW - 6.5)` × 3.4 mm)
+- M linhas do `excerpt` se houver (× 3.0 mm)
+- + padding inferior (`minGap`)
 
-CREATE POLICY "Owners and admins can view proposta-anexos"
-ON storage.objects FOR SELECT
-USING (
-  bucket_id = 'proposta-anexos'
-  AND (owner = auth.uid() OR is_admin(auth.uid()))
-);
-```
+### Passo 2 — posicionar respeitando o anterior
+- `startY = max(prevBottom, mainY - 1.5)`
+- Se `startY + altura > contentBottom`, **empilhar a partir do anterior** (não clampar). 
+- Se ainda assim não couber, mover as notas excedentes para uma **página "Notas (continuação)"** ao final do PDF, com o mesmo cabeçalho/rodapé. Conector vira "↪ ver continuação" no lugar da curva.
 
-## Verificação após aplicar
-- Abrir um anexo de proposta via link público → deve carregar.
-- Painel admin de documentos de IA → deve listar normalmente (admin logado).
-- Rodar `supabase--linter` → warnings de "Public Bucket Allows Listing" devem sumir.
+### Passo 3 — conector recalculado
+Desenhar a poly-line usando o `startY` final (já compensado), não o `mainY` original isolado.
+
+### Ajustes finos
+- Reduzir `minGap` de 11 → 8 mm e usar gap dinâmico baseado na altura real.
+- Quando o `excerpt` for longo, truncar para no máximo 4 linhas com `…` para evitar engolir a página inteira.
+- Garantir que duas refs muito próximas no texto principal não gerem duas notas colando: aplicar `startY = max(prevBottom + 2, mainY - 1.5)`.
+
+## Arquivo afetado
+
+- `src/utils/planoGovernoFichamentoExport.ts` — somente a seção "COLUNA DIREITA: NOTAS POR PÁGINA" (linhas ~496–566) e o helper de medição.
+
+Sem mudanças no DOCX, no parser, no backend ou na UI. Sem migrações.
+
+## Validação
+
+Após aplicar, gerar um fichamento com ≥6 fontes citadas próximas (caso reproduzido na imagem) e conferir visualmente que:
+1. Nenhuma bolinha sobrepõe outra.
+2. Nenhum texto de fonte invade a fonte seguinte.
+3. Conectores apontam corretamente para a posição final da nota.
+4. Quando exceder a página, aparece página de continuação ao final.
