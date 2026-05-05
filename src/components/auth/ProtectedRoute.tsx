@@ -1,4 +1,4 @@
-import { ReactNode } from 'react';
+import { ReactNode, useEffect } from 'react';
 import { Navigate, useLocation } from 'react-router-dom';
 import { useAuth } from '@/hooks/useAuth';
 
@@ -16,6 +16,37 @@ interface ProtectedRouteProps {
 const ProtectedRoute = ({ children, requiredRoles }: ProtectedRouteProps) => {
   const { user, roles, isLoading } = useAuth();
   const location = useLocation();
+
+  // Injeta noindex/nofollow + remove og:image em rotas administrativas para
+  // impedir indexação e preview social de áreas internas.
+  useEffect(() => {
+    const ensureMeta = (name: string, content: string) => {
+      let el = document.querySelector(`meta[name="${name}"]`) as HTMLMetaElement | null;
+      if (!el) {
+        el = document.createElement('meta');
+        el.setAttribute('name', name);
+        document.head.appendChild(el);
+      }
+      const prev = el.getAttribute('content');
+      el.setAttribute('content', content);
+      return () => {
+        if (prev !== null) el!.setAttribute('content', prev);
+        else el!.remove();
+      };
+    };
+    const restoreRobots = ensureMeta('robots', 'noindex, nofollow, noarchive');
+    const og = document.querySelector('meta[property="og:image"]');
+    const tw = document.querySelector('meta[name="twitter:image"]');
+    const ogPrev = og?.getAttribute('content') ?? null;
+    const twPrev = tw?.getAttribute('content') ?? null;
+    og?.setAttribute('content', '');
+    tw?.setAttribute('content', '');
+    return () => {
+      restoreRobots();
+      if (ogPrev !== null) og?.setAttribute('content', ogPrev);
+      if (twPrev !== null) tw?.setAttribute('content', twPrev);
+    };
+  }, []);
 
   if (isLoading) {
     return (
