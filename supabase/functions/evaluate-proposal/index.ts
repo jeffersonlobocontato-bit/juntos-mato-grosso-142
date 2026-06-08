@@ -58,6 +58,30 @@ Deno.serve(async (req) => {
       );
     }
 
+    // Role check: only admin, admin_master, or lider_tematico can evaluate proposals
+    const { data: roles, error: rolesError } = await supabase
+      .from('user_roles')
+      .select('role')
+      .eq('user_id', user.id);
+
+    if (rolesError) {
+      console.error('Error fetching user roles:', rolesError);
+      return new Response(
+        JSON.stringify({ error: 'Erro ao verificar permissões' }),
+        { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
+    const allowedRoles = ['admin', 'admin_master', 'lider_tematico'];
+    const hasPermission = (roles || []).some((r: { role: string }) => allowedRoles.includes(r.role));
+
+    if (!hasPermission) {
+      return new Response(
+        JSON.stringify({ error: 'Permissão negada. Apenas admins ou líderes temáticos podem avaliar propostas.' }),
+        { status: 403, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
     const { proposalId, sources } = await req.json();
 
     if (!proposalId) {
