@@ -26,6 +26,30 @@ import {
 
 type Format = 'pdf' | 'docx';
 
+function parseAnexos(raw: unknown): CadernoAnexo[] {
+  if (!Array.isArray(raw)) return [];
+  const out: CadernoAnexo[] = [];
+  for (const item of raw) {
+    try {
+      const obj = typeof item === 'string' ? JSON.parse(item) : item;
+      if (!obj || typeof obj !== 'object') continue;
+      const nome = String(obj.name ?? obj.nome ?? '');
+      const url = String(obj.url ?? '');
+      if (!url) continue;
+      const ext = (nome.split('.').pop() ?? '').toLowerCase();
+      out.push({
+        titulo: String(obj.title ?? obj.titulo ?? nome ?? 'Anexo'),
+        nome,
+        url,
+        tipo: ext,
+      });
+    } catch {
+      /* ignore malformed */
+    }
+  }
+  return out;
+}
+
 interface Eixo {
   id: string;
   nome: string;
