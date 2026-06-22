@@ -439,6 +439,55 @@ function drawProposta(st: PdfState, p: PreparedProposta, eixo: CadernoEixo) {
     });
   }
 
+  // Anexos
+  if (p.anexos && p.anexos.length > 0) {
+    st.y += 2;
+    ensureSpace(st, 8);
+    writeWrapped(st, `Anexos (${p.anexos.length})`, {
+      fontSize: 9.5,
+      bold: true,
+      color: [120, 90, 20],
+      lineHeight: 4.5,
+    });
+    p.anexos.forEach((a) => {
+      ensureSpace(st, 6);
+      writeWrapped(st, `• ${a.titulo || a.nome} — ${a.url}`, {
+        fontSize: 8.5,
+        color: [40, 60, 130],
+        lineHeight: 4,
+      });
+    });
+    // Texto extraído de PDFs
+    p.anexos
+      .filter((a) => a.tipo === 'pdf')
+      .forEach((a) => {
+        st.y += 2;
+        ensureSpace(st, 10);
+        writeWrapped(st, `Conteúdo do anexo — ${a.titulo || a.nome}`, {
+          fontSize: 9.5,
+          bold: true,
+          color: [120, 90, 20],
+          lineHeight: 4.5,
+        });
+        if (a.textoExtraido && a.textoExtraido.trim()) {
+          writeWrapped(st, a.textoExtraido.trim(), {
+            fontSize: 9,
+            color: [50, 50, 50],
+            lineHeight: 4.3,
+            indent: 3,
+          });
+        } else {
+          writeWrapped(
+            st,
+            a.erroExtracao
+              ? `[Não foi possível extrair texto: ${a.erroExtracao}]`
+              : '[Não foi possível extrair texto deste anexo]',
+            { fontSize: 9, color: [140, 60, 60], lineHeight: 4.3, indent: 3 },
+          );
+        }
+      });
+  }
+
   st.y += 3;
   ensureSpace(st, 4);
   pdf.setDrawColor(220, 220, 220);
