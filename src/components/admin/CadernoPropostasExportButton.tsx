@@ -21,9 +21,34 @@ import {
   slugifyFilename,
   type CadernoEixo,
   type CadernoProposta,
+  type CadernoAnexo,
 } from '@/utils/cadernoPropostasExport';
 
 type Format = 'pdf' | 'docx';
+
+function parseAnexos(raw: unknown): CadernoAnexo[] {
+  if (!Array.isArray(raw)) return [];
+  const out: CadernoAnexo[] = [];
+  for (const item of raw) {
+    try {
+      const obj = typeof item === 'string' ? JSON.parse(item) : item;
+      if (!obj || typeof obj !== 'object') continue;
+      const nome = String(obj.name ?? obj.nome ?? '');
+      const url = String(obj.url ?? '');
+      if (!url) continue;
+      const ext = (nome.split('.').pop() ?? '').toLowerCase();
+      out.push({
+        titulo: String(obj.title ?? obj.titulo ?? nome ?? 'Anexo'),
+        nome,
+        url,
+        tipo: ext,
+      });
+    } catch {
+      /* ignore malformed */
+    }
+  }
+  return out;
+}
 
 interface Eixo {
   id: string;
@@ -61,7 +86,7 @@ export function CadernoPropostasExportButton({ eixos }: Props) {
     let q = supabase
       .from('propostas_tecnicas')
       .select(
-        `id, titulo, descricao, metas, indicadores, status, etapa,
+        `id, titulo, descricao, metas, indicadores, status, etapa, anexos,
          eixo_id, tema_id, subtema_id, autor_id, municipio_id,
          eixos_tematicos:eixo_id(nome),
          temas:tema_id(nome),
@@ -102,6 +127,7 @@ export function CadernoPropostasExportButton({ eixos }: Props) {
       eixo_nome: p.eixos_tematicos?.nome ?? '',
       tema_nome: p.temas?.nome ?? null,
       subtema_nome: p.subtemas?.nome ?? null,
+      anexos: parseAnexos(p.anexos),
     }));
 
     return { eixos: eixosFiltered, propostas };
@@ -119,6 +145,59 @@ export function CadernoPropostasExportButton({ eixos }: Props) {
         toast.error('Nenhuma proposta encontrada para exportar', { id: toastId });
         return;
       }
+
+      // Extrair texto dos PDFs anexos em paralelo (concorrência 4)
+      const pdfTargets: Array<{ proposta: CadernoProposta; anexo: CadernoAnexo }> = [];
+      propostas.forEach((p) => {
+        (p.anexos ?? []).forEach((a) => {
+          if (a.tipo === 'pdf' && a.url) pdfTargets.push({ proposta: p, anexo: a });
+        });
+      });
+      if (pdfTargets.length > 0) {
+        let done = 0;
+        toast.loading(
+          `Extraindo texto dos anexos PDF: 0/${pdfTargets.length}…`,
+          { id: toastId },
+        );
+        const CONCURRENCY = 4;
+        let cursor = 0;
+        const runWorker = async () => {
+          while (cursor < pdfTargets.length) {
+            const idx = cursor++;
+            const { anexo } = pdfTargets[idx];
+            try {
+              const { data, error } = await supabase.functions.invoke(
+                'extract-pdf-text',
+                { body: { url: anexo.url } },
+              );
+              if (error) throw error;
+              if (data?.text) {
+                anexo.textoExtraido = data.text;
+              } else if (data?.error) {
+                anexo.erroExtracao = data.error;
+              } else {
+                anexo.erroExtracao = 'sem texto extraído';
+              }
+            } catch (err: any) {
+              anexo.erroExtracao = err?.message ?? 'falha na extração';
+            } finally {
+              done++;
+              toast.loading(
+                `Extraindo texto dos anexos PDF: ${done}/${pdfTargets.length}…`,
+                { id: toastId },
+              );
+            }
+          }
+        };
+        await Promise.all(
+          Array.from({ length: Math.min(CONCURRENCY, pdfTargets.length) }, () => runWorker()),
+        );
+        toast.loading(
+          `Gerando ${format.toUpperCase()}${eixo ? ` — ${eixo.nome}` : ' — Caderno completo'}…`,
+          { id: toastId },
+        );
+      }
+
       const title = eixo ? eixo.nome : 'Caderno Completo — 5 Eixos Temáticos';
       const baseName = eixo
         ? `caderno-eixo-${eixo.ordem}-${slugifyFilename(eixo.nome)}`

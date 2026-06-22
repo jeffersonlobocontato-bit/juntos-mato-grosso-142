@@ -11,6 +11,7 @@ import {
   Footer,
   PageNumber,
   BorderStyle,
+  ExternalHyperlink,
 } from 'docx';
 import { saveAs } from 'file-saver';
 import { EIXO_HEX_COLORS } from './eixoHelpers';
@@ -35,6 +36,16 @@ export interface CadernoProposta {
   eixo_nome: string;
   tema_nome: string | null;
   subtema_nome: string | null;
+  anexos?: CadernoAnexo[];
+}
+
+export interface CadernoAnexo {
+  titulo: string;
+  nome: string;
+  url: string;
+  tipo: string; // extensão lowercase (pdf, png, ...)
+  textoExtraido?: string;
+  erroExtracao?: string;
 }
 
 export interface CadernoEixo {
@@ -428,6 +439,55 @@ function drawProposta(st: PdfState, p: PreparedProposta, eixo: CadernoEixo) {
     });
   }
 
+  // Anexos
+  if (p.anexos && p.anexos.length > 0) {
+    st.y += 2;
+    ensureSpace(st, 8);
+    writeWrapped(st, `Anexos (${p.anexos.length})`, {
+      fontSize: 9.5,
+      bold: true,
+      color: [120, 90, 20],
+      lineHeight: 4.5,
+    });
+    p.anexos.forEach((a) => {
+      ensureSpace(st, 6);
+      writeWrapped(st, `• ${a.titulo || a.nome} — ${a.url}`, {
+        fontSize: 8.5,
+        color: [40, 60, 130],
+        lineHeight: 4,
+      });
+    });
+    // Texto extraído de PDFs
+    p.anexos
+      .filter((a) => a.tipo === 'pdf')
+      .forEach((a) => {
+        st.y += 2;
+        ensureSpace(st, 10);
+        writeWrapped(st, `Conteúdo do anexo — ${a.titulo || a.nome}`, {
+          fontSize: 9.5,
+          bold: true,
+          color: [120, 90, 20],
+          lineHeight: 4.5,
+        });
+        if (a.textoExtraido && a.textoExtraido.trim()) {
+          writeWrapped(st, a.textoExtraido.trim(), {
+            fontSize: 9,
+            color: [50, 50, 50],
+            lineHeight: 4.3,
+            indent: 3,
+          });
+        } else {
+          writeWrapped(
+            st,
+            a.erroExtracao
+              ? `[Não foi possível extrair texto: ${a.erroExtracao}]`
+              : '[Não foi possível extrair texto deste anexo]',
+            { fontSize: 9, color: [140, 60, 60], lineHeight: 4.3, indent: 3 },
+          );
+        }
+      });
+  }
+
   st.y += 3;
   ensureSpace(st, 4);
   pdf.setDrawColor(220, 220, 220);
@@ -560,6 +620,81 @@ function docxPropostaBlock(p: PreparedProposta, eixo: CadernoEixo): Paragraph[] 
         ],
       }),
     );
+  }
+
+  if (p.anexos && p.anexos.length > 0) {
+    blocks.push(
+      new Paragraph({
+        spacing: { before: 160, after: 40 },
+        children: [
+          new TextRun({ text: `Anexos (${p.anexos.length})`, bold: true, size: 20, color: '7A5A14' }),
+        ],
+      }),
+    );
+    p.anexos.forEach((a) => {
+      blocks.push(
+        new Paragraph({
+          spacing: { after: 40 },
+          children: [
+            new TextRun({ text: '• ', size: 20 }),
+            new TextRun({ text: `${a.titulo || a.nome} — `, size: 20 }),
+            new ExternalHyperlink({
+              link: a.url,
+              children: [
+                new TextRun({ text: a.url, size: 18, color: '2A4DBD', underline: {} }),
+              ],
+            }),
+          ],
+        }),
+      );
+    });
+    p.anexos
+      .filter((a) => a.tipo === 'pdf')
+      .forEach((a) => {
+        blocks.push(
+          new Paragraph({
+            spacing: { before: 140, after: 40 },
+            children: [
+              new TextRun({
+                text: `Conteúdo do anexo — ${a.titulo || a.nome}`,
+                bold: true,
+                size: 20,
+                color: '7A5A14',
+              }),
+            ],
+          }),
+        );
+        if (a.textoExtraido && a.textoExtraido.trim()) {
+          a.textoExtraido
+            .trim()
+            .split(/\n+/)
+            .filter((l) => l.trim())
+            .forEach((line) => {
+              blocks.push(
+                new Paragraph({
+                  spacing: { after: 40 },
+                  children: [new TextRun({ text: line.trim(), size: 20 })],
+                }),
+              );
+            });
+        } else {
+          blocks.push(
+            new Paragraph({
+              spacing: { after: 40 },
+              children: [
+                new TextRun({
+                  text: a.erroExtracao
+                    ? `[Não foi possível extrair texto: ${a.erroExtracao}]`
+                    : '[Não foi possível extrair texto deste anexo]',
+                  italics: true,
+                  size: 18,
+                  color: '8A3A3A',
+                }),
+              ],
+            }),
+          );
+        }
+      });
   }
 
   blocks.push(
