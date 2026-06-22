@@ -47,6 +47,7 @@ import ParanaMap from '@/components/admin/ParanaMap';
 import TimelineChart from '@/components/admin/TimelineChart';
 import { ProposalDetailModal } from '@/components/admin/ProposalDetailModal';
 import { ScoreBadge } from '@/components/admin/ScoreBadge';
+import { CadernoPropostasExportButton } from '@/components/admin/CadernoPropostasExportButton';
 
 type ProposalStatus = 'rascunho' | 'em_analise' | 'aprovada';
 
@@ -74,6 +75,7 @@ interface LiderTecnico {
 interface Eixo {
   id: string;
   nome: string;
+  ordem: number;
 }
 
 interface Municipio {
@@ -220,7 +222,8 @@ const AdminPropostas = () => {
   const fetchEixos = async () => {
     const { data, error } = await supabase
       .from('eixos_tematicos')
-      .select('id, nome');
+      .select('id, nome, ordem')
+      .order('ordem');
     
     if (!error && data) {
       setEixos(data);
@@ -457,6 +460,8 @@ const AdminPropostas = () => {
               </div>
             </div>
             
+            <div className="flex items-center gap-2">
+            {!isInstitucional && <CadernoPropostasExportButton eixos={eixos} />}
             <Dialog open={isDialogOpen} onOpenChange={(open) => {
               setIsDialogOpen(open);
               if (!open) resetForm();
@@ -634,6 +639,7 @@ const AdminPropostas = () => {
                 </form>
               </DialogContent>
             </Dialog>
+            </div>
           </div>
         </div>
       </header>
