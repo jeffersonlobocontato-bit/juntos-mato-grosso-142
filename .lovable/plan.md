@@ -1,105 +1,38 @@
-# Cadernos de Propostas — PDF e Word
+## Incluir anexos das propostas no Caderno
 
-Gerar documentos impressos com **todas as propostas técnicas na íntegra**, organizadas por eixo, com tags de tema/subtema e marcação simples de referência cruzada quando outras propostas compartilharem o mesmo subtema.
+Hoje o caderno exporta apenas título, descrição, objetivos e indicadores. Os arquivos enviados pelo entrevistado em `propostas_tecnicas.anexos` são ignorados. Vou tratá-los como parte da resposta.
 
-## Escopo confirmado
+### O que será adicionado em cada proposta
+1. Seção **"Anexos"** listando todos os arquivos (título + link clicável para o storage `proposta-anexos`).
+2. Para cada anexo PDF, seção **"Conteúdo do anexo: <título>"** com o texto extraído (até ~8.000 caracteres por anexo para não explodir o caderno; corte com aviso "[...texto truncado]").
+3. Anexos não-PDF (imagens, docx, xlsx) → apenas listados com link, sem extração.
+4. Se a extração falhar (PDF escaneado / protegido / erro de rede) → marca "[Não foi possível extrair texto deste anexo]" e mantém o link.
 
-- **Conteúdo:** todas as propostas (`rascunho`, `em_analise`, `aprovada`) — sem resumos, sem reescrita, texto integral.
-- **Arquivos:** 2 modos
-  - **Por eixo:** 1 arquivo por eixo
-  - **Consolidado:** 1 caderno único com os 5 eixos
-- **Formatos:** PDF e Word (.docx) em ambos os modos.
-- **Referência cruzada:** rodapé simples em cada proposta — "Ver também: nº 12, nº 27 (mesmo subtema)" — sem texto gerado por IA.
-- **Local da feature:** aba **Propostas Técnicas** (`/admin/propostas`).
+### Como a extração vai funcionar
+- Nova edge function `extract-pdf-text` (Deno, `verify_jwt = false` padrão Lovable, valida JWT em código).
+  - Input: `{ url: string }` (URL pública do anexo).
+  - Faz `fetch` do PDF, usa `npm:pdfjs-dist` para extrair texto página a página, devolve `{ text, pages, truncated }`.
+  - Limite: 50 páginas / 8.000 chars; timeout 25s.
+- No `CadernoPropostasExportButton.tsx`, antes de chamar o gerador:
+  - Reúne todos os anexos PDF de todas as propostas selecionadas.
+  - Chama a edge function em paralelo com `Promise.allSettled` (concorrência limitada a 4 com um pequeno pool) e mostra progresso no toast ("Extraindo texto dos anexos: 12/34").
+  - Resultado fica em `Map<anexoPath, { text, error }>` e é injetado no objeto da proposta antes de passar para `exportCadernoPDF` / `exportCadernoDOCX`.
 
-## Layout do documento
+### Mudanças nos geradores (`src/utils/cadernoPropostasExport.ts`)
+- Estender `CadernoProposta` com `anexos: { titulo: string; url: string; tipo: string; textoExtraido?: string; erroExtracao?: string }[]`.
+- PDF (`drawProposta`): após indicadores, renderiza bloco "Anexos" (lista com bullets dourados) e, para cada PDF com texto, um sub-bloco "Conteúdo do anexo — <título>" em fonte menor com quebra de página automática.
+- DOCX (`docxPropostaBlock`): mesmas seções usando `Paragraph` + `ExternalHyperlink` para os links e parágrafos normais para o texto extraído.
+- Cross-references (`Ver também`) permanecem inalteradas.
 
-**Capa**
-- Logo / IDV "Juntos Paraná 399" (dourado da identidade)
-- Subtítulo: "Sergio Moro — Pré-candidato ao Governo do Paraná"
-- Título: nome do eixo OU "Caderno Completo — 5 Eixos Temáticos"
-- Data de geração + total de propostas
+### Arquivos
+- **Novo:** `supabase/functions/extract-pdf-text/index.ts`
+- **Editar:** `src/components/admin/CadernoPropostasExportButton.tsx` (buscar `anexos`, parsear JSON, orquestrar extração com toast de progresso)
+- **Editar:** `src/utils/cadernoPropostasExport.ts` (tipos + render de anexos em PDF e DOCX)
 
-**Sumário** (só no consolidado): 5 eixos com contagem e nº da página.
+### Fora de escopo
+- OCR de PDFs escaneados (apenas extração de texto nativo).
+- Extração de DOCX/XLSX/imagens.
+- Embed de miniaturas de imagens.
 
-**Por eixo**
-- Cabeçalho colorido com nome do eixo (usando `EIXO_HEX_COLORS` de `eixoHelpers.ts`)
-- Propostas ordenadas: `aprovada` → `em_analise` → `rascunho`, depois por título
-- Numeração sequencial dentro do eixo (#1, #2, ...)
-
-**Bloco de cada proposta**
-```
-#12 — [Título]                                       [badge status]
-Autor: ...  ·  Município: ...  ·  Etapa: 2/3
-
-Descrição:
-[texto integral]
-
-Metas:
-[texto integral]
-
-Indicadores:
-[texto integral]
-
-Tags: [Eixo] [Tema] [Subtema]   (chips coloridos)
-
-Ver também: nº 7, nº 19 (mesmo subtema)
-─────────────────────────────────
-```
-
-**Rodapé**: "Juntos Paraná 399 · Sergio Moro" à esquerda · nº da página à direita.
-
-## Implementação técnica
-
-**Stack** (já instalado, reaproveita o padrão de `planoGovernoFichamentoExport.ts`):
-- `jspdf` + `jspdf-autotable` para PDF
-- `docx` + `file-saver` para Word
-
-**Arquivos a criar**
-- `src/utils/cadernoPropostasExport.ts` — gerador PDF + DOCX
-- `src/components/admin/CadernoPropostasExportButton.tsx` — dropdown com 4 grupos de opções:
-  - Caderno completo (PDF)
-  - Caderno completo (Word)
-  - Por eixo › Eixo X (PDF) / (Word) — para cada um dos 5 eixos
-
-**Arquivos a modificar**
-- `src/pages/AdminPropostas.tsx` — adicionar o botão no cabeçalho da página.
-
-**Query de dados**
-```ts
-supabase.from('propostas_tecnicas')
-  .select(`
-    id, titulo, descricao, metas, indicadores, status, etapa,
-    tipo_proposta, instituicao_nome, representante_nome,
-    eixo_id, tema_id, subtema_id,
-    eixos_tematicos:eixo_id(nome, ordem),
-    temas:tema_id(nome),
-    subtemas:subtema_id(nome),
-    municipios:municipio_id(nome),
-    profiles:autor_id(full_name)
-  `)
-```
-
-**Referência cruzada** (cliente, sem IA):
-- Agrupar por `subtema_id` (ignorando nulos).
-- Para cada proposta, listar nº das outras no mesmo grupo dentro do mesmo eixo.
-- Truncar com "e mais N" se passar de ~10 referências.
-
-**Cores e identidade**
-- Reaproveitar `BRAND_COLOR_RGB` (dourado [212,175,55]) e `EIXO_HEX_COLORS`.
-- Badge de status: verde (aprovada), âmbar (em_analise), cinza (rascunho).
-
-**Permissões**
-- Botão "Caderno completo" visível só para `admin` / `admin_master`.
-- `lider_tematico` vê só os botões dos eixos aos quais tem acesso (via `useUserAccess`).
-
-## Fora de escopo
-
-- Resumos / notas geradas por IA.
-- Detecção semântica de similaridade (só agrupamento por subtema).
-- Anexos embutidos (PDF/Word só com texto).
-- `propostas_politicas` e `sugestoes_populares` — só `propostas_tecnicas`.
-
-## QA pós-implementação
-
-Vou gerar 1 PDF de exemplo de cada modo (consolidado e de 1 eixo) e inspecionar páginas-chave (capa, sumário, 1 eixo cheio, transição entre eixos, rodapé) antes de entregar.
+### QA pós-implementação
+- Gerar caderno de 1 eixo que contenha pelo menos 1 proposta com PDF anexo e 1 com imagem; inspecionar PDF e DOCX confirmando lista de anexos, links clicáveis e texto extraído paginando corretamente.
