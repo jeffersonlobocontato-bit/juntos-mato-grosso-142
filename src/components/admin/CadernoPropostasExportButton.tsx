@@ -66,14 +66,25 @@ export function CadernoPropostasExportButton({ eixos }: Props) {
          eixos_tematicos:eixo_id(nome),
          temas:tema_id(nome),
          subtemas:subtema_id(nome),
-         municipios:municipio_id(nome),
-         profiles:autor_id(full_name)`,
+         municipios:municipio_id(nome)`,
       )
       .order('titulo');
     if (eixoId) q = q.eq('eixo_id', eixoId);
 
     const { data: propData, error: propErr } = await q;
     if (propErr) throw propErr;
+
+    const autorIds = Array.from(
+      new Set((propData ?? []).map((p: any) => p.autor_id).filter(Boolean)),
+    );
+    let autorMap = new Map<string, string>();
+    if (autorIds.length > 0) {
+      const { data: profData } = await supabase
+        .from('profiles')
+        .select('id, full_name')
+        .in('id', autorIds);
+      autorMap = new Map((profData ?? []).map((pr: any) => [pr.id, pr.full_name ?? '']));
+    }
 
     const propostas: CadernoProposta[] = (propData ?? []).map((p: any) => ({
       id: p.id,
@@ -86,7 +97,7 @@ export function CadernoPropostasExportButton({ eixos }: Props) {
       eixo_id: p.eixo_id,
       tema_id: p.tema_id,
       subtema_id: p.subtema_id,
-      autor_nome: p.profiles?.full_name ?? null,
+      autor_nome: autorMap.get(p.autor_id) ?? null,
       municipio_nome: p.municipios?.nome ?? null,
       eixo_nome: p.eixos_tematicos?.nome ?? '',
       tema_nome: p.temas?.nome ?? null,
