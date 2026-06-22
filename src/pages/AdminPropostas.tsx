@@ -460,6 +460,8 @@ const AdminPropostas = () => {
               </div>
             </div>
             
+            <div className="flex items-center gap-2">
+            {!isInstitucional && <CadernoPropostasExportButton eixos={eixos} />}
             <Dialog open={isDialogOpen} onOpenChange={(open) => {
               setIsDialogOpen(open);
               if (!open) resetForm();
