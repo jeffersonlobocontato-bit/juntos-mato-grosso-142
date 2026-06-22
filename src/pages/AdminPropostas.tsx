@@ -639,6 +639,7 @@ const AdminPropostas = () => {
                 </form>
               </DialogContent>
             </Dialog>
+            </div>
           </div>
         </div>
       </header>
