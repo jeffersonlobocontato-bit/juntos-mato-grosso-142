@@ -11,6 +11,7 @@ import {
   Footer,
   PageNumber,
   BorderStyle,
+  ExternalHyperlink,
 } from 'docx';
 import { saveAs } from 'file-saver';
 import { EIXO_HEX_COLORS } from './eixoHelpers';
@@ -35,6 +36,16 @@ export interface CadernoProposta {
   eixo_nome: string;
   tema_nome: string | null;
   subtema_nome: string | null;
+  anexos?: CadernoAnexo[];
+}
+
+export interface CadernoAnexo {
+  titulo: string;
+  nome: string;
+  url: string;
+  tipo: string; // extensão lowercase (pdf, png, ...)
+  textoExtraido?: string;
+  erroExtracao?: string;
 }
 
 export interface CadernoEixo {
