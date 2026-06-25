@@ -18,7 +18,7 @@ const HeroPortrait = () => {
               <p className="font-display font-black uppercase leading-none text-white tracking-tight text-3xl md:text-4xl lg:text-[2.6rem] drop-shadow">
                 Sergio Moro
               </p>
-              <p className="mt-2 text-[11px] md:text-xs font-semibold uppercase tracking-[0.18em] text-secondary">
+              <p className="mt-2 text-[11px] md:text-xs font-semibold uppercase tracking-[0.18em] text-accent">
                 Senador e Pré-candidato ao Governo do Paraná
               </p>
             </div>
