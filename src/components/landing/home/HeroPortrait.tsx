@@ -15,10 +15,10 @@ const HeroPortrait = () => {
         <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-primary via-primary/90 to-primary/0 pt-16 pb-5 px-5">
           <div className="flex items-end justify-between gap-3">
             <div className="min-w-0">
-              <p className="font-display font-black uppercase leading-none text-primary-foreground tracking-tight text-3xl md:text-4xl lg:text-[2.6rem] drop-shadow">
+              <p className="font-display font-black uppercase leading-none text-secondary tracking-tight text-3xl md:text-4xl lg:text-[2.6rem] drop-shadow">
                 Sergio Moro
               </p>
-              <p className="mt-2 text-[11px] md:text-xs font-semibold uppercase tracking-[0.18em] text-secondary">
+              <p className="mt-2 text-[11px] md:text-xs font-semibold uppercase tracking-[0.18em] text-secondary/95">
                 Senador • Pré-candidato ao Governo do Paraná
               </p>
             </div>
