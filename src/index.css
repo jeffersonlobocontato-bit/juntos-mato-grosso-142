@@ -270,6 +270,52 @@
   .map-marker:hover {
     @apply scale-150;
   }
+
+  /* === Juntos Paraná 399 — Home DS === */
+  .bg-organic-canvas {
+    background: var(--gradient-canvas);
+  }
+
+  .bg-gradient-cta {
+    background: var(--gradient-cta);
+  }
+
+  .bg-gradient-gold {
+    background: var(--gradient-gold);
+  }
+
+  .shadow-card-float {
+    box-shadow: var(--shadow-card-float);
+  }
+
+  .input-pill {
+    @apply h-12 w-full rounded-full bg-card border border-border/60 pl-12 pr-4 text-sm text-foreground placeholder:text-muted-foreground/70 focus:outline-none focus:ring-2 focus:ring-primary/40 focus:border-primary transition;
+  }
+
+  .textarea-pill {
+    @apply min-h-[120px] w-full rounded-2xl bg-card border border-border/60 pl-12 pr-4 py-3 text-sm text-foreground placeholder:text-muted-foreground/70 focus:outline-none focus:ring-2 focus:ring-primary/40 focus:border-primary transition;
+  }
+
+  .chip-gold {
+    @apply inline-flex items-center gap-2 rounded-full bg-gradient-gold px-4 py-1.5 text-sm font-semibold text-primary-foreground shadow-md;
+    color: hsl(150 75% 16%);
+  }
+
+  .underline-gold {
+    background-image: linear-gradient(transparent 70%, hsl(45 95% 55% / 0.55) 70%);
+    background-repeat: no-repeat;
+    background-size: 100% 100%;
+  }
+
+  @keyframes ribbon-float {
+    0%, 100% { transform: translateY(0) rotate(0deg); }
+    50% { transform: translateY(-12px) rotate(0.6deg); }
+  }
+  .animate-ribbon-slow { animation: ribbon-float 14s ease-in-out infinite; }
+  .animate-ribbon-med  { animation: ribbon-float 10s ease-in-out infinite; }
+  @media (prefers-reduced-motion: reduce) {
+    .animate-ribbon-slow, .animate-ribbon-med { animation: none; }
+  }
 }
 
 @layer utilities {
