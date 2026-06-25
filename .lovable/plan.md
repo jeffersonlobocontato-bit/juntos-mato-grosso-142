@@ -1,38 +1,86 @@
-## Incluir anexos das propostas no Caderno
+# Plano: substituir a home pela landing single-page do anexo
 
-Hoje o caderno exporta apenas título, descrição, objetivos e indicadores. Os arquivos enviados pelo entrevistado em `propostas_tecnicas.anexos` são ignorados. Vou tratá-los como parte da resposta.
+Substituir 100% do layout da home `/` pela peça do anexo, aplicando o design system (creme + verde governo + dourado + formas orgânicas) e implementando, agora, o bloco "Enviar opinião por áudio" com gravação + transcrição via IA. Sem foto do Moro: deixo um espaço reservado e troco assim que você enviar a oficial.
 
-### O que será adicionado em cada proposta
-1. Seção **"Anexos"** listando todos os arquivos (título + link clicável para o storage `proposta-anexos`).
-2. Para cada anexo PDF, seção **"Conteúdo do anexo: <título>"** com o texto extraído (até ~8.000 caracteres por anexo para não explodir o caderno; corte com aviso "[...texto truncado]").
-3. Anexos não-PDF (imagens, docx, xlsx) → apenas listados com link, sem extração.
-4. Se a extração falhar (PDF escaneado / protegido / erro de rede) → marca "[Não foi possível extrair texto deste anexo]" e mantém o link.
+## Resultado visual (desktop e mobile)
 
-### Como a extração vai funcionar
-- Nova edge function `extract-pdf-text` (Deno, `verify_jwt = false` padrão Lovable, valida JWT em código).
-  - Input: `{ url: string }` (URL pública do anexo).
-  - Faz `fetch` do PDF, usa `npm:pdfjs-dist` para extrair texto página a página, devolve `{ text, pages, truncated }`.
-  - Limite: 50 páginas / 8.000 chars; timeout 25s.
-- No `CadernoPropostasExportButton.tsx`, antes de chamar o gerador:
-  - Reúne todos os anexos PDF de todas as propostas selecionadas.
-  - Chama a edge function em paralelo com `Promise.allSettled` (concorrência limitada a 4 com um pequeno pool) e mostra progresso no toast ("Extraindo texto dos anexos: 12/34").
-  - Resultado fica em `Map<anexoPath, { text, error }>` e é injetado no objeto da proposta antes de passar para `exportCadernoPDF` / `exportCadernoDOCX`.
+```text
+DESKTOP (≥ 1024px)                              MOBILE (< 1024px)
+┌──────────────────────────────────────────┐    ┌────────────────────┐
+│  formas verdes/amarelas orgânicas (svg)  │    │ formas (mais leves)│
+│ ┌──────────────────┐  ┌────────────────┐ │    │ ┌────────────────┐ │
+│ │ Logo 399         │  │   [FOTO MORO]  │ │    │ │ Logo 399       │ │
+│ │ Headline gigante │  │   (placeholder)│ │    │ │ Headline       │ │
+│ │ "Plano Colab."   │  │   chip dourado │ │    │ │ chip dourado   │ │
+│ │                  │  │   "Sua voz…"   │ │    │ │ [foto opcional]│ │
+│ │ ┌──────────────┐ │  └────────────────┘ │   │ ├────────────────┤ │
+│ │ │ FORM CARD    │ │  ┌────────────────┐ │   │ │ FORM CARD      │ │
+│ │ │ Nome  Tel    │ │  │ Participe      │ │   │ │  campos +      │ │
+│ │ │ Cidade       │ │  │   agora!       │ │   │ │  áudio +       │ │
+│ │ │ Sugestão     │ │  │  • bullet 1    │ │   │ │  CTA Enviar    │ │
+│ │ │ [áudio bloc] │ │  │  • bullet 2    │ │   │ ├────────────────┤ │
+│ │ │ CTA Enviar   │ │  │  • bullet 3    │ │   │ │ Participe      │ │
+│ │ └──────────────┘ │  └────────────────┘ │   │ │   agora! card  │ │
+│ └──────────────────┘                     │   │ └────────────────┘ │
+│  rodapé escudo: Transparência…           │   │ rodapé escudo      │
+└──────────────────────────────────────────┘   └────────────────────┘
+```
 
-### Mudanças nos geradores (`src/utils/cadernoPropostasExport.ts`)
-- Estender `CadernoProposta` com `anexos: { titulo: string; url: string; tipo: string; textoExtraido?: string; erroExtracao?: string }[]`.
-- PDF (`drawProposta`): após indicadores, renderiza bloco "Anexos" (lista com bullets dourados) e, para cada PDF com texto, um sub-bloco "Conteúdo do anexo — <título>" em fonte menor com quebra de página automática.
-- DOCX (`docxPropostaBlock`): mesmas seções usando `Paragraph` + `ExternalHyperlink` para os links e parágrafos normais para o texto extraído.
-- Cross-references (`Ver também`) permanecem inalteradas.
+Desktop: grid 2 colunas (form 7/12 + sidebar 5/12) com a foto sangrando do topo da coluna direita. Mobile: coluna única; sidebar "Participe agora!" vai abaixo do form; a foto vira faixa de topo ou some.
 
-### Arquivos
-- **Novo:** `supabase/functions/extract-pdf-text/index.ts`
-- **Editar:** `src/components/admin/CadernoPropostasExportButton.tsx` (buscar `anexos`, parsear JSON, orquestrar extração com toast de progresso)
-- **Editar:** `src/utils/cadernoPropostasExport.ts` (tipos + render de anexos em PDF e DOCX)
+## Arquivos
 
-### Fora de escopo
-- OCR de PDFs escaneados (apenas extração de texto nativo).
-- Extração de DOCX/XLSX/imagens.
-- Embed de miniaturas de imagens.
+**Tokens / fundo**
+- `src/index.css` — novos tokens (mantendo as variáveis HSL existentes):
+  - `--background` cream `48 35% 96%`
+  - `--primary` verde governo `145 70% 28%` / `--primary-glow` `145 60% 38%`
+  - `--accent` dourado `45 95% 55%`
+  - novos gradientes: `--gradient-organic-green`, `--gradient-organic-gold`, `--gradient-cta`
+  - sombras `--shadow-card-float`, `--shadow-accent-pill`
+  - utilitários: `.bg-organic-canvas`, `.card-floating`, `.input-pill`, `.chip-gold`
+- `src/components/landing/OrganicBackground.tsx` — novo SVG full-bleed com 4 ribbons (2 verdes, 2 amarelas) animadas suavemente (framer-motion, respeita `prefers-reduced-motion`).
 
-### QA pós-implementação
-- Gerar caderno de 1 eixo que contenha pelo menos 1 proposta com PDF anexo e 1 com imagem; inspecionar PDF e DOCX confirmando lista de anexos, links clicáveis e texto extraído paginando corretamente.
+**Página**
+- `src/pages/Index.tsx` — substituir todo o conteúdo por `<Header/>` (modo transparente) + `<HomeHero/>` + `<Footer/>` minimalista do anexo. Remover `AboutSection`, `MapSection`, `StatsSection`, `SocialEngagementSection`, `SuggestionForm`, `ChatBot`, `FloatingShareButton` da home (arquivos preservados, apenas não montados — continuam disponíveis caso queira em outra rota).
+
+**Componentes novos** em `src/components/landing/home/`
+- `HomeHero.tsx` — orquestra grid 2 colunas, fundo orgânico, logo, headline, foto.
+- `HeroHeadline.tsx` — "O destino certo, é o futuro decidido por todos os paranaenses" com "destino certo" em dourado e "futuro decidido" em verde sublinhado; chip pill "Plano de Governo Colaborativo"; chip dourado "Sua voz ajuda a decidir o futuro do Paraná".
+- `HeroPortrait.tsx` — slot do retrato. Renderiza placeholder elegante (silhueta + label "Foto em breve") até `src/assets/hero-moro.jpg` existir; aceita prop `imageSrc`.
+- `OpinionFormCard.tsx` — card flutuante branco, raio 2xl, sombra forte. Campos com ícone à esquerda (input-pill): Nome (User), Telefone/WhatsApp (Phone), Cidade (combobox de `municipios` com MapPin), Sugestão (Textarea com MessageCircle). Mantém integração com `sugestoes_populares` + `analyze-suggestion` (mesma lógica do `SuggestionForm` atual). Validação zod (nome ≤100, telefone ≤20, cidade obrigatória, sugestão 10–2000). Embute `AudioRecorderBlock` e o CTA `Enviar opinião`.
+- `AudioRecorderBlock.tsx` — bloco "Enviar opinião por áudio":
+  - botão dourado "Gravar áudio" (toggle start/stop com timer mm:ss, anel pulsante quando gravando) usando Web Audio API → WAV 16 kHz mono (per knowledge `ai-speech-to-text`).
+  - botão outline "Transcrever áudio" (habilita após gravar) → upload para edge function.
+  - área "Transcrição" com texto streaming (SSE deltas) ou placeholder.
+  - ao concluir, o texto é anexado/concatenado ao campo "Sugestão" (com label "(via áudio)") e o blob fica em memória para upload junto da sugestão.
+- `ParticiparAgoraCard.tsx` — painel verde escuro, headline dourada "Participe agora!", 3 bullets com ícones em círculo dourado (Users, ShieldCheck, Heart), divisor dourado, frase "O futuro do Paraná é construído hoje, com você."
+- `HomeFooter.tsx` — faixa final: ícone escudo + "Transparência, diálogo e participação. Esse é o caminho do Paraná que queremos."
+
+**Backend (áudio)**
+- `supabase/functions/transcribe-audio/index.ts` — nova edge function:
+  - `verify_jwt = false` (formulário público), valida CORS, aceita `multipart/form-data` com `file` (≤ 10 MB, MIME `audio/wav`/`audio/mpeg`/`audio/webm`/`audio/mp4`).
+  - encaminha para `https://ai.gateway.lovable.dev/v1/audio/transcriptions` com `model=openai/gpt-4o-mini-transcribe`, `stream=true`, usando `LOVABLE_API_KEY` (já configurada).
+  - faz pass-through do corpo SSE para o cliente; trata 402/429/403 com mensagens claras.
+- Upload do áudio bruto (opcional): usa bucket público existente `proposta-anexos` em subpasta `sugestoes-audio/<sugestao_id>.wav`. Salva URL em `sugestoes_populares.metadata` (já é jsonb). Sem mudança de schema; políticas atuais permitem `anon` insert.
+
+## Detalhes técnicos
+
+- Tipografia: mantém Montserrat (display) + Inter (body) — já carregados; pesos 800/900 no headline; tracking apertado.
+- Responsividade: breakpoints Tailwind `md:` (768) e `lg:` (1024). Grid 2-col só a partir de `lg`. Padding container `px-4 md:px-8 lg:px-12`. Headline `text-4xl md:text-5xl lg:text-6xl`. Mobile esconde os ribbons mais densos (`hidden md:block` em 2 dos 4 SVGs) para preservar legibilidade.
+- Acessibilidade: todos os inputs com `<label>` visível ou `aria-label`; botão de gravar com `aria-pressed`; live region `aria-live="polite"` na transcrição; foco visível nos pills.
+- Animações: framer-motion `whileInView` fade-up nos cards; ribbons com `animate={{ y: [0, -8, 0] }}` 12s ease-in-out; respeitar `prefers-reduced-motion`.
+- Sem texto cor-hard-coded: tudo via tokens (`bg-primary`, `text-accent`, etc.).
+- Estado de sucesso: reaproveita o componente de confirmação existente (`SuggestionConfirmationMap`) dentro do mesmo card (substitui form ao enviar), mantendo continuidade visual.
+
+## Fora de escopo
+
+- Foto oficial do Moro (placeholder até você enviar).
+- Restauração das seções removidas em outras rotas (ficam no código, mas não montadas em `/`).
+- Tradução das seções administrativas (`/admin/*`) — sem alteração.
+- Tema dark da nova home (foco em light, como o anexo).
+
+## Validação
+
+- `tsgo` + build automático.
+- Teste manual: enviar sugestão de texto puro; gravar 5 s de áudio, transcrever, ver streaming, enviar; checar mobile via viewport 375 e desktop 1440.
+- `supabase--curl_edge_functions` em `/transcribe-audio` com um WAV pequeno de fixture para validar SSE.
