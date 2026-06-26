@@ -8,6 +8,27 @@ const corsHeaders = {
 };
 
 const MAX_BYTES = 10 * 1024 * 1024; // 10 MB
+const RATE_LIMIT_WINDOW_MS = 60_000;
+const RATE_LIMIT_MAX = 5; // requests per IP per minute
+const ipHits = new Map<string, number[]>();
+
+function rateLimited(ip: string): boolean {
+  const now = Date.now();
+  const arr = (ipHits.get(ip) ?? []).filter((t) => now - t < RATE_LIMIT_WINDOW_MS);
+  if (arr.length >= RATE_LIMIT_MAX) {
+    ipHits.set(ip, arr);
+    return true;
+  }
+  arr.push(now);
+  ipHits.set(ip, arr);
+  if (ipHits.size > 5000) {
+    // best-effort cleanup
+    for (const [k, v] of ipHits) {
+      if (v.every((t) => now - t >= RATE_LIMIT_WINDOW_MS)) ipHits.delete(k);
+    }
+  }
+  return false;
+}
 
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response("ok", { headers: corsHeaders });
@@ -15,6 +36,18 @@ Deno.serve(async (req) => {
     return new Response(JSON.stringify({ error: "Method not allowed" }), {
       status: 405, headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
+  }
+
+  // Lightweight per-IP rate limit to prevent AI credit abuse on this public endpoint
+  const ip =
+    req.headers.get("x-forwarded-for")?.split(",")[0]?.trim() ||
+    req.headers.get("cf-connecting-ip") ||
+    "unknown";
+  if (rateLimited(ip)) {
+    return new Response(
+      JSON.stringify({ error: "Muitas requisições. Aguarde um momento antes de tentar novamente." }),
+      { status: 429, headers: { ...corsHeaders, "Content-Type": "application/json" } },
+    );
   }
 
   const apiKey = Deno.env.get("LOVABLE_API_KEY");
