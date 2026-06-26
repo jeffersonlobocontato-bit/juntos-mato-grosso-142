@@ -84,6 +84,17 @@ Deno.serve(async (req) => {
     const municipioMap = new Map(municipios?.map(m => [m.nome, m.id]) || []);
 
     const results: { email: string; status: string; error?: string }[] = [];
+    const credentials: { email: string; password: string }[] = [];
+
+    const generatePassword = () => {
+      const bytes = new Uint8Array(24);
+      crypto.getRandomValues(bytes);
+      const base = btoa(String.fromCharCode(...bytes))
+        .replace(/[+/=]/g, '')
+        .slice(0, 20);
+      // Ensure at least one symbol/digit/upper for password policies
+      return `A1!${base}`;
+    };
 
     for (const testUser of testUsers) {
       try {
@@ -97,10 +108,11 @@ Deno.serve(async (req) => {
           userId = existingUser.id;
           results.push({ email: testUser.email, status: 'já existia' });
         } else {
+          const generatedPassword = generatePassword();
           // Create auth user
           const { data: newUser, error: createError } = await supabaseAdmin.auth.admin.createUser({
             email: testUser.email,
-            password: 'Temp@2024!',
+            password: generatedPassword,
             email_confirm: true,
             user_metadata: { full_name: testUser.full_name }
           });
@@ -112,6 +124,7 @@ Deno.serve(async (req) => {
           
           userId = newUser.user.id;
           results.push({ email: testUser.email, status: 'criado' });
+          credentials.push({ email: testUser.email, password: generatedPassword });
         }
 
         // Upsert profile
@@ -164,7 +177,9 @@ Deno.serve(async (req) => {
     return new Response(JSON.stringify({ 
       success: true, 
       message: `${results.filter(r => r.status === 'criado').length} usuários criados, ${results.filter(r => r.status === 'já existia').length} já existiam`,
-      results 
+      results,
+      credentials,
+      notice: 'Senhas geradas exibidas apenas uma vez. Anote-as agora — não serão recuperáveis.'
     }), {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' }
     });
