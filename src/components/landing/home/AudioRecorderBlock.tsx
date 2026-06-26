@@ -93,7 +93,6 @@ const AudioRecorderBlock = ({ onTranscript }: Props) => {
       setIsRecording(true);
       setElapsed(0);
       setTranscript("");
-      setWavBlob(null);
       timerRef.current = window.setInterval(() => setElapsed(x => x + 1), 1000);
     } catch {
       toast({ title: "Microfone indisponível", description: "Permita o acesso ao microfone para gravar.", variant: "destructive" });
