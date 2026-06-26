@@ -8,8 +8,8 @@ import AudioRecorderBlock from "./AudioRecorderBlock";
 interface Municipio { id: string; nome: string; }
 
 const schema = z.object({
-  nome: z.string().trim().max(100).optional().or(z.literal("")),
-  telefone: z.string().trim().max(20).optional().or(z.literal("")),
+  nome: z.string().trim().min(1, "Informe seu nome completo").max(100),
+  telefone: z.string().trim().min(8, "Informe um telefone válido").max(20),
   cidade: z.string().trim().min(1, "Selecione sua cidade").max(100),
   sugestao: z.string().trim().min(10, "Conte sua sugestão (mín. 10 caracteres)").max(2000),
 });
@@ -29,6 +29,12 @@ const OpinionFormCard = () => {
       if (data) setMunicipios(data);
     });
   }, []);
+
+  const isValid =
+    nome.trim().length > 0 &&
+    telefone.trim().length >= 8 &&
+    cidade.trim().length > 0 &&
+    sugestao.trim().length >= 10;
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -159,7 +165,7 @@ const OpinionFormCard = () => {
 
       <button
         type="submit"
-        disabled={loading}
+        disabled={loading || !isValid}
         className="w-full h-14 rounded-full bg-gradient-cta text-primary-foreground font-display font-bold text-lg inline-flex items-center justify-center gap-3 shadow-card-float hover:brightness-110 transition disabled:opacity-60"
       >
         {loading ? <Loader2 className="h-5 w-5 animate-spin" /> : <Send className="h-5 w-5" />}
