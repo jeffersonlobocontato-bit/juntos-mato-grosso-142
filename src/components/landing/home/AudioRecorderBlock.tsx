@@ -58,7 +58,6 @@ const AudioRecorderBlock = ({ onTranscript }: Props) => {
   const [isTranscribing, setIsTranscribing] = useState(false);
   const [elapsed, setElapsed] = useState(0);
   const [transcript, setTranscript] = useState("");
-  const [wavBlob, setWavBlob] = useState<Blob | null>(null);
 
   const ctxRef = useRef<AudioContext | null>(null);
   const streamRef = useRef<MediaStream | null>(null);
@@ -121,16 +120,15 @@ const AudioRecorderBlock = ({ onTranscript }: Props) => {
       toast({ title: "Gravação muito curta", description: "Tente novamente falando por alguns segundos.", variant: "destructive" });
       return;
     }
-    setWavBlob(blob);
+    await transcribe(blob);
   };
 
-  const transcribe = async () => {
-    if (!wavBlob) return;
+  const transcribe = async (blob: Blob) => {
     setIsTranscribing(true);
     setTranscript("");
     try {
       const fd = new FormData();
-      fd.append("file", wavBlob, "recording.wav");
+      fd.append("file", blob, "recording.wav");
       const supaUrl = import.meta.env.VITE_SUPABASE_URL as string;
       const anon = import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY as string;
       const res = await fetch(`${supaUrl}/functions/v1/transcribe-audio`, {
@@ -192,29 +190,31 @@ const AudioRecorderBlock = ({ onTranscript }: Props) => {
         </div>
       </div>
 
-      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+      <div className="grid grid-cols-1 gap-3">
         <button
           type="button"
           aria-pressed={isRecording}
           onClick={isRecording ? stopRec : startRec}
+          disabled={isTranscribing}
           className={`h-12 rounded-full inline-flex items-center justify-center gap-2 font-semibold text-sm transition ${
             isRecording
               ? "bg-destructive text-destructive-foreground"
               : "bg-gradient-gold text-primary-deep shadow-md hover:brightness-105"
-          }`}
+          } disabled:opacity-60 disabled:cursor-not-allowed`}
           style={!isRecording ? { color: "hsl(150 75% 16%)" } : undefined}
         >
-          {isRecording ? <Square className="h-4 w-4" /> : <Mic className="h-4 w-4" />}
-          {isRecording ? `Parar (${mmss})` : "Gravar áudio"}
-        </button>
-        <button
-          type="button"
-          disabled={!wavBlob || isTranscribing}
-          onClick={transcribe}
-          className="h-12 rounded-full inline-flex items-center justify-center gap-2 font-semibold text-sm border-2 border-primary/40 text-primary hover:bg-primary/5 transition disabled:opacity-50 disabled:cursor-not-allowed"
-        >
-          {isTranscribing ? <Loader2 className="h-4 w-4 animate-spin" /> : <AudioLines className="h-4 w-4" />}
-          {isTranscribing ? "Transcrevendo..." : "Transcrever áudio"}
+          {isTranscribing ? (
+            <Loader2 className="h-4 w-4 animate-spin" />
+          ) : isRecording ? (
+            <Square className="h-4 w-4" />
+          ) : (
+            <Mic className="h-4 w-4" />
+          )}
+          {isTranscribing
+            ? "Transcrevendo..."
+            : isRecording
+              ? `Parar e transcrever (${mmss})`
+              : "Gravar áudio"}
         </button>
       </div>
 
