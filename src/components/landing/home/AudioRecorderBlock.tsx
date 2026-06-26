@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from "react";
-import { Mic, AudioLines, FileText, Square, Loader2 } from "lucide-react";
+import { Mic, FileText, Square, Loader2 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 
 interface Props {
