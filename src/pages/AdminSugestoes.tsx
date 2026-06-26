@@ -89,6 +89,7 @@ const eixoColors: Record<string, { bg: string; text: string }> = {
   "Desenvolvimento das Cidades e Infraestrutura": { bg: "bg-amber-500", text: "text-white" },
   "Gestão Pública Eficiente": { bg: "bg-purple-500", text: "text-white" },
   "Segurança, Justiça, Combate à Corrupção": { bg: "bg-red-500", text: "text-white" },
+  "Não classificado": { bg: "bg-muted", text: "text-muted-foreground" },
 };
 
 const getEixoColors = (eixo: string) => {
@@ -107,6 +108,7 @@ const AdminSugestoes = () => {
   
   // View dialog
   const [viewingSugestao, setViewingSugestao] = useState<Sugestao | null>(null);
+  const [reclassifying, setReclassifying] = useState(false);
 
   useEffect(() => {
     if (!authLoading && !user) {
@@ -189,6 +191,39 @@ const AdminSugestoes = () => {
     toast.success('Arquivo CSV exportado com sucesso');
   };
 
+  const handleReclassify = async () => {
+    const targets = filteredSugestoes;
+    if (!targets.length) {
+      toast.info('Nenhuma sugestão para reclassificar');
+      return;
+    }
+    if (!confirm(`Reclassificar ${targets.length} sugestão(ões) por IA? Isso atualizará o eixo temático com base na semântica do texto.`)) return;
+    setReclassifying(true);
+    const toastId = toast.loading(`Reclassificando 0/${targets.length}...`);
+    let done = 0;
+    let failed = 0;
+    const batchSize = 3;
+    for (let i = 0; i < targets.length; i += batchSize) {
+      const batch = targets.slice(i, i + batchSize);
+      await Promise.all(batch.map(async (s) => {
+        try {
+          const { error } = await supabase.functions.invoke('classify-suggestion-eixo', {
+            body: { sugestao_id: s.id, descricao: s.descricao },
+          });
+          if (error) failed++;
+        } catch { failed++; }
+        done++;
+        toast.loading(`Reclassificando ${done}/${targets.length}...`, { id: toastId });
+      }));
+      await new Promise(r => setTimeout(r, 250));
+    }
+    toast.dismiss(toastId);
+    if (failed > 0) toast.warning(`Concluído com ${failed} falha(s). ${done - failed} atualizadas.`);
+    else toast.success(`${done} sugestões reclassificadas`);
+    setReclassifying(false);
+    fetchSugestoes();
+  };
+
   const filteredSugestoes = sugestoes.filter(s => {
     const matchesSearch = 
       (s.nome?.toLowerCase().includes(searchTerm.toLowerCase()) || false) ||
@@ -243,10 +278,16 @@ const AdminSugestoes = () => {
               </div>
             </div>
             
-            <Button variant="outline" onClick={handleExportCSV}>
-              <Download className="w-4 h-4 mr-2" />
-              Exportar CSV
-            </Button>
+            <div className="flex gap-2">
+              <Button variant="outline" onClick={handleReclassify} disabled={reclassifying}>
+                <Sparkles className="w-4 h-4 mr-2" />
+                {reclassifying ? 'Reclassificando...' : 'Reclassificar Eixos (IA)'}
+              </Button>
+              <Button variant="outline" onClick={handleExportCSV}>
+                <Download className="w-4 h-4 mr-2" />
+                Exportar CSV
+              </Button>
+            </div>
           </div>
         </div>
       </header>
