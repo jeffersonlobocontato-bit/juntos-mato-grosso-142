@@ -63,7 +63,7 @@ const OpinionFormCard = () => {
       return;
     }
     if (data?.id) {
-      supabase.functions.invoke("analyze-suggestion", {
+      supabase.functions.invoke("classify-suggestion-eixo", {
         body: { sugestao_id: data.id, descricao: sugestao },
       }).catch(() => {});
     }
