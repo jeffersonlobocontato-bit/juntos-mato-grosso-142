@@ -388,6 +388,7 @@ const AdminSugestoes = () => {
                         {eixo}
                       </SelectItem>
                     ))}
+                    <SelectItem value="Não classificado">Não classificado</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
