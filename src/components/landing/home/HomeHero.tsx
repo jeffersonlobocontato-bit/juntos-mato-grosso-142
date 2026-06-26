@@ -50,7 +50,8 @@ const HomeHero = () => {
         {/* Form + Sidebar */}
         <div className="grid lg:grid-cols-12 gap-6 lg:gap-8 mt-10 lg:mt-12">
           <motion.div
-            className="lg:col-span-7"
+            id="opiniao-form"
+            className="lg:col-span-7 scroll-mt-24"
             initial={{ opacity: 0, y: 24 }}
             whileInView={{ opacity: 1, y: 0 }}
             viewport={{ once: true }}
