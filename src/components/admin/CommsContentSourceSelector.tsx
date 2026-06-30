@@ -408,7 +408,7 @@ export const CommsContentSourceSelector: React.FC<CommsContentSourceSelectorProp
             {documents.length === 0 ? (
               <p className="text-sm text-muted-foreground italic">Nenhum documento disponível</p>
             ) : (
-              <div className="space-y-2 max-h-48 overflow-y-auto">
+              <div className="space-y-2">
                 {documents.map((doc) => (
                   <div key={doc.id} className="flex items-center space-x-3 py-1">
                     <Checkbox
@@ -454,7 +454,7 @@ export const CommsContentSourceSelector: React.FC<CommsContentSourceSelectorProp
             {sugestoes.length === 0 ? (
               <p className="text-sm text-muted-foreground italic">Nenhuma sugestão disponível</p>
             ) : (
-              <div className="space-y-2 max-h-48 overflow-y-auto">
+              <div className="space-y-2">
                 {sugestoes.map((s) => (
                   <div key={s.id} className="flex items-center space-x-3 py-1">
                     <Checkbox
@@ -503,7 +503,7 @@ export const CommsContentSourceSelector: React.FC<CommsContentSourceSelectorProp
             {pesquisas.length === 0 ? (
               <p className="text-sm text-muted-foreground italic">Nenhuma pesquisa disponível</p>
             ) : (
-              <div className="space-y-2 max-h-48 overflow-y-auto">
+              <div className="space-y-2">
                 {pesquisas.map((pesq) => (
                   <div key={pesq.id} className="flex items-center space-x-3 py-1">
                     <Checkbox
@@ -547,7 +547,7 @@ export const CommsContentSourceSelector: React.FC<CommsContentSourceSelectorProp
             {propostas.length === 0 ? (
               <p className="text-sm text-muted-foreground italic">Nenhuma proposta disponível</p>
             ) : (
-              <div className="space-y-2 max-h-48 overflow-y-auto">
+              <div className="space-y-2">
                 {propostas.map((prop) => (
                   <div key={prop.id} className="flex items-center space-x-3 py-1">
                     <Checkbox
@@ -590,7 +590,7 @@ export const CommsContentSourceSelector: React.FC<CommsContentSourceSelectorProp
             {propostasPoliticas.length === 0 ? (
               <p className="text-sm text-muted-foreground italic">Nenhuma proposta política disponível</p>
             ) : (
-              <div className="space-y-2 max-h-48 overflow-y-auto">
+              <div className="space-y-2">
                 {propostasPoliticas.map((prop) => (
                   <div key={prop.id} className="flex items-center space-x-3 py-1">
                     <Checkbox
