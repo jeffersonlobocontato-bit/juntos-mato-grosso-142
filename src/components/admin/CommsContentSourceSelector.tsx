@@ -4,7 +4,8 @@ import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
-import { FileText, Users, BarChart3, ClipboardList, Megaphone, CheckSquare, Square, Loader2 } from "lucide-react";
+import { FileText, Users, BarChart3, ClipboardList, Megaphone, CheckSquare, Square, Loader2, Filter, X } from "lucide-react";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { supabase } from "@/integrations/supabase/client";
 
 interface Document {
@@ -42,6 +43,8 @@ export interface CommsSourceSelection {
   pesquisaIds: string[];
   propostaIds: string[];
   propostaPoliticaIds: string[];
+  eixoFiltroId?: string | null;
+  subtemaFiltroIds?: string[];
 }
 
 export const FORMATOS_DISPONIVEIS = [
@@ -81,50 +84,143 @@ export const CommsContentSourceSelector: React.FC<CommsContentSourceSelectorProp
   const [sugestoes, setSugestoes] = useState<Sugestao[]>([]);
   const [propostasPoliticas, setPropostasPoliticas] = useState<PropostaPolitica[]>([]);
   const [loading, setLoading] = useState(true);
+  const [eixos, setEixos] = useState<Array<{ id: string; nome: string }>>([]);
+  const [subtemas, setSubtemas] = useState<Array<{ id: string; nome: string; tema_id: string }>>([]);
+
+  const eixoFiltroId = selection.eixoFiltroId ?? null;
+  const subtemaFiltroIds = selection.subtemaFiltroIds ?? [];
+
+  // Carrega eixos uma vez
+  useEffect(() => {
+    supabase.from('eixos_tematicos').select('id, nome').order('ordem').then(({ data }) => {
+      if (data) setEixos(data);
+    });
+  }, []);
+
+  // Carrega subtemas do eixo selecionado
+  useEffect(() => {
+    if (!eixoFiltroId) {
+      setSubtemas([]);
+      return;
+    }
+    (async () => {
+      const { data: temasData } = await supabase
+        .from('temas')
+        .select('id')
+        .eq('eixo_id', eixoFiltroId);
+      const temaIds = (temasData || []).map((t) => t.id);
+      if (temaIds.length === 0) { setSubtemas([]); return; }
+      const { data: subData } = await supabase
+        .from('subtemas')
+        .select('id, nome, tema_id')
+        .in('tema_id', temaIds)
+        .order('ordem');
+      setSubtemas(subData || []);
+    })();
+  }, [eixoFiltroId]);
 
   useEffect(() => {
     const fetchSources = async () => {
       setLoading(true);
 
-      const [docsResult, pesquisasResult, propostasResult, sugestoesResult, propostasPolResult] = await Promise.all([
-        supabase
-          .from('ai_documents')
-          .select('id, title, doc_category')
-          .eq('is_active', true)
-          .order('created_at', { ascending: false }),
-        supabase
-          .from('pesquisas_eleitorais')
-          .select('id, titulo, instituto')
-          .eq('is_active', true)
-          .order('created_at', { ascending: false }),
-        supabase
-          .from('propostas_tecnicas')
-          .select('id, titulo')
-          .order('created_at', { ascending: false })
-          .limit(50),
-        supabase
-          .from('sugestoes_populares')
-          .select('id, descricao, eixo, municipio')
-          .order('created_at', { ascending: false })
-          .limit(100),
-        supabase
-          .from('propostas_politicas')
-          .select('id, titulo')
-          .order('created_at', { ascending: false })
-          .limit(50),
-      ]);
+      // ---- DOCUMENTOS ----
+      let docIdsByTema: Set<string> | null = null;
+      if (eixoFiltroId && subtemaFiltroIds.length > 0) {
+        // Subtemas têm tema_id; ai_document_temas referencia tema_id, então mapeamos subtema -> tema
+        const temaIdsFromSubs = Array.from(
+          new Set(subtemas.filter((s) => subtemaFiltroIds.includes(s.id)).map((s) => s.tema_id))
+        );
+        if (temaIdsFromSubs.length > 0) {
+          const { data: links } = await supabase
+            .from('ai_document_temas')
+            .select('document_id')
+            .in('tema_id', temaIdsFromSubs);
+          docIdsByTema = new Set((links || []).map((l: any) => l.document_id));
+        } else {
+          docIdsByTema = new Set();
+        }
+      }
 
-      if (docsResult.data) setDocuments(docsResult.data);
-      if (pesquisasResult.data) setPesquisas(pesquisasResult.data);
-      if (propostasResult.data) setPropostas(propostasResult.data);
-      if (sugestoesResult.data) setSugestoes(sugestoesResult.data as Sugestao[]);
-      if (propostasPolResult.data) setPropostasPoliticas(propostasPolResult.data);
+      let docsQuery = supabase
+        .from('ai_documents')
+        .select('id, title, doc_category')
+        .eq('is_active', true)
+        .order('created_at', { ascending: false });
+
+      if (eixoFiltroId && (!docIdsByTema || docIdsByTema.size === 0)) {
+        // só eixo: filtrar por eixo_id direto OU pelos documentos vinculados a temas desse eixo
+        const { data: temasOfEixo } = await supabase
+          .from('temas').select('id').eq('eixo_id', eixoFiltroId);
+        const temaIds = (temasOfEixo || []).map((t) => t.id);
+        let docIdsFromTemas: string[] = [];
+        if (temaIds.length > 0) {
+          const { data: links } = await supabase
+            .from('ai_document_temas').select('document_id').in('tema_id', temaIds);
+          docIdsFromTemas = (links || []).map((l: any) => l.document_id);
+        }
+        // OR: eixo direto OU id na lista vinda dos temas
+        const orParts = [`eixo_id.eq.${eixoFiltroId}`];
+        if (docIdsFromTemas.length > 0) {
+          orParts.push(`id.in.(${docIdsFromTemas.join(',')})`);
+        }
+        docsQuery = docsQuery.or(orParts.join(','));
+      }
+
+      // ---- PROPOSTAS TÉCNICAS ----
+      let propQuery = supabase
+        .from('propostas_tecnicas')
+        .select('id, titulo')
+        .order('created_at', { ascending: false })
+        .limit(100);
+      if (eixoFiltroId) propQuery = propQuery.eq('eixo_id', eixoFiltroId);
+      if (subtemaFiltroIds.length > 0) propQuery = propQuery.in('subtema_id', subtemaFiltroIds);
+
+      // ---- PROPOSTAS POLÍTICAS ----
+      let polQuery = supabase
+        .from('propostas_politicas')
+        .select('id, titulo')
+        .order('created_at', { ascending: false })
+        .limit(100);
+      if (eixoFiltroId) polQuery = polQuery.eq('eixo_id', eixoFiltroId);
+
+      // ---- SUGESTÕES POPULARES ----
+      let sugQuery = supabase
+        .from('sugestoes_populares')
+        .select('id, descricao, eixo, municipio')
+        .order('created_at', { ascending: false })
+        .limit(200);
+      if (eixoFiltroId) {
+        // nome do eixo p/ match textual (coluna 'eixo' é texto), fallback p/ tema_ids/tema_id
+        const eixoNome = eixos.find((e) => e.id === eixoFiltroId)?.nome;
+        if (eixoNome) sugQuery = sugQuery.ilike('eixo', `%${eixoNome}%`);
+      }
+
+      // ---- PESQUISAS (texto livre — sem filtro por eixo) ----
+      const pesquisasPromise = supabase
+        .from('pesquisas_eleitorais')
+        .select('id, titulo, instituto')
+        .eq('is_active', true)
+        .order('created_at', { ascending: false });
+
+      const [docsResult, pesquisasResult, propostasResult, sugestoesResult, propostasPolResult] =
+        await Promise.all([docsQuery, pesquisasPromise, propQuery, sugQuery, polQuery]);
+
+      let docs = docsResult.data || [];
+      if (docIdsByTema) {
+        docs = docs.filter((d: any) => docIdsByTema!.has(d.id));
+      }
+
+      setDocuments(docs as Document[]);
+      setPesquisas(pesquisasResult.data || []);
+      setPropostas(propostasResult.data || []);
+      setSugestoes((sugestoesResult.data || []) as Sugestao[]);
+      setPropostasPoliticas(propostasPolResult.data || []);
 
       setLoading(false);
     };
 
     fetchSources();
-  }, []);
+  }, [eixoFiltroId, JSON.stringify(subtemaFiltroIds), eixos.length, subtemas.length]);
 
   const toggleDocument = (id: string, checked: boolean) => {
     const newIds = checked
@@ -194,8 +290,67 @@ export const CommsContentSourceSelector: React.FC<CommsContentSourceSelectorProp
     );
   }
 
+  const setEixo = (id: string | null) => {
+    onSelectionChange({ ...selection, eixoFiltroId: id, subtemaFiltroIds: [] });
+  };
+  const toggleSubtemaFiltro = (id: string, checked: boolean) => {
+    const next = checked
+      ? [...subtemaFiltroIds, id]
+      : subtemaFiltroIds.filter((x) => x !== id);
+    onSelectionChange({ ...selection, subtemaFiltroIds: next });
+  };
+  const limparRecorte = () => {
+    onSelectionChange({ ...selection, eixoFiltroId: null, subtemaFiltroIds: [] });
+  };
+
   return (
     <div className="space-y-4">
+      {/* Recorte temático (filtros cruzados) */}
+      <div className="space-y-2 p-3 rounded-lg border bg-muted/30">
+        <div className="flex items-center justify-between">
+          <h4 className="text-sm font-semibold text-foreground flex items-center gap-1.5">
+            <Filter className="h-3.5 w-3.5" /> Recorte temático (opcional)
+          </h4>
+          {(eixoFiltroId || subtemaFiltroIds.length > 0) && (
+            <Button size="sm" variant="ghost" onClick={limparRecorte} className="h-7 text-xs">
+              <X className="h-3 w-3 mr-1" /> Limpar
+            </Button>
+          )}
+        </div>
+        <p className="text-xs text-muted-foreground">
+          Cruza as fontes com um eixo e subtemas. Ex: documento Pelti + Infraestrutura + subtemas específicos.
+        </p>
+        <Select
+          value={eixoFiltroId || 'none'}
+          onValueChange={(v) => setEixo(v === 'none' ? null : v)}
+        >
+          <SelectTrigger className="h-9 text-sm">
+            <SelectValue placeholder="Selecione um eixo" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="none">Todos os eixos (sem recorte)</SelectItem>
+            {eixos.map((e) => (
+              <SelectItem key={e.id} value={e.id}>{e.nome}</SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+        {eixoFiltroId && subtemas.length > 0 && (
+          <div className="space-y-1 max-h-40 overflow-y-auto pt-1">
+            <p className="text-xs font-medium text-muted-foreground">Subtemas:</p>
+            {subtemas.map((s) => (
+              <div key={s.id} className="flex items-center space-x-2 py-0.5">
+                <Checkbox
+                  id={`sub-${s.id}`}
+                  checked={subtemaFiltroIds.includes(s.id)}
+                  onCheckedChange={(c) => toggleSubtemaFiltro(s.id, c as boolean)}
+                />
+                <Label htmlFor={`sub-${s.id}`} className="text-xs cursor-pointer">{s.nome}</Label>
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
+
       {/* Formatos a gerar */}
       <div className="space-y-2">
         <h4 className="text-sm font-semibold text-foreground">Formatos a gerar</h4>
