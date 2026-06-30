@@ -162,7 +162,7 @@ export const CommsContentEditor: React.FC<CommsContentEditorProps> = ({ generati
         </div>
       )}
 
-      <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
+      <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as FormatoId)} className="w-full">
         <TabsList
           className="grid w-full"
           style={{ gridTemplateColumns: `repeat(${formatosOrdenados.length}, 1fr)` }}
