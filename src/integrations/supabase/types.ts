@@ -520,6 +520,50 @@ export type Database = {
         }
         Relationships: []
       }
+      comms_content_generations: {
+        Row: {
+          conteudos: Json
+          contexto: string
+          created_at: string | null
+          fontes_utilizadas: Json | null
+          formatos_gerados: string[]
+          generated_by: string | null
+          id: string
+          temas_mapeados: Json
+          updated_at: string | null
+        }
+        Insert: {
+          conteudos?: Json
+          contexto: string
+          created_at?: string | null
+          fontes_utilizadas?: Json | null
+          formatos_gerados?: string[]
+          generated_by?: string | null
+          id?: string
+          temas_mapeados?: Json
+          updated_at?: string | null
+        }
+        Update: {
+          conteudos?: Json
+          contexto?: string
+          created_at?: string | null
+          fontes_utilizadas?: Json | null
+          formatos_gerados?: string[]
+          generated_by?: string | null
+          id?: string
+          temas_mapeados?: Json
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "comms_content_generations_generated_by_fkey"
+            columns: ["generated_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       eixos_tematicos: {
         Row: {
           created_at: string
