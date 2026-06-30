@@ -99,6 +99,23 @@ Deno.serve(async (req) => {
     console.log('Source filters:', sources ? JSON.stringify(sources) : 'all sources');
     console.log('Formatos:', formatosValidos);
 
+    const eixoFiltroId: string | null = sources?.eixoFiltroId ?? null;
+    const subtemaFiltroIds: string[] = Array.isArray(sources?.subtemaFiltroIds) ? sources.subtemaFiltroIds : [];
+
+    // Carrega nomes do recorte temático (para logging, contexto da IA e match em campos textuais)
+    let eixoFiltroNome: string | null = null;
+    let subtemaFiltroNomes: string[] = [];
+    if (eixoFiltroId) {
+      const { data: eixoRow } = await supabase
+        .from('eixos_tematicos').select('nome').eq('id', eixoFiltroId).maybeSingle();
+      eixoFiltroNome = eixoRow?.nome ?? null;
+    }
+    if (subtemaFiltroIds.length > 0) {
+      const { data: subRows } = await supabase
+        .from('subtemas').select('nome').in('id', subtemaFiltroIds);
+      subtemaFiltroNomes = (subRows || []).map((s: any) => s.nome);
+    }
+
     // 1. Documentos técnicos / plano de governo
     let documents: any[] = [];
     if (!sources || !sources.documentIds || sources.documentIds.length > 0) {
@@ -113,6 +130,10 @@ Deno.serve(async (req) => {
         docsQuery = docsQuery
           .in('doc_category', ['documento_tecnico', 'plano_governo', 'promessa', 'comprovacao', 'investimento'])
           .limit(15);
+      }
+
+      if (eixoFiltroId && (!sources?.documentIds || sources.documentIds.length === 0)) {
+        docsQuery = docsQuery.eq('eixo_id', eixoFiltroId);
       }
 
       const { data: docsData } = await docsQuery;
@@ -171,10 +192,13 @@ Deno.serve(async (req) => {
       propostas = propData || [];
     } else if (sources?.includePropostas) {
       // backward compat
-      const { data: propData } = await supabase
+      let q = supabase
         .from('propostas_tecnicas')
         .select('titulo, descricao, metas, eixos_tematicos(nome)')
         .limit(15);
+      if (eixoFiltroId) q = q.eq('eixo_id', eixoFiltroId);
+      if (subtemaFiltroIds.length > 0) q = q.in('subtema_id', subtemaFiltroIds);
+      const { data: propData } = await q;
       propostas = propData || [];
     }
     console.log(`Fetched ${propostas.length} propostas`);
@@ -224,6 +248,12 @@ Deno.serve(async (req) => {
       + '\n\nTemas registrados:\n'
       + (temasData || []).map((t: any) => `- [${t.eixos_tematicos?.nome}] ${t.nome}`).join('\n');
 
+    const recorteBlock = eixoFiltroNome
+      ? `## RECORTE TEMÁTICO OBRIGATÓRIO\nFoque a análise e a geração no eixo "${eixoFiltroNome}"${
+          subtemaFiltroNomes.length > 0 ? `, especificamente nos subtemas: ${subtemaFiltroNomes.join(', ')}` : ''
+        }. Use as fontes da base de referência sob esse recorte e ignore conexões fora desse escopo.\n\n---\n\n`
+      : '';
+
     const formatosPrompt = formatosValidos
       .map((f: string) => `- "${f}": ${FORMATO_LABELS[f]}`)
       .join('\n');
@@ -235,7 +265,7 @@ ${contexto}
 
 ---
 
-## TAXONOMIA TEMÁTICA DA CAMPANHA (use estes eixos/temas para mapear convergência, não invente eixos novos)
+${recorteBlock}## TAXONOMIA TEMÁTICA DA CAMPANHA (use estes eixos/temas para mapear convergência, não invente eixos novos)
 ${taxonomiaContext}
 
 ---
