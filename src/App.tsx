@@ -23,6 +23,7 @@ import AdminAIHub from "./pages/AdminAIHub";
 import AdminPesquisas from "./pages/AdminPesquisas";
 import AdminTSE from "./pages/AdminTSE";
 import AdminBiblioteca from "./pages/AdminBiblioteca";
+import AdminGeradorConteudo from "./pages/AdminGeradorConteudo";
 import Entrevista from "./pages/Entrevista";
 import EntrevistaInstitucional from "./pages/EntrevistaInstitucional";
 import Liderancas from "./pages/Liderancas";
@@ -59,6 +60,7 @@ const App = () => (
             <Route path="/admin/pesquisas" element={<ProtectedRoute requiredRoles={[]}><AdminPesquisas /></ProtectedRoute>} />
             <Route path="/admin/tse" element={<ProtectedRoute requiredRoles={[]}><AdminTSE /></ProtectedRoute>} />
             <Route path="/admin/biblioteca" element={<ProtectedRoute requiredRoles={['lider_tematico']}><AdminBiblioteca /></ProtectedRoute>} />
+            <Route path="/admin/gerador-conteudo" element={<ProtectedRoute requiredRoles={['lider_tematico']}><AdminGeradorConteudo /></ProtectedRoute>} />
             <Route path="/entrevista" element={<Entrevista />} />
             <Route path="/entrevista-institucional" element={<EntrevistaInstitucional />} />
             <Route path="/liderancas" element={<Liderancas />} />

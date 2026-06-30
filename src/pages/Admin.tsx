@@ -158,6 +158,14 @@ const Admin = () => {
       color: 'secondary',
       roles: ['admin', 'admin_master', 'lider_tematico']
     },
+    {
+      icon: Sparkles,
+      title: 'Gerador de Conteúdo',
+      description: 'Pit, discurso, release e nota com IA para assessoria',
+      href: '/admin/gerador-conteudo',
+      color: 'accent',
+      roles: ['admin', 'admin_master', 'lider_tematico']
+    },
     { 
       icon: BarChart3, 
       title: 'Analytics LP', 
