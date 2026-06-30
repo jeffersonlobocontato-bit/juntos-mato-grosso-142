@@ -194,7 +194,7 @@ export default function AdminGeradorConteudo() {
                 <SheetHeader className="text-left">
                   <SheetTitle>Fontes e formatos</SheetTitle>
                 </SheetHeader>
-                <ScrollArea className="flex-1 -mx-6 px-6 mt-2">
+                <ScrollArea className="flex-1 min-h-0 -mx-6 px-6 mt-2">
                   <div className="pb-4">
                     <CommsContentSourceSelector
                       selection={sourceSelection}
