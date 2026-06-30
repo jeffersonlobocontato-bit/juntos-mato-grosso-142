@@ -22,8 +22,7 @@ import {
   ScrollText,
   ClipboardList,
   Building2,
-  BookOpen,
-  Sparkles as SparklesIcon
+  BookOpen
 } from 'lucide-react';
 
 const Admin = () => {
@@ -160,7 +159,7 @@ const Admin = () => {
       roles: ['admin', 'admin_master', 'lider_tematico']
     },
     {
-      icon: SparklesIcon,
+      icon: Sparkles,
       title: 'Gerador de Conteúdo',
       description: 'Pit, discurso, release e nota com IA para assessoria',
       href: '/admin/gerador-conteudo',
