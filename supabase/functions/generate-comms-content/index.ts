@@ -122,7 +122,14 @@ Deno.serve(async (req) => {
 
     // 2. Sugestões populares
     let suggestions: any[] = [];
-    if (!sources || sources.includeSugestoes !== false) {
+    if (sources?.sugestaoIds && sources.sugestaoIds.length > 0) {
+      const { data: suggestionsData } = await supabase
+        .from('sugestoes_populares')
+        .select('descricao, eixo, municipio')
+        .in('id', sources.sugestaoIds);
+      suggestions = suggestionsData || [];
+    } else if (!sources || sources.includeSugestoes === true) {
+      // backward compat: legacy boolean flag
       const { data: suggestionsData } = await supabase
         .from('sugestoes_populares')
         .select('descricao, eixo, municipio')
@@ -153,20 +160,36 @@ Deno.serve(async (req) => {
 
     // 4. Propostas técnicas já aprovadas/cadastradas (opcional, fonte nova específica deste módulo)
     let propostas: any[] = [];
-    if (sources?.includePropostas) {
+    if (sources?.propostaIds && sources.propostaIds.length > 0) {
       let propQuery = supabase
         .from('propostas_tecnicas')
         .select('titulo, descricao, metas, eixos_tematicos(nome)')
-        .limit(15);
-
-      if (sources?.propostaIds && sources.propostaIds.length > 0) {
-        propQuery = propQuery.in('id', sources.propostaIds);
-      }
+        .in('id', sources.propostaIds)
+        .limit(50);
 
       const { data: propData } = await propQuery;
       propostas = propData || [];
+    } else if (sources?.includePropostas) {
+      // backward compat
+      const { data: propData } = await supabase
+        .from('propostas_tecnicas')
+        .select('titulo, descricao, metas, eixos_tematicos(nome)')
+        .limit(15);
+      propostas = propData || [];
     }
     console.log(`Fetched ${propostas.length} propostas`);
+
+    // 4b. Propostas políticas (nova fonte selecionável)
+    let propostasPoliticas: any[] = [];
+    if (sources?.propostaPoliticaIds && sources.propostaPoliticaIds.length > 0) {
+      const { data: polData } = await supabase
+        .from('propostas_politicas')
+        .select('titulo, resumo, conteudo_completo, publico_alvo, impacto_esperado, eixos_tematicos(nome)')
+        .in('id', sources.propostaPoliticaIds)
+        .limit(50);
+      propostasPoliticas = polData || [];
+    }
+    console.log(`Fetched ${propostasPoliticas.length} propostas políticas`);
 
     // 5. Eixos/subtemas existentes (para a IA mapear convergência usando a taxonomia real da campanha)
     const { data: eixosData } = await supabase
@@ -192,6 +215,10 @@ Deno.serve(async (req) => {
     const propostasContext = propostas.map((p: any) =>
       `- [${p.eixos_tematicos?.nome || 'N/A'}] ${p.titulo}: ${p.descricao?.substring(0, 300)}`
     ).join('\n') || 'Nenhuma proposta técnica incluída.';
+
+    const propostasPoliticasContext = propostasPoliticas.map((p: any) =>
+      `- [${p.eixos_tematicos?.nome || 'N/A'}] ${p.titulo}: ${(p.resumo || p.conteudo_completo || '').substring(0, 400)}${p.publico_alvo ? ` | Público: ${p.publico_alvo}` : ''}${p.impacto_esperado ? ` | Impacto: ${p.impacto_esperado}` : ''}`
+    ).join('\n') || 'Nenhuma proposta política incluída.';
 
     const taxonomiaContext = (eixosData || []).map(e => `- ${e.nome}: ${e.descricao || ''}`).join('\n')
       + '\n\nTemas registrados:\n'
@@ -226,6 +253,9 @@ ${pesquisasContext}
 
 ### 4. PROPOSTAS TÉCNICAS DA CAMPANHA
 ${propostasContext}
+
+### 5. PROPOSTAS POLÍTICAS DA CAMPANHA
+${propostasPoliticasContext}
 
 ---
 
@@ -304,8 +334,10 @@ Retorne APENAS o JSON, sem texto adicional, sem markdown, sem comentários.`;
     const fontesUtilizadas = {
       documentos: documents.map(d => d.title),
       sugestoes_incluidas: suggestions.length > 0,
+      sugestoes_count: suggestions.length,
       pesquisas: pesquisas.map(p => p.titulo),
       propostas: propostas.map((p: any) => p.titulo),
+      propostas_politicas: propostasPoliticas.map((p: any) => p.titulo),
     };
 
     const { data: saved, error: saveError } = await supabase

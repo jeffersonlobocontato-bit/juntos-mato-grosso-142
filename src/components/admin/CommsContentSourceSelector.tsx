@@ -1,11 +1,10 @@
 import React, { useEffect, useState } from 'react';
 import { Checkbox } from "@/components/ui/checkbox";
 import { Label } from "@/components/ui/label";
-import { Switch } from "@/components/ui/switch";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
-import { FileText, Users, BarChart3, ClipboardList, CheckSquare, Square, Loader2 } from "lucide-react";
+import { FileText, Users, BarChart3, ClipboardList, Megaphone, CheckSquare, Square, Loader2 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 
 interface Document {
@@ -25,12 +24,24 @@ interface Proposta {
   titulo: string;
 }
 
+interface Sugestao {
+  id: string;
+  descricao: string;
+  eixo: string | null;
+  municipio: string | null;
+}
+
+interface PropostaPolitica {
+  id: string;
+  titulo: string;
+}
+
 export interface CommsSourceSelection {
   documentIds: string[];
-  includeSugestoes: boolean;
+  sugestaoIds: string[];
   pesquisaIds: string[];
-  includePropostas: boolean;
   propostaIds: string[];
+  propostaPoliticaIds: string[];
 }
 
 export const FORMATOS_DISPONIVEIS = [
@@ -67,13 +78,15 @@ export const CommsContentSourceSelector: React.FC<CommsContentSourceSelectorProp
   const [documents, setDocuments] = useState<Document[]>([]);
   const [pesquisas, setPesquisas] = useState<Pesquisa[]>([]);
   const [propostas, setPropostas] = useState<Proposta[]>([]);
+  const [sugestoes, setSugestoes] = useState<Sugestao[]>([]);
+  const [propostasPoliticas, setPropostasPoliticas] = useState<PropostaPolitica[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     const fetchSources = async () => {
       setLoading(true);
 
-      const [docsResult, pesquisasResult, propostasResult] = await Promise.all([
+      const [docsResult, pesquisasResult, propostasResult, sugestoesResult, propostasPolResult] = await Promise.all([
         supabase
           .from('ai_documents')
           .select('id, title, doc_category')
@@ -89,11 +102,23 @@ export const CommsContentSourceSelector: React.FC<CommsContentSourceSelectorProp
           .select('id, titulo')
           .order('created_at', { ascending: false })
           .limit(50),
+        supabase
+          .from('sugestoes_populares')
+          .select('id, descricao, eixo, municipio')
+          .order('created_at', { ascending: false })
+          .limit(100),
+        supabase
+          .from('propostas_politicas')
+          .select('id, titulo')
+          .order('created_at', { ascending: false })
+          .limit(50),
       ]);
 
       if (docsResult.data) setDocuments(docsResult.data);
       if (pesquisasResult.data) setPesquisas(pesquisasResult.data);
       if (propostasResult.data) setPropostas(propostasResult.data);
+      if (sugestoesResult.data) setSugestoes(sugestoesResult.data as Sugestao[]);
+      if (propostasPolResult.data) setPropostasPoliticas(propostasPolResult.data);
 
       setLoading(false);
     };
@@ -122,6 +147,20 @@ export const CommsContentSourceSelector: React.FC<CommsContentSourceSelectorProp
     onSelectionChange({ ...selection, propostaIds: newIds });
   };
 
+  const toggleSugestao = (id: string, checked: boolean) => {
+    const newIds = checked
+      ? [...selection.sugestaoIds, id]
+      : selection.sugestaoIds.filter(x => x !== id);
+    onSelectionChange({ ...selection, sugestaoIds: newIds });
+  };
+
+  const togglePropostaPolitica = (id: string, checked: boolean) => {
+    const newIds = checked
+      ? [...selection.propostaPoliticaIds, id]
+      : selection.propostaPoliticaIds.filter(x => x !== id);
+    onSelectionChange({ ...selection, propostaPoliticaIds: newIds });
+  };
+
   const toggleFormato = (formatoId: string, checked: boolean) => {
     onFormatosChange(
       checked
@@ -130,11 +169,12 @@ export const CommsContentSourceSelector: React.FC<CommsContentSourceSelectorProp
     );
   };
 
-  const selectAll = (key: 'documentIds' | 'pesquisaIds' | 'propostaIds', allIds: string[]) => {
+  type ListKey = 'documentIds' | 'pesquisaIds' | 'propostaIds' | 'sugestaoIds' | 'propostaPoliticaIds';
+  const selectAll = (key: ListKey, allIds: string[]) => {
     onSelectionChange({ ...selection, [key]: allIds });
   };
 
-  const clearAll = (key: 'documentIds' | 'pesquisaIds' | 'propostaIds') => {
+  const clearAll = (key: ListKey) => {
     onSelectionChange({ ...selection, [key]: [] });
   };
 
@@ -142,7 +182,8 @@ export const CommsContentSourceSelector: React.FC<CommsContentSourceSelectorProp
     selection.documentIds.length +
     selection.pesquisaIds.length +
     selection.propostaIds.length +
-    (selection.includeSugestoes ? 1 : 0);
+    selection.sugestaoIds.length +
+    selection.propostaPoliticaIds.length;
 
   if (loading) {
     return (
@@ -185,7 +226,7 @@ export const CommsContentSourceSelector: React.FC<CommsContentSourceSelectorProp
         </Badge>
       </div>
 
-      <Accordion type="multiple" defaultValue={["documents", "sugestoes", "pesquisas", "propostas"]} className="space-y-2">
+      <Accordion type="multiple" defaultValue={["documents", "sugestoes", "pesquisas", "propostas", "propostas-politicas"]} className="space-y-2">
         {/* Documentos */}
         <AccordionItem value="documents" className="border rounded-lg px-3">
           <AccordionTrigger className="py-3 hover:no-underline">
@@ -239,27 +280,45 @@ export const CommsContentSourceSelector: React.FC<CommsContentSourceSelectorProp
             <div className="flex items-center gap-2">
               <Users className="h-4 w-4 text-green-600" />
               <span className="font-medium">Sugestões Populares</span>
-              {selection.includeSugestoes && (
-                <Badge variant="default" className="ml-2 text-xs bg-green-600">Ativo</Badge>
-              )}
+              <Badge variant="outline" className="ml-2 text-xs">
+                {selection.sugestaoIds.length}/{sugestoes.length}
+              </Badge>
             </div>
           </AccordionTrigger>
           <AccordionContent className="pb-3">
-            <div className="flex items-center justify-between p-2 rounded-lg bg-muted/50">
-              <div className="flex-1">
-                <Label htmlFor="ccs-include-sugestoes" className="font-normal cursor-pointer">
-                  Incluir demandas da população
-                </Label>
-                <p className="text-xs text-muted-foreground mt-1">
-                  Ajuda a IA a conectar o conteúdo com expectativas reais do eleitorado
-                </p>
-              </div>
-              <Switch
-                id="ccs-include-sugestoes"
-                checked={selection.includeSugestoes}
-                onCheckedChange={(checked) => onSelectionChange({ ...selection, includeSugestoes: checked })}
-              />
+            <div className="flex gap-2 mb-3">
+              <Button size="sm" variant="outline" onClick={() => selectAll('sugestaoIds', sugestoes.map(s => s.id))} className="h-7 text-xs">
+                <CheckSquare className="h-3 w-3 mr-1" />
+                Todas
+              </Button>
+              <Button size="sm" variant="outline" onClick={() => clearAll('sugestaoIds')} className="h-7 text-xs">
+                <Square className="h-3 w-3 mr-1" />
+                Limpar
+              </Button>
             </div>
+            {sugestoes.length === 0 ? (
+              <p className="text-sm text-muted-foreground italic">Nenhuma sugestão disponível</p>
+            ) : (
+              <div className="space-y-2 max-h-48 overflow-y-auto">
+                {sugestoes.map((s) => (
+                  <div key={s.id} className="flex items-center space-x-3 py-1">
+                    <Checkbox
+                      id={`csug-${s.id}`}
+                      checked={selection.sugestaoIds.includes(s.id)}
+                      onCheckedChange={(checked) => toggleSugestao(s.id, checked as boolean)}
+                    />
+                    <Label htmlFor={`csug-${s.id}`} className="cursor-pointer text-sm flex-1">
+                      <span className="line-clamp-2">{s.descricao}</span>
+                      {(s.eixo || s.municipio) && (
+                        <span className="block text-xs text-muted-foreground mt-0.5">
+                          {[s.eixo, s.municipio].filter(Boolean).join(' • ')}
+                        </span>
+                      )}
+                    </Label>
+                  </div>
+                ))}
+              </div>
+            )}
           </AccordionContent>
         </AccordionItem>
 
@@ -320,48 +379,76 @@ export const CommsContentSourceSelector: React.FC<CommsContentSourceSelectorProp
             </div>
           </AccordionTrigger>
           <AccordionContent className="pb-3">
-            <div className="flex items-center justify-between p-2 rounded-lg bg-muted/50 mb-3">
-              <Label htmlFor="ccs-include-propostas" className="font-normal cursor-pointer text-sm">
-                Incluir propostas técnicas como fonte
-              </Label>
-              <Switch
-                id="ccs-include-propostas"
-                checked={selection.includePropostas}
-                onCheckedChange={(checked) => onSelectionChange({ ...selection, includePropostas: checked })}
-              />
+            <div className="flex gap-2 mb-3">
+              <Button size="sm" variant="outline" onClick={() => selectAll('propostaIds', propostas.map(p => p.id))} className="h-7 text-xs">
+                <CheckSquare className="h-3 w-3 mr-1" />
+                Todas
+              </Button>
+              <Button size="sm" variant="outline" onClick={() => clearAll('propostaIds')} className="h-7 text-xs">
+                <Square className="h-3 w-3 mr-1" />
+                Limpar
+              </Button>
             </div>
-
-            {selection.includePropostas && (
-              <>
-                <div className="flex gap-2 mb-3">
-                  <Button size="sm" variant="outline" onClick={() => selectAll('propostaIds', propostas.map(p => p.id))} className="h-7 text-xs">
-                    <CheckSquare className="h-3 w-3 mr-1" />
-                    Todas
-                  </Button>
-                  <Button size="sm" variant="outline" onClick={() => clearAll('propostaIds')} className="h-7 text-xs">
-                    <Square className="h-3 w-3 mr-1" />
-                    Limpar
-                  </Button>
-                </div>
-                {propostas.length === 0 ? (
-                  <p className="text-sm text-muted-foreground italic">Nenhuma proposta disponível</p>
-                ) : (
-                  <div className="space-y-2 max-h-48 overflow-y-auto">
-                    {propostas.map((prop) => (
-                      <div key={prop.id} className="flex items-center space-x-3 py-1">
-                        <Checkbox
-                          id={`cprop-${prop.id}`}
-                          checked={selection.propostaIds.includes(prop.id)}
-                          onCheckedChange={(checked) => toggleProposta(prop.id, checked as boolean)}
-                        />
-                        <Label htmlFor={`cprop-${prop.id}`} className="cursor-pointer text-sm flex-1 truncate">
-                          {prop.titulo}
-                        </Label>
-                      </div>
-                    ))}
+            {propostas.length === 0 ? (
+              <p className="text-sm text-muted-foreground italic">Nenhuma proposta disponível</p>
+            ) : (
+              <div className="space-y-2 max-h-48 overflow-y-auto">
+                {propostas.map((prop) => (
+                  <div key={prop.id} className="flex items-center space-x-3 py-1">
+                    <Checkbox
+                      id={`cprop-${prop.id}`}
+                      checked={selection.propostaIds.includes(prop.id)}
+                      onCheckedChange={(checked) => toggleProposta(prop.id, checked as boolean)}
+                    />
+                    <Label htmlFor={`cprop-${prop.id}`} className="cursor-pointer text-sm flex-1 truncate">
+                      {prop.titulo}
+                    </Label>
                   </div>
-                )}
-              </>
+                ))}
+              </div>
+            )}
+          </AccordionContent>
+        </AccordionItem>
+
+        {/* Propostas Políticas */}
+        <AccordionItem value="propostas-politicas" className="border rounded-lg px-3">
+          <AccordionTrigger className="py-3 hover:no-underline">
+            <div className="flex items-center gap-2">
+              <Megaphone className="h-4 w-4 text-rose-600" />
+              <span className="font-medium">Propostas Políticas</span>
+              <Badge variant="outline" className="ml-2 text-xs">
+                {selection.propostaPoliticaIds.length}/{propostasPoliticas.length}
+              </Badge>
+            </div>
+          </AccordionTrigger>
+          <AccordionContent className="pb-3">
+            <div className="flex gap-2 mb-3">
+              <Button size="sm" variant="outline" onClick={() => selectAll('propostaPoliticaIds', propostasPoliticas.map(p => p.id))} className="h-7 text-xs">
+                <CheckSquare className="h-3 w-3 mr-1" />
+                Todas
+              </Button>
+              <Button size="sm" variant="outline" onClick={() => clearAll('propostaPoliticaIds')} className="h-7 text-xs">
+                <Square className="h-3 w-3 mr-1" />
+                Limpar
+              </Button>
+            </div>
+            {propostasPoliticas.length === 0 ? (
+              <p className="text-sm text-muted-foreground italic">Nenhuma proposta política disponível</p>
+            ) : (
+              <div className="space-y-2 max-h-48 overflow-y-auto">
+                {propostasPoliticas.map((prop) => (
+                  <div key={prop.id} className="flex items-center space-x-3 py-1">
+                    <Checkbox
+                      id={`cpol-${prop.id}`}
+                      checked={selection.propostaPoliticaIds.includes(prop.id)}
+                      onCheckedChange={(checked) => togglePropostaPolitica(prop.id, checked as boolean)}
+                    />
+                    <Label htmlFor={`cpol-${prop.id}`} className="cursor-pointer text-sm flex-1 truncate">
+                      {prop.titulo}
+                    </Label>
+                  </div>
+                ))}
+              </div>
             )}
           </AccordionContent>
         </AccordionItem>
