@@ -1,42 +1,46 @@
-# Classificação semântica de sugestões populares por Eixo
+# Plano: Filtros cruzados (Eixo + Subtemas) no Gerador de Conteúdo
 
 ## Objetivo
-Detectar automaticamente, via IA, qual dos 5 Eixos Temáticos é o **principal** abordado em cada sugestão popular, a partir do texto livre enviado pelo cidadão. Quando não houver eixo claro, marcar como **"Não classificado"**.
+Permitir que, ao selecionar fontes (documentos, propostas técnicas, propostas políticas, sugestões populares, pesquisas), o usuário também filtre por **Eixo Temático** e **Subtemas específicos**, criando cruzamentos do tipo:
+- "Documento Pelti" + Eixo "Infraestrutura" + subtemas X, Y
+- "Documentos de Segurança Pública" + Eixo "Segurança" + subtemas escolhidos
 
-## Comportamento definido
-- **Escopo:** novas sugestões (no envio) **+** reprocessamento das antigas via botão no admin.
-- **Resultado:** **um único eixo principal** por sugestão (gravado na coluna `eixo` já existente em `sugestoes_populares`).
-- **Fallback:** texto vago/genérico → `eixo = "Não classificado"`.
-- **Exibição:** apenas em `/admin/sugestoes` (tabela, filtros e card de distribuição já existentes passam a refletir a classificação da IA).
+Esses filtros restringem o que aparece nas listas selecionáveis e também são enviados à IA como contexto de recorte temático.
 
 ## Mudanças
 
-### 1. Nova Edge Function `classify-suggestion-eixo`
-- Recebe `{ sugestao_id, descricao }`.
-- Pública para autenticados (sem exigir admin) para também ser chamada no envio público.
-- Chama `ai.gateway.lovable.dev` (`google/gemini-2.5-flash`) com **tool call** estruturada cujos valores possíveis para `eixo` são exatamente:
-  - Desenvolvimento Social
-  - Desenvolvimento Econômico Sustentável
-  - Desenvolvimento das Cidades e Infraestrutura
-  - Gestão Pública Eficiente
-  - Segurança, Justiça, Combate à Corrupção
-  - Não classificado
-- Retorna `{ eixo, confianca, justificativa }` e grava `eixo` em `sugestoes_populares` (via service role). A `justificativa` é salva em `analise_semantica.eixo_classificacao` para auditoria.
+### 1. `CommsContentSourceSelector.tsx`
+- Adicionar painel superior **"Recorte temático (opcional)"** com:
+  - Select de **Eixo** (carrega de `eixos_tematicos`).
+  - Multi-select de **Subtemas** (carrega de `subtemas` filtrado pelo eixo via `temas`).
+  - Botão "Limpar recorte".
+- Ao mudar eixo/subtemas:
+  - Refetch das listas filtrando por `eixo_id` / `subtema_id` (quando a tabela tem o campo): `ai_documents` (via `ai_document_temas`), `propostas_tecnicas` (`eixo_id`, `subtema_id`), `propostas_politicas` (`eixo_id`), `sugestoes_populares` (`tema_ids` jsonb / classificação semântica), `pesquisas_eleitorais` (texto livre — manter sem filtro, apenas marcar como "sem recorte").
+  - Mostrar contagem filtrada.
+- Manter seleção individual por item (não substitui a lógica atual).
 
-### 2. Fluxo público (`OpinionFormCard.tsx`)
-- Após o `insert` bem-sucedido em `sugestoes_populares`, invocar `classify-suggestion-eixo` em segundo plano (fire-and-forget, sem bloquear o "obrigado").
-- A chamada atual a `analyze-suggestion` permanece como está (continua exigindo admin e roda só quando o admin reprocessa por tema).
+### 2. Interface `CommsSourceSelection`
+Adicionar:
+```ts
+eixoFiltroId?: string | null;
+subtemaFiltroIds?: string[];
+```
 
-### 3. Admin (`/admin/sugestoes`)
-- Adicionar botão **"Reclassificar Eixos (IA)"** no cabeçalho, ao lado de "Exportar CSV".
-- Ao clicar: itera pelas sugestões filtradas (ou todas, se nenhum filtro), chama `classify-suggestion-eixo` em lotes pequenos (3 em paralelo) com toast de progresso e refetch ao final.
-- Badge do eixo na tabela ganha tratamento visual para `"Não classificado"` (cinza neutro).
-- O `eixoColors` recebe a chave `"Não classificado"`.
+### 3. `AdminGeradorConteudo.tsx`
+- Inicializar os novos campos no estado.
+- Repassar ao body da edge function.
+
+### 4. Edge Function `generate-comms-content`
+- Ler `eixoFiltroId` e `subtemaFiltroIds` do body.
+- Quando presentes, aplicar como filtro adicional nas queries de fontes (defesa em profundidade — front já filtra, mas garantir no servidor).
+- Incluir no prompt do sistema uma linha: "Recorte temático: Eixo {nome} / Subtemas: {lista}" para a IA focar a geração.
 
 ## Detalhes técnicos
+- Subtemas no schema atual: `temas` → `subtemas`, com `temas.eixo_id`. Para popular subtemas do eixo, fazer join `subtemas → temas` onde `temas.eixo_id = X`.
+- `ai_documents`: cruzamento via tabela `ai_document_temas` (tem `tema_id`).
+- `sugestoes_populares`: tem coluna `eixo` (texto) e classificação semântica em `tema_ids` (jsonb). Filtrar por match de eixo nome OU por tema_ids contendo subtemas.
+- Filtros são "AND" entre eixo e subtemas, e se subtemas estiver vazio considera só o eixo.
 
-- **Sem migração de schema.** A coluna `sugestoes_populares.eixo` (text) já existe e é usada na lista — basta passar a gravá-la via IA.
-- **Prompt da IA:** instrução curta com a lista fechada dos 5 eixos + a opção "Não classificado", pedindo o eixo predominante. Tool schema com `enum` força a resposta a um dos valores válidos.
-- **Custos / rate limit:** reprocessamento em lotes de 3 com pequeno `await` entre lotes; tratar 429/402 com toast claro.
-- **Segurança:** a função valida JWT do chamador (precisa estar autenticado — válido para o form público com chave anon) e usa service role apenas para o `update`.
-- **Sem mudanças** em `analyze-suggestion`, dashboards, mapa ou exportação CSV (que já lê `s.eixo`).
+## Fora de escopo
+- Não alterar o esquema do banco.
+- Não mudar a UI de geração/refinamento (só o seletor de fontes).
