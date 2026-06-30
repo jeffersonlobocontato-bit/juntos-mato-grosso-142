@@ -31,6 +31,8 @@ const initialSelection: CommsSourceSelection = {
   pesquisaIds: [],
   propostaIds: [],
   propostaPoliticaIds: [],
+  eixoFiltroId: null,
+  subtemaFiltroIds: [],
 };
 
 export default function AdminGeradorConteudo() {
@@ -85,6 +87,8 @@ export default function AdminGeradorConteudo() {
             pesquisaIds: sourceSelection.pesquisaIds,
             propostaIds: sourceSelection.propostaIds,
             propostaPoliticaIds: sourceSelection.propostaPoliticaIds,
+            eixoFiltroId: sourceSelection.eixoFiltroId,
+            subtemaFiltroIds: sourceSelection.subtemaFiltroIds,
           },
           formatos: formatosSelecionados,
         },
