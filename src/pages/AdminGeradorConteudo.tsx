@@ -27,10 +27,10 @@ import {
 
 const initialSelection: CommsSourceSelection = {
   documentIds: [],
-  includeSugestoes: true,
+  sugestaoIds: [],
   pesquisaIds: [],
-  includePropostas: false,
   propostaIds: [],
+  propostaPoliticaIds: [],
 };
 
 export default function AdminGeradorConteudo() {
@@ -81,10 +81,10 @@ export default function AdminGeradorConteudo() {
           contexto,
           sources: {
             documentIds: sourceSelection.documentIds,
-            includeSugestoes: sourceSelection.includeSugestoes,
+            sugestaoIds: sourceSelection.sugestaoIds,
             pesquisaIds: sourceSelection.pesquisaIds,
-            includePropostas: sourceSelection.includePropostas,
             propostaIds: sourceSelection.propostaIds,
+            propostaPoliticaIds: sourceSelection.propostaPoliticaIds,
           },
           formatos: formatosSelecionados,
         },
@@ -109,7 +109,8 @@ export default function AdminGeradorConteudo() {
     sourceSelection.documentIds.length +
     sourceSelection.pesquisaIds.length +
     sourceSelection.propostaIds.length +
-    (sourceSelection.includeSugestoes ? 1 : 0);
+    sourceSelection.sugestaoIds.length +
+    sourceSelection.propostaPoliticaIds.length;
 
   return (
     <div className="min-h-screen bg-background pb-24 sm:pb-6">
