@@ -29,6 +29,11 @@ const stripExportSourcesJson = (content: string) => {
         return '';
       }
     } catch {
+      // Unparseable (possibly streaming). Hide if it looks analytical.
+      const raw = String(jsonContent);
+      if (/"(type|title|sources|relevance|description|convergence|divergence|gap|opportunity)"\s*:/i.test(raw)) {
+        return '';
+      }
       return fullMatch;
     }
 
