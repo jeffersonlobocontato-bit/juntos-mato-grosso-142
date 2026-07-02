@@ -1067,8 +1067,8 @@ const AdminPlanoGoverno = () => {
                     <span className="ml-1 hidden sm:inline">Expandir</span>
                   </Button>
                 </CardHeader>
-                <CardContent className="p-0">
-                  <ScrollArea className="h-[400px] p-4">
+                 <CardContent className="p-0">
+                   <ScrollArea className="h-[clamp(240px,38vh,420px)] p-4">
                     {messages.length === 0 ? (
                       <div className="h-full flex flex-col items-center justify-center text-center text-muted-foreground">
                         <Sparkles className="w-12 h-12 mb-4 text-primary/30" />
