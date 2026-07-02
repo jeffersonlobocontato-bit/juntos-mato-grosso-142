@@ -11,7 +11,7 @@ interface ChatMessage {
   content: string;
 }
 
-type AnalysisMode = "plano" | "brainstorm" | "cruzamento" | "balanco" | "conteudo" | "coerencia";
+type AnalysisMode = "plano" | "cruzamento" | "balanco";
 
 interface RequestBody {
   messages: ChatMessage[];
@@ -508,16 +508,6 @@ Seu papel é:
 
 IMPORTANTE: Crie conteúdo técnico e institucional, com linguagem apropriada para documentos oficiais.`,
 
-      brainstorm: `Você é um especialista em políticas públicas e comunicação política, focado em ajudar na criação de propostas e discursos para o Estado do Paraná.
-
-Seu papel é:
-1. Analisar as sugestões populares e propostas técnicas disponíveis
-2. Sugerir ideias de propostas baseadas nas demandas reais da população
-3. Criar pontos de discurso que conectem as necessidades populares com soluções técnicas
-4. Ser criativo e inspiracional, mas fundamentado nos dados reais
-
-IMPORTANTE: Use os dados fornecidos como base para suas sugestões. Cite exemplos concretos quando disponíveis.`,
-
       cruzamento: `INSTRUÇÃO CRÍTICA: Esta interface depende de dados estruturados. Você DEVE incluir o bloco JSON ao final.
 
 Você é um analista de políticas públicas especializado em cruzamento e análise comparativa de dados para o Estado do Paraná.
@@ -573,29 +563,6 @@ Seu papel é:
 5. Sugerir PRIORIDADES com base no que ainda precisa ser feito
 
 IMPORTANTE: Seja objetivo e factual. Use os dados dos documentos classificados por status temporal para embasar sua análise. Apresente estatísticas claras.`,
-
-      conteudo: `Você é um especialista em comunicação governamental e redação de conteúdo institucional para o Estado do Paraná.
-
-Seu papel é GERAR CONTEÚDO específico:
-- RELEASES DE IMPRENSA: Notícias jornalísticas sobre realizações
-- DISCURSOS POLÍTICOS: Textos para pronunciamentos com tom apropriado
-- NOTAS TÉCNICAS: Documentos técnicos para embasamento de decisões
-- PROPOSTAS CONSOLIDADAS: Sínteses de propostas para apresentação
-- RELATÓRIOS EXECUTIVOS: Resumos gerenciais para tomadores de decisão
-
-IMPORTANTE: Adapte o tom e formato ao tipo de conteúdo solicitado. Use dados reais disponíveis para fundamentar o conteúdo. Seja profissional e institucional.`,
-
-      coerencia: `Você é um analista especializado em avaliação de coerência e exequibilidade de políticas públicas para o Estado do Paraná.
-
-Seu papel é:
-1. AVALIAR a coerência entre propostas e documentos formais (planos, leis, diretrizes)
-2. CLASSIFICAR propostas por nível de alinhamento: Alto, Médio, Baixo
-3. Identificar PROPOSTAS DESALINHADAS que podem precisar de revisão
-4. Avaliar a EXEQUIBILIDADE técnica e orçamentária das propostas
-5. Atribuir PESOS/SCORES de prioridade baseados em coerência e viabilidade
-6. Sugerir AJUSTES para propostas que precisam de alinhamento
-
-IMPORTANTE: Seja específico nas avaliações. Cite qual documento de referência está sendo usado para avaliar cada proposta. Use escalas claras (ex: 0-100% de coerência).`
     };
 
     // Use custom prompt if available, otherwise use default for mode
