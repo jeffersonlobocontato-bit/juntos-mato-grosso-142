@@ -34,7 +34,10 @@ import {
   Trash2,
   Pencil,
   Check,
-  X
+  X,
+  Paperclip,
+  FileText,
+  Image as ImageIcon
 } from 'lucide-react';
 import {
   Dialog,
@@ -47,6 +50,13 @@ import { parseCrossReferenceContent } from '@/utils/crossReferenceParser';
 type Message = {
   role: 'user' | 'assistant';
   content: string;
+};
+
+type ChatAttachment = {
+  name: string;
+  mime: string;
+  dataUrl: string; // data:<mime>;base64,...
+  kind: 'image' | 'file';
 };
 
 type Municipio = {
@@ -125,6 +135,8 @@ const AdminPlanoGoverno = () => {
   const [messages, setMessages] = useState<Message[]>([]);
   const [inputMessage, setInputMessage] = useState('');
   const [isStreaming, setIsStreaming] = useState(false);
+  const [attachments, setAttachments] = useState<ChatAttachment[]>([]);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   // History state
   const [conversations, setConversations] = useState<ConversationListItem[]>([]);
@@ -504,17 +516,31 @@ const AdminPlanoGoverno = () => {
   }, [messages]);
 
   const handleSendMessage = async () => {
-    if (!inputMessage.trim() || isStreaming) return;
+    if ((!inputMessage.trim() && attachments.length === 0) || isStreaming) return;
 
-    const userMessage: Message = { role: 'user', content: inputMessage };
+    const attachmentSummary = attachments.length > 0
+      ? `\n\n[Anexos enviados: ${attachments.map(a => a.name).join(', ')}]`
+      : '';
+    const userMessage: Message = {
+      role: 'user',
+      content: (inputMessage || '(Analise os anexos)') + attachmentSummary,
+    };
     setMessages(prev => [...prev, userMessage]);
+    const sentAttachments = attachments;
     setInputMessage('');
+    setAttachments([]);
     setIsStreaming(true);
 
     try {
       const payload = {
         messages: [...messages, userMessage],
         mode: analysisMode,
+        attachments: sentAttachments.map(a => ({
+          name: a.name,
+          mime: a.mime,
+          dataUrl: a.dataUrl,
+          kind: a.kind,
+        })),
         filters: {
           // Data sources
           includeSugestoes: filters.includeSugestoes,
