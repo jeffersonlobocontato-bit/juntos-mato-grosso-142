@@ -16,6 +16,12 @@ type AnalysisMode = "plano" | "brainstorm" | "cruzamento" | "balanco" | "conteud
 interface RequestBody {
   messages: ChatMessage[];
   mode: AnalysisMode;
+  attachments?: Array<{
+    name: string;
+    mime: string;
+    dataUrl: string;
+    kind: "image" | "file";
+  }>;
   filters: {
     // Data sources
     includeSugestoes?: boolean;
@@ -90,7 +96,7 @@ serve(async (req) => {
     }
 
     const body: RequestBody = await req.json();
-    const { messages, mode, filters, contentType } = body;
+    const { messages, mode, filters, contentType, attachments } = body;
 
     // Validate input
     if (!messages || !Array.isArray(messages)) {
@@ -724,11 +730,34 @@ Responda em português brasileiro.`;
 ${filterDescription}
 ${contextData ? `\n\nDADOS DISPONÍVEIS PARA ANÁLISE:${contextData}` : ''}`;
 
-    // Prepare messages for API
-    const apiMessages: ChatMessage[] = [
+    // Prepare messages for API — with multimodal attachments on the last user turn if present
+    const apiMessages: any[] = [
       { role: "system", content: systemPrompt },
-      ...messages.map(m => ({ role: m.role, content: m.content }))
+      ...messages.map(m => ({ role: m.role, content: m.content })),
     ];
+
+    if (attachments && attachments.length > 0) {
+      // Find last user message index to attach files/images to
+      let lastUserIdx = -1;
+      for (let i = apiMessages.length - 1; i >= 0; i--) {
+        if (apiMessages[i].role === "user") { lastUserIdx = i; break; }
+      }
+      if (lastUserIdx >= 0) {
+        const textContent = String(apiMessages[lastUserIdx].content || "");
+        const parts: any[] = [{ type: "text", text: textContent }];
+        for (const att of attachments) {
+          if (att.kind === "image" && att.dataUrl?.startsWith("data:")) {
+            parts.push({ type: "image_url", image_url: { url: att.dataUrl } });
+          } else if (att.kind === "file" && att.dataUrl?.startsWith("data:")) {
+            parts.push({
+              type: "file",
+              file: { filename: att.name, file_data: att.dataUrl },
+            });
+          }
+        }
+        apiMessages[lastUserIdx] = { role: "user", content: parts };
+      }
+    }
 
     // Call Lovable AI Gateway
     const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");

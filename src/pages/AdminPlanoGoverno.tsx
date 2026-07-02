@@ -34,7 +34,10 @@ import {
   Trash2,
   Pencil,
   Check,
-  X
+  X,
+  Paperclip,
+  FileText,
+  Image as ImageIcon
 } from 'lucide-react';
 import {
   Dialog,
@@ -47,6 +50,13 @@ import { parseCrossReferenceContent } from '@/utils/crossReferenceParser';
 type Message = {
   role: 'user' | 'assistant';
   content: string;
+};
+
+type ChatAttachment = {
+  name: string;
+  mime: string;
+  dataUrl: string; // data:<mime>;base64,...
+  kind: 'image' | 'file';
 };
 
 type Municipio = {
@@ -125,6 +135,8 @@ const AdminPlanoGoverno = () => {
   const [messages, setMessages] = useState<Message[]>([]);
   const [inputMessage, setInputMessage] = useState('');
   const [isStreaming, setIsStreaming] = useState(false);
+  const [attachments, setAttachments] = useState<ChatAttachment[]>([]);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   // History state
   const [conversations, setConversations] = useState<ConversationListItem[]>([]);
@@ -504,17 +516,31 @@ const AdminPlanoGoverno = () => {
   }, [messages]);
 
   const handleSendMessage = async () => {
-    if (!inputMessage.trim() || isStreaming) return;
+    if ((!inputMessage.trim() && attachments.length === 0) || isStreaming) return;
 
-    const userMessage: Message = { role: 'user', content: inputMessage };
+    const attachmentSummary = attachments.length > 0
+      ? `\n\n[Anexos enviados: ${attachments.map(a => a.name).join(', ')}]`
+      : '';
+    const userMessage: Message = {
+      role: 'user',
+      content: (inputMessage || '(Analise os anexos)') + attachmentSummary,
+    };
     setMessages(prev => [...prev, userMessage]);
+    const sentAttachments = attachments;
     setInputMessage('');
+    setAttachments([]);
     setIsStreaming(true);
 
     try {
       const payload = {
         messages: [...messages, userMessage],
         mode: analysisMode,
+        attachments: sentAttachments.map(a => ({
+          name: a.name,
+          mime: a.mime,
+          dataUrl: a.dataUrl,
+          kind: a.kind,
+        })),
         filters: {
           // Data sources
           includeSugestoes: filters.includeSugestoes,
@@ -678,6 +704,73 @@ const AdminPlanoGoverno = () => {
       handleSendMessage();
     }
   };
+
+  const MAX_ATTACHMENT_MB = 15;
+  const handleFilesSelected = async (files: FileList | null) => {
+    if (!files || files.length === 0) return;
+    const readers: Promise<ChatAttachment | null>[] = Array.from(files).map(file => {
+      return new Promise((resolve) => {
+        if (file.size > MAX_ATTACHMENT_MB * 1024 * 1024) {
+          toast({
+            title: 'Arquivo muito grande',
+            description: `${file.name} excede ${MAX_ATTACHMENT_MB}MB.`,
+            variant: 'destructive',
+          });
+          return resolve(null);
+        }
+        const isImage = file.type.startsWith('image/');
+        const isPdf = file.type === 'application/pdf';
+        if (!isImage && !isPdf) {
+          toast({
+            title: 'Tipo não suportado',
+            description: `${file.name} não é imagem nem PDF.`,
+            variant: 'destructive',
+          });
+          return resolve(null);
+        }
+        const reader = new FileReader();
+        reader.onload = () => {
+          resolve({
+            name: file.name,
+            mime: file.type,
+            dataUrl: String(reader.result),
+            kind: isImage ? 'image' : 'file',
+          });
+        };
+        reader.onerror = () => resolve(null);
+        reader.readAsDataURL(file);
+      });
+    });
+    const results = (await Promise.all(readers)).filter(Boolean) as ChatAttachment[];
+    if (results.length > 0) {
+      setAttachments(prev => [...prev, ...results]);
+    }
+  };
+
+  const removeAttachment = (index: number) => {
+    setAttachments(prev => prev.filter((_, i) => i !== index));
+  };
+
+  const AttachmentChips = () => (
+    attachments.length > 0 ? (
+      <div className="flex flex-wrap gap-2 mb-2">
+        {attachments.map((a, i) => (
+          <div key={i} className="flex items-center gap-2 bg-muted/60 border rounded-md px-2 py-1 text-xs">
+            {a.kind === 'image' ? <ImageIcon className="w-3.5 h-3.5" /> : <FileText className="w-3.5 h-3.5" />}
+            <span className="max-w-[180px] truncate">{a.name}</span>
+            <button
+              type="button"
+              className="text-muted-foreground hover:text-destructive"
+              onClick={() => removeAttachment(i)}
+              aria-label="Remover anexo"
+            >
+              <X className="w-3.5 h-3.5" />
+            </button>
+          </div>
+        ))}
+      </div>
+    ) : null
+  );
 
   const clearChat = () => {
     startNewConversation();
@@ -1046,7 +1139,26 @@ const AdminPlanoGoverno = () => {
               </Card>
 
               {/* Input Area */}
-              <div className="flex gap-2">
+              <div>
+                <AttachmentChips />
+                <div className="flex gap-2">
+                <input
+                  ref={fileInputRef}
+                  type="file"
+                  accept="image/*,application/pdf"
+                  multiple
+                  hidden
+                  onChange={(e) => { handleFilesSelected(e.target.files); e.target.value = ''; }}
+                />
+                <Button
+                  variant="outline"
+                  size="icon"
+                  onClick={() => fileInputRef.current?.click()}
+                  disabled={isStreaming}
+                  title="Anexar imagem ou PDF"
+                >
+                  <Paperclip className="w-4 h-4" />
+                </Button>
                 <Input
                   value={inputMessage}
                   onChange={(e) => setInputMessage(e.target.value)}
@@ -1067,7 +1179,7 @@ const AdminPlanoGoverno = () => {
                 )}
                 <Button 
                   onClick={handleSendMessage} 
-                  disabled={!inputMessage.trim() || isStreaming}
+                  disabled={(!inputMessage.trim() && attachments.length === 0) || isStreaming}
                 >
                   {isStreaming ? (
                     <Loader2 className="w-4 h-4 animate-spin" />
@@ -1075,6 +1187,7 @@ const AdminPlanoGoverno = () => {
                     <Send className="w-4 h-4" />
                   )}
                 </Button>
+                </div>
               </div>
             </TabsContent>
 
@@ -1181,23 +1294,38 @@ const AdminPlanoGoverno = () => {
               </div>
             </ScrollArea>
             
-            <div className="flex gap-2 p-4 border-t shrink-0">
-              <Input
-                value={inputMessage}
-                onChange={(e) => setInputMessage(e.target.value)}
-                onKeyDown={handleKeyPress}
-                placeholder={`Faça uma pergunta no modo ${analysisMode}...`}
-                disabled={isStreaming}
-                className="flex-1"
-              />
-              {messages.some(m => m.role === 'assistant' && m.content) && (
-                <Button variant="outline" size="icon" onClick={handleCopyLastResponse} title="Copiar">
-                  <Copy className="w-4 h-4" />
+            <div className="p-4 border-t shrink-0">
+              <AttachmentChips />
+              <div className="flex gap-2">
+                <Button
+                  variant="outline"
+                  size="icon"
+                  onClick={() => fileInputRef.current?.click()}
+                  disabled={isStreaming}
+                  title="Anexar imagem ou PDF"
+                >
+                  <Paperclip className="w-4 h-4" />
                 </Button>
-              )}
-              <Button onClick={handleSendMessage} disabled={!inputMessage.trim() || isStreaming}>
-                {isStreaming ? <Loader2 className="w-4 h-4 animate-spin" /> : <Send className="w-4 h-4" />}
-              </Button>
+                <Input
+                  value={inputMessage}
+                  onChange={(e) => setInputMessage(e.target.value)}
+                  onKeyDown={handleKeyPress}
+                  placeholder={`Faça uma pergunta no modo ${analysisMode}...`}
+                  disabled={isStreaming}
+                  className="flex-1"
+                />
+                {messages.some(m => m.role === 'assistant' && m.content) && (
+                  <Button variant="outline" size="icon" onClick={handleCopyLastResponse} title="Copiar">
+                    <Copy className="w-4 h-4" />
+                  </Button>
+                )}
+                <Button
+                  onClick={handleSendMessage}
+                  disabled={(!inputMessage.trim() && attachments.length === 0) || isStreaming}
+                >
+                  {isStreaming ? <Loader2 className="w-4 h-4 animate-spin" /> : <Send className="w-4 h-4" />}
+                </Button>
+              </div>
             </div>
           </div>
         </DialogContent>
