@@ -705,6 +705,73 @@ const AdminPlanoGoverno = () => {
     }
   };
 
+  const MAX_ATTACHMENT_MB = 15;
+  const handleFilesSelected = async (files: FileList | null) => {
+    if (!files || files.length === 0) return;
+    const readers: Promise<ChatAttachment | null>[] = Array.from(files).map(file => {
+      return new Promise((resolve) => {
+        if (file.size > MAX_ATTACHMENT_MB * 1024 * 1024) {
+          toast({
+            title: 'Arquivo muito grande',
+            description: `${file.name} excede ${MAX_ATTACHMENT_MB}MB.`,
+            variant: 'destructive',
+          });
+          return resolve(null);
+        }
+        const isImage = file.type.startsWith('image/');
+        const isPdf = file.type === 'application/pdf';
+        if (!isImage && !isPdf) {
+          toast({
+            title: 'Tipo não suportado',
+            description: `${file.name} não é imagem nem PDF.`,
+            variant: 'destructive',
+          });
+          return resolve(null);
+        }
+        const reader = new FileReader();
+        reader.onload = () => {
+          resolve({
+            name: file.name,
+            mime: file.type,
+            dataUrl: String(reader.result),
+            kind: isImage ? 'image' : 'file',
+          });
+        };
+        reader.onerror = () => resolve(null);
+        reader.readAsDataURL(file);
+      });
+    });
+    const results = (await Promise.all(readers)).filter(Boolean) as ChatAttachment[];
+    if (results.length > 0) {
+      setAttachments(prev => [...prev, ...results]);
+    }
+  };
+
+  const removeAttachment = (index: number) => {
+    setAttachments(prev => prev.filter((_, i) => i !== index));
+  };
+
+  const AttachmentChips = () => (
+    attachments.length > 0 ? (
+      <div className="flex flex-wrap gap-2 mb-2">
+        {attachments.map((a, i) => (
+          <div key={i} className="flex items-center gap-2 bg-muted/60 border rounded-md px-2 py-1 text-xs">
+            {a.kind === 'image' ? <ImageIcon className="w-3.5 h-3.5" /> : <FileText className="w-3.5 h-3.5" />}
+            <span className="max-w-[180px] truncate">{a.name}</span>
+            <button
+              type="button"
+              className="text-muted-foreground hover:text-destructive"
+              onClick={() => removeAttachment(i)}
+              aria-label="Remover anexo"
+            >
+              <X className="w-3.5 h-3.5" />
+            </button>
+          </div>
+        ))}
+      </div>
+    ) : null
+  );
+
   const clearChat = () => {
     startNewConversation();
   };
