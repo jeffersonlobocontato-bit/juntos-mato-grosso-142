@@ -1294,23 +1294,38 @@ const AdminPlanoGoverno = () => {
               </div>
             </ScrollArea>
             
-            <div className="flex gap-2 p-4 border-t shrink-0">
-              <Input
-                value={inputMessage}
-                onChange={(e) => setInputMessage(e.target.value)}
-                onKeyDown={handleKeyPress}
-                placeholder={`Faça uma pergunta no modo ${analysisMode}...`}
-                disabled={isStreaming}
-                className="flex-1"
-              />
-              {messages.some(m => m.role === 'assistant' && m.content) && (
-                <Button variant="outline" size="icon" onClick={handleCopyLastResponse} title="Copiar">
-                  <Copy className="w-4 h-4" />
+            <div className="p-4 border-t shrink-0">
+              <AttachmentChips />
+              <div className="flex gap-2">
+                <Button
+                  variant="outline"
+                  size="icon"
+                  onClick={() => fileInputRef.current?.click()}
+                  disabled={isStreaming}
+                  title="Anexar imagem ou PDF"
+                >
+                  <Paperclip className="w-4 h-4" />
                 </Button>
-              )}
-              <Button onClick={handleSendMessage} disabled={!inputMessage.trim() || isStreaming}>
-                {isStreaming ? <Loader2 className="w-4 h-4 animate-spin" /> : <Send className="w-4 h-4" />}
-              </Button>
+                <Input
+                  value={inputMessage}
+                  onChange={(e) => setInputMessage(e.target.value)}
+                  onKeyDown={handleKeyPress}
+                  placeholder={`Faça uma pergunta no modo ${analysisMode}...`}
+                  disabled={isStreaming}
+                  className="flex-1"
+                />
+                {messages.some(m => m.role === 'assistant' && m.content) && (
+                  <Button variant="outline" size="icon" onClick={handleCopyLastResponse} title="Copiar">
+                    <Copy className="w-4 h-4" />
+                  </Button>
+                )}
+                <Button
+                  onClick={handleSendMessage}
+                  disabled={(!inputMessage.trim() && attachments.length === 0) || isStreaming}
+                >
+                  {isStreaming ? <Loader2 className="w-4 h-4 animate-spin" /> : <Send className="w-4 h-4" />}
+                </Button>
+              </div>
             </div>
           </div>
         </DialogContent>
