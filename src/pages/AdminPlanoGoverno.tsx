@@ -1139,9 +1139,9 @@ const AdminPlanoGoverno = () => {
               </Card>
 
               {/* Input Area */}
-              <div>
+              <div className="pb-[4cm]">
                 <AttachmentChips />
-                <div className="flex gap-2">
+                <div className="flex items-stretch gap-2">
                 <input
                   ref={fileInputRef}
                   type="file"
@@ -1156,6 +1156,7 @@ const AdminPlanoGoverno = () => {
                   onClick={() => fileInputRef.current?.click()}
                   disabled={isStreaming}
                   title="Anexar imagem ou PDF"
+                  className="h-[2cm] w-[2cm] shrink-0"
                 >
                   <Paperclip className="w-4 h-4" />
                 </Button>
@@ -1165,7 +1166,7 @@ const AdminPlanoGoverno = () => {
                   onKeyDown={handleKeyPress}
                   placeholder={`Faça uma pergunta no modo ${analysisMode}...`}
                   disabled={isStreaming}
-                  className="flex-1"
+                  className="h-[2cm] flex-1"
                 />
                 {messages.some(m => m.role === 'assistant' && m.content) && (
                   <Button
@@ -1173,6 +1174,7 @@ const AdminPlanoGoverno = () => {
                     size="icon"
                     onClick={handleCopyLastResponse}
                     title="Copiar última resposta"
+                    className="h-[2cm] w-[2cm] shrink-0"
                   >
                     <Copy className="w-4 h-4" />
                   </Button>
@@ -1180,6 +1182,7 @@ const AdminPlanoGoverno = () => {
                 <Button 
                   onClick={handleSendMessage} 
                   disabled={(!inputMessage.trim() && attachments.length === 0) || isStreaming}
+                  className="h-[2cm] min-w-[2cm] shrink-0"
                 >
                   {isStreaming ? (
                     <Loader2 className="w-4 h-4 animate-spin" />
@@ -1294,15 +1297,16 @@ const AdminPlanoGoverno = () => {
               </div>
             </ScrollArea>
             
-            <div className="p-4 border-t shrink-0">
+            <div className="p-4 pb-[4cm] border-t shrink-0">
               <AttachmentChips />
-              <div className="flex gap-2">
+              <div className="flex items-stretch gap-2">
                 <Button
                   variant="outline"
                   size="icon"
                   onClick={() => fileInputRef.current?.click()}
                   disabled={isStreaming}
                   title="Anexar imagem ou PDF"
+                  className="h-[2cm] w-[2cm] shrink-0"
                 >
                   <Paperclip className="w-4 h-4" />
                 </Button>
@@ -1312,16 +1316,17 @@ const AdminPlanoGoverno = () => {
                   onKeyDown={handleKeyPress}
                   placeholder={`Faça uma pergunta no modo ${analysisMode}...`}
                   disabled={isStreaming}
-                  className="flex-1"
+                  className="h-[2cm] flex-1"
                 />
                 {messages.some(m => m.role === 'assistant' && m.content) && (
-                  <Button variant="outline" size="icon" onClick={handleCopyLastResponse} title="Copiar">
+                  <Button variant="outline" size="icon" onClick={handleCopyLastResponse} title="Copiar" className="h-[2cm] w-[2cm] shrink-0">
                     <Copy className="w-4 h-4" />
                   </Button>
                 )}
                 <Button
                   onClick={handleSendMessage}
                   disabled={(!inputMessage.trim() && attachments.length === 0) || isStreaming}
+                  className="h-[2cm] min-w-[2cm] shrink-0"
                 >
                   {isStreaming ? <Loader2 className="w-4 h-4 animate-spin" /> : <Send className="w-4 h-4" />}
                 </Button>
