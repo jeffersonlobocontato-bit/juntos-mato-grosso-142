@@ -15,3 +15,5 @@ Allow: /
 Disallow: /admin
 Disallow: /admin/
 Disallow: /auth
+
+Sitemap: https://www.juntosparana399.com.br/sitemap.xml
