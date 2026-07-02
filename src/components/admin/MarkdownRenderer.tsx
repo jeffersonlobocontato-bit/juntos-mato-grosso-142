@@ -15,6 +15,19 @@ const stripExportSourcesJson = (content: string) => {
       if (parsed && Array.isArray(parsed.sources)) {
         return '';
       }
+      // Hide analytical arrays of {type,title,description,sources,relevance}
+      if (Array.isArray(parsed) && parsed.length > 0 && parsed.every((it: any) =>
+        it && typeof it === 'object' && ('title' in it || 'type' in it) && ('sources' in it || 'description' in it)
+      )) {
+        return '';
+      }
+      // Hide any object that looks like an analysis payload
+      if (parsed && typeof parsed === 'object' && (
+        'convergences' in parsed || 'divergences' in parsed || 'gaps' in parsed ||
+        'opportunities' in parsed || 'insights' in parsed || 'findings' in parsed
+      )) {
+        return '';
+      }
     } catch {
       return fullMatch;
     }
