@@ -16,6 +16,12 @@ type AnalysisMode = "plano" | "brainstorm" | "cruzamento" | "balanco" | "conteud
 interface RequestBody {
   messages: ChatMessage[];
   mode: AnalysisMode;
+  attachments?: Array<{
+    name: string;
+    mime: string;
+    dataUrl: string;
+    kind: "image" | "file";
+  }>;
   filters: {
     // Data sources
     includeSugestoes?: boolean;
@@ -90,7 +96,7 @@ serve(async (req) => {
     }
 
     const body: RequestBody = await req.json();
-    const { messages, mode, filters, contentType } = body;
+    const { messages, mode, filters, contentType, attachments } = body;
 
     // Validate input
     if (!messages || !Array.isArray(messages)) {
