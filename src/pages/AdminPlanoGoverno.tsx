@@ -1139,7 +1139,26 @@ const AdminPlanoGoverno = () => {
               </Card>
 
               {/* Input Area */}
-              <div className="flex gap-2">
+              <div>
+                <AttachmentChips />
+                <div className="flex gap-2">
+                <input
+                  ref={fileInputRef}
+                  type="file"
+                  accept="image/*,application/pdf"
+                  multiple
+                  hidden
+                  onChange={(e) => { handleFilesSelected(e.target.files); e.target.value = ''; }}
+                />
+                <Button
+                  variant="outline"
+                  size="icon"
+                  onClick={() => fileInputRef.current?.click()}
+                  disabled={isStreaming}
+                  title="Anexar imagem ou PDF"
+                >
+                  <Paperclip className="w-4 h-4" />
+                </Button>
                 <Input
                   value={inputMessage}
                   onChange={(e) => setInputMessage(e.target.value)}
@@ -1160,7 +1179,7 @@ const AdminPlanoGoverno = () => {
                 )}
                 <Button 
                   onClick={handleSendMessage} 
-                  disabled={!inputMessage.trim() || isStreaming}
+                  disabled={(!inputMessage.trim() && attachments.length === 0) || isStreaming}
                 >
                   {isStreaming ? (
                     <Loader2 className="w-4 h-4 animate-spin" />
@@ -1168,6 +1187,7 @@ const AdminPlanoGoverno = () => {
                     <Send className="w-4 h-4" />
                   )}
                 </Button>
+                </div>
               </div>
             </TabsContent>
 
