@@ -193,26 +193,33 @@ const OpinionFormCard = () => {
           <User className="absolute left-4 top-1/2 -translate-y-1/2 h-5 w-5 text-primary" />
           <input
             type="text"
-            placeholder="Nome completo"
+            placeholder="Nome completo *"
             value={nome}
             maxLength={100}
             onChange={(e) => setNome(e.target.value)}
             className="input-pill"
             aria-label="Nome completo"
+            required
           />
         </div>
         <div className="relative">
           <Phone className="absolute left-4 top-1/2 -translate-y-1/2 h-5 w-5 text-primary" />
           <input
             type="tel"
-            placeholder="Telefone / WhatsApp"
+            placeholder="Telefone / WhatsApp *"
             value={telefone}
             maxLength={20}
             onChange={(e) => setTelefone(e.target.value)}
             className="input-pill"
             aria-label="Telefone ou WhatsApp"
+            required
           />
         </div>
+        <p className="text-xs text-muted-foreground leading-relaxed pl-2 -mt-1">
+          Usaremos seu telefone/WhatsApp para enviar a você a{" "}
+          <strong className="text-foreground">prestação de contas</strong> da construção do
+          Plano de Governo — você acompanhará como sua contribuição foi considerada.
+        </p>
         <div className="relative">
           <MapPin className="absolute left-4 top-1/2 -translate-y-1/2 h-5 w-5 text-primary z-10 pointer-events-none" />
           <select
@@ -220,8 +227,9 @@ const OpinionFormCard = () => {
             onChange={(e) => setCidade(e.target.value)}
             className="input-pill appearance-none bg-card"
             aria-label="Cidade"
+            required
           >
-            <option value="">Cidade</option>
+            <option value="">Cidade *</option>
             {municipios.map((m) => (
               <option key={m.id} value={m.nome}>{m.nome}</option>
             ))}
@@ -236,6 +244,7 @@ const OpinionFormCard = () => {
             onChange={(e) => setSugestao(e.target.value)}
             className="textarea-pill"
             aria-label="Sua sugestão"
+            required
           />
         </div>
       </div>
