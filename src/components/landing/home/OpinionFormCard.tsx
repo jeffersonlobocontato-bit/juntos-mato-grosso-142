@@ -267,8 +267,8 @@ const OpinionFormCard = () => {
         Governo Colaborativo do Paraná. Nome, telefone e cidade não são divulgados publicamente,
         não são compartilhados com terceiros e não são usados para fins comerciais. Você pode
         solicitar a consulta, correção ou exclusão dos seus dados a qualquer momento pelo e-mail{" "}
-        <a href="mailto:contato@rota399.org.br" className="text-primary underline">
-          contato@rota399.org.br
+        <a href="mailto:sergiomoro@juntosparana399.com.br" className="text-primary underline">
+          sergiomoro@juntosparana399.com.br
         </a>
         .
       </p>
