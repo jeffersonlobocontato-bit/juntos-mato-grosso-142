@@ -221,18 +221,23 @@ const OpinionFormCard = () => {
         </p>
         <div className="relative">
           <MapPin className="absolute left-4 top-1/2 -translate-y-1/2 h-5 w-5 text-primary z-10 pointer-events-none" />
-          <select
+          <input
+            type="text"
+            list="municipios-list"
+            placeholder="Cidade * (digite para buscar)"
             value={cidade}
+            maxLength={100}
             onChange={(e) => setCidade(e.target.value)}
-            className="input-pill appearance-none bg-card"
+            className="input-pill bg-card"
             aria-label="Cidade"
+            autoComplete="off"
             required
-          >
-            <option value="">Cidade *</option>
+          />
+          <datalist id="municipios-list">
             {municipios.map((m) => (
-              <option key={m.id} value={m.nome}>{m.nome}</option>
+              <option key={m.id} value={m.nome} />
             ))}
-          </select>
+          </datalist>
         </div>
         <div className="relative">
           <MessageCircle className="absolute left-4 top-4 h-5 w-5 text-primary" />
