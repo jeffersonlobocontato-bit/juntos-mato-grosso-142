@@ -25,6 +25,7 @@ const OpinionFormCard = () => {
   const [loading, setLoading] = useState(false);
   const [geoLoading, setGeoLoading] = useState(false);
   const [sent, setSent] = useState(false);
+  const [showMap, setShowMap] = useState(false);
   const [submitted, setSubmitted] = useState<{
     nome: string;
     cidade: string;
@@ -137,13 +138,17 @@ const OpinionFormCard = () => {
       Number.isFinite(Number(submitted.latitude)) &&
       Number.isFinite(Number(submitted.longitude));
 
-    const scrollToMap = () => {
-      mapRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
+    const revealMap = () => {
+      setShowMap(true);
+      setTimeout(() => {
+        mapRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
+      }, 80);
     };
 
     const resetAll = () => {
       setSent(false);
       setSubmitted(null);
+      setShowMap(false);
       setNome("");
       setTelefone("");
       setCidade("");
@@ -167,13 +172,13 @@ const OpinionFormCard = () => {
           </div>
 
           <div className="flex flex-col sm:flex-row gap-3 justify-center pt-2">
-            {hasCoords && (
+            {hasCoords && !showMap && (
               <button
-                onClick={scrollToMap}
+                onClick={revealMap}
                 className="h-12 px-6 rounded-full bg-gradient-cta text-primary-foreground font-display font-bold inline-flex items-center justify-center gap-2 shadow-card-float hover:brightness-110 transition"
               >
                 <MapPinned className="h-5 w-5" />
-                Ver minha opinião no mapa
+                Ver meu pin no mapa
               </button>
             )}
             <button
@@ -185,14 +190,14 @@ const OpinionFormCard = () => {
           </div>
         </div>
 
-        {hasCoords && submitted && (
+        {hasCoords && submitted && showMap && (
           <div ref={mapRef} id="minha-opiniao-no-mapa" className="scroll-mt-24 space-y-3">
             <div className="text-center space-y-1">
               <h4 className="font-display font-bold text-xl text-foreground">
-                Sua opinião está registrada em {submitted.cidade}
+                Aqui está o seu pin em {submitted.cidade}
               </h4>
               <p className="text-sm text-muted-foreground">
-                Clique no marcador para ver os detalhes da sua contribuição.
+                Clique no pin para abrir a caixa com o registro da sua sugestão.
               </p>
             </div>
             <SuggestionConfirmationMap

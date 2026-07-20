@@ -145,12 +145,12 @@ const SuggestionConfirmationMap = ({
         .setLngLat([longitude, latitude])
         .setPopup(popup)
         .addTo(map);
-      marker.togglePopup();
 
       markerEl.style.cursor = "pointer";
+      markerEl.title = "Clique para ver sua sugestão";
       markerEl.addEventListener("click", (e) => {
         e.stopPropagation();
-        if (!popup.isOpen()) marker.togglePopup();
+        marker.togglePopup();
       });
     });
 
