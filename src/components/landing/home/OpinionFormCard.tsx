@@ -216,9 +216,8 @@ const OpinionFormCard = () => {
           />
         </div>
         <p className="text-xs text-muted-foreground leading-relaxed pl-2 -mt-1">
-          Usaremos seu telefone/WhatsApp para enviar a você a{" "}
-          <strong className="text-foreground">prestação de contas</strong> da construção do
-          Plano de Governo — você acompanhará como sua contribuição foi considerada.
+          Enviaremos a você a <strong className="text-foreground">prestação de contas</strong> da
+          construção da proposta do Plano de Governo.
         </p>
         <div className="relative">
           <MapPin className="absolute left-4 top-1/2 -translate-y-1/2 h-5 w-5 text-primary z-10 pointer-events-none" />
