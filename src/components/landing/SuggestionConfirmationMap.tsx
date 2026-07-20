@@ -8,7 +8,10 @@ interface SuggestionConfirmationMapProps {
   municipioNome: string;
   latitude: number;
   longitude: number;
-  eixoNome: string;
+  eixoNome?: string;
+  nome?: string;
+  sugestao?: string;
+  height?: number;
 }
 
 const SuggestionConfirmationMap = ({
@@ -16,6 +19,9 @@ const SuggestionConfirmationMap = ({
   latitude,
   longitude,
   eixoNome,
+  nome,
+  sugestao,
+  height = 200,
 }: SuggestionConfirmationMapProps) => {
   const mapContainer = useRef<HTMLDivElement>(null);
   const mapRef = useRef<mapboxgl.Map | null>(null);
@@ -31,9 +37,9 @@ const SuggestionConfirmationMap = ({
       container: mapContainer.current,
       style: "mapbox://styles/mapbox/dark-v11",
       center: [longitude, latitude],
-      zoom: 9,
+      zoom: 10,
       attributionControl: false,
-      interactive: false,
+      interactive: true,
     });
 
     mapRef.current = map;
@@ -106,28 +112,46 @@ const SuggestionConfirmationMap = ({
         document.head.appendChild(style);
       }
 
-      new mapboxgl.Marker({ element: markerEl, anchor: "center" })
+      const escape = (s: string) =>
+        s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
+      const trecho = sugestao
+        ? escape(sugestao.length > 220 ? sugestao.slice(0, 220) + "…" : sugestao)
+        : "";
+      const nomeHtml = nome
+        ? `<div style="font-size: 12px; color: rgba(255,255,255,0.85); margin-bottom: 6px;">${escape(nome)}</div>`
+        : "";
+      const eixoHtml = eixoNome
+        ? `<div style="display:inline-flex;align-items:center;gap:6px;background:rgba(16,185,129,0.2);padding:4px 10px;border-radius:12px;margin-top:8px;"><span style="width:8px;height:8px;border-radius:50%;background:#10b981;"></span><span style="font-size:11px;color:rgba(255,255,255,0.85);">${escape(eixoNome)}</span></div>`
+        : "";
+      const trechoHtml = trecho
+        ? `<div style="font-size:12px;color:rgba(255,255,255,0.9);line-height:1.45;margin-top:6px;max-width:260px;text-align:left;">"${trecho}"</div>`
+        : "";
+
+      const popup = new mapboxgl.Popup({
+        offset: 25,
+        closeButton: false,
+        closeOnClick: false,
+        className: "suggestion-popup",
+      }).setHTML(`
+        <div style="text-align: center;">
+          <div style="font-weight: 700; color: #fff; font-size: 14px; margin-bottom: 2px;">${escape(municipioNome)}</div>
+          ${nomeHtml}
+          ${trechoHtml}
+          ${eixoHtml}
+        </div>
+      `);
+
+      const marker = new mapboxgl.Marker({ element: markerEl, anchor: "center" })
         .setLngLat([longitude, latitude])
-        .setPopup(
-          new mapboxgl.Popup({
-            offset: 25,
-            closeButton: false,
-            closeOnClick: false,
-            className: "suggestion-popup",
-          }).setHTML(`
-            <div style="text-align: center;">
-              <div style="font-weight: 600; color: #fff; font-size: 14px; margin-bottom: 4px;">
-                ${municipioNome}
-              </div>
-              <div style="display: inline-flex; align-items: center; gap: 6px; background: rgba(16, 185, 129, 0.2); padding: 4px 10px; border-radius: 12px;">
-                <span style="width: 8px; height: 8px; border-radius: 50%; background: #10b981;"></span>
-                <span style="font-size: 11px; color: rgba(255,255,255,0.8);">${eixoNome}</span>
-              </div>
-            </div>
-          `)
-        )
-        .addTo(map)
-        .togglePopup();
+        .setPopup(popup)
+        .addTo(map);
+      marker.togglePopup();
+
+      markerEl.style.cursor = "pointer";
+      markerEl.addEventListener("click", (e) => {
+        e.stopPropagation();
+        if (!popup.isOpen()) marker.togglePopup();
+      });
     });
 
     return () => {
@@ -136,18 +160,18 @@ const SuggestionConfirmationMap = ({
         mapRef.current = null;
       }
     };
-  }, [latitude, longitude, municipioNome, eixoNome]);
+  }, [latitude, longitude, municipioNome, eixoNome, nome, sugestao]);
 
   if (!MAPBOX_TOKEN) {
     return (
-      <div className="h-[200px] bg-muted/50 rounded-xl flex items-center justify-center">
+      <div style={{ height }} className="bg-muted/50 rounded-xl flex items-center justify-center">
         <p className="text-muted-foreground text-sm">Mapa não disponível</p>
       </div>
     );
   }
 
   return (
-    <div className="relative h-[200px] rounded-xl overflow-hidden border border-border">
+    <div style={{ height }} className="relative rounded-xl overflow-hidden border border-border">
       {!isLoaded && (
         <div className="absolute inset-0 bg-muted/50 flex items-center justify-center z-10">
           <div className="animate-spin w-6 h-6 border-2 border-primary border-t-transparent rounded-full" />

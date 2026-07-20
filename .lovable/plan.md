@@ -1,46 +1,66 @@
-# Plano: Filtros cruzados (Eixo + Subtemas) no Gerador de Conteúdo
 
 ## Objetivo
-Permitir que, ao selecionar fontes (documentos, propostas técnicas, propostas políticas, sugestões populares, pesquisas), o usuário também filtre por **Eixo Temático** e **Subtemas específicos**, criando cruzamentos do tipo:
-- "Documento Pelti" + Eixo "Infraestrutura" + subtemas X, Y
-- "Documentos de Segurança Pública" + Eixo "Segurança" + subtemas escolhidos
 
-Esses filtros restringem o que aparece nas listas selecionáveis e também são enviados à IA como contexto de recorte temático.
+Duas melhorias na Home (`/`):
 
-## Mudanças
+1. Card "big number" com contador vivo de sugestões entre o card verde "Participe Agora!" e o CTA de rodapé "Enviar Opinião Agora".
+2. Nova tela de agradecimento após envio da opinião, com CTA que leva a pessoa até o próprio pin geolocalizado no mapa do Paraná, com popup exibindo os dados que ela cadastrou.
 
-### 1. `CommsContentSourceSelector.tsx`
-- Adicionar painel superior **"Recorte temático (opcional)"** com:
-  - Select de **Eixo** (carrega de `eixos_tematicos`).
-  - Multi-select de **Subtemas** (carrega de `subtemas` filtrado pelo eixo via `temas`).
-  - Botão "Limpar recorte".
-- Ao mudar eixo/subtemas:
-  - Refetch das listas filtrando por `eixo_id` / `subtema_id` (quando a tabela tem o campo): `ai_documents` (via `ai_document_temas`), `propostas_tecnicas` (`eixo_id`, `subtema_id`), `propostas_politicas` (`eixo_id`), `sugestoes_populares` (`tema_ids` jsonb / classificação semântica), `pesquisas_eleitorais` (texto livre — manter sem filtro, apenas marcar como "sem recorte").
-  - Mostrar contagem filtrada.
-- Manter seleção individual por item (não substitui a lógica atual).
+---
 
-### 2. Interface `CommsSourceSelection`
-Adicionar:
-```ts
-eixoFiltroId?: string | null;
-subtemaFiltroIds?: string[];
-```
+## 1. Contador vivo de sugestões
 
-### 3. `AdminGeradorConteudo.tsx`
-- Inicializar os novos campos no estado.
-- Repassar ao body da edge function.
+**Novo componente:** `src/components/landing/home/LiveCounterCard.tsx`
 
-### 4. Edge Function `generate-comms-content`
-- Ler `eixoFiltroId` e `subtemaFiltroIds` do body.
-- Quando presentes, aplicar como filtro adicional nas queries de fontes (defesa em profundidade — front já filtra, mas garantir no servidor).
-- Incluir no prompt do sistema uma linha: "Recorte temático: Eixo {nome} / Subtemas: {lista}" para a IA focar a geração.
+- Base fake: `3852`.
+- Ao montar: consulta `select count from sugestoes_populares where origem = 'formulario'` (via `supabase`) e mostra `3852 + count`.
+- Assina Realtime em `sugestoes_populares` (INSERT) para incrementar +1 ao vivo.
+- Animação de "count up" (reutilizar padrão de `LiderancasStats.tsx`).
+- Visual alinhado ao design system da home: card grande, tipografia display, número em destaque com cor `accent` (dourado), fundo escuro/gradiente, ícone (MessageCircle/Users), microcopy: "opiniões já recebidas de paranaenses".
+
+**Posicionamento:** inserir em `HomeHero.tsx` (ou no wrapper da home) entre o bloco do `ParticiparAgoraCard` e o CTA "Enviar Opinião Agora" do rodapé — largura total do container.
+
+---
+
+## 2. Tela de agradecimento + pin no mapa
+
+**Alterações em `OpinionFormCard.tsx`:**
+
+- Ao inserir com sucesso em `sugestoes_populares`, guardar `insertedId` e os dados enviados (nome, telefone, cidade, sugestão).
+- Recuperar `lat/lng` do município escolhido: alterar a query inicial para `select id, nome, latitude, longitude` (colunas já existem em `municipios`).
+- Substituir o bloco `sent` atual por uma tela de agradecimento redesenhada:
+  - Título forte: "Obrigado, {primeiro nome}!"
+  - Copo valorizando a contribuição (impacto no plano, transparência, próximos passos).
+  - Botão primário "Ver minha opinião no mapa" que:
+    - Faz scroll suave até uma nova seção `#minha-opiniao-no-mapa` renderizada logo abaixo.
+    - Essa seção contém `SuggestionConfirmationMap` já existente, ampliado (h-[420px]), centralizado no município, com popup aberto exibindo: nome, cidade, trecho da sugestão (truncado ~200 chars). Popup clicável mantém aberto ao clicar no pin.
+  - Botão secundário "Enviar outra opinião" (reset do form).
+
+**Ajuste no `SuggestionConfirmationMap.tsx`:**
+
+- Aceitar props opcionais `nome`, `sugestao` para compor o popup.
+- Tornar `interactive: true` para permitir zoom/clique no pin.
+- Popup deve reabrir ao clicar no marcador (listener `click`).
+- Altura configurável via prop.
+
+**Fallback:** se o município não tiver `latitude/longitude`, mostrar apenas a mensagem de agradecimento sem o mapa (sem quebrar).
+
+---
 
 ## Detalhes técnicos
-- Subtemas no schema atual: `temas` → `subtemas`, com `temas.eixo_id`. Para popular subtemas do eixo, fazer join `subtemas → temas` onde `temas.eixo_id = X`.
-- `ai_documents`: cruzamento via tabela `ai_document_temas` (tem `tema_id`).
-- `sugestoes_populares`: tem coluna `eixo` (texto) e classificação semântica em `tema_ids` (jsonb). Filtrar por match de eixo nome OU por tema_ids contendo subtemas.
-- Filtros são "AND" entre eixo e subtemas, e se subtemas estiver vazio considera só o eixo.
 
-## Fora de escopo
-- Não alterar o esquema do banco.
-- Não mudar a UI de geração/refinamento (só o seletor de fontes).
+- Realtime: habilitar canal `postgres_changes` filtrado por `event: INSERT` em `public.sugestoes_populares`. Sem alteração de schema/RLS — a tabela já permite insert público.
+- Nenhuma migração necessária (colunas `latitude`/`longitude` já existem em `municipios`).
+- Nenhuma alteração de backend/edge function.
+- Sem novas dependências.
+
+---
+
+## Arquivos afetados
+
+```text
+src/components/landing/home/LiveCounterCard.tsx        (novo)
+src/components/landing/home/HomeHero.tsx               (inserir LiveCounterCard)
+src/components/landing/home/OpinionFormCard.tsx        (nova tela sent + mapa)
+src/components/landing/SuggestionConfirmationMap.tsx   (props extras, interativo)
+```

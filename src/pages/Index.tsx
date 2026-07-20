@@ -1,5 +1,6 @@
 import HomeHero from "@/components/landing/home/HomeHero";
 import HomeFooter from "@/components/landing/home/HomeFooter";
+import LiveCounterCard from "@/components/landing/home/LiveCounterCard";
 import AnalyticsTracker from "@/components/landing/AnalyticsTracker";
 
 const Index = () => {
@@ -8,6 +9,7 @@ const Index = () => {
       <AnalyticsTracker />
       <main>
         <HomeHero />
+        <LiveCounterCard />
       </main>
       <HomeFooter />
     </div>
