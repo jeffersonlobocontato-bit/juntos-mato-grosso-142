@@ -2205,6 +2205,7 @@ export type Database = {
           updated_at: string
         }[]
       }
+      get_sugestoes_formulario_count: { Args: never; Returns: number }
       has_role: {
         Args: {
           _role: Database["public"]["Enums"]["app_role"]
