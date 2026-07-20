@@ -264,17 +264,33 @@ const OpinionFormCard = () => {
             value={cidade}
             maxLength={100}
             onChange={(e) => setCidade(e.target.value)}
-            className="input-pill bg-card"
+            className="input-pill bg-card pr-14"
             aria-label="Cidade"
             autoComplete="off"
             required
           />
+          <button
+            type="button"
+            onClick={handleGeolocate}
+            disabled={geoLoading}
+            title="Clique para registrar sua geolocalização"
+            aria-label="Detectar minha cidade pela geolocalização"
+            className="absolute right-2 top-1/2 -translate-y-1/2 h-10 w-10 rounded-full bg-primary/10 text-primary flex items-center justify-center hover:bg-primary/20 transition disabled:opacity-60 z-10"
+          >
+            {geoLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : <LocateFixed className="h-4 w-4" />}
+          </button>
           <datalist id="municipios-list">
             {municipios.map((m) => (
               <option key={m.id} value={m.nome} />
             ))}
           </datalist>
         </div>
+        <p className="text-xs text-muted-foreground leading-relaxed pl-2 -mt-1">
+          <button type="button" onClick={handleGeolocate} className="text-primary underline hover:opacity-80 font-medium">
+            Clique para registrar sua geolocalização
+          </button>{" "}
+          ou digite o nome da sua cidade.
+        </p>
         <div className="relative">
           <MessageCircle className="absolute left-4 top-4 h-5 w-5 text-primary" />
           <textarea
