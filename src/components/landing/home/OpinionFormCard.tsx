@@ -250,6 +250,19 @@ const OpinionFormCard = () => {
         {loading ? <Loader2 className="h-5 w-5 animate-spin" /> : <Send className="h-5 w-5" />}
         Enviar opinião
       </button>
+
+      <p className="text-xs text-muted-foreground leading-relaxed text-center px-2">
+        <strong className="text-foreground">Seus dados estão protegidos.</strong> Em conformidade
+        com a Lei Geral de Proteção de Dados (LGPD - Lei nº 13.709/2018), as informações enviadas
+        neste formulário são utilizadas exclusivamente para registrar sua contribuição ao Plano de
+        Governo Colaborativo do Paraná. Nome, telefone e cidade não são divulgados publicamente,
+        não são compartilhados com terceiros e não são usados para fins comerciais. Você pode
+        solicitar a consulta, correção ou exclusão dos seus dados a qualquer momento pelo e-mail{" "}
+        <a href="mailto:contato@rota399.org.br" className="text-primary underline">
+          contato@rota399.org.br
+        </a>
+        .
+      </p>
     </form>
   );
 };
