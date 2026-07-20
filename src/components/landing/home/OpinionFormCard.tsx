@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from "react";
-import { User, Phone, MapPin, MessageCircle, Send, Edit3, CheckCircle2, Loader2, MapPinned } from "lucide-react";
+import { User, Phone, MapPin, MessageCircle, Send, Edit3, CheckCircle2, Loader2, MapPinned, LocateFixed } from "lucide-react";
 import { z } from "zod";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
