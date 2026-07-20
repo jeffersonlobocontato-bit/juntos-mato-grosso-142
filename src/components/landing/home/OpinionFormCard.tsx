@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from "react";
-import { User, Phone, MapPin, MessageCircle, Send, Edit3, CheckCircle2, Loader2, MapPinned } from "lucide-react";
+import { User, Phone, MapPin, MessageCircle, Send, Edit3, CheckCircle2, Loader2, MapPinned, LocateFixed } from "lucide-react";
 import { z } from "zod";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
@@ -23,6 +23,7 @@ const OpinionFormCard = () => {
   const [sugestao, setSugestao] = useState("");
   const [municipios, setMunicipios] = useState<Municipio[]>([]);
   const [loading, setLoading] = useState(false);
+  const [geoLoading, setGeoLoading] = useState(false);
   const [sent, setSent] = useState(false);
   const [submitted, setSubmitted] = useState<{
     nome: string;
@@ -54,28 +55,27 @@ const OpinionFormCard = () => {
       return;
     }
     setLoading(true);
-    const { data, error } = await supabase
-      .from("sugestoes_populares")
-      .insert({
-        nome: nome || null,
-        whatsapp: telefone || null,
-        municipio: cidade,
-        eixo: "Geral",
-        descricao: sugestao,
-        publico: true,
-      })
-      .select("id")
-      .single();
+    const sugestaoId =
+      typeof crypto !== "undefined" && "randomUUID" in crypto
+        ? crypto.randomUUID()
+        : `${Date.now()}-${Math.random().toString(16).slice(2)}`;
+    const { error } = await supabase.from("sugestoes_populares").insert({
+      id: sugestaoId,
+      nome: nome || null,
+      whatsapp: telefone || null,
+      municipio: cidade,
+      eixo: "Geral",
+      descricao: sugestao,
+      publico: true,
+    });
     setLoading(false);
     if (error) {
       toast({ title: "Erro ao enviar", description: error.message, variant: "destructive" });
       return;
     }
-    if (data?.id) {
-      supabase.functions.invoke("classify-suggestion-eixo", {
-        body: { sugestao_id: data.id, descricao: sugestao },
-      }).catch(() => {});
-    }
+    supabase.functions.invoke("classify-suggestion-eixo", {
+      body: { sugestao_id: sugestaoId, descricao: sugestao },
+    }).catch(() => {});
     const municipio = municipios.find((m) => m.nome === cidade);
     setSubmitted({
       nome,
@@ -86,6 +86,42 @@ const OpinionFormCard = () => {
     });
     setSent(true);
     toast({ title: "Opinião enviada!", description: "Obrigado por participar do Paraná." });
+  };
+
+  const handleGeolocate = () => {
+    if (!("geolocation" in navigator)) {
+      toast({ title: "Geolocalização indisponível", description: "Digite o nome da sua cidade.", variant: "destructive" });
+      return;
+    }
+    setGeoLoading(true);
+    navigator.geolocation.getCurrentPosition(
+      (pos) => {
+        try {
+          const { latitude, longitude } = pos.coords;
+          let melhor: { nome: string; dist: number } | null = null;
+          for (const m of municipios) {
+            if (m.latitude == null || m.longitude == null) continue;
+            const dLat = Number(m.latitude) - latitude;
+            const dLon = Number(m.longitude) - longitude;
+            const dist = dLat * dLat + dLon * dLon;
+            if (!melhor || dist < melhor.dist) melhor = { nome: m.nome, dist };
+          }
+          if (melhor) {
+            setCidade(melhor.nome);
+            toast({ title: "Cidade detectada", description: melhor.nome });
+          } else {
+            toast({ title: "Não foi possível detectar", description: "Digite o nome da sua cidade.", variant: "destructive" });
+          }
+        } finally {
+          setGeoLoading(false);
+        }
+      },
+      () => {
+        setGeoLoading(false);
+        toast({ title: "Permissão negada", description: "Digite o nome da sua cidade.", variant: "destructive" });
+      },
+      { enableHighAccuracy: false, timeout: 10000, maximumAge: 60000 },
+    );
   };
 
   const handleTranscript = (text: string) => {
@@ -228,17 +264,33 @@ const OpinionFormCard = () => {
             value={cidade}
             maxLength={100}
             onChange={(e) => setCidade(e.target.value)}
-            className="input-pill bg-card"
+            className="input-pill bg-card pr-14"
             aria-label="Cidade"
             autoComplete="off"
             required
           />
+          <button
+            type="button"
+            onClick={handleGeolocate}
+            disabled={geoLoading}
+            title="Clique para registrar sua geolocalização"
+            aria-label="Detectar minha cidade pela geolocalização"
+            className="absolute right-2 top-1/2 -translate-y-1/2 h-10 w-10 rounded-full bg-primary/10 text-primary flex items-center justify-center hover:bg-primary/20 transition disabled:opacity-60 z-10"
+          >
+            {geoLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : <LocateFixed className="h-4 w-4" />}
+          </button>
           <datalist id="municipios-list">
             {municipios.map((m) => (
               <option key={m.id} value={m.nome} />
             ))}
           </datalist>
         </div>
+        <p className="text-xs text-muted-foreground leading-relaxed pl-2 -mt-1">
+          <button type="button" onClick={handleGeolocate} className="text-primary underline hover:opacity-80 font-medium">
+            Clique para registrar sua geolocalização
+          </button>{" "}
+          ou digite o nome da sua cidade.
+        </p>
         <div className="relative">
           <MessageCircle className="absolute left-4 top-4 h-5 w-5 text-primary" />
           <textarea

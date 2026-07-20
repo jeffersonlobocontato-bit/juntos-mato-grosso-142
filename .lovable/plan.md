@@ -1,31 +1,33 @@
-## Objetivo
-Mover o contador ao vivo para **dentro da primeira dobra**, logo abaixo da foto do Sergio Moro (coluna direita do hero), para que o número apareça já no primeiro impacto visual e estimule mais participação.
+## Diagnóstico
 
-## Layout atual
-```text
-[ Logo + Headline        ] [ Foto Sergio Moro ]
-[ Formulário de opinião  ] [ Participe Agora  ]
-──────────── fim da primeira dobra ────────────
-[         Contador ao vivo (isolado)          ]
-[                   Rodapé                    ]
-```
+O erro `new row violates row-level security policy for table "sugestoes_populares"` não é falha na política de INSERT. É a política de SELECT bloqueando o retorno da linha recém-criada.
 
-## Layout proposto
-```text
-[ Logo + Headline        ] [ Foto Sergio Moro ]
-                           [ Contador ao vivo ]  ← primeira dobra
-[ Formulário de opinião  ] [ Participe Agora  ]
-[                   Rodapé                    ]
-```
+Reproduzido via API:
+- INSERT puro → HTTP 201 ✅
+- INSERT com `Prefer: return=representation` + `select=id` (o que o cliente faz hoje) → erro 42501 ❌
 
-No mobile (coluna única), a ordem natural fica: Logo → Headline → Foto → **Contador** → Formulário → Participe Agora → Rodapé — o contador continua na primeira dobra, logo após a foto.
+O código em `OpinionFormCard.tsx` faz `.insert(...).select("id").single()`, forçando o PostgREST a devolver a linha inserida. Para isso ele reavalia a política de SELECT (`is_admin OR admin_master OR lider_tematico OR curador_municipal`), que é falsa para visitantes anônimos → devolve o erro RLS genérico mesmo tendo persistido a linha. O `id` retornado é usado para chamar a edge `classify-suggestion-eixo`.
 
-## Ajustes técnicos
-- `src/components/landing/home/HomeHero.tsx`: renderizar `<LiveCounterCard embedded />` na coluna direita, logo após `<HeroPortrait />`, com `mt-6`.
-- `src/pages/Index.tsx`: remover a renderização do `LiveCounterCard` entre `HomeHero` e `HomeFooter`.
-- `src/components/landing/home/LiveCounterCard.tsx`: aceitar prop opcional `embedded`. Quando `true`, remover o wrapper `<section container mx-auto ...>` (o hero já provê o container) e reduzir padding interno para caber bem ao lado da foto (por ex. `p-6 md:p-7`, número `text-4xl md:text-5xl`). Sem `embedded`, mantém o visual atual como fallback.
-- Preservar animação, contagem real via RPC `get_sugestoes_formulario_count` e o base fake de 3.852.
+## Correções
 
-## Validação
-- Verificar visualmente em desktop (foto + contador empilhados à direita, headline + logo à esquerda, sem overflow) e mobile (contador logo após a foto, antes do formulário).
-- Confirmar que o contador continua atualizando (RPC + polling de 30s).
+### 1. Envio da sugestão (`src/components/landing/home/OpinionFormCard.tsx`)
+
+- Gerar `sugestaoId` no cliente com `crypto.randomUUID()`.
+- Enviar `id: sugestaoId` no payload do `.insert(...)` e remover o `.select("id").single()`.
+- Chamar `classify-suggestion-eixo` com esse mesmo `sugestaoId`.
+
+Sem novas migrações, sem alterações em políticas ou edge functions.
+
+### 2. Campo de cidade com geolocalização (`src/components/landing/home/OpinionFormCard.tsx`)
+
+- Manter o input com `datalist` (autocomplete por digitação).
+- Adicionar um botão-ícone dentro do campo (canto direito) que dispara `navigator.geolocation.getCurrentPosition`.
+- Ao obter as coordenadas, calcular o município mais próximo dentre os já carregados de `municipios` (distância euclidiana simples sobre lat/lon já é suficiente para a granularidade estadual) e preencher o campo `cidade` automaticamente.
+- Texto de apoio logo abaixo do campo: **"Clique para registrar sua geolocalização ou digite o nome da sua cidade."**, com o trecho "Clique para registrar sua geolocalização" também clicável (mesma ação do botão).
+- Estados de loading (spinner) e toasts para permissão negada / geolocalização indisponível / cidade detectada.
+
+## Verificação
+
+- Enviar uma opinião como visitante anônimo → toast de sucesso, tela de agradecimento e marcador no mapa.
+- Conferir no banco que a nova linha existe com o UUID gerado.
+- Clicar no ícone/link de geolocalização → cidade correta é preenchida (ou toast explicativo em caso de negação).
