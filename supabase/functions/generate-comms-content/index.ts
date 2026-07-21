@@ -360,7 +360,7 @@ REGRAS ESPECÍFICAS DO "RELEASE" — MOLDE PUBLIEDITORIAL GAZETA DO POVO (obriga
 4. Citação de abertura: 1 frase entre aspas, atribuída a "Sérgio Moro" ou "o senador", coerente com o MODELO DE VOZ.
 5. 2 a 3 parágrafos de desenvolvimento, sempre em 3ª pessoa ("o senador destacou...", "Moro também defendeu..."), cada um cobrindo um subponto ancorado na base de referência.
 6. Citação de fechamento: mais conclusiva, também entre aspas.
-7. Ao final do texto, em uma linha própria, repita a citação de fechamento no formato de destaque: uma linha com ">" seguida da citação, e na linha seguinte "> Senador Sérgio Moro".
+7. Não repita a citação de fechamento em bloco de destaque nem em nenhum outro formato — ela deve aparecer UMA única vez, dentro do corpo do release. Nunca use ">" no release.
 8. Extensão total: entre 350 e 450 palavras. Texto corrido, sem subtítulos internos, sem bullets.
 
 REGRAS DE FORMATAÇÃO DE SAÍDA (valem para TODOS os formatos):
