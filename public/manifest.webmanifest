@@ -2,7 +2,7 @@
   "name": "Juntos Paraná 399",
   "short_name": "JP399",
   "description": "Plataforma colaborativa do Plano de Governo Juntos Paraná 399.",
-  "start_url": "/",
+  "start_url": "/admin",
   "scope": "/",
   "display": "standalone",
   "orientation": "portrait",
