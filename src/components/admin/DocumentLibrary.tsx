@@ -355,7 +355,7 @@ export function DocumentLibrary({ eixos, municipios, regioes, className }: Docum
       }
 
       const bytes = await merged.save();
-      const blob = new Blob([bytes], { type: 'application/pdf' });
+      const blob = new Blob([bytes as BlobPart], { type: 'application/pdf' });
       const stamp = new Date().toISOString().slice(0, 10);
       saveAs(blob, `biblioteca-documentos-${stamp}.pdf`);
       toast({
