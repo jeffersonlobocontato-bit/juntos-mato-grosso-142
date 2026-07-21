@@ -297,13 +297,16 @@ const OpinionFormCard = () => {
           ou digite o nome da sua cidade.
         </p>
         <div className="relative">
-          <MessageCircle className="absolute left-4 top-4 h-5 w-5 text-primary" />
+          <div className="absolute -top-2 left-4 z-10 px-2 bg-card text-[11px] font-bold uppercase tracking-wide text-primary">
+            Sua sugestão
+          </div>
+          <MessageCircle className="absolute left-4 top-5 h-5 w-5 text-primary" />
           <textarea
             placeholder="Conte suas ideias, sugestões e opiniões para o futuro do Paraná..."
             value={sugestao}
             maxLength={2000}
             onChange={(e) => setSugestao(e.target.value)}
-            className="textarea-pill"
+            className="textarea-pill-highlight"
             aria-label="Sua sugestão"
             required
           />
