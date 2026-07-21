@@ -9,9 +9,15 @@ import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { ArrowLeft, Camera, Upload, Loader2, CheckCircle2, X, FileText } from 'lucide-react';
+import { ArrowLeft, Camera, Upload, Loader2, CheckCircle2, X, FileText, Plus, ArrowUp, ArrowDown } from 'lucide-react';
 
 type Eixo = { id: string; nome: string };
+
+type PageItem = {
+  id: string;
+  file: File;
+  preview: string | null;
+};
 
 const AdminCadastroRapido = () => {
   const { user, isLoading } = useAuth();
@@ -21,8 +27,7 @@ const AdminCadastroRapido = () => {
   const cameraInputRef = useRef<HTMLInputElement>(null);
 
   const [eixos, setEixos] = useState<Eixo[]>([]);
-  const [file, setFile] = useState<File | null>(null);
-  const [preview, setPreview] = useState<string | null>(null);
+  const [pages, setPages] = useState<PageItem[]>([]);
   const [title, setTitle] = useState('');
   const [description, setDescription] = useState('');
   const [eixoId, setEixoId] = useState<string>('');
@@ -43,21 +48,42 @@ const AdminCadastroRapido = () => {
       });
   }, []);
 
-  const handleFile = (f: File | null) => {
-    setFile(f);
-    setPreview(null);
-    if (f) {
-      if (!title) setTitle(f.name.replace(/\.[^/.]+$/, ''));
-      if (f.type.startsWith('image/')) {
-        const url = URL.createObjectURL(f);
-        setPreview(url);
-      }
-    }
+  const addFiles = (list: FileList | null) => {
+    if (!list || list.length === 0) return;
+    const arr = Array.from(list).map((f) => ({
+      id: `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
+      file: f,
+      preview: f.type.startsWith('image/') ? URL.createObjectURL(f) : null,
+    }));
+    setPages((prev) => {
+      const next = [...prev, ...arr];
+      if (!title && arr[0]) setTitle(arr[0].file.name.replace(/\.[^/.]+$/, ''));
+      return next;
+    });
+  };
+
+  const removePage = (id: string) => {
+    setPages((prev) => {
+      const p = prev.find((x) => x.id === id);
+      if (p?.preview) URL.revokeObjectURL(p.preview);
+      return prev.filter((x) => x.id !== id);
+    });
+  };
+
+  const movePage = (id: string, dir: -1 | 1) => {
+    setPages((prev) => {
+      const i = prev.findIndex((x) => x.id === id);
+      const j = i + dir;
+      if (i < 0 || j < 0 || j >= prev.length) return prev;
+      const next = [...prev];
+      [next[i], next[j]] = [next[j], next[i]];
+      return next;
+    });
   };
 
   const reset = () => {
-    setFile(null);
-    setPreview(null);
+    pages.forEach((p) => p.preview && URL.revokeObjectURL(p.preview));
+    setPages([]);
     setTitle('');
     setDescription('');
     setEixoId('');
@@ -65,8 +91,8 @@ const AdminCadastroRapido = () => {
   };
 
   const handleSubmit = async () => {
-    if (!file) {
-      toast({ title: 'Selecione ou fotografe um documento', variant: 'destructive' });
+    if (pages.length === 0) {
+      toast({ title: 'Adicione ao menos uma foto ou arquivo', variant: 'destructive' });
       return;
     }
     if (!title.trim()) {
@@ -75,30 +101,44 @@ const AdminCadastroRapido = () => {
     }
     setSaving(true);
     try {
-      const ext = file.name.split('.').pop() || 'bin';
-      const path = `cadastro-rapido/${Date.now()}-${Math.random().toString(36).slice(2, 8)}.${ext}`;
-      const { error: upErr } = await supabase.storage.from('ai-documents').upload(path, file, {
-        contentType: file.type || undefined,
-      });
-      if (upErr) throw upErr;
-      const { data: pub } = supabase.storage.from('ai-documents').getPublicUrl(path);
+      const stamp = Date.now();
+      const rand = Math.random().toString(36).slice(2, 8);
+      const folder = `cadastro-rapido/${stamp}-${rand}`;
+      const uploaded: { url: string; name: string; type: string }[] = [];
+
+      for (let i = 0; i < pages.length; i++) {
+        const p = pages[i];
+        const ext = p.file.name.split('.').pop() || 'bin';
+        const path = `${folder}/pagina-${String(i + 1).padStart(3, '0')}.${ext}`;
+        const { error: upErr } = await supabase.storage
+          .from('ai-documents')
+          .upload(path, p.file, { contentType: p.file.type || undefined });
+        if (upErr) throw upErr;
+        const { data: pub } = supabase.storage.from('ai-documents').getPublicUrl(path);
+        uploaded.push({ url: pub.publicUrl, name: p.file.name, type: p.file.type });
+      }
+
+      const primary = uploaded[0];
+      const pagesList = uploaded.map((u, idx) => `Página ${idx + 1}: ${u.url}`).join('\n');
+      const content = `[Cadastro Rápido] Documento com ${uploaded.length} página(s).\n${description || ''}\n\n${pagesList}`.trim();
 
       const { error: insErr } = await supabase.from('ai_documents').insert({
         title: title.trim(),
         description: description.trim() || null,
-        content: `[Cadastro Rápido]\n${description || 'Documento capturado via celular.'}\nArquivo: ${pub.publicUrl}`,
-        file_url: pub.publicUrl,
-        file_name: file.name,
-        file_type: file.type,
+        content,
+        file_url: primary.url,
+        file_name: primary.name,
+        file_type: primary.type,
         doc_category: 'documento_tecnico',
         eixo_id: eixoId || null,
         uploaded_by: user?.id || null,
         is_active: true,
         scope: 'global',
-      });
+        metadata: { pages: uploaded, page_count: uploaded.length, source: 'cadastro_rapido' } as any,
+      } as any);
       if (insErr) throw insErr;
 
-      toast({ title: 'Documento enviado!', description: 'Disponível na Biblioteca.' });
+      toast({ title: 'Documento enviado!', description: `${uploaded.length} página(s) na Biblioteca.` });
       setDone(true);
     } catch (e: any) {
       console.error(e);
@@ -155,7 +195,7 @@ const AdminCadastroRapido = () => {
                   onClick={() => cameraInputRef.current?.click()}
                 >
                   <Camera className="w-6 h-6" />
-                  Tirar foto
+                  {pages.length > 0 ? 'Tirar mais uma foto' : 'Tirar foto'}
                 </Button>
                 <Button
                   type="button"
@@ -164,7 +204,7 @@ const AdminCadastroRapido = () => {
                   onClick={() => fileInputRef.current?.click()}
                 >
                   <Upload className="w-6 h-6" />
-                  Enviar arquivo
+                  {pages.length > 0 ? 'Adicionar arquivo' : 'Enviar arquivo'}
                 </Button>
                 <input
                   ref={cameraInputRef}
@@ -172,37 +212,71 @@ const AdminCadastroRapido = () => {
                   accept="image/*"
                   capture="environment"
                   className="hidden"
-                  onChange={(e) => handleFile(e.target.files?.[0] ?? null)}
+                  multiple
+                  onChange={(e) => { addFiles(e.target.files); e.target.value = ''; }}
                 />
                 <input
                   ref={fileInputRef}
                   type="file"
                   accept="image/*,application/pdf,.doc,.docx,.txt"
                   className="hidden"
-                  onChange={(e) => handleFile(e.target.files?.[0] ?? null)}
+                  multiple
+                  onChange={(e) => { addFiles(e.target.files); e.target.value = ''; }}
                 />
               </div>
 
-              {file && (
-                <div className="rounded-lg border p-3 flex items-start gap-3 relative">
-                  <button
-                    type="button"
-                    onClick={() => handleFile(null)}
-                    className="absolute top-2 right-2 text-muted-foreground hover:text-destructive"
-                    aria-label="Remover"
-                  >
-                    <X className="w-4 h-4" />
-                  </button>
-                  {preview ? (
-                    <img src={preview} alt="Prévia" className="w-20 h-20 object-cover rounded" />
-                  ) : (
-                    <div className="w-20 h-20 rounded bg-muted flex items-center justify-center">
-                      <FileText className="w-8 h-8 text-muted-foreground" />
-                    </div>
-                  )}
-                  <div className="text-sm">
-                    <p className="font-medium break-all">{file.name}</p>
-                    <p className="text-xs text-muted-foreground">{(file.size / 1024 / 1024).toFixed(2)} MB</p>
+              {pages.length > 0 && (
+                <div className="space-y-2">
+                  <div className="flex items-center justify-between">
+                    <p className="text-sm font-medium">{pages.length} página(s) no documento</p>
+                    <Button type="button" variant="ghost" size="sm" onClick={() => cameraInputRef.current?.click()}>
+                      <Plus className="w-4 h-4 mr-1" /> Adicionar página
+                    </Button>
+                  </div>
+                  <div className="grid grid-cols-3 gap-2">
+                    {pages.map((p, idx) => (
+                      <div key={p.id} className="relative rounded-lg border overflow-hidden bg-muted/40">
+                        {p.preview ? (
+                          <img src={p.preview} alt={`Página ${idx + 1}`} className="w-full aspect-[3/4] object-cover" />
+                        ) : (
+                          <div className="w-full aspect-[3/4] flex flex-col items-center justify-center p-2 text-center">
+                            <FileText className="w-8 h-8 text-muted-foreground mb-1" />
+                            <span className="text-[10px] break-all">{p.file.name}</span>
+                          </div>
+                        )}
+                        <div className="absolute top-1 left-1 bg-primary text-primary-foreground text-[10px] font-bold rounded px-1.5 py-0.5">
+                          {idx + 1}
+                        </div>
+                        <button
+                          type="button"
+                          onClick={() => removePage(p.id)}
+                          className="absolute top-1 right-1 bg-background/90 rounded-full p-1 text-destructive"
+                          aria-label="Remover página"
+                        >
+                          <X className="w-3 h-3" />
+                        </button>
+                        <div className="absolute bottom-1 right-1 flex gap-1">
+                          <button
+                            type="button"
+                            onClick={() => movePage(p.id, -1)}
+                            disabled={idx === 0}
+                            className="bg-background/90 rounded p-1 disabled:opacity-40"
+                            aria-label="Mover para cima"
+                          >
+                            <ArrowUp className="w-3 h-3" />
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => movePage(p.id, 1)}
+                            disabled={idx === pages.length - 1}
+                            className="bg-background/90 rounded p-1 disabled:opacity-40"
+                            aria-label="Mover para baixo"
+                          >
+                            <ArrowDown className="w-3 h-3" />
+                          </button>
+                        </div>
+                      </div>
+                    ))}
                   </div>
                 </div>
               )}
@@ -230,8 +304,8 @@ const AdminCadastroRapido = () => {
                 <Textarea id="desc" value={description} onChange={(e) => setDescription(e.target.value)} placeholder="Contexto ou detalhes (opcional)" className="min-h-[90px]" />
               </div>
 
-              <Button onClick={handleSubmit} disabled={saving || !file} className="w-full h-12 text-base font-bold">
-                {saving ? (<><Loader2 className="w-4 h-4 mr-2 animate-spin" /> Enviando...</>) : 'Enviar documento'}
+              <Button onClick={handleSubmit} disabled={saving || pages.length === 0} className="w-full h-12 text-base font-bold">
+                {saving ? (<><Loader2 className="w-4 h-4 mr-2 animate-spin" /> Enviando...</>) : `Enviar documento${pages.length > 1 ? ` (${pages.length} páginas)` : ''}`}
               </Button>
             </CardContent>
           </Card>
