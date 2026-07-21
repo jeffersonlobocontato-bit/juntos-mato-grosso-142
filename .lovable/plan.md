@@ -1,33 +1,19 @@
-## Diagnóstico
+## Objetivo
 
-O erro `new row violates row-level security policy for table "sugestoes_populares"` não é falha na política de INSERT. É a política de SELECT bloqueando o retorno da linha recém-criada.
+Aplicar o patch enviado para adicionar proteção anti-spam leve no formulário público de sugestões, sem alterar estrutura de tabela, RLS ou o fluxo de envio atual.
 
-Reproduzido via API:
-- INSERT puro → HTTP 201 ✅
-- INSERT com `Prefer: return=representation` + `select=id` (o que o cliente faz hoje) → erro 42501 ❌
+## Mudanças
 
-O código em `OpinionFormCard.tsx` faz `.insert(...).select("id").single()`, forçando o PostgREST a devolver a linha inserida. Para isso ele reavalia a política de SELECT (`is_admin OR admin_master OR lider_tematico OR curador_municipal`), que é falsa para visitantes anônimos → devolve o erro RLS genérico mesmo tendo persistido a linha. O `id` retornado é usado para chamar a edge `classify-suggestion-eixo`.
+### 1. Banco de dados (nova migração)
+Criar função `public.check_sugestao_rate_limit()` + trigger `BEFORE INSERT` em `sugestoes_populares` com duas regras:
+- **Mesmo e-mail:** bloqueia se houver 3+ sugestões nos últimos 2 minutos.
+- **Texto idêntico:** bloqueia se a mesma `descricao` aparecer 2+ vezes no último 1 minuto (independente de e-mail).
 
-## Correções
+Cada bloqueio lança uma mensagem em português explicando o motivo. Puramente aditivo — nenhuma coluna, política RLS ou grant é alterada.
 
-### 1. Envio da sugestão (`src/components/landing/home/OpinionFormCard.tsx`)
+### 2. Frontend (`src/components/landing/SuggestionForm.tsx`)
+No `catch` do envio, quando a mensagem de erro vinda do trigger for reconhecida ("sugestões enviadas" / "enviada repetidamente"), exibi-la diretamente no toast. Caso contrário, mantém a mensagem genérica atual.
 
-- Gerar `sugestaoId` no cliente com `crypto.randomUUID()`.
-- Enviar `id: sugestaoId` no payload do `.insert(...)` e remover o `.select("id").single()`.
-- Chamar `classify-suggestion-eixo` com esse mesmo `sugestaoId`.
-
-Sem novas migrações, sem alterações em políticas ou edge functions.
-
-### 2. Campo de cidade com geolocalização (`src/components/landing/home/OpinionFormCard.tsx`)
-
-- Manter o input com `datalist` (autocomplete por digitação).
-- Adicionar um botão-ícone dentro do campo (canto direito) que dispara `navigator.geolocation.getCurrentPosition`.
-- Ao obter as coordenadas, calcular o município mais próximo dentre os já carregados de `municipios` (distância euclidiana simples sobre lat/lon já é suficiente para a granularidade estadual) e preencher o campo `cidade` automaticamente.
-- Texto de apoio logo abaixo do campo: **"Clique para registrar sua geolocalização ou digite o nome da sua cidade."**, com o trecho "Clique para registrar sua geolocalização" também clicável (mesma ação do botão).
-- Estados de loading (spinner) e toasts para permissão negada / geolocalização indisponível / cidade detectada.
-
-## Verificação
-
-- Enviar uma opinião como visitante anônimo → toast de sucesso, tela de agradecimento e marcador no mapa.
-- Conferir no banco que a nova linha existe com o UUID gerado.
-- Clicar no ícone/link de geolocalização → cidade correta é preenchida (ou toast explicativo em caso de negação).
+## Observações
+- Não altera o formulário da nova home (`OpinionFormCard.tsx`), mas ambos gravam na mesma tabela, então a proteção vale para os dois.
+- Nenhuma mudança de UX além do texto do toast em caso de bloqueio.
