@@ -13,10 +13,14 @@ import DocumentUploadModal from './DocumentUploadModal';
 import { DocumentAgentLinker } from './DocumentAgentLinker';
 import { TemasMultiSelect } from './TemasMultiSelect';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
+import { Checkbox } from '@/components/ui/checkbox';
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger, DropdownMenuSeparator } from '@/components/ui/dropdown-menu';
+import JSZip from 'jszip';
+import { saveAs } from 'file-saver';
 import { 
   BookOpen, Plus, Search, FileText, Eye, EyeOff, Trash2,
   ExternalLink, Filter, Loader2, CheckCircle, Clock, AlertCircle, Circle,
-  Globe, Bot, Tag, AlertTriangle, Pencil
+  Globe, Bot, Tag, AlertTriangle, Pencil, Download, ChevronDown
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
@@ -78,6 +82,8 @@ export function DocumentLibrary({ eixos, municipios, regioes, className }: Docum
   const [statusFilter, setStatusFilter] = useState('');
   const [scopeFilter, setScopeFilter] = useState('');
   const [showInactive, setShowInactive] = useState(false);
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
+  const [isDownloading, setIsDownloading] = useState(false);
 
   const fetchDocuments = async () => {
     setIsLoading(true);
@@ -191,6 +197,77 @@ export function DocumentLibrary({ eixos, municipios, regioes, className }: Docum
     return doc.title.toLowerCase().includes(search) || doc.description?.toLowerCase().includes(search) || doc.content.toLowerCase().includes(search);
   });
 
+  const toggleSelect = (id: string) => {
+    setSelectedIds(prev => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+  };
+
+  const allSelected = filteredDocuments.length > 0 && filteredDocuments.every(d => selectedIds.has(d.id));
+  const someSelected = selectedIds.size > 0 && !allSelected;
+
+  const toggleSelectAll = () => {
+    if (allSelected) setSelectedIds(new Set());
+    else setSelectedIds(new Set(filteredDocuments.map(d => d.id)));
+  };
+
+  const sanitizeName = (name: string) => name.replace(/[\\/:*?"<>|]+/g, '_').slice(0, 120);
+
+  const downloadDocuments = async (docs: AIDocument[]) => {
+    if (docs.length === 0) {
+      toast({ title: 'Nenhum documento para baixar', variant: 'destructive' });
+      return;
+    }
+    setIsDownloading(true);
+    try {
+      const zip = new JSZip();
+      let successCount = 0;
+      let fallbackCount = 0;
+      for (const doc of docs) {
+        const baseName = sanitizeName(doc.title || doc.file_name || doc.id);
+        if (doc.file_url) {
+          try {
+            const res = await fetch(doc.file_url);
+            if (!res.ok) throw new Error(`HTTP ${res.status}`);
+            const blob = await res.blob();
+            const ext = doc.file_name?.includes('.')
+              ? doc.file_name.split('.').pop()
+              : (doc.file_type?.split('/').pop() || 'bin');
+            zip.file(`${baseName}.${ext}`, blob);
+            successCount++;
+            continue;
+          } catch (e) {
+            console.warn('Falha ao baixar arquivo, salvando conteúdo:', doc.title, e);
+          }
+        }
+        const text = [
+          `# ${doc.title}`,
+          doc.description ? `\n${doc.description}\n` : '',
+          '\n---\n',
+          doc.content || '',
+          doc.source_url ? `\n\nFonte: ${doc.source_url}` : '',
+        ].join('\n');
+        zip.file(`${baseName}.md`, text);
+        fallbackCount++;
+      }
+      const blob = await zip.generateAsync({ type: 'blob' });
+      const stamp = new Date().toISOString().slice(0, 10);
+      saveAs(blob, `biblioteca-documentos-${stamp}.zip`);
+      toast({
+        title: 'Download preparado',
+        description: `${successCount} arquivo(s) e ${fallbackCount} texto(s) adicionados ao ZIP.`,
+      });
+    } catch (error) {
+      console.error('Erro no download:', error);
+      toast({ title: 'Erro ao gerar download', variant: 'destructive' });
+    } finally {
+      setIsDownloading(false);
+    }
+  };
+
   return (
     <>
       <Card className={className}>
@@ -203,10 +280,42 @@ export function DocumentLibrary({ eixos, municipios, regioes, className }: Docum
                 {filteredDocuments.length} documento{filteredDocuments.length !== 1 ? 's' : ''}
               </Badge>
             </CardTitle>
-            <Button size="sm" onClick={() => setShowUploadModal(true)}>
-              <Plus className="w-4 h-4 mr-1" />
-              Adicionar
-            </Button>
+            <div className="flex items-center gap-2">
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button size="sm" variant="outline" disabled={isDownloading || filteredDocuments.length === 0}>
+                    {isDownloading ? (
+                      <Loader2 className="w-4 h-4 mr-1 animate-spin" />
+                    ) : (
+                      <Download className="w-4 h-4 mr-1" />
+                    )}
+                    Baixar documentos
+                    <ChevronDown className="w-3 h-3 ml-1" />
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end" className="w-56">
+                  <DropdownMenuItem
+                    disabled={selectedIds.size === 0 || isDownloading}
+                    onClick={() =>
+                      downloadDocuments(filteredDocuments.filter(d => selectedIds.has(d.id)))
+                    }
+                  >
+                    Baixar selecionados ({selectedIds.size})
+                  </DropdownMenuItem>
+                  <DropdownMenuSeparator />
+                  <DropdownMenuItem
+                    disabled={isDownloading}
+                    onClick={() => downloadDocuments(filteredDocuments)}
+                  >
+                    Baixar todos ({filteredDocuments.length})
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
+              <Button size="sm" onClick={() => setShowUploadModal(true)}>
+                <Plus className="w-4 h-4 mr-1" />
+                Adicionar
+              </Button>
+            </div>
           </div>
         </CardHeader>
         <CardContent className="space-y-4">
@@ -261,6 +370,22 @@ export function DocumentLibrary({ eixos, municipios, regioes, className }: Docum
             </div>
           </div>
 
+          {filteredDocuments.length > 0 && (
+            <div className="flex items-center gap-2 px-1">
+              <Checkbox
+                id="select-all-docs"
+                checked={allSelected ? true : someSelected ? 'indeterminate' : false}
+                onCheckedChange={toggleSelectAll}
+              />
+              <Label htmlFor="select-all-docs" className="text-xs text-muted-foreground cursor-pointer">
+                {allSelected
+                  ? 'Desmarcar todos'
+                  : `Selecionar todos (${filteredDocuments.length})`}
+                {selectedIds.size > 0 && ` — ${selectedIds.size} selecionado(s)`}
+              </Label>
+            </div>
+          )}
+
           {/* Documents List */}
           <ScrollArea className="h-[calc(100vh-320px)] min-h-[480px]">
             {isLoading ? (
@@ -290,6 +415,12 @@ export function DocumentLibrary({ eixos, municipios, regioes, className }: Docum
                       )}
                     >
                       <div className="flex items-start justify-between gap-4">
+                        <Checkbox
+                          className="mt-1"
+                          checked={selectedIds.has(doc.id)}
+                          onCheckedChange={() => toggleSelect(doc.id)}
+                          aria-label={`Selecionar ${doc.title}`}
+                        />
                         <div className="flex-1 min-w-0">
                           <div className="flex items-center gap-2 flex-wrap">
                             <FileText className="w-4 h-4 text-primary flex-shrink-0" />
