@@ -15,8 +15,13 @@ type Eixo = { id: string; nome: string };
 
 type PageItem = {
   id: string;
-  file: File;
+  name: string;
+  type: string;
   preview: string | null;
+  url?: string;
+  path?: string;
+  uploading?: boolean;
+  error?: boolean;
 };
 
 const AdminCadastroRapido = () => {
@@ -28,6 +33,7 @@ const AdminCadastroRapido = () => {
 
   const [eixos, setEixos] = useState<Eixo[]>([]);
   const [pages, setPages] = useState<PageItem[]>([]);
+  const [folder] = useState<string>(() => `cadastro-rapido/${Date.now()}-${Math.random().toString(36).slice(2, 8)}`);
   const [title, setTitle] = useState('');
   const [description, setDescription] = useState('');
   const [eixoId, setEixoId] = useState<string>('');
@@ -48,17 +54,48 @@ const AdminCadastroRapido = () => {
       });
   }, []);
 
+  const uploadOne = async (item: PageItem, file: File, index: number) => {
+    try {
+      const ext = file.name.split('.').pop() || 'bin';
+      const path = `${folder}/pagina-${String(index).padStart(3, '0')}-${item.id}.${ext}`;
+      const { error: upErr } = await supabase.storage
+        .from('ai-documents')
+        .upload(path, file, { contentType: file.type || undefined });
+      if (upErr) throw upErr;
+      const { data: pub } = supabase.storage.from('ai-documents').getPublicUrl(path);
+      setPages((prev) => prev.map((p) => p.id === item.id ? { ...p, uploading: false, url: pub.publicUrl, path } : p));
+    } catch (e: any) {
+      console.error('upload page failed', e);
+      setPages((prev) => prev.map((p) => p.id === item.id ? { ...p, uploading: false, error: true } : p));
+      toast({ title: 'Falha ao enviar página', description: e?.message ?? 'Tente novamente', variant: 'destructive' });
+    }
+  };
+
   const addFiles = (list: FileList | null) => {
     if (!list || list.length === 0) return;
-    const arr = Array.from(list).map((f) => ({
-      id: `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
-      file: f,
-      preview: f.type.startsWith('image/') ? URL.createObjectURL(f) : null,
-    }));
+    const files = Array.from(list);
+    const items: { item: PageItem; file: File }[] = files.map((f) => {
+      const id = (crypto as any)?.randomUUID?.() ?? `${Date.now()}-${Math.random().toString(36).slice(2, 10)}`;
+      return {
+        item: {
+          id,
+          name: f.name,
+          type: f.type,
+          preview: f.type.startsWith('image/') ? URL.createObjectURL(f) : null,
+          uploading: true,
+        },
+        file: f,
+      };
+    });
     setPages((prev) => {
-      const next = [...prev, ...arr];
-      if (!title && arr[0]) setTitle(arr[0].file.name.replace(/\.[^/.]+$/, ''));
+      const next = [...prev, ...items.map((x) => x.item)];
       return next;
+    });
+    if (!title && items[0]) setTitle(items[0].file.name.replace(/\.[^/.]+$/, ''));
+    // Kick off uploads immediately so state loss (PWA/camera return) can't wipe pages
+    items.forEach(({ item, file }, i) => {
+      // index by current length + i (approximate order)
+      void uploadOne(item, file, pages.length + i + 1);
     });
   };
 
@@ -66,6 +103,9 @@ const AdminCadastroRapido = () => {
     setPages((prev) => {
       const p = prev.find((x) => x.id === id);
       if (p?.preview) URL.revokeObjectURL(p.preview);
+      if (p?.path) {
+        supabase.storage.from('ai-documents').remove([p.path]).catch(() => {});
+      }
       return prev.filter((x) => x.id !== id);
     });
   };
@@ -95,28 +135,21 @@ const AdminCadastroRapido = () => {
       toast({ title: 'Adicione ao menos uma foto ou arquivo', variant: 'destructive' });
       return;
     }
+    if (pages.some((p) => p.uploading)) {
+      toast({ title: 'Aguarde o upload das páginas terminar', variant: 'destructive' });
+      return;
+    }
+    if (pages.some((p) => p.error || !p.url)) {
+      toast({ title: 'Uma ou mais páginas falharam. Remova ou reenvie.', variant: 'destructive' });
+      return;
+    }
     if (!title.trim()) {
       toast({ title: 'Informe um título', variant: 'destructive' });
       return;
     }
     setSaving(true);
     try {
-      const stamp = Date.now();
-      const rand = Math.random().toString(36).slice(2, 8);
-      const folder = `cadastro-rapido/${stamp}-${rand}`;
-      const uploaded: { url: string; name: string; type: string }[] = [];
-
-      for (let i = 0; i < pages.length; i++) {
-        const p = pages[i];
-        const ext = p.file.name.split('.').pop() || 'bin';
-        const path = `${folder}/pagina-${String(i + 1).padStart(3, '0')}.${ext}`;
-        const { error: upErr } = await supabase.storage
-          .from('ai-documents')
-          .upload(path, p.file, { contentType: p.file.type || undefined });
-        if (upErr) throw upErr;
-        const { data: pub } = supabase.storage.from('ai-documents').getPublicUrl(path);
-        uploaded.push({ url: pub.publicUrl, name: p.file.name, type: p.file.type });
-      }
+      const uploaded = pages.map((p) => ({ url: p.url!, name: p.name, type: p.type }));
 
       const primary = uploaded[0];
       const pagesList = uploaded.map((u, idx) => `Página ${idx + 1}: ${u.url}`).join('\n');
