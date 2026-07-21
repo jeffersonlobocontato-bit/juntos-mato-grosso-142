@@ -290,12 +290,18 @@ const OpinionFormCard = () => {
             ))}
           </datalist>
         </div>
-        <p className="text-xs text-muted-foreground leading-relaxed pl-2 -mt-1">
-          <button type="button" onClick={handleGeolocate} className="text-primary underline hover:opacity-80 font-medium">
-            Clique para registrar sua geolocalização
-          </button>{" "}
-          ou digite o nome da sua cidade.
-        </p>
+        <div className="flex flex-col sm:flex-row sm:items-center gap-2 -mt-1">
+          <button
+            type="button"
+            onClick={handleGeolocate}
+            disabled={geoLoading}
+            className="inline-flex items-center justify-center gap-2 h-11 px-5 rounded-full bg-gradient-cta text-primary-foreground font-display font-bold text-sm shadow-card-float hover:brightness-110 transition disabled:opacity-60"
+          >
+            {geoLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : <LocateFixed className="h-4 w-4" />}
+            Registrar minha geolocalização
+          </button>
+          <span className="text-xs text-muted-foreground pl-2">ou digite o nome da sua cidade acima.</span>
+        </div>
         <div className="relative">
           <div className="absolute -top-2 left-4 z-10 px-2 bg-card text-[11px] font-bold uppercase tracking-wide text-primary">
             Sua sugestão
