@@ -1,0 +1,26 @@
+{
+  "name": "Juntos Paraná 399",
+  "short_name": "JP399",
+  "description": "Plataforma colaborativa do Plano de Governo Juntos Paraná 399.",
+  "start_url": "/",
+  "scope": "/",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#0f172a",
+  "theme_color": "#2d6a4f",
+  "lang": "pt-BR",
+  "icons": [
+    {
+      "src": "/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "maskable"
+    }
+  ]
+}
