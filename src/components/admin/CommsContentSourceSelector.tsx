@@ -21,6 +21,8 @@ interface Pesquisa {
   id: string;
   titulo: string;
   instituto: string;
+  municipio_id?: string | null;
+  regiao?: string | null;
 }
 
 interface Proposta {
@@ -219,6 +221,15 @@ export const CommsContentSourceSelector: React.FC<CommsContentSourceSelectorProp
 
   const [polEixo, setPolEixo] = useState<string | null>(null);
 
+  // Filtros próprios de Sugestões Populares (campos são texto)
+  const [sugEixo, setSugEixo] = useState<string | null>(null);
+  const [sugGeoScope, setSugGeoScope] = useState<GeoScope>('estado');
+  const [sugGeoValor, setSugGeoValor] = useState<string | null>(null);
+
+  // Filtros próprios de Pesquisas Eleitorais (só geo)
+  const [pesqGeoScope, setPesqGeoScope] = useState<GeoScope>('estado');
+  const [pesqGeoValor, setPesqGeoValor] = useState<string | null>(null);
+
   // Estado de expansão dos cards
   const [expanded, setExpanded] = useState<Record<string, boolean>>({
     documentos: false,
@@ -265,7 +276,7 @@ export const CommsContentSourceSelector: React.FC<CommsContentSourceSelectorProp
           .eq('is_active', true).order('created_at', { ascending: false }),
         supabase.from('sugestoes_populares').select('id, descricao, eixo, municipio')
           .order('created_at', { ascending: false }).limit(200),
-        supabase.from('pesquisas_eleitorais').select('id, titulo, instituto')
+        supabase.from('pesquisas_eleitorais').select('id, titulo, instituto, municipio_id, regiao')
           .eq('is_active', true).order('created_at', { ascending: false }),
       ]);
       setDocuments((docsRes.data || []) as Document[]);
@@ -275,6 +286,34 @@ export const CommsContentSourceSelector: React.FC<CommsContentSourceSelectorProp
     };
     fetchBase();
   }, []);
+
+  // Filtros derivados (client-side) para Sugestões e Pesquisas
+  const sugestoesFiltradas = useMemo(() => {
+    const eixoNome = sugEixo ? eixos.find((e) => e.id === sugEixo)?.nome?.toLowerCase() : null;
+    const cidadeNome = sugGeoScope === 'cidade' && sugGeoValor
+      ? municipios.find((m) => m.id === sugGeoValor)?.nome?.toLowerCase()
+      : null;
+    const idsRegiao = sugGeoScope === 'regiao' && sugGeoValor
+      ? new Set(municipios.filter((m) => m.regiao === sugGeoValor).map((m) => m.nome.toLowerCase()))
+      : null;
+    return sugestoes.filter((s) => {
+      if (eixoNome && (s.eixo || '').toLowerCase() !== eixoNome) return false;
+      const mun = (s.municipio || '').toLowerCase();
+      if (cidadeNome && mun !== cidadeNome) return false;
+      if (idsRegiao && !idsRegiao.has(mun)) return false;
+      return true;
+    });
+  }, [sugestoes, sugEixo, sugGeoScope, sugGeoValor, eixos, municipios]);
+
+  const pesquisasFiltradas = useMemo(() => {
+    if (pesqGeoScope === 'estado' || !pesqGeoValor) return pesquisas;
+    if (pesqGeoScope === 'cidade') return pesquisas.filter((p) => p.municipio_id === pesqGeoValor);
+    if (pesqGeoScope === 'regiao') {
+      const idsNaRegiao = new Set(municipios.filter((m) => m.regiao === pesqGeoValor).map((m) => m.id));
+      return pesquisas.filter((p) => p.regiao === pesqGeoValor || (p.municipio_id && idsNaRegiao.has(p.municipio_id)));
+    }
+    return pesquisas;
+  }, [pesquisas, pesqGeoScope, pesqGeoValor, municipios]);
 
   // ---- Propostas Técnicas (tipo_proposta = 'tecnica') ----
   useEffect(() => {
@@ -444,12 +483,18 @@ export const CommsContentSourceSelector: React.FC<CommsContentSourceSelectorProp
           icon={<Users className="h-4 w-4 text-green-600" />}
           title="Sugestões Populares"
           selectedCount={selection.sugestaoIds.length}
-          totalCount={sugestoes.length}
+          totalCount={sugestoesFiltradas.length}
           expanded={expanded.sugestoes}
           onToggle={() => toggleExpanded('sugestoes')}
         >
+          <EixoPicker eixos={eixos} value={sugEixo} onChange={setSugEixo} />
+          <GeoScopePicker
+            scope={sugGeoScope} onScopeChange={setSugGeoScope}
+            regioes={regioes} municipios={municipios}
+            valor={sugGeoValor} onValorChange={setSugGeoValor}
+          />
           {renderCheckList(
-            sugestoes, selection.sugestaoIds, 'sugestaoIds',
+            sugestoesFiltradas, selection.sugestaoIds, 'sugestaoIds',
             (s) => (
               <span>
                 <span className="line-clamp-2 block">{s.descricao}</span>
@@ -460,7 +505,7 @@ export const CommsContentSourceSelector: React.FC<CommsContentSourceSelectorProp
                 )}
               </span>
             ),
-            "Nenhuma sugestão disponível",
+            "Nenhuma sugestão disponível para esse recorte",
           )}
         </SourceCard>
 
@@ -469,19 +514,24 @@ export const CommsContentSourceSelector: React.FC<CommsContentSourceSelectorProp
           icon={<BarChart3 className="h-4 w-4 text-purple-600" />}
           title="Pesquisas Eleitorais"
           selectedCount={selection.pesquisaIds.length}
-          totalCount={pesquisas.length}
+          totalCount={pesquisasFiltradas.length}
           expanded={expanded.pesquisas}
           onToggle={() => toggleExpanded('pesquisas')}
         >
+          <GeoScopePicker
+            scope={pesqGeoScope} onScopeChange={setPesqGeoScope}
+            regioes={regioes} municipios={municipios}
+            valor={pesqGeoValor} onValorChange={setPesqGeoValor}
+          />
           {renderCheckList(
-            pesquisas, selection.pesquisaIds, 'pesquisaIds',
+            pesquisasFiltradas, selection.pesquisaIds, 'pesquisaIds',
             (p) => (
               <span className="flex items-center gap-2">
                 <span className="truncate max-w-[180px]">{p.titulo}</span>
                 <Badge variant="outline" className="text-xs">{p.instituto}</Badge>
               </span>
             ),
-            "Nenhuma pesquisa disponível",
+            "Nenhuma pesquisa disponível para esse recorte",
           )}
         </SourceCard>
 
