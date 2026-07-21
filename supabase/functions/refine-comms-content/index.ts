@@ -5,6 +5,19 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
 
+// Mesma limpeza de formatação usada em generate-comms-content, para garantir
+// que edições pontuais também saiam sem markdown residual.
+function limparFormatacaoSaida(texto: string): string {
+  if (!texto) return texto;
+  return texto
+    .replace(/\*\*(.*?)\*\*/g, '$1')
+    .replace(/__(.*?)__/g, '$1')
+    .replace(/^#{1,6}\s*/gm, '')
+    .replace(/[ \t]+\n/g, '\n')
+    .replace(/\n{3,}/g, '\n\n')
+    .trim();
+}
+
 Deno.serve(async (req) => {
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders });
@@ -86,11 +99,15 @@ ${textoAtual}
 ## INSTRUÇÃO DE EDIÇÃO DO USUÁRIO
 ${instrucao}
 
+## MODELO DE VOZ
+Mantenha o padrão de linguagem do senador Sergio Moro: vocabulário técnico-institucional, tom sóbrio, argumentação por antítese ("não basta X, é preciso Y"), autoridade ancorada na trajetória e em dados concretos, sem hipérbole nem ataque pessoal.
+
 ## REGRAS
 - Aplique exatamente a instrução pedida, preservando o que não foi pedido para mudar.
 - Não invente fatos, dados ou compromissos que não estejam no texto atual ou no contexto.
-- Mantenha o formato/estrutura esperada para este tipo de texto (${formatoLabel[formato] || formato}).
-- Retorne APENAS o texto final editado, sem explicações, sem aspas, sem markdown, sem comentários.`;
+- Mantenha o formato/estrutura esperada para este tipo de texto (${formatoLabel[formato] || formato}). Se o formato for "release", preserve o molde publieditorial (lead, parágrafos em 3ª pessoa, citação de abertura e de fechamento, blockquote final com ">").
+- Nunca use marcação markdown de negrito (**texto**), itálico ou headers (#). Texto plano, pronto para uso direto.
+- Retorne APENAS o texto final editado, sem explicações, sem aspas envolvendo o texto todo, sem comentários.`;
 
     const aiResponse = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
       method: 'POST',
@@ -113,11 +130,13 @@ ${instrucao}
     }
 
     const aiData = await aiResponse.json();
-    const textoEditado = aiData.choices?.[0]?.message?.content?.trim();
+    const textoEditadoBruto = aiData.choices?.[0]?.message?.content?.trim();
 
-    if (!textoEditado) {
+    if (!textoEditadoBruto) {
       throw new Error('Resposta vazia da IA');
     }
+
+    const textoEditado = limparFormatacaoSaida(textoEditadoBruto);
 
     return new Response(
       JSON.stringify({ success: true, texto: textoEditado }),

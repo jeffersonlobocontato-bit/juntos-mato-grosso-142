@@ -24,9 +24,56 @@ interface ContentResult {
 const FORMATO_LABELS: Record<string, string> = {
   pit: 'Pit de falas (bullet points curtos para entrevistas, frases de efeito prontas para uso)',
   discurso: 'Discurso completo (abertura, 3 blocos temáticos de desenvolvimento, fechamento com chamado à ação)',
-  release: 'Release jornalístico (lead, corpo do texto em 3ª pessoa, uma citação atribuída ao senador, formato pronto para envio à imprensa)',
+  release: 'Release em formato publieditorial (molde Gazeta do Povo: título-tese, lead-síntese, contexto, 2-3 parágrafos em 3ª pessoa, citação de abertura e de fechamento, blockquote de destaque)',
   nota: 'Nota oficial para imprensa (curta, factual, direta, para resposta rápida a jornalistas)',
 };
+
+// ---------------------------------------------------------------------------
+// MÉTODO DEL — Decomposição de Estrutura de Linguagem aplicada ao senador
+// Sergio Moro. Construído a partir de material público real (pronunciamentos
+// em Plenário do Senado, entrevistas de pré-campanha e citações em imprensa).
+// Descreve o PADRÃO de linguagem dele — não deve ser confundido com texto
+// dele a ser copiado; é a régua estilística para a IA escrever "com a voz dele".
+// ---------------------------------------------------------------------------
+const DEL_VOZ_MORO = `
+## MODELO DE VOZ (MÉTODO DEL) — SENADOR SERGIO MORO
+
+Escreva TODOS os formatos seguindo este padrão de linguagem real dele. Não é um personagem genérico de "político sóbrio" — são traços específicos observados no próprio discurso dele:
+
+1. LÉXICO: usa vocabulário técnico-jurídico mesmo fora de temas jurídicos ("segurança jurídica", "previsibilidade", "arcabouço", "governança"). Evita gírias, evita informalidade excessiva, evita superlativos vazios ("incrível", "fantástico").
+
+2. ESTRUTURA ARGUMENTATIVA — antítese progressiva: primeiro reconhece o que já existe/foi feito, depois aponta a insuficiência, depois propõe o passo seguinte. Padrão: "não basta X, é preciso Y" / "X é positivo, mas não é suficiente para Z".
+
+3. AUTORIDADE POR CREDENCIAL PESSOAL: ancora a proposta na própria trajetória (ex-juiz da Lava Jato, ex-ministro da Justiça) ou em contato direto e recente com a realidade local ("tenho circulado no Estado", "estive em [cidade] essa semana"). Nunca apela à emoção pura — apela à experiência técnica e ao vínculo territorial.
+
+4. DADO CONCRETO COMO ARGUMENTO: sempre que possível, ancora a fala em número específico (quantidade de municípios, posição em ranking, tempo de execução) em vez de generalização vaga.
+
+5. REGISTRO CONFORME O FORMATO: em discurso/nota institucional, tom mais formal e comedido; em pit de falas e release, frases mais diretas e replicáveis, no limite curtas o bastante para virar manchete ou citação de efeito.
+
+6. TOM: sóbrio e institucional. Críticas usam termos como "preocupação", "descaso", "retrocesso" — nunca ataque pessoal ou linguagem agressiva. Mesmo em contraposição a adversários, o tom permanece técnico e factual.
+
+7. PRONOME: usa "nós" ao propor solução coletiva de governo; usa "eu" só ao afirmar convicção pessoal direta ("não tenho dúvida de que...").
+
+8. FECHAMENTO: prefere terminar com uma frase curta, afirmativa, que sintetize o compromisso — não com pergunta retórica nem apelo emocional.
+`.trim();
+
+// ---------------------------------------------------------------------------
+// Limpeza de formatação — remove marcações markdown (**negrito**, headers #,
+// bullets soltos) que a IA às vezes insere mesmo quando instruída a não usar,
+// garantindo que o texto final saia limpo para uso direto pela assessoria.
+// ---------------------------------------------------------------------------
+function limparFormatacaoSaida(texto: string): string {
+  if (!texto) return texto;
+  return texto
+    .replace(/\*\*(.*?)\*\*/g, '$1') // **negrito** -> texto puro
+    .replace(/__(.*?)__/g, '$1')      // __negrito__ -> texto puro
+    .replace(/^#{1,6}\s*/gm, '')      // remove headers markdown (#, ##, ...)
+    // OBS: bullets "- " no início da linha são preservados de propósito — são
+    // usados pelo formato "pit de falas"; não removê-los aqui.
+    .replace(/[ \t]+\n/g, '\n')       // remove espaços em branco antes de quebra de linha
+    .replace(/\n{3,}/g, '\n\n')       // no máximo uma linha em branco entre parágrafos
+    .trim();
+}
 
 Deno.serve(async (req) => {
   if (req.method === 'OPTIONS') {
@@ -260,6 +307,8 @@ Deno.serve(async (req) => {
 
     const prompt = `Você é o estrategista de comunicação e assessoria de imprensa da campanha do senador Sérgio Moro ao governo do Paraná (2026).
 
+${DEL_VOZ_MORO}
+
 ## BRIEFING / CONTEXTO DO EVENTO
 ${contexto}
 
@@ -297,13 +346,27 @@ PASSO 2 — Gere os seguintes formatos de conteúdo de comunicação, ancorados 
 ${formatosPrompt}
 
 REGRAS DE TOM E CONTEÚDO:
-- Tom institucional, sóbrio, na linha de comunicação de um ex-juiz e senador: direto, técnico quando necessário, evitar promessas vazias ou linguagem populista.
+- Siga rigorosamente o MODELO DE VOZ (MÉTODO DEL) descrito acima em todos os formatos.
 - Sempre que possível, ancore as falas em dados concretos da base de referência (custos, indicadores, propostas específicas).
-- O "pit de falas" deve ter de 4 a 8 bullets curtos (1-2 frases cada), prontos para o senador usar em entrevista.
+- O "pit de falas" deve ter de 4 a 8 bullets curtos (1-2 frases cada), prontos para o senador usar em entrevista. Use "- " no início de cada bullet, sem numeração.
 - O "discurso" deve ter entre 300-500 palavras, com abertura contextualizando o evento, 2-3 blocos temáticos e fechamento com chamado à ação.
-- O "release" deve seguir formato jornalístico: título sugerido, lead (quem/o quê/quando/onde/por quê), 2-3 parágrafos de corpo, 1 citação atribuída ao senador entre aspas.
 - A "nota" deve ter no máximo 150 palavras, tom factual e direto, sem floreios.
 - Não gere formatos que não foram solicitados.
+
+REGRAS ESPECÍFICAS DO "RELEASE" — MOLDE PUBLIEDITORIAL GAZETA DO POVO (obrigatório, não é jornalismo isento, é conteúdo institucional da campanha):
+1. Título-tese: uma frase afirmativa de posicionamento (não uma pergunta, não um resumo neutro).
+2. Lead-síntese: 1 parágrafo (2-3 frases) apresentando a tese central do senador sobre o tema, sem aspas ainda.
+3. Parágrafo de contexto: onde/quando/em que ocasião a fala ou proposta se encaixa (use o briefing).
+4. Citação de abertura: 1 frase entre aspas, atribuída a "Sérgio Moro" ou "o senador", coerente com o MODELO DE VOZ.
+5. 2 a 3 parágrafos de desenvolvimento, sempre em 3ª pessoa ("o senador destacou...", "Moro também defendeu..."), cada um cobrindo um subponto ancorado na base de referência.
+6. Citação de fechamento: mais conclusiva, também entre aspas.
+7. Ao final do texto, em uma linha própria, repita a citação de fechamento no formato de destaque: uma linha com ">" seguida da citação, e na linha seguinte "> Senador Sérgio Moro".
+8. Extensão total: entre 350 e 450 palavras. Texto corrido, sem subtítulos internos, sem bullets.
+
+REGRAS DE FORMATAÇÃO DE SAÍDA (valem para TODOS os formatos):
+- Nunca use marcação markdown de negrito (**texto** ou __texto__), itálico, ou headers (#, ##). O texto deve ser plano, pronto para copiar e colar num documento ou e-mail sem nenhum símbolo de marcação.
+- Não use markdown nenhum, exceto o "- " para bullets do pit de falas e o ">" apenas na citação de destaque do release, como instruído acima.
+- Parágrafos separados por uma linha em branco. Sem excesso de linhas em branco.
 
 Retorne OBRIGATORIAMENTE um JSON válido com esta estrutura exata:
 
@@ -359,6 +422,17 @@ Retorne APENAS o JSON, sem texto adicional, sem markdown, sem comentários.`;
       console.error('Error parsing AI response:', parseError);
       console.log('AI content:', aiContent);
       throw new Error('Failed to parse AI content response');
+    }
+
+    // Rede de segurança: limpa qualquer marcação markdown residual (**, __, #, etc.)
+    // mesmo que a IA não tenha seguido à risca a instrução de saída sem formatação.
+    if (result.conteudos) {
+      for (const key of Object.keys(result.conteudos) as Array<keyof typeof result.conteudos>) {
+        const valor = result.conteudos[key];
+        if (typeof valor === 'string') {
+          (result.conteudos as any)[key] = limparFormatacaoSaida(valor);
+        }
+      }
     }
 
     const fontesUtilizadas = {

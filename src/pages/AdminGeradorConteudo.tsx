@@ -7,13 +7,10 @@ import {
   SheetContent,
   SheetHeader,
   SheetTitle,
-  SheetTrigger,
-  SheetFooter,
-  SheetClose,
 } from "@/components/ui/sheet";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Badge } from "@/components/ui/badge";
-import { Sparkles, History, Loader2, SlidersHorizontal } from "lucide-react";
+import { Sparkles, History, Loader2 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import {
@@ -30,6 +27,7 @@ const initialSelection: CommsSourceSelection = {
   sugestaoIds: [],
   pesquisaIds: [],
   propostaIds: [],
+  propostaInstitucionalIds: [],
   propostaPoliticaIds: [],
   eixoFiltroId: null,
   subtemaFiltroIds: [],
@@ -43,7 +41,6 @@ export default function AdminGeradorConteudo() {
   const [currentResult, setCurrentResult] = useState<CommsGenerationResult | null>(null);
   const [history, setHistory] = useState<CommsGenerationResult[]>([]);
   const [isLoadingHistory, setIsLoadingHistory] = useState(true);
-  const [configOpen, setConfigOpen] = useState(false);
   const [historyOpen, setHistoryOpen] = useState(false);
 
   useEffect(() => {
@@ -78,6 +75,14 @@ export default function AdminGeradorConteudo() {
     setCurrentResult(null);
 
     try {
+      // Propostas técnicas e institucionais compartilham a mesma tabela de origem
+      // (propostas_tecnicas), diferenciadas apenas por tipo_proposta na consulta;
+      // por isso ambas são enviadas juntas no mesmo campo propostaIds.
+      const propostaIdsCombinadas = [
+        ...sourceSelection.propostaIds,
+        ...sourceSelection.propostaInstitucionalIds,
+      ];
+
       const { data, error } = await supabase.functions.invoke("generate-comms-content", {
         body: {
           contexto,
@@ -85,7 +90,7 @@ export default function AdminGeradorConteudo() {
             documentIds: sourceSelection.documentIds,
             sugestaoIds: sourceSelection.sugestaoIds,
             pesquisaIds: sourceSelection.pesquisaIds,
-            propostaIds: sourceSelection.propostaIds,
+            propostaIds: propostaIdsCombinadas,
             propostaPoliticaIds: sourceSelection.propostaPoliticaIds,
             eixoFiltroId: sourceSelection.eixoFiltroId,
             subtemaFiltroIds: sourceSelection.subtemaFiltroIds,
@@ -98,7 +103,6 @@ export default function AdminGeradorConteudo() {
       if (data?.error) throw new Error(data.error);
 
       setCurrentResult(data.generation as CommsGenerationResult);
-      setConfigOpen(false);
       toast.success("Conteúdo gerado com sucesso");
       fetchHistory();
     } catch (err: any) {
@@ -108,13 +112,6 @@ export default function AdminGeradorConteudo() {
       setIsGenerating(false);
     }
   };
-
-  const totalFontes =
-    sourceSelection.documentIds.length +
-    sourceSelection.pesquisaIds.length +
-    sourceSelection.propostaIds.length +
-    sourceSelection.sugestaoIds.length +
-    sourceSelection.propostaPoliticaIds.length;
 
   return (
     <div className="min-h-screen bg-background pb-24 sm:pb-6">
@@ -126,97 +123,56 @@ export default function AdminGeradorConteudo() {
             <h1 className="text-base sm:text-lg font-bold truncate">Gerador de Conteúdo</h1>
           </div>
 
-          <div className="flex items-center gap-1.5 shrink-0">
-            {/* Histórico — Sheet lateral */}
-            <Sheet open={historyOpen} onOpenChange={setHistoryOpen}>
-              <SheetTrigger asChild>
-                <Button variant="ghost" size="icon" className="h-9 w-9">
-                  <History className="h-4 w-4" />
-                </Button>
-              </SheetTrigger>
-              <SheetContent side="right" className="w-full sm:max-w-md flex flex-col">
-                <SheetHeader>
-                  <SheetTitle>Histórico de gerações</SheetTitle>
-                </SheetHeader>
-                <ScrollArea className="flex-1 -mx-6 px-6 mt-4">
-                  {isLoadingHistory ? (
-                    <div className="flex items-center justify-center p-6">
-                      <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" />
-                    </div>
-                  ) : (
-                    <div className="space-y-2 pb-6">
-                      {history.length === 0 && (
-                        <p className="text-sm text-muted-foreground italic">Nenhuma geração ainda.</p>
-                      )}
-                      {history.map((h) => (
-                        <button
-                          key={h.id}
-                          onClick={() => {
-                            setCurrentResult(h);
-                            setHistoryOpen(false);
-                          }}
-                          className="w-full text-left p-3 rounded-lg border hover:bg-muted/50 transition-colors"
-                        >
-                          <p className="text-sm font-medium line-clamp-2">{h.contexto}</p>
-                          <div className="flex items-center gap-1.5 mt-2 flex-wrap">
-                            {h.formatos_gerados?.map((f) => (
-                              <Badge key={f} variant="outline" className="text-xs">{f}</Badge>
-                            ))}
-                            <span className="text-xs text-muted-foreground ml-auto">
-                              {new Date(h.created_at).toLocaleDateString('pt-BR')}
-                            </span>
-                          </div>
-                        </button>
-                      ))}
-                    </div>
-                  )}
-                </ScrollArea>
-              </SheetContent>
-            </Sheet>
-
-            {/* Configurar fontes e formatos — Sheet inferior no mobile, lateral no desktop */}
-            <Sheet open={configOpen} onOpenChange={setConfigOpen}>
-              <SheetTrigger asChild>
-                <Button variant="outline" size="sm" className="h-9 gap-1.5">
-                  <SlidersHorizontal className="h-3.5 w-3.5" />
-                  <span className="hidden xs:inline">Fontes</span>
-                  {totalFontes > 0 && (
-                    <Badge variant="secondary" className="ml-1 h-5 px-1.5 text-xs">
-                      {totalFontes}
-                    </Badge>
-                  )}
-                </Button>
-              </SheetTrigger>
-              <SheetContent
-                side="bottom"
-                className="h-[85vh] sm:h-auto sm:max-h-[85vh] sm:side-right sm:w-full sm:max-w-md flex flex-col rounded-t-xl sm:rounded-none"
-              >
-                <SheetHeader className="text-left">
-                  <SheetTitle>Fontes e formatos</SheetTitle>
-                </SheetHeader>
-                <ScrollArea className="flex-1 min-h-0 -mx-6 px-6 mt-2">
-                  <div className="pb-4">
-                    <CommsContentSourceSelector
-                      selection={sourceSelection}
-                      onSelectionChange={setSourceSelection}
-                      formatosSelecionados={formatosSelecionados}
-                      onFormatosChange={setFormatosSelecionados}
-                    />
+          {/* Histórico — Sheet lateral (permanece como gaveta, não faz parte do fluxo de fontes) */}
+          <Sheet open={historyOpen} onOpenChange={setHistoryOpen}>
+            <SheetContent side="right" className="w-full sm:max-w-md flex flex-col">
+              <SheetHeader>
+                <SheetTitle>Histórico de gerações</SheetTitle>
+              </SheetHeader>
+              <ScrollArea className="flex-1 -mx-6 px-6 mt-4">
+                {isLoadingHistory ? (
+                  <div className="flex items-center justify-center p-6">
+                    <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" />
                   </div>
-                </ScrollArea>
-                <SheetFooter className="border-t pt-3">
-                  <SheetClose asChild>
-                    <Button className="w-full">Concluído</Button>
-                  </SheetClose>
-                </SheetFooter>
-              </SheetContent>
-            </Sheet>
-          </div>
+                ) : (
+                  <div className="space-y-2 pb-6">
+                    {history.length === 0 && (
+                      <p className="text-sm text-muted-foreground italic">Nenhuma geração ainda.</p>
+                    )}
+                    {history.map((h) => (
+                      <button
+                        key={h.id}
+                        onClick={() => {
+                          setCurrentResult(h);
+                          setHistoryOpen(false);
+                        }}
+                        className="w-full text-left p-3 rounded-lg border hover:bg-muted/50 transition-colors"
+                      >
+                        <p className="text-sm font-medium line-clamp-2">{h.contexto}</p>
+                        <div className="flex items-center gap-1.5 mt-2 flex-wrap">
+                          {h.formatos_gerados?.map((f) => (
+                            <Badge key={f} variant="outline" className="text-xs">{f}</Badge>
+                          ))}
+                          <span className="text-xs text-muted-foreground ml-auto">
+                            {new Date(h.created_at).toLocaleDateString('pt-BR')}
+                          </span>
+                        </div>
+                      </button>
+                    ))}
+                  </div>
+                )}
+              </ScrollArea>
+            </SheetContent>
+          </Sheet>
+
+          <Button variant="ghost" size="icon" className="h-9 w-9" onClick={() => setHistoryOpen(true)}>
+            <History className="h-4 w-4" />
+          </Button>
         </div>
       </div>
 
       <div className="container mx-auto px-4 py-4 max-w-4xl space-y-4">
-        {/* Briefing — sempre visível, foco do fluxo */}
+        {/* Briefing — sempre visível, estilo "chat" */}
         <Card>
           <CardContent className="pt-4 space-y-2">
             <label htmlFor="contexto" className="text-sm font-medium text-foreground">
@@ -239,7 +195,7 @@ export default function AdminGeradorConteudo() {
                 onClick={handleGenerate}
                 disabled={isGenerating}
                 size="sm"
-                className="ml-auto hidden sm:inline-flex"
+                className="ml-auto"
               >
                 {isGenerating ? (
                   <>
@@ -257,6 +213,14 @@ export default function AdminGeradorConteudo() {
           </CardContent>
         </Card>
 
+        {/* Cards de fontes — logo abaixo do "chat" de briefing */}
+        <CommsContentSourceSelector
+          selection={sourceSelection}
+          onSelectionChange={setSourceSelection}
+          formatosSelecionados={formatosSelecionados}
+          onFormatosChange={setFormatosSelecionados}
+        />
+
         {/* Editor — ocupa o espaço principal */}
         {currentResult ? (
           <CommsContentEditor
@@ -271,7 +235,7 @@ export default function AdminGeradorConteudo() {
             <CardContent className="py-12 text-center text-muted-foreground">
               <Sparkles className="h-8 w-8 mx-auto mb-3 opacity-40" />
               <p className="text-sm">
-                Escreva o briefing acima e toque em "Gerar conteúdo" para começar a editar.
+                Escreva o briefing acima, marque as fontes e toque em "Gerar conteúdo".
               </p>
             </CardContent>
           </Card>
@@ -279,19 +243,11 @@ export default function AdminGeradorConteudo() {
       </div>
 
       {/* Botão flutuante de gerar, fixo embaixo no mobile (atalho rápido em trânsito) */}
-      <div className="fixed bottom-0 left-0 right-0 sm:hidden bg-background/95 backdrop-blur border-t p-3 flex gap-2 z-20">
-        <Button
-          variant="outline"
-          size="icon"
-          className="h-11 w-11 shrink-0"
-          onClick={() => setConfigOpen(true)}
-        >
-          <SlidersHorizontal className="h-4 w-4" />
-        </Button>
+      <div className="fixed bottom-0 left-0 right-0 sm:hidden bg-background/95 backdrop-blur border-t p-3 z-20">
         <Button
           onClick={handleGenerate}
           disabled={isGenerating}
-          className="flex-1 h-11"
+          className="w-full h-11"
         >
           {isGenerating ? (
             <Loader2 className="h-4 w-4 mr-1.5 animate-spin" />
