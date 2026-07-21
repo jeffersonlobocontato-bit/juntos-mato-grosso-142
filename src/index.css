@@ -296,6 +296,22 @@
     @apply min-h-[120px] w-full rounded-2xl bg-card border border-border/60 pl-12 pr-4 py-3 text-sm text-foreground placeholder:text-muted-foreground/70 focus:outline-none focus:ring-2 focus:ring-primary/40 focus:border-primary transition;
   }
 
+  .textarea-pill-highlight {
+    @apply min-h-[150px] w-full rounded-2xl bg-card pl-12 pr-4 py-3 text-base text-foreground placeholder:text-muted-foreground/80 focus:outline-none transition;
+    border: 2px solid hsl(var(--primary) / 0.55);
+    box-shadow: 0 0 0 4px hsl(var(--primary) / 0.12), 0 8px 24px -12px hsl(var(--primary) / 0.35);
+  }
+  .textarea-pill-highlight:focus {
+    border-color: hsl(var(--primary));
+    box-shadow: 0 0 0 5px hsl(var(--accent) / 0.35), 0 10px 28px -12px hsl(var(--primary) / 0.45);
+  }
+
+  @keyframes pulse-gold {
+    0%, 100% { box-shadow: 0 0 0 0 hsl(45 95% 55% / 0.65), 0 6px 18px -6px hsl(45 95% 55% / 0.5); }
+    50%      { box-shadow: 0 0 0 12px hsl(45 95% 55% / 0), 0 6px 18px -6px hsl(45 95% 55% / 0.5); }
+  }
+  .animate-pulse-gold { animation: pulse-gold 1.8s ease-in-out infinite; }
+
   .chip-gold {
     @apply inline-flex items-center gap-2 rounded-full bg-gradient-gold px-4 py-1.5 text-sm font-semibold text-primary-foreground shadow-md;
     color: hsl(150 75% 16%);
