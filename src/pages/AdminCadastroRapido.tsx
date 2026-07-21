@@ -274,12 +274,20 @@ const AdminCadastroRapido = () => {
                         ) : (
                           <div className="w-full aspect-[3/4] flex flex-col items-center justify-center p-2 text-center">
                             <FileText className="w-8 h-8 text-muted-foreground mb-1" />
-                            <span className="text-[10px] break-all">{p.file.name}</span>
+                            <span className="text-[10px] break-all">{p.name}</span>
                           </div>
                         )}
                         <div className="absolute top-1 left-1 bg-primary text-primary-foreground text-[10px] font-bold rounded px-1.5 py-0.5">
                           {idx + 1}
                         </div>
+                        {p.uploading && (
+                          <div className="absolute inset-0 bg-background/60 flex items-center justify-center">
+                            <Loader2 className="w-5 h-5 animate-spin text-primary" />
+                          </div>
+                        )}
+                        {p.error && (
+                          <div className="absolute inset-x-0 bottom-0 bg-destructive/90 text-destructive-foreground text-[10px] text-center py-0.5">falhou</div>
+                        )}
                         <button
                           type="button"
                           onClick={() => removePage(p.id)}
