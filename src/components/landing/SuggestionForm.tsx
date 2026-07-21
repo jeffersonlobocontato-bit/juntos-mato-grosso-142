@@ -145,9 +145,13 @@ const SuggestionForm = () => {
     
     if (error) {
       console.error('Error submitting suggestion:', error);
+      const mensagemAmigavel = error.message?.includes('sugestões enviadas')
+        || error.message?.includes('enviada repetidamente')
+        ? error.message
+        : "Ocorreu um erro ao enviar sua sugestão. Tente novamente.";
       toast({
         title: "Erro ao enviar",
-        description: "Ocorreu um erro ao enviar sua sugestão. Tente novamente.",
+        description: mensagemAmigavel,
         variant: "destructive",
       });
       return;
