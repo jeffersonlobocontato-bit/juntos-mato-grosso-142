@@ -15,8 +15,8 @@ import { TemasMultiSelect } from './TemasMultiSelect';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Checkbox } from '@/components/ui/checkbox';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger, DropdownMenuSeparator } from '@/components/ui/dropdown-menu';
-import JSZip from 'jszip';
 import { saveAs } from 'file-saver';
+import { PDFDocument, StandardFonts, rgb } from 'pdf-lib';
 import { 
   BookOpen, Plus, Search, FileText, Eye, EyeOff, Trash2,
   ExternalLink, Filter, Loader2, CheckCircle, Clock, AlertCircle, Circle,
@@ -216,6 +216,81 @@ export function DocumentLibrary({ eixos, municipios, regioes, className }: Docum
 
   const sanitizeName = (name: string) => name.replace(/[\\/:*?"<>|]+/g, '_').slice(0, 120);
 
+  const wrapText = (text: string, font: any, size: number, maxWidth: number): string[] => {
+    const lines: string[] = [];
+    const paragraphs = text.split(/\r?\n/);
+    for (const paragraph of paragraphs) {
+      if (!paragraph.trim()) {
+        lines.push('');
+        continue;
+      }
+      const words = paragraph.split(/\s+/);
+      let current = '';
+      for (const word of words) {
+        const test = current ? `${current} ${word}` : word;
+        const width = font.widthOfTextAtSize(test, size);
+        if (width > maxWidth && current) {
+          lines.push(current);
+          current = word;
+        } else {
+          current = test;
+        }
+      }
+      if (current) lines.push(current);
+    }
+    return lines;
+  };
+
+  const sanitizeForPdf = (text: string) =>
+    (text || '')
+      // pdf-lib WinAnsi can't render most emoji / unusual glyphs
+      .replace(/[\u{1F300}-\u{1FAFF}\u{2600}-\u{27BF}]/gu, '')
+      .replace(/[\u2018\u2019]/g, "'")
+      .replace(/[\u201C\u201D]/g, '"')
+      .replace(/\u2013|\u2014/g, '-')
+      .replace(/\u2026/g, '...');
+
+  const addTextPages = async (
+    pdf: PDFDocument,
+    doc: AIDocument,
+    font: any,
+    boldFont: any,
+  ) => {
+    const pageSize: [number, number] = [595.28, 841.89]; // A4
+    const margin = 50;
+    const maxWidth = pageSize[0] - margin * 2;
+    let page = pdf.addPage(pageSize);
+    let y = pageSize[1] - margin;
+
+    const draw = (text: string, opts: { size?: number; bold?: boolean; gap?: number } = {}) => {
+      const size = opts.size ?? 11;
+      const usedFont = opts.bold ? boldFont : font;
+      const lines = wrapText(sanitizeForPdf(text), usedFont, size, maxWidth);
+      for (const line of lines) {
+        if (y < margin + size) {
+          page = pdf.addPage(pageSize);
+          y = pageSize[1] - margin;
+        }
+        page.drawText(line, { x: margin, y, size, font: usedFont, color: rgb(0.1, 0.1, 0.1) });
+        y -= size * 1.35;
+      }
+      y -= opts.gap ?? 4;
+    };
+
+    draw(doc.title || 'Documento', { size: 18, bold: true, gap: 8 });
+    if (doc.description) draw(doc.description, { size: 11, gap: 8 });
+    const meta = [
+      DOC_CATEGORY_LABELS[doc.doc_category] || doc.doc_category,
+      doc.eixos_tematicos?.nome ? `Eixo: ${doc.eixos_tematicos.nome}` : null,
+      doc.municipios?.nome ? `Município: ${doc.municipios.nome}` : null,
+      doc.regiao ? `Região: ${doc.regiao}` : null,
+      new Date(doc.created_at).toLocaleDateString('pt-BR'),
+    ].filter(Boolean).join(' • ');
+    if (meta) draw(meta, { size: 9, gap: 12 });
+    if (doc.content) draw(doc.content, { size: 11, gap: 6 });
+    if (doc.source_url) draw(`Fonte: ${doc.source_url}`, { size: 9, gap: 4 });
+  };
+
   const downloadDocuments = async (docs: AIDocument[]) => {
     if (docs.length === 0) {
       toast({ title: 'Nenhum documento para baixar', variant: 'destructive' });
@@ -223,46 +298,73 @@ export function DocumentLibrary({ eixos, municipios, regioes, className }: Docum
     }
     setIsDownloading(true);
     try {
-      const zip = new JSZip();
-      let successCount = 0;
-      let fallbackCount = 0;
+      const merged = await PDFDocument.create();
+      const font = await merged.embedFont(StandardFonts.Helvetica);
+      const boldFont = await merged.embedFont(StandardFonts.HelveticaBold);
+      let embeddedPdfs = 0;
+      let embeddedImages = 0;
+      let textOnly = 0;
+
       for (const doc of docs) {
-        const baseName = sanitizeName(doc.title || doc.file_name || doc.id);
+        // Always start with a metadata cover for context
+        await addTextPages(merged, doc, font, boldFont);
+
         if (doc.file_url) {
           try {
             const res = await fetch(doc.file_url);
             if (!res.ok) throw new Error(`HTTP ${res.status}`);
-            const blob = await res.blob();
-            const ext = doc.file_name?.includes('.')
-              ? doc.file_name.split('.').pop()
-              : (doc.file_type?.split('/').pop() || 'bin');
-            zip.file(`${baseName}.${ext}`, blob);
-            successCount++;
-            continue;
+            const buf = await res.arrayBuffer();
+            const mime = (doc.file_type || '').toLowerCase();
+            const nameLower = (doc.file_name || '').toLowerCase();
+            const isPdf = mime.includes('pdf') || nameLower.endsWith('.pdf');
+            const isJpg = mime.includes('jpeg') || mime.includes('jpg') || /\.jpe?g$/.test(nameLower);
+            const isPng = mime.includes('png') || nameLower.endsWith('.png');
+
+            if (isPdf) {
+              const src = await PDFDocument.load(buf, { ignoreEncryption: true });
+              const pages = await merged.copyPages(src, src.getPageIndices());
+              pages.forEach((p) => merged.addPage(p));
+              embeddedPdfs++;
+            } else if (isJpg || isPng) {
+              const img = isPng ? await merged.embedPng(buf) : await merged.embedJpg(buf);
+              const pageSize: [number, number] = [595.28, 841.89];
+              const page = merged.addPage(pageSize);
+              const margin = 40;
+              const maxW = pageSize[0] - margin * 2;
+              const maxH = pageSize[1] - margin * 2;
+              const scale = Math.min(maxW / img.width, maxH / img.height, 1);
+              const w = img.width * scale;
+              const h = img.height * scale;
+              page.drawImage(img, {
+                x: (pageSize[0] - w) / 2,
+                y: (pageSize[1] - h) / 2,
+                width: w,
+                height: h,
+              });
+              embeddedImages++;
+            } else {
+              textOnly++;
+            }
           } catch (e) {
-            console.warn('Falha ao baixar arquivo, salvando conteúdo:', doc.title, e);
+            console.warn('Falha ao anexar arquivo ao PDF:', doc.title, e);
+            textOnly++;
           }
+        } else {
+          textOnly++;
         }
-        const text = [
-          `# ${doc.title}`,
-          doc.description ? `\n${doc.description}\n` : '',
-          '\n---\n',
-          doc.content || '',
-          doc.source_url ? `\n\nFonte: ${doc.source_url}` : '',
-        ].join('\n');
-        zip.file(`${baseName}.md`, text);
-        fallbackCount++;
       }
-      const blob = await zip.generateAsync({ type: 'blob' });
+
+      const bytes = await merged.save();
+      const blob = new Blob([bytes], { type: 'application/pdf' });
       const stamp = new Date().toISOString().slice(0, 10);
-      saveAs(blob, `biblioteca-documentos-${stamp}.zip`);
+      saveAs(blob, `biblioteca-documentos-${stamp}.pdf`);
       toast({
-        title: 'Download preparado',
-        description: `${successCount} arquivo(s) e ${fallbackCount} texto(s) adicionados ao ZIP.`,
+        title: 'PDF gerado',
+        description: `${docs.length} documento(s) — ${embeddedPdfs} PDF(s), ${embeddedImages} imagem(ns), ${textOnly} apenas texto.`,
       });
     } catch (error) {
       console.error('Erro no download:', error);
-      toast({ title: 'Erro ao gerar download', variant: 'destructive' });
+      toast({ title: 'Erro ao gerar PDF', variant: 'destructive' });
     } finally {
       setIsDownloading(false);
     }
@@ -272,24 +374,24 @@ export function DocumentLibrary({ eixos, municipios, regioes, className }: Docum
     <>
       <Card className={className}>
         <CardHeader className="pb-3">
-          <div className="flex items-center justify-between">
-            <CardTitle className="text-base flex items-center gap-2">
+          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+            <CardTitle className="text-base flex items-center gap-2 flex-wrap">
               <BookOpen className="w-4 h-4 text-primary" />
               Biblioteca de Documentos
               <Badge variant="secondary" className="ml-2">
                 {filteredDocuments.length} documento{filteredDocuments.length !== 1 ? 's' : ''}
               </Badge>
             </CardTitle>
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-2 flex-wrap">
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
-                  <Button size="sm" variant="outline" disabled={isDownloading || filteredDocuments.length === 0}>
+                  <Button size="sm" variant="outline" disabled={isDownloading || filteredDocuments.length === 0} className="whitespace-nowrap">
                     {isDownloading ? (
                       <Loader2 className="w-4 h-4 mr-1 animate-spin" />
                     ) : (
                       <Download className="w-4 h-4 mr-1" />
                     )}
-                    Baixar documentos
+                    Baixar PDF
                     <ChevronDown className="w-3 h-3 ml-1" />
                   </Button>
                 </DropdownMenuTrigger>
@@ -311,7 +413,7 @@ export function DocumentLibrary({ eixos, municipios, regioes, className }: Docum
                   </DropdownMenuItem>
                 </DropdownMenuContent>
               </DropdownMenu>
-              <Button size="sm" onClick={() => setShowUploadModal(true)}>
+              <Button size="sm" onClick={() => setShowUploadModal(true)} className="whitespace-nowrap">
                 <Plus className="w-4 h-4 mr-1" />
                 Adicionar
               </Button>
@@ -321,7 +423,7 @@ export function DocumentLibrary({ eixos, municipios, regioes, className }: Docum
         <CardContent className="space-y-4">
           {/* Filters */}
           <div className="flex flex-wrap gap-3">
-            <div className="flex-1 min-w-[200px]">
+            <div className="flex-1 min-w-full sm:min-w-[200px]">
               <div className="relative">
                 <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
                 <Input value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} placeholder="Buscar documentos..." className="pl-9" />
@@ -329,7 +431,7 @@ export function DocumentLibrary({ eixos, municipios, regioes, className }: Docum
             </div>
             
             <Select value={scopeFilter || "__all__"} onValueChange={(v) => setScopeFilter(v === "__all__" ? "" : v)}>
-              <SelectTrigger className="w-[160px]">
+              <SelectTrigger className="w-full sm:w-[160px]">
                 <SelectValue placeholder="Escopo" />
               </SelectTrigger>
               <SelectContent>
@@ -340,7 +442,7 @@ export function DocumentLibrary({ eixos, municipios, regioes, className }: Docum
             </Select>
 
             <Select value={categoryFilter || "__all__"} onValueChange={(v) => setCategoryFilter(v === "__all__" ? "" : v)}>
-              <SelectTrigger className="w-[180px]">
+              <SelectTrigger className="w-full sm:w-[180px]">
                 <Filter className="w-4 h-4 mr-2" />
                 <SelectValue placeholder="Categoria" />
               </SelectTrigger>
@@ -353,7 +455,7 @@ export function DocumentLibrary({ eixos, municipios, regioes, className }: Docum
             </Select>
 
             <Select value={statusFilter || "__all__"} onValueChange={(v) => setStatusFilter(v === "__all__" ? "" : v)}>
-              <SelectTrigger className="w-[180px]">
+              <SelectTrigger className="w-full sm:w-[180px]">
                 <SelectValue placeholder="Status temporal" />
               </SelectTrigger>
               <SelectContent>
