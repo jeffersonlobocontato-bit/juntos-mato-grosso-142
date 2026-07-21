@@ -197,8 +197,8 @@ const AudioRecorderBlock = ({ onTranscript }: Props) => {
           disabled={isTranscribing}
           className={`h-12 rounded-full inline-flex items-center justify-center gap-2 font-semibold text-sm transition ${
             isRecording
-              ? "bg-destructive text-destructive-foreground"
-              : "bg-gradient-gold text-primary-deep shadow-md hover:brightness-105"
+              ? "bg-destructive text-destructive-foreground animate-pulse"
+              : "bg-gradient-gold text-primary-deep shadow-md hover:brightness-105 animate-pulse-gold"
           } disabled:opacity-60 disabled:cursor-not-allowed`}
           style={!isRecording ? { color: "hsl(150 75% 16%)" } : undefined}
         >
