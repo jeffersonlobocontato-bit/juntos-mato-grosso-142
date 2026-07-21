@@ -339,6 +339,7 @@ export type Database = {
           file_url: string | null
           id: string
           is_active: boolean | null
+          metadata: Json | null
           municipio_id: string | null
           priority: number | null
           published_at: string | null
@@ -361,6 +362,7 @@ export type Database = {
           file_url?: string | null
           id?: string
           is_active?: boolean | null
+          metadata?: Json | null
           municipio_id?: string | null
           priority?: number | null
           published_at?: string | null
@@ -383,6 +385,7 @@ export type Database = {
           file_url?: string | null
           id?: string
           is_active?: boolean | null
+          metadata?: Json | null
           municipio_id?: string | null
           priority?: number | null
           published_at?: string | null

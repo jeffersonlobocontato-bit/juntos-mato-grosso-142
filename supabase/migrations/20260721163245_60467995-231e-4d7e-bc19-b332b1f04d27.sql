@@ -1,0 +1,1 @@
+ALTER TABLE public.ai_documents ADD COLUMN IF NOT EXISTS metadata JSONB DEFAULT '{}'::jsonb;
