@@ -22,7 +22,8 @@ import {
   ScrollText,
   ClipboardList,
   Building2,
-  BookOpen
+  BookOpen,
+  Zap
 } from 'lucide-react';
 
 const Admin = () => {
@@ -235,6 +236,32 @@ const Admin = () => {
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.5 }}
         >
+          <Link
+            to="/admin/cadastro-rapido"
+            className="group relative mb-6 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 overflow-hidden rounded-2xl border border-amber-400/40 bg-gradient-to-r from-amber-500 via-amber-400 to-yellow-300 px-5 py-4 shadow-lg transition hover:shadow-xl hover:brightness-105"
+          >
+            <div className="flex items-center gap-3 text-primary-deep">
+              <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-primary-deep text-amber-300 shadow-inner">
+                <Zap className="h-5 w-5" />
+              </span>
+              <div>
+                <p className="text-[11px] font-bold uppercase tracking-widest text-primary-deep/70">
+                  Novo
+                </p>
+                <p className="font-display text-lg font-extrabold leading-tight text-primary-deep">
+                  Cadastro Rápido
+                </p>
+                <p className="text-xs sm:text-sm text-primary-deep/80">
+                  Fotografe ou envie documentos direto do celular e cadastre propostas em segundos.
+                </p>
+              </div>
+            </div>
+            <span className="inline-flex items-center gap-1.5 rounded-full bg-primary-deep px-4 py-2 text-xs font-bold uppercase tracking-wider text-amber-300 shadow-md transition group-hover:translate-x-0.5">
+              Começar agora
+              <ArrowRight className="h-4 w-4" />
+            </span>
+          </Link>
+
           <div className="mb-8 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
             <div>
               <h1 className="text-3xl font-display font-bold mb-2">
