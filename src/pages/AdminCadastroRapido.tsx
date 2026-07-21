@@ -35,7 +35,7 @@ const AdminCadastroRapido = () => {
 
   useEffect(() => {
     supabase
-      .from('eixos')
+      .from('eixos_tematicos')
       .select('id, nome')
       .order('ordem', { ascending: true })
       .then(({ data }) => {
