@@ -6,7 +6,7 @@
     <!-- Security headers (Phase 1) -->
     <meta http-equiv="X-Content-Type-Options" content="nosniff" />
     <meta name="referrer" content="strict-origin-when-cross-origin" />
-    <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval' https://cdn.gpteng.co https://*.lovable.app https://*.lovable.dev https://*.mapbox.com https://api.mapbox.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com https://api.mapbox.com; font-src 'self' data: https://fonts.gstatic.com; img-src 'self' data: blob: https:; connect-src 'self' https://*.supabase.co wss://*.supabase.co https://*.mapbox.com https://api.mapbox.com https://events.mapbox.com https://lovable.dev https://*.lovable.app https://*.lovable.dev https://cdn.gpteng.co; worker-src 'self' blob:; frame-src 'self' https://*.lovable.app https://*.lovable.dev; frame-ancestors 'self' https://*.lovable.app https://*.lovable.dev; object-src 'none'; base-uri 'self'; form-action 'self';" />
+    <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval' https://cdn.gpteng.co https://*.lovable.app https://*.lovable.dev https://*.mapbox.com https://api.mapbox.com https://connect.facebook.net; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com https://api.mapbox.com; font-src 'self' data: https://fonts.gstatic.com; img-src 'self' data: blob: https:; connect-src 'self' https://*.supabase.co wss://*.supabase.co https://*.mapbox.com https://api.mapbox.com https://events.mapbox.com https://lovable.dev https://*.lovable.app https://*.lovable.dev https://cdn.gpteng.co https://connect.facebook.net https://www.facebook.com; worker-src 'self' blob:; frame-src 'self' https://*.lovable.app https://*.lovable.dev; frame-ancestors 'self' https://*.lovable.app https://*.lovable.dev; object-src 'none'; base-uri 'self'; form-action 'self';" />
     <title>Juntos Paraná 399 - Plano de Governo Colaborativo</title>
     <meta name="description" content="Juntos Paraná 399 - Uma iniciativa para construir colaborativamente um Plano de Governo para o Paraná, ouvindo quem vive os 399 municípios.">
     <meta name="author" content="Juntos Paraná 399" />
@@ -33,10 +33,29 @@
   <meta name="twitter:title" content="Juntos Paraná 399 - Plano de Governo Colaborativo">
   <meta property="og:description" content="Juntos Paraná 399 - Uma iniciativa para construir colaborativamente um Plano de Governo para o Paraná, ouvindo quem vive os 399 municípios.">
   <meta name="twitter:description" content="Juntos Paraná 399 - Uma iniciativa para construir colaborativamente um Plano de Governo para o Paraná, ouvindo quem vive os 399 municípios.">
+
+  <!-- Meta Pixel Code -->
+  <script>
+    !function(f,b,e,v,n,t,s)
+    {if(f.fbq)return;n=f.fbq=function(){n.callMethod?
+    n.callMethod.apply(n,arguments):n.queue.push(arguments)};
+    if(!f._fbq)f._fbq=n;n.push=n;n.loaded=!0;n.version='2.0';
+    n.queue=[];t=b.createElement(e);t.async=!0;
+    t.src=v;s=b.getElementsByTagName(e)[0];
+    s.parentNode.insertBefore(t,s)}(window, document,'script',
+    'https://connect.facebook.net/en_US/fbevents.js');
+    fbq('init', '959625647096421');
+    fbq('track', 'PageView');
+  </script>
+  <!-- End Meta Pixel Code -->
 </head>
 
   <body>
     <div id="root"></div>
+    <noscript>
+      <img height="1" width="1" style="display:none"
+        src="https://www.facebook.com/tr?id=959625647096421&ev=PageView&noscript=1" />
+    </noscript>
     <script type="module" src="/src/main.tsx"></script>
   </body>
 </html>
