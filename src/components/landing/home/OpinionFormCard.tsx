@@ -5,6 +5,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import AudioRecorderBlock from "./AudioRecorderBlock";
 import SuggestionConfirmationMap from "@/components/landing/SuggestionConfirmationMap";
+import { trackSugestaoLead } from "@/lib/metaPixel";
 
 interface Municipio { id: string; nome: string; latitude: number | null; longitude: number | null; }
 
@@ -77,6 +78,7 @@ const OpinionFormCard = () => {
     supabase.functions.invoke("classify-suggestion-eixo", {
       body: { sugestao_id: sugestaoId, descricao: sugestao },
     }).catch(() => {});
+    trackSugestaoLead(cidade);
     const municipio = municipios.find((m) => m.nome === cidade);
     setSubmitted({
       nome,

@@ -13,6 +13,7 @@ import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import SocialShareButtons from "./SocialShareButtons";
 import SuggestionConfirmationMap from "./SuggestionConfirmationMap";
+import { trackSugestaoLead } from "@/lib/metaPixel";
 
 interface Municipio {
   id: string;
@@ -163,6 +164,9 @@ const SuggestionForm = () => {
         body: { sugestao_id: insertedData.id, descricao, tema_ids: selectedTemaIds },
       }).catch(err => console.error('Analyze suggestion error:', err));
     }
+
+    // Evento de conversão para a campanha de tráfego pago (Meta Pixel)
+    trackSugestaoLead(municipio);
 
     setSubmittedData({
       descricao: descricao.slice(0, 100) + (descricao.length > 100 ? "..." : ""),
