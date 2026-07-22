@@ -316,6 +316,49 @@ const AdminAnalytics = () => {
           >
             {/* Stats Cards */}
             <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4 mb-8">
+              <Card className="col-span-2 md:col-span-3 lg:col-span-6 border-primary/40 bg-gradient-to-br from-primary/10 via-background to-secondary/10">
+                <CardContent className="pt-6">
+                  <div className="flex flex-wrap items-center justify-between gap-4">
+                    <div className="flex items-center gap-4">
+                      <div className="p-3 rounded-xl bg-primary/15">
+                        <Home className="w-6 h-6 text-primary" />
+                      </div>
+                      <div>
+                        <p className="text-xs uppercase tracking-wide text-muted-foreground font-semibold">
+                          Acessos da LP Home
+                        </p>
+                        <a
+                          href="https://juntosparana399.com.br"
+                          target="_blank"
+                          rel="noreferrer"
+                          className="text-sm text-primary hover:underline"
+                        >
+                          juntosparana399.com.br
+                        </a>
+                      </div>
+                    </div>
+                    <div className="flex items-center gap-8">
+                      <div>
+                        <p className="text-3xl font-bold">{homePageviews.toLocaleString()}</p>
+                        <p className="text-xs text-muted-foreground">Visualizações da Home</p>
+                      </div>
+                      <div>
+                        <p className="text-3xl font-bold">{homeUniqueVisitors.toLocaleString()}</p>
+                        <p className="text-xs text-muted-foreground">Visitantes Únicos</p>
+                      </div>
+                      <div className="hidden md:block">
+                        <p className="text-3xl font-bold">
+                          {homePageviews > 0 && homeUniqueVisitors > 0
+                            ? (homePageviews / homeUniqueVisitors).toFixed(1)
+                            : '0'}
+                        </p>
+                        <p className="text-xs text-muted-foreground">Views por Visitante</p>
+                      </div>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+
               <Card>
                 <CardContent className="pt-6">
                   <div className="flex items-center gap-3">
