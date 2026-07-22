@@ -165,8 +165,8 @@ const SuggestionForm = () => {
       }).catch(err => console.error('Analyze suggestion error:', err));
     }
 
-    // Evento de conversão para a campanha de tráfego pago (Meta Pixel)
-    trackSugestaoLead(municipio);
+    // Evento de conversão para a campanha de tráfego pago (Meta Pixel + CAPI)
+    trackSugestaoLead({ municipio, nome, email });
 
     setSubmittedData({
       descricao: descricao.slice(0, 100) + (descricao.length > 100 ? "..." : ""),
