@@ -78,7 +78,7 @@ const OpinionFormCard = () => {
     supabase.functions.invoke("classify-suggestion-eixo", {
       body: { sugestao_id: sugestaoId, descricao: sugestao },
     }).catch(() => {});
-    trackSugestaoLead(cidade);
+    trackSugestaoLead({ municipio: cidade, nome, telefone });
     const municipio = municipios.find((m) => m.nome === cidade);
     setSubmitted({
       nome,
