@@ -23,7 +23,8 @@ import {
   Layers,
   RefreshCw,
   Calendar,
-  Home
+  Home,
+  Target
 } from 'lucide-react';
 import {
   BarChart,
@@ -108,6 +109,21 @@ const AdminAnalytics = () => {
     enabled: !!user && (isAdmin || roles.includes('lider_tematico')),
   });
 
+  // Sugestões populares cadastradas no mesmo período (para taxa de conversão)
+  const { data: sugestoesCount = 0 } = useQuery({
+    queryKey: ['sugestoes-count', period],
+    queryFn: async () => {
+      const startDate = getStartDate().toISOString();
+      const { count, error } = await supabase
+        .from('sugestoes_populares')
+        .select('*', { count: 'exact', head: true })
+        .gte('created_at', startDate);
+      if (error) throw error;
+      return count || 0;
+    },
+    enabled: !!user && (isAdmin || roles.includes('lider_tematico')),
+  });
+
   // Cálculos de métricas
   const pageviews = events?.filter(e => e.event_type === 'pageview').length || 0;
   const uniqueVisitors = new Set(events?.map(e => e.visitor_id)).size;
@@ -115,6 +131,13 @@ const AdminAnalytics = () => {
   const homeEvents = events?.filter(e => e.page_path === '/' || e.page_path === '') || [];
   const homePageviews = homeEvents.filter(e => e.event_type === 'pageview').length;
   const homeUniqueVisitors = new Set(homeEvents.map(e => e.visitor_id)).size;
+  // Taxa de conversão: sugestões cadastradas / visitantes únicos da home
+  const conversionRate = homeUniqueVisitors > 0
+    ? (sugestoesCount / homeUniqueVisitors) * 100
+    : 0;
+  const conversionRateOverViews = homePageviews > 0
+    ? (sugestoesCount / homePageviews) * 100
+    : 0;
   const clicks = events?.filter(e => e.event_type === 'click').length || 0;
   const shares = events?.filter(e => e.event_type === 'share').length || 0;
   const avgTimeOnPage = events?.length 
