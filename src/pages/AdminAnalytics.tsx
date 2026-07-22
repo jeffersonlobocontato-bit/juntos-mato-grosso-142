@@ -382,6 +382,57 @@ const AdminAnalytics = () => {
                 </CardContent>
               </Card>
 
+              {/* Card de Taxa de Conversão: Visualizações LP × Sugestões Populares */}
+              <Card className="col-span-2 md:col-span-3 lg:col-span-6 border-accent/40 bg-gradient-to-br from-accent/10 via-background to-primary/10">
+                <CardContent className="pt-6">
+                  <div className="flex flex-wrap items-center justify-between gap-4">
+                    <div className="flex items-center gap-4">
+                      <div className="p-3 rounded-xl bg-accent/15">
+                        <Target className="w-6 h-6 text-accent" />
+                      </div>
+                      <div>
+                        <p className="text-xs uppercase tracking-wide text-muted-foreground font-semibold">
+                          Taxa de Conversão da LP
+                        </p>
+                        <p className="text-sm text-muted-foreground">
+                          Visitantes da Home que enviaram sugestão popular
+                        </p>
+                      </div>
+                    </div>
+                    <div className="flex items-center gap-8 flex-wrap">
+                      <div>
+                        <p className="text-3xl font-bold">{homePageviews.toLocaleString()}</p>
+                        <p className="text-xs text-muted-foreground">Visualizações LP</p>
+                      </div>
+                      <div>
+                        <p className="text-3xl font-bold">{homeUniqueVisitors.toLocaleString()}</p>
+                        <p className="text-xs text-muted-foreground">Visitantes Únicos</p>
+                      </div>
+                      <div>
+                        <p className="text-3xl font-bold">{sugestoesCount.toLocaleString()}</p>
+                        <p className="text-xs text-muted-foreground">Sugestões Cadastradas</p>
+                      </div>
+                      <div>
+                        <p className="text-3xl font-bold text-accent">
+                          {conversionRate.toFixed(2)}%
+                        </p>
+                        <p className="text-xs text-muted-foreground">
+                          Conversão / Visitante
+                        </p>
+                      </div>
+                      <div className="hidden md:block">
+                        <p className="text-3xl font-bold text-primary">
+                          {conversionRateOverViews.toFixed(2)}%
+                        </p>
+                        <p className="text-xs text-muted-foreground">
+                          Conversão / Visualização
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+
               <Card>
                 <CardContent className="pt-6">
                   <div className="flex items-center gap-3">
