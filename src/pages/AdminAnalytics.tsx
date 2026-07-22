@@ -22,7 +22,8 @@ import {
   Clock,
   Layers,
   RefreshCw,
-  Calendar
+  Calendar,
+  Home
 } from 'lucide-react';
 import {
   BarChart,
@@ -110,6 +111,10 @@ const AdminAnalytics = () => {
   // Cálculos de métricas
   const pageviews = events?.filter(e => e.event_type === 'pageview').length || 0;
   const uniqueVisitors = new Set(events?.map(e => e.visitor_id)).size;
+  // Acessos exclusivos da Home (LP juntosparana399.com.br → path "/")
+  const homeEvents = events?.filter(e => e.page_path === '/' || e.page_path === '') || [];
+  const homePageviews = homeEvents.filter(e => e.event_type === 'pageview').length;
+  const homeUniqueVisitors = new Set(homeEvents.map(e => e.visitor_id)).size;
   const clicks = events?.filter(e => e.event_type === 'click').length || 0;
   const shares = events?.filter(e => e.event_type === 'share').length || 0;
   const avgTimeOnPage = events?.length 
