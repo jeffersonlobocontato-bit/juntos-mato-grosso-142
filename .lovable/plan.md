@@ -1,50 +1,60 @@
-
 ## Diagnóstico
 
-O painel `/admin/analytics` não travou por bug novo — está batendo no **limite padrão de 1000 linhas** que o PostgREST aplica quando não há `range()`/`limit()` explícito.
+O painel `/admin/analytics` **está contando corretamente o que existe no banco**. Confirmei hora a hora consultando `page_analytics_events` direto no Postgres:
 
-Dados atuais confirmados no banco:
-- Total de eventos em `page_analytics_events`: **4.413**
-- Últimos 7 dias: **1.245** eventos
-- Últimas 24h: 949 eventos
+- Hoje (23/07, até 11h SP): **203** pageviews na Home, **195** visitantes únicos
+- Ontem (22/07): **903** pageviews Home / 843 visitantes únicos
+- Ontem até 11h SP: ~495 pageviews (mais que o dobro do ritmo de hoje)
 
-A query em `src/pages/AdminAnalytics.tsx` (linhas 96-108) faz:
+Ou seja, a queda que você vê no dashboard **existe de verdade nos dados brutos** — não é bug de leitura, paginação, fuso ou de limite do PostgREST.
 
-```ts
-supabase.from('page_analytics_events').select('*').gte('created_at', startDate).order(..., { ascending: false })
+Mas isso não fecha a pergunta "por que caiu tanto se tem tráfego pago rodando". Auditando o tracker, identifiquei uma causa técnica que **subconta tráfego pago de forma consistente** — clique em anúncio → landing → bounce em 1–3 s. Ela não explica sozinha uma queda de dia para dia, mas explica por que o número que chega no banco é sempre menor do que o painel do Meta/Google Ads reporta.
+
+### Causa técnica da subcontagem (código atual)
+
+Em `src/hooks/useAnalytics.tsx`, o `trackPageview` faz:
+
+```
+1. await getGeoLocation()   ← chama Edge Function geolocate-visitor (rede)
+2. await supabase.from('page_analytics_events').insert(...)  ← insert padrão via fetch
 ```
 
-Sem paginação, o cliente recebe no máximo 1.000 linhas — as **mais recentes**. Efeitos visíveis:
-- Contadores de "visualizações" travam em ~1.000.
-- Séries temporais (engajamento por dia/hora) perdem os pontos mais antigos do período, então a curva "despenca" na borda esquerda.
-- Períodos maiores (30d/90d/all) ficam progressivamente mais distorcidos.
+Problemas para tráfego pago (mobile, in-app browser do Instagram/Facebook, conexão lenta):
 
-Nenhum evento foi perdido; eles estão todos no banco.
+- O `await` da Edge Function bloqueia o insert. Se a pessoa fecha a aba antes da resposta voltar, o pageview **nunca é gravado**.
+- O insert é `fetch` padrão, não `sendBeacon`. Fetch em curso é abortado quando a aba é fechada. `sendBeacon` só está sendo usado no `session_end`, nunca no pageview.
+- In-app browsers (Instagram/Facebook) frequentemente entram em "webview efêmero": localStorage é volátil, cada view vira um `visitor_id` novo → explica também por que `visitantes ≈ pageviews` (praticamente 1 view por visitante).
+- Se `geolocate-visitor` falhar ou demorar por qualquer motivo momentâneo, uma janela inteira de pageviews desaparece.
 
-## Correção
+### Segunda hipótese (a validar)
 
-Trocar a query única por uma **busca paginada** que percorre todo o intervalo em lotes de 1.000, até esgotar os resultados.
+Discrepância entre "reportado pelo Meta Ads" e "chegou no banco" é normal (10–30%). Se a diferença estiver acima disso, o gargalo é o item acima. Se estiver dentro disso, a queda de acessos é **real** (fadiga de criativo, saldo/pausa da campanha, mudança de segmentação) e o diagnóstico é de mídia, não de código.
 
-### Passos
+## Correção proposta
 
-1. **`src/pages/AdminAnalytics.tsx`** — refatorar o `queryFn` do `useQuery(['analytics-events', period])`:
-   - Loop com `.range(from, from + PAGE_SIZE - 1)` (PAGE_SIZE = 1000).
-   - Parar quando o lote retornar menos que `PAGE_SIZE`.
-   - Concatenar todos os lotes antes de retornar.
-   - Selecionar apenas as colunas usadas nos gráficos (em vez de `*`) para reduzir payload — inspecionar o arquivo inteiro para listar campos consumidos (event_type, component_name, component_action, page_path, referrer, utm_*, device_type, browser, os, country, region, city, scroll_depth, time_on_page, session_id, visitor_id, metadata, created_at).
-   - Manter o `order('created_at', { ascending: false })` para determinismo entre páginas.
+Deixar o dashboard como está (números são fiéis ao banco) e **endurecer o tracker** para capturar pageviews de bounce.
 
-2. **Guard-rail de tamanho** — adicionar um teto defensivo (ex.: `MAX_ROWS = 50_000`) para períodos "all" muito grandes não estourarem memória do browser; se atingir, mostrar um aviso discreto no topo do painel ("Exibindo os N eventos mais recentes do período").
+1. **`src/hooks/useAnalytics.tsx` — `trackPageview` resiliente**
+   - Disparar o insert do pageview **imediatamente**, sem esperar `getGeoLocation()`.
+   - Usar `navigator.sendBeacon` como método primário para o pageview inicial (mesmo padrão que já está no `session_end`). Fallback para `fetch` com `keepalive: true` quando `sendBeacon` não estiver disponível.
+   - Enviar geolocalização em um segundo evento (`geo_enrich`) ou pular quando a página fecha rápido — nunca bloquear o pageview por causa dela.
+   - Manter o `visitor_id` no localStorage, mas gravar também em cookie de 1º-party (fallback para in-app browsers que perdem localStorage entre sessões).
 
-3. **Sem mudanças de schema** e sem tocar em RLS — a paginação resolve inteiramente o sintoma.
+2. **Validação end-to-end**
+   - Após o deploy, esperar 24 h e comparar:
+     - Pageviews da Home no `/admin/analytics`
+     - Pageviews reportados pelo Meta Pixel (Gerenciador de Eventos)
+   - Diferença esperada: < 15%. Se continuar alta, o problema é bloqueador/adblock, não código nosso.
+
+3. **Guard-rail no painel**
+   - Adicionar em `AdminAnalytics.tsx` uma nota discreta no card "Acessos da LP Home" indicando que o número reflete apenas quem carregou a página tempo suficiente para o tracker disparar (subestima 10–20% do tráfego pago).
+
+## Fora do escopo
+
+- Migrar tracking para uma Edge Function dedicada com fila (mais robusto, mas requer refactor grande).
+- Adicionar consent banner LGPD (hoje não bloqueia, mas se for exigência jurídica pode mudar o comportamento).
 
 ## Verificação
 
-Depois de aplicar:
-- Selecionar "7 dias" e conferir que o contador total de eventos passa de 1.000 e bate com `SELECT count(*) FROM page_analytics_events WHERE created_at >= now() - interval '7 days'`.
-- Conferir que o gráfico de engajamento volta a ter a curva completa nos dias mais antigos do período.
-- Testar "30 dias" e "90 dias" para garantir que o loop de paginação termina e a UI não congela.
-
-## Fora do escopo (proposta para depois, se quiser)
-
-Para períodos grandes (30d+) o ideal a médio prazo é substituir o fetch bruto por **RPCs de agregação** no Postgres (série temporal, contagens por componente/canal já agregadas), retornando dezenas de linhas em vez de milhares. Isso reduz custo de rede e CPU do browser. Posso planejar isso num passo seguinte se quiser.
+- Abrir `/admin/analytics` → confirmar que os números atuais **são** os do banco (já validado no diagnóstico).
+- Depois da correção do tracker: abrir a home em rede lenta (DevTools throttling "Slow 3G"), fechar a aba antes de 2 s, conferir que o pageview aparece em `page_analytics_events` mesmo assim.
