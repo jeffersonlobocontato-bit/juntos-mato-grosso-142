@@ -612,16 +612,110 @@ const AdminAnalytics = () => {
               </Card>
 
               <Card className="col-span-2 md:col-span-3 lg:col-span-6 border-secondary/40 bg-gradient-to-br from-secondary/10 via-background to-primary/10">
-                <CardContent className="pt-6">
-                  <div className="flex items-center gap-4">
-                    <div className="p-3 rounded-lg bg-secondary/15">
-                      <Building2 className="w-6 h-6 text-secondary" />
+                <button
+                  type="button"
+                  onClick={() => setShowCidades((v) => !v)}
+                  className="w-full text-left"
+                  aria-expanded={showCidades}
+                >
+                  <CardContent className="pt-6">
+                    <div className="flex items-center gap-4">
+                      <div className="p-3 rounded-lg bg-secondary/15">
+                        <Building2 className="w-6 h-6 text-secondary" />
+                      </div>
+                      <div className="flex-1">
+                        <p className="text-3xl font-bold">{cidadesComPropostas.toLocaleString('pt-BR')}</p>
+                        <p className="text-sm text-muted-foreground">
+                          Cidades que enviaram propostas no período — clique para {showCidades ? 'ocultar' : 'ver a lista completa'}
+                        </p>
+                      </div>
+                      {showCidades ? (
+                        <ChevronUp className="w-5 h-5 text-muted-foreground" />
+                      ) : (
+                        <ChevronDown className="w-5 h-5 text-muted-foreground" />
+                      )}
                     </div>
-                    <div className="flex-1">
-                      <p className="text-3xl font-bold">{cidadesComPropostas.toLocaleString('pt-BR')}</p>
-                      <p className="text-sm text-muted-foreground">
-                        Cidades que enviaram propostas no período
-                      </p>
+                  </CardContent>
+                </button>
+                {showCidades && (
+                  <CardContent className="pt-0">
+                    {cidadesRanking.length === 0 ? (
+                      <p className="text-sm text-muted-foreground py-4">Nenhuma cidade registrada no período.</p>
+                    ) : (
+                      <div className="max-h-96 overflow-y-auto border-t border-border/60 divide-y divide-border/40">
+                        {cidadesRanking.map((c, i) => (
+                          <div key={c.label + i} className="flex items-center justify-between py-2 px-1 text-sm">
+                            <div className="flex items-center gap-3">
+                              <span className="w-6 text-xs text-muted-foreground text-right">{i + 1}º</span>
+                              <span className="font-medium capitalize">{c.label}</span>
+                            </div>
+                            <span className="font-semibold tabular-nums">
+                              {c.count.toLocaleString('pt-BR')} {c.count === 1 ? 'proposta' : 'propostas'}
+                            </span>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </CardContent>
+                )}
+              </Card>
+
+              {/* Ranking de Engajamento */}
+              <Card className="col-span-2 md:col-span-3 lg:col-span-6 border-primary/40 bg-gradient-to-br from-primary/5 via-background to-accent/5">
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2">
+                    <Trophy className="w-5 h-5 text-accent" />
+                    Ranking de Engajamento
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="pt-0">
+                  <div className="grid gap-6 md:grid-cols-2">
+                    <div>
+                      <div className="flex items-center gap-2 mb-3 text-sm font-semibold text-muted-foreground">
+                        <Building2 className="w-4 h-4" />
+                        Top cidades mais engajadas
+                      </div>
+                      {topCidades.length === 0 ? (
+                        <p className="text-sm text-muted-foreground">Sem dados no período.</p>
+                      ) : (
+                        <div className="divide-y divide-border/40">
+                          {topCidades.map((c, i) => (
+                            <div key={c.label + i} className="flex items-center justify-between py-2 text-sm">
+                              <div className="flex items-center gap-3">
+                                <span className={`w-6 text-xs text-right ${i < 3 ? 'text-accent font-bold' : 'text-muted-foreground'}`}>{i + 1}º</span>
+                                <span className="font-medium capitalize">{c.label}</span>
+                              </div>
+                              <span className="font-semibold tabular-nums">{c.count.toLocaleString('pt-BR')}</span>
+                            </div>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+                    <div>
+                      <div className="flex items-center gap-2 mb-3 text-sm font-semibold text-muted-foreground">
+                        <UserIcon className="w-4 h-4" />
+                        Cidadãos mais engajados
+                      </div>
+                      {cidadaosRanking.length === 0 ? (
+                        <p className="text-sm text-muted-foreground">Sem dados no período.</p>
+                      ) : (
+                        <div className="divide-y divide-border/40">
+                          {cidadaosRanking.map((p, i) => (
+                            <div key={p.nome + i} className="flex items-center justify-between py-2 text-sm gap-3">
+                              <div className="flex items-center gap-3 min-w-0">
+                                <span className={`w-6 text-xs text-right ${i < 3 ? 'text-accent font-bold' : 'text-muted-foreground'}`}>{i + 1}º</span>
+                                <div className="min-w-0">
+                                  <p className="font-medium truncate">{p.nome}</p>
+                                  {p.municipio && (
+                                    <p className="text-xs text-muted-foreground capitalize truncate">{p.municipio}</p>
+                                  )}
+                                </div>
+                              </div>
+                              <span className="font-semibold tabular-nums shrink-0">{p.count.toLocaleString('pt-BR')}</span>
+                            </div>
+                          ))}
+                        </div>
+                      )}
                     </div>
                   </div>
                 </CardContent>
