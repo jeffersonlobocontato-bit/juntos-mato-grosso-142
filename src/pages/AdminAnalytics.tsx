@@ -25,7 +25,11 @@ import {
   Calendar,
   Home,
   Target,
-  Building2
+  Building2,
+  ChevronDown,
+  ChevronUp,
+  Trophy,
+  User as UserIcon
 } from 'lucide-react';
 import {
   BarChart,
@@ -74,6 +78,7 @@ const AdminAnalytics = () => {
   const { user, isLoading: authLoading, isAdmin, roles } = useAuth();
   const navigate = useNavigate();
   const [period, setPeriod] = useState<Period>('7d');
+  const [showCidades, setShowCidades] = useState(false);
 
   useEffect(() => {
     if (!authLoading && !user) {
@@ -138,35 +143,63 @@ const AdminAnalytics = () => {
     enabled: !!user && (isAdmin || roles.includes('lider_tematico')),
   });
 
-  // Cidades distintas que enviaram sugestões no período
-  const { data: cidadesComPropostas = 0 } = useQuery({
-    queryKey: ['cidades-com-propostas', period],
+  // Sugestões do período (usado para ranking de cidades e cidadãos)
+  const { data: sugestoesPeriodo = [] } = useQuery({
+    queryKey: ['sugestoes-periodo-ranking', period],
     queryFn: async () => {
       const startDate = getStartDate().toISOString();
       const PAGE_SIZE = 1000;
       const MAX_ROWS = 50000;
-      const cidades = new Set<string>();
+      const all: Array<{ municipio: string | null; nome: string | null; email: string | null }> = [];
       let from = 0;
       while (from < MAX_ROWS) {
         const to = Math.min(from + PAGE_SIZE, MAX_ROWS) - 1;
         const { data, error } = await supabase
           .from('sugestoes_populares')
-          .select('municipio')
+          .select('municipio, nome, email')
           .gte('created_at', startDate)
           .range(from, to);
         if (error) throw error;
         const batch = data || [];
-        batch.forEach((r: any) => {
-          const m = (r.municipio || '').trim().toLowerCase();
-          if (m) cidades.add(m);
-        });
+        all.push(...(batch as any));
         if (batch.length < PAGE_SIZE) break;
         from += PAGE_SIZE;
       }
-      return cidades.size;
+      return all;
     },
     enabled: !!user && (isAdmin || roles.includes('lider_tematico')),
   });
+
+  // Ranking de cidades (por número de propostas)
+  const cidadesRanking = (() => {
+    const map = new Map<string, { label: string; count: number }>();
+    sugestoesPeriodo.forEach((s) => {
+      const raw = (s.municipio || '').trim();
+      if (!raw) return;
+      const key = raw.toLowerCase();
+      const cur = map.get(key);
+      if (cur) cur.count += 1;
+      else map.set(key, { label: raw, count: 1 });
+    });
+    return Array.from(map.values()).sort((a, b) => b.count - a.count);
+  })();
+  const cidadesComPropostas = cidadesRanking.length;
+
+  // Ranking de cidadãos (por número de propostas)
+  const cidadaosRanking = (() => {
+    const map = new Map<string, { nome: string; municipio: string; count: number }>();
+    sugestoesPeriodo.forEach((s) => {
+      const nome = (s.nome || '').trim();
+      const email = (s.email || '').trim().toLowerCase();
+      const key = email || nome.toLowerCase();
+      if (!key || !nome) return;
+      const cur = map.get(key);
+      if (cur) cur.count += 1;
+      else map.set(key, { nome, municipio: (s.municipio || '').trim(), count: 1 });
+    });
+    return Array.from(map.values()).sort((a, b) => b.count - a.count).slice(0, 10);
+  })();
+  const topCidades = cidadesRanking.slice(0, 10);
 
   // Cálculos de métricas
   const pageviews = events?.filter(e => e.event_type === 'pageview').length || 0;
@@ -579,16 +612,110 @@ const AdminAnalytics = () => {
               </Card>
 
               <Card className="col-span-2 md:col-span-3 lg:col-span-6 border-secondary/40 bg-gradient-to-br from-secondary/10 via-background to-primary/10">
-                <CardContent className="pt-6">
-                  <div className="flex items-center gap-4">
-                    <div className="p-3 rounded-lg bg-secondary/15">
-                      <Building2 className="w-6 h-6 text-secondary" />
+                <button
+                  type="button"
+                  onClick={() => setShowCidades((v) => !v)}
+                  className="w-full text-left"
+                  aria-expanded={showCidades}
+                >
+                  <CardContent className="pt-6">
+                    <div className="flex items-center gap-4">
+                      <div className="p-3 rounded-lg bg-secondary/15">
+                        <Building2 className="w-6 h-6 text-secondary" />
+                      </div>
+                      <div className="flex-1">
+                        <p className="text-3xl font-bold">{cidadesComPropostas.toLocaleString('pt-BR')}</p>
+                        <p className="text-sm text-muted-foreground">
+                          Cidades que enviaram propostas no período — clique para {showCidades ? 'ocultar' : 'ver a lista completa'}
+                        </p>
+                      </div>
+                      {showCidades ? (
+                        <ChevronUp className="w-5 h-5 text-muted-foreground" />
+                      ) : (
+                        <ChevronDown className="w-5 h-5 text-muted-foreground" />
+                      )}
                     </div>
-                    <div className="flex-1">
-                      <p className="text-3xl font-bold">{cidadesComPropostas.toLocaleString('pt-BR')}</p>
-                      <p className="text-sm text-muted-foreground">
-                        Cidades que enviaram propostas no período
-                      </p>
+                  </CardContent>
+                </button>
+                {showCidades && (
+                  <CardContent className="pt-0">
+                    {cidadesRanking.length === 0 ? (
+                      <p className="text-sm text-muted-foreground py-4">Nenhuma cidade registrada no período.</p>
+                    ) : (
+                      <div className="max-h-96 overflow-y-auto border-t border-border/60 divide-y divide-border/40">
+                        {cidadesRanking.map((c, i) => (
+                          <div key={c.label + i} className="flex items-center justify-between py-2 px-1 text-sm">
+                            <div className="flex items-center gap-3">
+                              <span className="w-6 text-xs text-muted-foreground text-right">{i + 1}º</span>
+                              <span className="font-medium capitalize">{c.label}</span>
+                            </div>
+                            <span className="font-semibold tabular-nums">
+                              {c.count.toLocaleString('pt-BR')} {c.count === 1 ? 'proposta' : 'propostas'}
+                            </span>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </CardContent>
+                )}
+              </Card>
+
+              {/* Ranking de Engajamento */}
+              <Card className="col-span-2 md:col-span-3 lg:col-span-6 border-primary/40 bg-gradient-to-br from-primary/5 via-background to-accent/5">
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2">
+                    <Trophy className="w-5 h-5 text-accent" />
+                    Ranking de Engajamento
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="pt-0">
+                  <div className="grid gap-6 md:grid-cols-2">
+                    <div>
+                      <div className="flex items-center gap-2 mb-3 text-sm font-semibold text-muted-foreground">
+                        <Building2 className="w-4 h-4" />
+                        Top cidades mais engajadas
+                      </div>
+                      {topCidades.length === 0 ? (
+                        <p className="text-sm text-muted-foreground">Sem dados no período.</p>
+                      ) : (
+                        <div className="divide-y divide-border/40">
+                          {topCidades.map((c, i) => (
+                            <div key={c.label + i} className="flex items-center justify-between py-2 text-sm">
+                              <div className="flex items-center gap-3">
+                                <span className={`w-6 text-xs text-right ${i < 3 ? 'text-accent font-bold' : 'text-muted-foreground'}`}>{i + 1}º</span>
+                                <span className="font-medium capitalize">{c.label}</span>
+                              </div>
+                              <span className="font-semibold tabular-nums">{c.count.toLocaleString('pt-BR')}</span>
+                            </div>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+                    <div>
+                      <div className="flex items-center gap-2 mb-3 text-sm font-semibold text-muted-foreground">
+                        <UserIcon className="w-4 h-4" />
+                        Cidadãos mais engajados
+                      </div>
+                      {cidadaosRanking.length === 0 ? (
+                        <p className="text-sm text-muted-foreground">Sem dados no período.</p>
+                      ) : (
+                        <div className="divide-y divide-border/40">
+                          {cidadaosRanking.map((p, i) => (
+                            <div key={p.nome + i} className="flex items-center justify-between py-2 text-sm gap-3">
+                              <div className="flex items-center gap-3 min-w-0">
+                                <span className={`w-6 text-xs text-right ${i < 3 ? 'text-accent font-bold' : 'text-muted-foreground'}`}>{i + 1}º</span>
+                                <div className="min-w-0">
+                                  <p className="font-medium truncate">{p.nome}</p>
+                                  {p.municipio && (
+                                    <p className="text-xs text-muted-foreground capitalize truncate">{p.municipio}</p>
+                                  )}
+                                </div>
+                              </div>
+                              <span className="font-semibold tabular-nums shrink-0">{p.count.toLocaleString('pt-BR')}</span>
+                            </div>
+                          ))}
+                        </div>
+                      )}
                     </div>
                   </div>
                 </CardContent>
