@@ -25,7 +25,11 @@ import {
   Calendar,
   Home,
   Target,
-  Building2
+  Building2,
+  ChevronDown,
+  ChevronUp,
+  Trophy,
+  User as UserIcon
 } from 'lucide-react';
 import {
   BarChart,
