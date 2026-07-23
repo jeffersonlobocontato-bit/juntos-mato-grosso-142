@@ -24,7 +24,8 @@ import {
   RefreshCw,
   Calendar,
   Home,
-  Target
+  Target,
+  Building2
 } from 'lucide-react';
 import {
   BarChart,
@@ -133,6 +134,36 @@ const AdminAnalytics = () => {
         .gte('created_at', startDate);
       if (error) throw error;
       return count || 0;
+    },
+    enabled: !!user && (isAdmin || roles.includes('lider_tematico')),
+  });
+
+  // Cidades distintas que enviaram sugestões no período
+  const { data: cidadesComPropostas = 0 } = useQuery({
+    queryKey: ['cidades-com-propostas', period],
+    queryFn: async () => {
+      const startDate = getStartDate().toISOString();
+      const PAGE_SIZE = 1000;
+      const MAX_ROWS = 50000;
+      const cidades = new Set<string>();
+      let from = 0;
+      while (from < MAX_ROWS) {
+        const to = Math.min(from + PAGE_SIZE, MAX_ROWS) - 1;
+        const { data, error } = await supabase
+          .from('sugestoes_populares')
+          .select('municipio')
+          .gte('created_at', startDate)
+          .range(from, to);
+        if (error) throw error;
+        const batch = data || [];
+        batch.forEach((r: any) => {
+          const m = (r.municipio || '').trim().toLowerCase();
+          if (m) cidades.add(m);
+        });
+        if (batch.length < PAGE_SIZE) break;
+        from += PAGE_SIZE;
+      }
+      return cidades.size;
     },
     enabled: !!user && (isAdmin || roles.includes('lider_tematico')),
   });
