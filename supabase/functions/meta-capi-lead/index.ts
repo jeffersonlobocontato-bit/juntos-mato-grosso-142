@@ -2,6 +2,7 @@ import { corsHeaders } from 'npm:@supabase/supabase-js@2/cors';
 
 const PIXEL_ID = '959625647096421';
 const ACCESS_TOKEN = Deno.env.get('META_CAPI_ACCESS_TOKEN');
+const TEST_EVENT_CODE = Deno.env.get('META_CAPI_TEST_EVENT_CODE');
 
 async function sha256(input: string): Promise<string> {
   const buf = new TextEncoder().encode(input.trim().toLowerCase());
@@ -68,6 +69,7 @@ Deno.serve(async (req) => {
           custom_data: { content_name: 'sugestao_popular', municipio: municipio || null },
         },
       ],
+      ...(TEST_EVENT_CODE ? { test_event_code: TEST_EVENT_CODE } : {}),
     };
 
     const resp = await fetch(
