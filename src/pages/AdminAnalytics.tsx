@@ -78,6 +78,7 @@ const AdminAnalytics = () => {
   const { user, isLoading: authLoading, isAdmin, roles } = useAuth();
   const navigate = useNavigate();
   const [period, setPeriod] = useState<Period>('7d');
+  const [showCidades, setShowCidades] = useState(false);
 
   useEffect(() => {
     if (!authLoading && !user) {
