@@ -234,23 +234,36 @@ const AdminAnalytics = () => {
     fill: item.color,
   }));
 
-  // Dados de timeline para gráfico de evolução
+  // Dados de timeline por dia no fuso America/Sao_Paulo
+  // (usar toISOString().split('T')[0] agrupava em UTC e "vazava" eventos após 21h
+  // para o dia seguinte, deixando "hoje" com contagem truncada)
+  const dayFormatter = new Intl.DateTimeFormat('en-CA', {
+    timeZone: 'America/Sao_Paulo',
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
+  });
+  const labelFormatter = new Intl.DateTimeFormat('pt-BR', {
+    timeZone: 'America/Sao_Paulo',
+    day: '2-digit',
+    month: '2-digit',
+  });
   const timelineData = events?.reduce((acc, e) => {
-    const date = new Date(e.created_at).toISOString().split('T')[0];
+    const d = new Date(e.created_at);
+    const date = dayFormatter.format(d); // YYYY-MM-DD em SP
     if (!acc[date]) {
-      acc[date] = { pageviews: 0, clicks: 0, shares: 0 };
+      acc[date] = { pageviews: 0, clicks: 0, shares: 0, label: labelFormatter.format(d) };
     }
     if (e.event_type === 'pageview') acc[date].pageviews++;
     if (e.event_type === 'click') acc[date].clicks++;
     if (e.event_type === 'share') acc[date].shares++;
     return acc;
-  }, {} as Record<string, { pageviews: number; clicks: number; shares: number }>) || {};
+  }, {} as Record<string, { pageviews: number; clicks: number; shares: number; label: string }>) || {};
 
-  // Dados de timeline formatados para gráfico de linhas
   const lineChartData = Object.entries(timelineData)
     .sort(([a], [b]) => a.localeCompare(b))
-    .map(([date, data]) => ({
-      name: new Date(date).toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit' }),
+    .map(([, data]) => ({
+      name: data.label,
       pageviews: data.pageviews,
       clicks: data.clicks,
       shares: data.shares,
