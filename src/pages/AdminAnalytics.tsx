@@ -143,35 +143,63 @@ const AdminAnalytics = () => {
     enabled: !!user && (isAdmin || roles.includes('lider_tematico')),
   });
 
-  // Cidades distintas que enviaram sugestões no período
-  const { data: cidadesComPropostas = 0 } = useQuery({
-    queryKey: ['cidades-com-propostas', period],
+  // Sugestões do período (usado para ranking de cidades e cidadãos)
+  const { data: sugestoesPeriodo = [] } = useQuery({
+    queryKey: ['sugestoes-periodo-ranking', period],
     queryFn: async () => {
       const startDate = getStartDate().toISOString();
       const PAGE_SIZE = 1000;
       const MAX_ROWS = 50000;
-      const cidades = new Set<string>();
+      const all: Array<{ municipio: string | null; nome: string | null; email: string | null }> = [];
       let from = 0;
       while (from < MAX_ROWS) {
         const to = Math.min(from + PAGE_SIZE, MAX_ROWS) - 1;
         const { data, error } = await supabase
           .from('sugestoes_populares')
-          .select('municipio')
+          .select('municipio, nome, email')
           .gte('created_at', startDate)
           .range(from, to);
         if (error) throw error;
         const batch = data || [];
-        batch.forEach((r: any) => {
-          const m = (r.municipio || '').trim().toLowerCase();
-          if (m) cidades.add(m);
-        });
+        all.push(...(batch as any));
         if (batch.length < PAGE_SIZE) break;
         from += PAGE_SIZE;
       }
-      return cidades.size;
+      return all;
     },
     enabled: !!user && (isAdmin || roles.includes('lider_tematico')),
   });
+
+  // Ranking de cidades (por número de propostas)
+  const cidadesRanking = (() => {
+    const map = new Map<string, { label: string; count: number }>();
+    sugestoesPeriodo.forEach((s) => {
+      const raw = (s.municipio || '').trim();
+      if (!raw) return;
+      const key = raw.toLowerCase();
+      const cur = map.get(key);
+      if (cur) cur.count += 1;
+      else map.set(key, { label: raw, count: 1 });
+    });
+    return Array.from(map.values()).sort((a, b) => b.count - a.count);
+  })();
+  const cidadesComPropostas = cidadesRanking.length;
+
+  // Ranking de cidadãos (por número de propostas)
+  const cidadaosRanking = (() => {
+    const map = new Map<string, { nome: string; municipio: string; count: number }>();
+    sugestoesPeriodo.forEach((s) => {
+      const nome = (s.nome || '').trim();
+      const email = (s.email || '').trim().toLowerCase();
+      const key = email || nome.toLowerCase();
+      if (!key || !nome) return;
+      const cur = map.get(key);
+      if (cur) cur.count += 1;
+      else map.set(key, { nome, municipio: (s.municipio || '').trim(), count: 1 });
+    });
+    return Array.from(map.values()).sort((a, b) => b.count - a.count).slice(0, 10);
+  })();
+  const topCidades = cidadesRanking.slice(0, 10);
 
   // Cálculos de métricas
   const pageviews = events?.filter(e => e.event_type === 'pageview').length || 0;
