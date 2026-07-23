@@ -577,6 +577,22 @@ const AdminAnalytics = () => {
                   </div>
                 </CardContent>
               </Card>
+
+              <Card className="col-span-2 md:col-span-3 lg:col-span-6 border-secondary/40 bg-gradient-to-br from-secondary/10 via-background to-primary/10">
+                <CardContent className="pt-6">
+                  <div className="flex items-center gap-4">
+                    <div className="p-3 rounded-lg bg-secondary/15">
+                      <Building2 className="w-6 h-6 text-secondary" />
+                    </div>
+                    <div className="flex-1">
+                      <p className="text-3xl font-bold">{cidadesComPropostas.toLocaleString('pt-BR')}</p>
+                      <p className="text-sm text-muted-foreground">
+                        Cidades que enviaram propostas no período
+                      </p>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
             </div>
 
             {/* Tabs */}
