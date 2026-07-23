@@ -97,14 +97,27 @@ const AdminAnalytics = () => {
     queryKey: ['analytics-events', period],
     queryFn: async () => {
       const startDate = getStartDate().toISOString();
-      const { data, error } = await supabase
-        .from('page_analytics_events')
-        .select('*')
-        .gte('created_at', startDate)
-        .order('created_at', { ascending: false });
-      
-      if (error) throw error;
-      return data || [];
+      const PAGE_SIZE = 1000;
+      const MAX_ROWS = 50000;
+      const baseQuery = supabase.from('page_analytics_events').select('*').limit(0);
+      type EventRow = NonNullable<Awaited<typeof baseQuery>['data']>[number];
+      const all: EventRow[] = [];
+      let from = 0;
+      while (from < MAX_ROWS) {
+        const to = Math.min(from + PAGE_SIZE, MAX_ROWS) - 1;
+        const { data, error } = await supabase
+          .from('page_analytics_events')
+          .select('*')
+          .gte('created_at', startDate)
+          .order('created_at', { ascending: false })
+          .range(from, to);
+        if (error) throw error;
+        const batch = data || [];
+        all.push(...batch);
+        if (batch.length < PAGE_SIZE) break;
+        from += PAGE_SIZE;
+      }
+      return all;
     },
     enabled: !!user && (isAdmin || roles.includes('lider_tematico')),
   });
