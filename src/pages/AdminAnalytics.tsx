@@ -99,7 +99,8 @@ const AdminAnalytics = () => {
       const startDate = getStartDate().toISOString();
       const PAGE_SIZE = 1000;
       const MAX_ROWS = 50000;
-      const all: any[] = [];
+      type EventRow = Awaited<ReturnType<typeof supabase.from<'page_analytics_events'>['prototype']['select']>>['data'] extends (infer U)[] | null ? U : never;
+      const all: NonNullable<Awaited<ReturnType<typeof supabase.from<any>>['select']>['data']> = [] as any;
       let from = 0;
       while (from < MAX_ROWS) {
         const to = Math.min(from + PAGE_SIZE, MAX_ROWS) - 1;
