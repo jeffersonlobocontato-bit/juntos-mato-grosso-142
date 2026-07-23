@@ -405,6 +405,10 @@ const AdminAnalytics = () => {
                       </div>
                     </div>
                   </div>
+                  <p className="mt-4 text-[11px] text-muted-foreground/80 leading-snug">
+                    Contagem baseada em quem carregou a página tempo suficiente para o tracker disparar.
+                    Tráfego pago (mobile / in-app browser) tende a ser subestimado em 10–20% frente ao Meta Ads/Google Ads.
+                  </p>
                 </CardContent>
               </Card>
 

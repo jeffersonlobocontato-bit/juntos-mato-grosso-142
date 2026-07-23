@@ -8,11 +8,33 @@ const generateSessionId = () => {
 
 // Gerar/recuperar visitor ID do localStorage
 const getVisitorId = () => {
-  const stored = localStorage.getItem('rota399_visitor_id');
-  if (stored) return stored;
-  
+  const KEY = 'rota399_visitor_id';
+  // 1. localStorage
+  try {
+    const stored = localStorage.getItem(KEY);
+    if (stored) {
+      // Sincroniza para cookie (fallback in-app browsers)
+      document.cookie = `${KEY}=${stored}; path=/; max-age=${60 * 60 * 24 * 365}; SameSite=Lax`;
+      return stored;
+    }
+  } catch {
+    /* localStorage indisponível (modo privado, ITP) */
+  }
+  // 2. cookie 1st-party (sobrevive quando localStorage é volátil)
+  const match = typeof document !== 'undefined'
+    ? document.cookie.match(/(?:^|;\s*)rota399_visitor_id=([^;]+)/)
+    : null;
+  if (match) {
+    const id = decodeURIComponent(match[1]);
+    try { localStorage.setItem(KEY, id); } catch { /* noop */ }
+    return id;
+  }
+  // 3. novo
   const newId = `visitor_${Date.now()}_${Math.random().toString(36).substring(2, 11)}`;
-  localStorage.setItem('rota399_visitor_id', newId);
+  try { localStorage.setItem(KEY, newId); } catch { /* noop */ }
+  try {
+    document.cookie = `${KEY}=${newId}; path=/; max-age=${60 * 60 * 24 * 365}; SameSite=Lax`;
+  } catch { /* noop */ }
   return newId;
 };
 
@@ -118,6 +140,40 @@ const getGeoLocation = async (): Promise<GeoData> => {
   }
 };
 
+// ============================================================
+// Beacon-based insert (não bloqueia, sobrevive fechamento de aba)
+// ============================================================
+const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL as string;
+const SUPABASE_KEY = import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY as string;
+const EVENTS_ENDPOINT = `${SUPABASE_URL}/rest/v1/page_analytics_events`;
+
+const sendEventBeacon = (payload: Record<string, unknown>) => {
+  try {
+    const body = JSON.stringify(payload);
+    // sendBeacon: melhor esforço, não é abortado ao fechar aba.
+    // Precisa ir com apikey na URL porque não aceita headers customizados.
+    const url = `${EVENTS_ENDPOINT}?apikey=${encodeURIComponent(SUPABASE_KEY)}`;
+    if (typeof navigator !== 'undefined' && typeof navigator.sendBeacon === 'function') {
+      const blob = new Blob([body], { type: 'application/json' });
+      if (navigator.sendBeacon(url, blob)) return;
+    }
+    // Fallback: fetch com keepalive (sobrevive unload)
+    fetch(EVENTS_ENDPOINT, {
+      method: 'POST',
+      keepalive: true,
+      headers: {
+        'Content-Type': 'application/json',
+        apikey: SUPABASE_KEY,
+        Authorization: `Bearer ${SUPABASE_KEY}`,
+        Prefer: 'return=minimal',
+      },
+      body,
+    }).catch(() => { /* best effort */ });
+  } catch (err) {
+    console.error('sendEventBeacon error:', err);
+  }
+};
+
 interface AnalyticsEvent {
   event_type: string;
   component_name?: string;
@@ -160,40 +216,50 @@ export const useAnalytics = () => {
 
     const utmParams = getUTMParams();
     const referrer = document.referrer;
-    
-    // Get geolocation data (cached after first call)
-    const geoData = await getGeoLocation();
+    // Geo é cache em memória / sessionStorage — usa se já tiver, mas NUNCA bloqueia o insert.
+    const geoData: GeoData = cachedGeoData || (() => {
+      try {
+        const c = sessionStorage.getItem('rota399_geo');
+        return c ? (JSON.parse(c) as GeoData) : { city: null, region: null, country: 'Brasil', country_code: 'BR' };
+      } catch {
+        return { city: null, region: null, country: 'Brasil', country_code: 'BR' };
+      }
+    })();
 
-    try {
-      await supabase.from('page_analytics_events').insert({
-        session_id: currentSessionId,
-        visitor_id: visitorId,
-        event_type: event.event_type,
-        component_name: event.component_name || null,
-        component_action: event.component_action || null,
-        page_path: window.location.pathname,
-        referrer: referrer || null,
-        utm_source: utmParams.utm_source,
-        utm_medium: utmParams.utm_medium,
-        utm_campaign: utmParams.utm_campaign,
-        utm_content: utmParams.utm_content,
-        device_type: getDeviceType(),
-        browser: getBrowser(),
-        os: getOS(),
-        screen_width: window.innerWidth,
-        screen_height: window.innerHeight,
-        scroll_depth: event.scroll_depth || maxScrollDepth,
-        time_on_page: event.time_on_page || (pageStartTime ? Math.floor((Date.now() - pageStartTime) / 1000) : 0),
-        city: geoData.city,
-        region: geoData.region,
-        country: geoData.country_code,
-        metadata: {
-          ...event.metadata,
-          channel: utmParams.utm_source || getChannelFromReferrer(referrer),
-        },
-      });
-    } catch (error) {
-      console.error('Analytics tracking error:', error);
+    const payload = {
+      session_id: currentSessionId,
+      visitor_id: visitorId,
+      event_type: event.event_type,
+      component_name: event.component_name || null,
+      component_action: event.component_action || null,
+      page_path: window.location.pathname,
+      referrer: referrer || null,
+      utm_source: utmParams.utm_source,
+      utm_medium: utmParams.utm_medium,
+      utm_campaign: utmParams.utm_campaign,
+      utm_content: utmParams.utm_content,
+      device_type: getDeviceType(),
+      browser: getBrowser(),
+      os: getOS(),
+      screen_width: window.innerWidth,
+      screen_height: window.innerHeight,
+      scroll_depth: event.scroll_depth || maxScrollDepth,
+      time_on_page: event.time_on_page || (pageStartTime ? Math.floor((Date.now() - pageStartTime) / 1000) : 0),
+      city: geoData.city,
+      region: geoData.region,
+      country: geoData.country_code,
+      metadata: {
+        ...event.metadata,
+        channel: utmParams.utm_source || getChannelFromReferrer(referrer),
+      },
+    };
+
+    // Envio imediato, não-bloqueante, resistente a fechamento de aba.
+    sendEventBeacon(payload);
+
+    // Se geo ainda não estava carregado, dispara em background para enriquecer os próximos eventos.
+    if (!cachedGeoData) {
+      getGeoLocation().catch(() => { /* noop */ });
     }
   }, []);
 
@@ -256,7 +322,6 @@ export const useAnalytics = () => {
   useEffect(() => {
     const handleBeforeUnload = () => {
       if (pageStartTime) {
-        // Usar sendBeacon para garantir envio
         const data = {
           session_id: currentSessionId,
           visitor_id: visitorId,
@@ -270,11 +335,7 @@ export const useAnalytics = () => {
           screen_width: window.innerWidth,
           screen_height: window.innerHeight,
         };
-        
-        navigator.sendBeacon(
-          `${import.meta.env.VITE_SUPABASE_URL}/rest/v1/page_analytics_events`,
-          JSON.stringify(data)
-        );
+        sendEventBeacon(data);
       }
     };
 
