@@ -6,6 +6,7 @@ import { useToast } from "@/hooks/use-toast";
 import AudioRecorderBlock from "./AudioRecorderBlock";
 import SuggestionConfirmationMap from "@/components/landing/SuggestionConfirmationMap";
 import { trackSugestaoLead } from "@/lib/metaPixel";
+import { useAnalytics } from "@/hooks/useAnalytics";
 
 interface Municipio { id: string; nome: string; latitude: number | null; longitude: number | null; }
 
@@ -18,6 +19,7 @@ const schema = z.object({
 
 const OpinionFormCard = () => {
   const { toast } = useToast();
+  const { trackComponentClick, trackFormSubmit } = useAnalytics();
   const [nome, setNome] = useState("");
   const [telefone, setTelefone] = useState("");
   const [cidade, setCidade] = useState("");
@@ -50,10 +52,12 @@ const OpinionFormCard = () => {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    trackComponentClick("OpinionForm", "submit_click");
     const parsed = schema.safeParse({ nome, telefone, cidade, sugestao });
     if (!parsed.success) {
       const msg = parsed.error.issues[0]?.message || "Verifique os campos.";
       toast({ title: "Campos obrigatórios", description: msg, variant: "destructive" });
+      trackFormSubmit("OpinionForm", false);
       return;
     }
     setLoading(true);
@@ -73,6 +77,7 @@ const OpinionFormCard = () => {
     setLoading(false);
     if (error) {
       toast({ title: "Erro ao enviar", description: error.message, variant: "destructive" });
+      trackFormSubmit("OpinionForm", false);
       return;
     }
     supabase.functions.invoke("classify-suggestion-eixo", {
@@ -88,10 +93,12 @@ const OpinionFormCard = () => {
       longitude: municipio?.longitude ?? null,
     });
     setSent(true);
+    trackFormSubmit("OpinionForm", true);
     toast({ title: "Opinião enviada!", description: "Obrigado por participar do Paraná." });
   };
 
   const handleGeolocate = () => {
+    trackComponentClick("OpinionForm", "geolocate_click");
     if (!("geolocation" in navigator)) {
       toast({ title: "Geolocalização indisponível", description: "Digite o nome da sua cidade.", variant: "destructive" });
       return;
@@ -141,6 +148,7 @@ const OpinionFormCard = () => {
       Number.isFinite(Number(submitted.longitude));
 
     const revealMap = () => {
+      trackComponentClick("ConfirmationMap", "reveal_pin_click");
       setShowMap(true);
       setTimeout(() => {
         mapRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
@@ -148,6 +156,7 @@ const OpinionFormCard = () => {
     };
 
     const resetAll = () => {
+      trackComponentClick("OpinionForm", "reset_after_submit");
       setSent(false);
       setSubmitted(null);
       setShowMap(false);
@@ -158,7 +167,7 @@ const OpinionFormCard = () => {
     };
 
     return (
-      <div className="space-y-6">
+      <div data-component="OpinionForm" className="space-y-6">
         <div className="rounded-3xl bg-card p-8 md:p-10 shadow-card-float border border-border/50 text-center space-y-5">
           <div className="mx-auto w-20 h-20 rounded-full bg-primary/10 flex items-center justify-center">
             <CheckCircle2 className="w-10 h-10 text-primary" />
@@ -193,7 +202,7 @@ const OpinionFormCard = () => {
         </div>
 
         {hasCoords && submitted && showMap && (
-          <div ref={mapRef} id="minha-opiniao-no-mapa" className="scroll-mt-24 space-y-3">
+          <div ref={mapRef} data-component="ConfirmationMap" id="minha-opiniao-no-mapa" className="scroll-mt-24 space-y-3">
             <div className="text-center space-y-1">
               <h4 className="font-display font-bold text-xl text-foreground">
                 Aqui está o seu pin em {submitted.cidade}
@@ -218,6 +227,7 @@ const OpinionFormCard = () => {
 
   return (
     <form
+      data-component="OpinionForm"
       onSubmit={handleSubmit}
       className="rounded-3xl bg-card p-6 md:p-8 shadow-card-float border border-border/50 space-y-5"
     >

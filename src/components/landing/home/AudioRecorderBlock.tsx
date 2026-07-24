@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import { Mic, FileText, Square, Loader2 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
+import { useAnalytics } from "@/hooks/useAnalytics";
 
 interface Props {
   onTranscript: (text: string) => void;
@@ -54,6 +55,7 @@ function encodeWav(samples: Float32Array, sampleRate: number): Blob {
 
 const AudioRecorderBlock = ({ onTranscript }: Props) => {
   const { toast } = useToast();
+  const { trackComponentClick } = useAnalytics();
   const [isRecording, setIsRecording] = useState(false);
   const [isTranscribing, setIsTranscribing] = useState(false);
   const [elapsed, setElapsed] = useState(0);
@@ -73,6 +75,7 @@ const AudioRecorderBlock = ({ onTranscript }: Props) => {
   }, []);
 
   const startRec = async () => {
+    trackComponentClick("AudioRecorder", "start_recording");
     try {
       const stream = await navigator.mediaDevices.getUserMedia({
         audio: { echoCancellation: true, noiseSuppression: true, autoGainControl: true },
@@ -100,6 +103,7 @@ const AudioRecorderBlock = ({ onTranscript }: Props) => {
   };
 
   const stopRec = async () => {
+    trackComponentClick("AudioRecorder", "stop_recording");
     if (timerRef.current) { window.clearInterval(timerRef.current); timerRef.current = null; }
     setIsRecording(false);
     streamRef.current?.getTracks().forEach(t => t.stop());
@@ -178,7 +182,7 @@ const AudioRecorderBlock = ({ onTranscript }: Props) => {
   const mmss = `${String(Math.floor(elapsed / 60)).padStart(2, "0")}:${String(elapsed % 60).padStart(2, "0")}`;
 
   return (
-    <div className="rounded-2xl border border-border/60 bg-card/60 p-5 space-y-4">
+    <div data-component="AudioRecorder" className="rounded-2xl border border-border/60 bg-card/60 p-5 space-y-4">
       <div className="flex items-start gap-3">
         <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-primary text-primary-foreground">
           <Mic className="h-5 w-5" />
