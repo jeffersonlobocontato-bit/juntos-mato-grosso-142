@@ -203,7 +203,7 @@ const HomeHero = () => {
           <div className="wrap hero__in">
             <div className="hero__copy">
               <h1 className="reveal in" style={{ ["--i" as never]: 1 }}>
-                Sua voz pode<br />transformar<br />o futuro do <em>Paraná.</em>
+                Sua voz&nbsp;<br />transforma<br />o futuro do Paraná.
               </h1>
               <p className="hero__sub reveal in" style={{ ["--i" as never]: 2 }}>
                 Em <strong>menos de 2 minutos</strong>, diga o que o Paraná precisa mudar.
