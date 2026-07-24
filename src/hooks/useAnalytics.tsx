@@ -150,16 +150,17 @@ const EVENTS_ENDPOINT = `${SUPABASE_URL}/rest/v1/page_analytics_events`;
 const sendEventBeacon = (payload: Record<string, unknown>) => {
   try {
     const body = JSON.stringify(payload);
-    // sendBeacon: melhor esforço, não é abortado ao fechar aba.
-    // Precisa ir com apikey na URL porque não aceita headers customizados.
-    const url = `${EVENTS_ENDPOINT}?apikey=${encodeURIComponent(SUPABASE_KEY)}`;
-    if (typeof navigator !== 'undefined' && typeof navigator.sendBeacon === 'function') {
-      const blob = new Blob([body], { type: 'application/json' });
-      if (navigator.sendBeacon(url, blob)) return;
-    }
-    // Fallback: fetch com keepalive (sobrevive unload)
+    // IMPORTANTE: não usar navigator.sendBeacon aqui.
+    // O Cloudflare seta o cookie __cf_bm (SameSite=None; Secure) no domínio do
+    // Supabase, e sendBeacon envia cookies obrigatoriamente → o browser passa
+    // a exigir Access-Control-Allow-Origin específico (não "*"), o preflight
+    // do PostgREST responde "*" e a requisição é bloqueada por CORS.
+    // Usamos fetch com credentials:'omit' + keepalive para sobreviver ao
+    // fechamento da aba sem entrar em modo credenciado.
     fetch(EVENTS_ENDPOINT, {
       method: 'POST',
+      mode: 'cors',
+      credentials: 'omit',
       keepalive: true,
       headers: {
         'Content-Type': 'application/json',
