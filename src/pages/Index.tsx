@@ -1,5 +1,4 @@
 import HomeHero from "@/components/landing/home/HomeHero";
-import HomeFooter from "@/components/landing/home/HomeFooter";
 import AnalyticsTracker from "@/components/landing/AnalyticsTracker";
 
 const Index = () => {
@@ -9,7 +8,6 @@ const Index = () => {
       <main>
         <HomeHero />
       </main>
-      <HomeFooter />
     </div>
   );
 };
