@@ -217,11 +217,19 @@ const AdminAnalytics = () => {
     : 0;
   const clicks = events?.filter(e => e.event_type === 'click').length || 0;
   const shares = events?.filter(e => e.event_type === 'share').length || 0;
-  const avgTimeOnPage = events?.length 
-    ? Math.round(events.reduce((sum, e) => sum + (e.time_on_page || 0), 0) / events.length)
+  // Tempo/Scroll só têm valor real em eventos "engagement" e "session_end"
+  // (pageview dispara ao carregar, com time_on_page=0 e scroll=0 → puxa a média pra baixo)
+  const engagementEvents = events?.filter(
+    e => (e.event_type === 'engagement' || e.event_type === 'session_end') && (e.time_on_page || 0) > 0
+  ) || [];
+  const avgTimeOnPage = engagementEvents.length
+    ? Math.round(engagementEvents.reduce((sum, e) => sum + (e.time_on_page || 0), 0) / engagementEvents.length)
     : 0;
-  const avgScrollDepth = events?.length
-    ? Math.round(events.reduce((sum, e) => sum + (e.scroll_depth || 0), 0) / events.length)
+  const scrollEvents = events?.filter(
+    e => (e.event_type === 'engagement' || e.event_type === 'session_end') && (e.scroll_depth || 0) > 0
+  ) || [];
+  const avgScrollDepth = scrollEvents.length
+    ? Math.round(scrollEvents.reduce((sum, e) => sum + (e.scroll_depth || 0), 0) / scrollEvents.length)
     : 0;
 
   // Dados por dispositivo
