@@ -1,55 +1,33 @@
-
-## Diagnóstico (confirmado no banco)
-
-Consultei `page_analytics_events` dos últimos 7 dias e **só existe 1 tipo de evento gravado: `pageview` (1.534 registros)**. Nenhum `click`, `share`, `component_view`, `session_end` ou `form_submit` foi registrado.
-
-**Causa raiz:** quando a Home foi reescrita (HomeHero + OpinionFormCard + etc.), os atributos `data-component=...` e as chamadas de `trackComponentClick / trackShare / trackFormSubmit` não foram levados para os novos componentes. O `AnalyticsTracker` procura elementos que não existem mais, e o hook `useAnalytics` só é chamado para pageview. Além disso, `scroll_depth` e `time_on_page` só sobem no `session_end` (beforeunload), que praticamente não dispara em mobile.
-
-Por isso ficam zerados hoje: **Clicks totais, Shares totais, Média de tempo na página, Profundidade média de scroll, Heatmap de componentes, Ranking de componentes mais clicados**.
-
 ## Objetivo
 
-Fazer o dashboard refletir a realidade: medir o que dá para medir com a Home atual, e tirar do dashboard os cards/gráficos que dependem de dados que a Home nova não produz.
+Substituir a imagem de compartilhamento (WhatsApp, Facebook, LinkedIn, X) por uma nova arte alinhada ao layout atual da home — usando a nova logomarca "Juntos Paraná 399" com o contorno dourado do estado, sobre o fundo verde/preto do design system.
 
-## Escopo das mudanças
+## O que será feito
 
-### 1. Instrumentar a Home nova (frontend)
+1. **Gerar a nova og-image (1200×630)** em `/mnt/documents/` para QA visual, com:
+   - Fundo verde-escuro degradê (mesma paleta da hero da home: `#04241a → #0a3d28`).
+   - Logotipo "Juntos Paraná 399" branco centralizado, com o traço dourado embaixo (usando `logo-nova-branco.svg`).
+   - Contorno dourado do estado do Paraná à direita (mesmo traço do print de referência enviado).
+   - Subtítulo "Plano de Governo Colaborativo" em serifada leve, dourado suave.
+   - Textura sutil de grão (`grain.png`) para consistência com a LP.
+2. **Revisar o resultado** convertendo em preview e conferindo enquadramento, legibilidade em thumbnail pequeno (o WhatsApp mostra ~300px de largura) e safe area.
+3. **Publicar como asset final** em `public/og-image.jpg` (substituindo o arquivo atual) — mantendo o mesmo caminho já referenciado em `index.html`, então nenhuma meta tag muda.
+4. **Verificar** que `og:image`, `og:image:width`, `og:image:height` e `twitter:image` continuam apontando para `/og-image.jpg` no `index.html` — ajustar apenas se estiver faltando width/height (recomendado para previews).
 
-Adicionar em `src/components/landing/home/HomeHero.tsx`, `OpinionFormCard.tsx`, `AudioRecorderBlock.tsx`, `HomeFooter.tsx`, `LiveCounterCard.tsx`, `HeroPortrait.tsx`, `SuggestionConfirmationMap.tsx`:
+## Detalhes técnicos
 
-- `data-component="..."` nos wrappers principais (Hero, OpinionForm, AudioRecorder, Footer, LiveCounter, ConfirmationMap) para o `IntersectionObserver` do `AnalyticsTracker` voltar a gerar `component_view`.
-- Atualizar a lista `componentNames` do `AnalyticsTracker.tsx` para os nomes reais da nova Home (remover os componentes antigos que não existem mais).
-- Chamadas `trackComponentClick` nos CTAs principais: "Enviar opinião", "Enviar opinião agora" (rodapé), "Registrar geolocalização", "Ver meu pin no mapa", botão de gravar áudio, botão de parar gravação.
-- `trackFormSubmit("OpinionForm", success)` no submit da sugestão (sucesso e erro).
-- `trackShare(platform, "HomeShare")` em qualquer botão de compartilhamento presente (se houver na Home nova; caso contrário, este ponto some).
+- Formato: JPG, 1200×630 px, <300 KB para carregar rápido em previews.
+- Nome/caminho preservado (`/og-image.jpg`) — evita re-scrape obrigatório em domínios que já cachearam a URL antiga.
+- Nenhuma alteração no `HomeHero`, componentes ou rotas — mudança puramente de asset + (se necessário) meta tags.
 
-### 2. Enviar scroll depth e tempo na página de forma confiável
+## Aviso importante para o usuário
 
-No `src/hooks/useAnalytics.tsx`:
+WhatsApp, Facebook e outros previews ficam em cache por dias/semanas. Após publicar, o novo preview só aparece imediatamente ao **forçar o refresh** no debugger de cada plataforma:
+- Facebook/WhatsApp: https://developers.facebook.com/tools/debug/
+- LinkedIn: https://www.linkedin.com/post-inspector/
+- X (Twitter): recompartilhar em modo privado.
 
-- Adicionar um beacon periódico de "heartbeat" (a cada 30s enquanto a aba está visível) que registra evento `engagement` com `scroll_depth` e `time_on_page` atuais.
-- Manter o `session_end` no `beforeunload` + adicionar `visibilitychange → hidden` (funciona em iOS Safari, onde `beforeunload` não dispara).
-- Ajustar os cálculos de "Tempo médio na página" e "Scroll médio" no `AdminAnalytics.tsx` para considerar apenas eventos que carregam esses campos (`session_end` + `engagement`), não a média de todos os eventos (hoje divide por N pageviews com valor 0, puxando a média para baixo).
+## Fora do escopo
 
-### 3. Limpar o dashboard do que não dá pra medir de forma honesta
-
-Em `src/pages/AdminAnalytics.tsx`:
-
-- Remover (ou esconder quando `=0` no período) os cards/gráficos que dependem de dados hoje ausentes e que não serão instrumentados nesta rodada: **Heatmap de componentes (Treemap)** e o gráfico de barras de "Componentes mais clicados", que só faz sentido depois que a Home ganhar `data-component` (item 1).
-- Adicionar um estado vazio ("Sem dados no período") em cada card/gráfico em vez de mostrar "0" cru, para deixar claro que é ausência de tráfego e não bug.
-- Adicionar uma nota curta no card de "Cliques" / "Compartilhamentos" explicando que esses eventos passam a contar após a instrumentação nova entrar no ar.
-
-### 4. Validação
-
-- Rodar `psql` para confirmar que, após a mudança, novos `component_view`, `click`, `form_submit` e `engagement` aparecem em `page_analytics_events`.
-- Abrir `/admin/analytics` e confirmar que cards antes zerados agora mostram números coerentes ou o estado vazio correto.
-
-## Fora de escopo
-
-- Nenhuma alteração em RLS, esquema de banco, Meta Pixel/CAPI ou lógica do formulário de sugestão.
-- Nenhuma mudança visual na Home além de atributos `data-component` e handlers de tracking (transparente para o usuário final).
-
-## Perguntas antes de implementar
-
-1. Prefere que eu **remova de vez** os cards de "Heatmap de componentes" e "Componentes mais clicados", ou que eu os **mantenha escondidos** até haver dados?
-2. Posso instrumentar `trackShare` nos CTAs de compartilhamento existentes na Home (WhatsApp / redes) — confirma que quer esse tracking ativo?
+- Não altera o layout da LP nem o restante do site.
+- Não gera versões alternativas por rota (a home é a página compartilhada).
