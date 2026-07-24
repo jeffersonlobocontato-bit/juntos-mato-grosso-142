@@ -188,6 +188,8 @@ let currentSessionId: string | null = null;
 let visitorId: string | null = null;
 let pageStartTime: number | null = null;
 let maxScrollDepth = 0;
+let heartbeatStarted = false;
+let engagementListenersAttached = false;
 
 export const useAnalytics = () => {
   const hasTrackedPageview = useRef(false);
@@ -320,27 +322,74 @@ export const useAnalytics = () => {
 
   // Track session end (before unload)
   useEffect(() => {
-    const handleBeforeUnload = () => {
-      if (pageStartTime) {
-        const data = {
-          session_id: currentSessionId,
-          visitor_id: visitorId,
-          event_type: 'session_end',
-          page_path: window.location.pathname,
-          scroll_depth: maxScrollDepth,
-          time_on_page: Math.floor((Date.now() - pageStartTime) / 1000),
-          device_type: getDeviceType(),
-          browser: getBrowser(),
-          os: getOS(),
-          screen_width: window.innerWidth,
-          screen_height: window.innerHeight,
-        };
-        sendEventBeacon(data);
+    if (engagementListenersAttached) return;
+    engagementListenersAttached = true;
+
+    const buildEngagementPayload = (eventType: 'session_end' | 'engagement') => ({
+      session_id: currentSessionId,
+      visitor_id: visitorId,
+      event_type: eventType,
+      page_path: window.location.pathname,
+      referrer: document.referrer || null,
+      scroll_depth: maxScrollDepth,
+      time_on_page: pageStartTime ? Math.floor((Date.now() - pageStartTime) / 1000) : 0,
+      device_type: getDeviceType(),
+      browser: getBrowser(),
+      os: getOS(),
+      screen_width: window.innerWidth,
+      screen_height: window.innerHeight,
+    });
+
+    // Heartbeat: envia "engagement" a cada 30s enquanto a aba estiver visível,
+    // garantindo que scroll_depth/time_on_page cheguem mesmo se beforeunload não disparar (iOS).
+    let heartbeatId: number | null = null;
+    const startHeartbeat = () => {
+      if (heartbeatId != null) return;
+      heartbeatId = window.setInterval(() => {
+        if (document.visibilityState !== 'visible') return;
+        if (!pageStartTime) return;
+        sendEventBeacon(buildEngagementPayload('engagement'));
+      }, 30000);
+    };
+    const stopHeartbeat = () => {
+      if (heartbeatId != null) {
+        window.clearInterval(heartbeatId);
+        heartbeatId = null;
+      }
+    };
+    if (!heartbeatStarted) {
+      heartbeatStarted = true;
+      startHeartbeat();
+    }
+
+    const flushSessionEnd = () => {
+      if (!pageStartTime) return;
+      sendEventBeacon(buildEngagementPayload('session_end'));
+    };
+
+    const handleVisibility = () => {
+      if (document.visibilityState === 'hidden') {
+        flushSessionEnd();
+        stopHeartbeat();
+      } else if (document.visibilityState === 'visible') {
+        startHeartbeat();
       }
     };
 
+    const handlePageHide = () => flushSessionEnd();
+    const handleBeforeUnload = () => flushSessionEnd();
+
     window.addEventListener('beforeunload', handleBeforeUnload);
-    return () => window.removeEventListener('beforeunload', handleBeforeUnload);
+    window.addEventListener('pagehide', handlePageHide);
+    document.addEventListener('visibilitychange', handleVisibility);
+
+    return () => {
+      window.removeEventListener('beforeunload', handleBeforeUnload);
+      window.removeEventListener('pagehide', handlePageHide);
+      document.removeEventListener('visibilitychange', handleVisibility);
+      // Mantemos o heartbeat/flag globais vivos entre re-renders; só limpamos o listener local.
+      engagementListenersAttached = false;
+    };
   }, []);
 
   return {
