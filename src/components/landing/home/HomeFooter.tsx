@@ -1,7 +1,10 @@
 import { ShieldCheck, Send } from "lucide-react";
+import { useAnalytics } from "@/hooks/useAnalytics";
 
 const HomeFooter = () => {
+  const { trackComponentClick } = useAnalytics();
   const scrollToForm = () => {
+    trackComponentClick("HomeFooter", "cta_enviar_opiniao");
     const el = document.getElementById("opiniao-form");
     if (el) {
       el.scrollIntoView({ behavior: "smooth", block: "start" });
@@ -11,7 +14,7 @@ const HomeFooter = () => {
   };
 
   return (
-    <footer className="relative z-10 mt-16 px-4 md:px-8 lg:px-12 pb-10">
+    <footer data-component="HomeFooter" className="relative z-10 mt-16 px-4 md:px-8 lg:px-12 pb-10">
       <div className="container mx-auto flex flex-col items-center gap-8">
         <button
           type="button"

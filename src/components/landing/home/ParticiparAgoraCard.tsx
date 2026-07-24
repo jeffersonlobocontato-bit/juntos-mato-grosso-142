@@ -8,7 +8,7 @@ const bullets = [
 
 const ParticiparAgoraCard = () => {
   return (
-    <aside className="relative rounded-3xl bg-gradient-cta p-8 text-primary-foreground shadow-card-float overflow-hidden">
+    <aside data-component="ParticiparAgora" className="relative rounded-3xl bg-gradient-cta p-8 text-primary-foreground shadow-card-float overflow-hidden">
       <h3 className="font-display font-black text-4xl leading-none mb-8">
         Participe <br />
         <span className="text-accent">agora!</span>

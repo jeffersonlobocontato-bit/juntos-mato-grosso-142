@@ -1,60 +1,55 @@
-## Diagnóstico
 
-O painel `/admin/analytics` **está contando corretamente o que existe no banco**. Confirmei hora a hora consultando `page_analytics_events` direto no Postgres:
+## Diagnóstico (confirmado no banco)
 
-- Hoje (23/07, até 11h SP): **203** pageviews na Home, **195** visitantes únicos
-- Ontem (22/07): **903** pageviews Home / 843 visitantes únicos
-- Ontem até 11h SP: ~495 pageviews (mais que o dobro do ritmo de hoje)
+Consultei `page_analytics_events` dos últimos 7 dias e **só existe 1 tipo de evento gravado: `pageview` (1.534 registros)**. Nenhum `click`, `share`, `component_view`, `session_end` ou `form_submit` foi registrado.
 
-Ou seja, a queda que você vê no dashboard **existe de verdade nos dados brutos** — não é bug de leitura, paginação, fuso ou de limite do PostgREST.
+**Causa raiz:** quando a Home foi reescrita (HomeHero + OpinionFormCard + etc.), os atributos `data-component=...` e as chamadas de `trackComponentClick / trackShare / trackFormSubmit` não foram levados para os novos componentes. O `AnalyticsTracker` procura elementos que não existem mais, e o hook `useAnalytics` só é chamado para pageview. Além disso, `scroll_depth` e `time_on_page` só sobem no `session_end` (beforeunload), que praticamente não dispara em mobile.
 
-Mas isso não fecha a pergunta "por que caiu tanto se tem tráfego pago rodando". Auditando o tracker, identifiquei uma causa técnica que **subconta tráfego pago de forma consistente** — clique em anúncio → landing → bounce em 1–3 s. Ela não explica sozinha uma queda de dia para dia, mas explica por que o número que chega no banco é sempre menor do que o painel do Meta/Google Ads reporta.
+Por isso ficam zerados hoje: **Clicks totais, Shares totais, Média de tempo na página, Profundidade média de scroll, Heatmap de componentes, Ranking de componentes mais clicados**.
 
-### Causa técnica da subcontagem (código atual)
+## Objetivo
 
-Em `src/hooks/useAnalytics.tsx`, o `trackPageview` faz:
+Fazer o dashboard refletir a realidade: medir o que dá para medir com a Home atual, e tirar do dashboard os cards/gráficos que dependem de dados que a Home nova não produz.
 
-```
-1. await getGeoLocation()   ← chama Edge Function geolocate-visitor (rede)
-2. await supabase.from('page_analytics_events').insert(...)  ← insert padrão via fetch
-```
+## Escopo das mudanças
 
-Problemas para tráfego pago (mobile, in-app browser do Instagram/Facebook, conexão lenta):
+### 1. Instrumentar a Home nova (frontend)
 
-- O `await` da Edge Function bloqueia o insert. Se a pessoa fecha a aba antes da resposta voltar, o pageview **nunca é gravado**.
-- O insert é `fetch` padrão, não `sendBeacon`. Fetch em curso é abortado quando a aba é fechada. `sendBeacon` só está sendo usado no `session_end`, nunca no pageview.
-- In-app browsers (Instagram/Facebook) frequentemente entram em "webview efêmero": localStorage é volátil, cada view vira um `visitor_id` novo → explica também por que `visitantes ≈ pageviews` (praticamente 1 view por visitante).
-- Se `geolocate-visitor` falhar ou demorar por qualquer motivo momentâneo, uma janela inteira de pageviews desaparece.
+Adicionar em `src/components/landing/home/HomeHero.tsx`, `OpinionFormCard.tsx`, `AudioRecorderBlock.tsx`, `HomeFooter.tsx`, `LiveCounterCard.tsx`, `HeroPortrait.tsx`, `SuggestionConfirmationMap.tsx`:
 
-### Segunda hipótese (a validar)
+- `data-component="..."` nos wrappers principais (Hero, OpinionForm, AudioRecorder, Footer, LiveCounter, ConfirmationMap) para o `IntersectionObserver` do `AnalyticsTracker` voltar a gerar `component_view`.
+- Atualizar a lista `componentNames` do `AnalyticsTracker.tsx` para os nomes reais da nova Home (remover os componentes antigos que não existem mais).
+- Chamadas `trackComponentClick` nos CTAs principais: "Enviar opinião", "Enviar opinião agora" (rodapé), "Registrar geolocalização", "Ver meu pin no mapa", botão de gravar áudio, botão de parar gravação.
+- `trackFormSubmit("OpinionForm", success)` no submit da sugestão (sucesso e erro).
+- `trackShare(platform, "HomeShare")` em qualquer botão de compartilhamento presente (se houver na Home nova; caso contrário, este ponto some).
 
-Discrepância entre "reportado pelo Meta Ads" e "chegou no banco" é normal (10–30%). Se a diferença estiver acima disso, o gargalo é o item acima. Se estiver dentro disso, a queda de acessos é **real** (fadiga de criativo, saldo/pausa da campanha, mudança de segmentação) e o diagnóstico é de mídia, não de código.
+### 2. Enviar scroll depth e tempo na página de forma confiável
 
-## Correção proposta
+No `src/hooks/useAnalytics.tsx`:
 
-Deixar o dashboard como está (números são fiéis ao banco) e **endurecer o tracker** para capturar pageviews de bounce.
+- Adicionar um beacon periódico de "heartbeat" (a cada 30s enquanto a aba está visível) que registra evento `engagement` com `scroll_depth` e `time_on_page` atuais.
+- Manter o `session_end` no `beforeunload` + adicionar `visibilitychange → hidden` (funciona em iOS Safari, onde `beforeunload` não dispara).
+- Ajustar os cálculos de "Tempo médio na página" e "Scroll médio" no `AdminAnalytics.tsx` para considerar apenas eventos que carregam esses campos (`session_end` + `engagement`), não a média de todos os eventos (hoje divide por N pageviews com valor 0, puxando a média para baixo).
 
-1. **`src/hooks/useAnalytics.tsx` — `trackPageview` resiliente**
-   - Disparar o insert do pageview **imediatamente**, sem esperar `getGeoLocation()`.
-   - Usar `navigator.sendBeacon` como método primário para o pageview inicial (mesmo padrão que já está no `session_end`). Fallback para `fetch` com `keepalive: true` quando `sendBeacon` não estiver disponível.
-   - Enviar geolocalização em um segundo evento (`geo_enrich`) ou pular quando a página fecha rápido — nunca bloquear o pageview por causa dela.
-   - Manter o `visitor_id` no localStorage, mas gravar também em cookie de 1º-party (fallback para in-app browsers que perdem localStorage entre sessões).
+### 3. Limpar o dashboard do que não dá pra medir de forma honesta
 
-2. **Validação end-to-end**
-   - Após o deploy, esperar 24 h e comparar:
-     - Pageviews da Home no `/admin/analytics`
-     - Pageviews reportados pelo Meta Pixel (Gerenciador de Eventos)
-   - Diferença esperada: < 15%. Se continuar alta, o problema é bloqueador/adblock, não código nosso.
+Em `src/pages/AdminAnalytics.tsx`:
 
-3. **Guard-rail no painel**
-   - Adicionar em `AdminAnalytics.tsx` uma nota discreta no card "Acessos da LP Home" indicando que o número reflete apenas quem carregou a página tempo suficiente para o tracker disparar (subestima 10–20% do tráfego pago).
+- Remover (ou esconder quando `=0` no período) os cards/gráficos que dependem de dados hoje ausentes e que não serão instrumentados nesta rodada: **Heatmap de componentes (Treemap)** e o gráfico de barras de "Componentes mais clicados", que só faz sentido depois que a Home ganhar `data-component` (item 1).
+- Adicionar um estado vazio ("Sem dados no período") em cada card/gráfico em vez de mostrar "0" cru, para deixar claro que é ausência de tráfego e não bug.
+- Adicionar uma nota curta no card de "Cliques" / "Compartilhamentos" explicando que esses eventos passam a contar após a instrumentação nova entrar no ar.
 
-## Fora do escopo
+### 4. Validação
 
-- Migrar tracking para uma Edge Function dedicada com fila (mais robusto, mas requer refactor grande).
-- Adicionar consent banner LGPD (hoje não bloqueia, mas se for exigência jurídica pode mudar o comportamento).
+- Rodar `psql` para confirmar que, após a mudança, novos `component_view`, `click`, `form_submit` e `engagement` aparecem em `page_analytics_events`.
+- Abrir `/admin/analytics` e confirmar que cards antes zerados agora mostram números coerentes ou o estado vazio correto.
 
-## Verificação
+## Fora de escopo
 
-- Abrir `/admin/analytics` → confirmar que os números atuais **são** os do banco (já validado no diagnóstico).
-- Depois da correção do tracker: abrir a home em rede lenta (DevTools throttling "Slow 3G"), fechar a aba antes de 2 s, conferir que o pageview aparece em `page_analytics_events` mesmo assim.
+- Nenhuma alteração em RLS, esquema de banco, Meta Pixel/CAPI ou lógica do formulário de sugestão.
+- Nenhuma mudança visual na Home além de atributos `data-component` e handlers de tracking (transparente para o usuário final).
+
+## Perguntas antes de implementar
+
+1. Prefere que eu **remova de vez** os cards de "Heatmap de componentes" e "Componentes mais clicados", ou que eu os **mantenha escondidos** até haver dados?
+2. Posso instrumentar `trackShare` nos CTAs de compartilhamento existentes na Home (WhatsApp / redes) — confirma que quer esse tracking ativo?

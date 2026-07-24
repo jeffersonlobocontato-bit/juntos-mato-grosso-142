@@ -217,11 +217,19 @@ const AdminAnalytics = () => {
     : 0;
   const clicks = events?.filter(e => e.event_type === 'click').length || 0;
   const shares = events?.filter(e => e.event_type === 'share').length || 0;
-  const avgTimeOnPage = events?.length 
-    ? Math.round(events.reduce((sum, e) => sum + (e.time_on_page || 0), 0) / events.length)
+  // Tempo/Scroll só têm valor real em eventos "engagement" e "session_end"
+  // (pageview dispara ao carregar, com time_on_page=0 e scroll=0 → puxa a média pra baixo)
+  const engagementEvents = events?.filter(
+    e => (e.event_type === 'engagement' || e.event_type === 'session_end') && (e.time_on_page || 0) > 0
+  ) || [];
+  const avgTimeOnPage = engagementEvents.length
+    ? Math.round(engagementEvents.reduce((sum, e) => sum + (e.time_on_page || 0), 0) / engagementEvents.length)
     : 0;
-  const avgScrollDepth = events?.length
-    ? Math.round(events.reduce((sum, e) => sum + (e.scroll_depth || 0), 0) / events.length)
+  const scrollEvents = events?.filter(
+    e => (e.event_type === 'engagement' || e.event_type === 'session_end') && (e.scroll_depth || 0) > 0
+  ) || [];
+  const avgScrollDepth = scrollEvents.length
+    ? Math.round(scrollEvents.reduce((sum, e) => sum + (e.scroll_depth || 0), 0) / scrollEvents.length)
     : 0;
 
   // Dados por dispositivo
@@ -563,7 +571,9 @@ const AdminAnalytics = () => {
                     </div>
                     <div>
                       <p className="text-2xl font-bold">{clicks.toLocaleString()}</p>
-                      <p className="text-xs text-muted-foreground">Cliques</p>
+                      <p className="text-xs text-muted-foreground">
+                        Cliques {clicks === 0 && <span className="italic">(rastreamento novo — dados a partir de agora)</span>}
+                      </p>
                     </div>
                   </div>
                 </CardContent>
@@ -577,7 +587,9 @@ const AdminAnalytics = () => {
                     </div>
                     <div>
                       <p className="text-2xl font-bold">{shares.toLocaleString()}</p>
-                      <p className="text-xs text-muted-foreground">Compartilhamentos</p>
+                      <p className="text-xs text-muted-foreground">
+                        Compartilhamentos {shares === 0 && <span className="italic">(sem botões de share na Home atual)</span>}
+                      </p>
                     </div>
                   </div>
                 </CardContent>
@@ -591,7 +603,9 @@ const AdminAnalytics = () => {
                     </div>
                     <div>
                       <p className="text-2xl font-bold">{avgTimeOnPage}s</p>
-                      <p className="text-xs text-muted-foreground">Tempo Médio</p>
+                      <p className="text-xs text-muted-foreground">
+                        Tempo Médio {avgTimeOnPage === 0 && <span className="italic">(dados a partir de agora)</span>}
+                      </p>
                     </div>
                   </div>
                 </CardContent>
@@ -605,7 +619,9 @@ const AdminAnalytics = () => {
                     </div>
                     <div>
                       <p className="text-2xl font-bold">{avgScrollDepth}%</p>
-                      <p className="text-xs text-muted-foreground">Scroll Médio</p>
+                      <p className="text-xs text-muted-foreground">
+                        Scroll Médio {avgScrollDepth === 0 && <span className="italic">(dados a partir de agora)</span>}
+                      </p>
                     </div>
                   </div>
                 </CardContent>
@@ -724,11 +740,13 @@ const AdminAnalytics = () => {
 
             {/* Tabs */}
             <Tabs defaultValue="overview" className="space-y-6">
-              <TabsList className="grid w-full grid-cols-4 lg:w-auto lg:inline-grid">
+              <TabsList className={`grid w-full ${componentChartData.length > 0 ? 'grid-cols-4' : 'grid-cols-3'} lg:w-auto lg:inline-grid`}>
                 <TabsTrigger value="overview">Visão Geral</TabsTrigger>
                 <TabsTrigger value="channels">Canais</TabsTrigger>
                 <TabsTrigger value="geography">Geografia</TabsTrigger>
-                <TabsTrigger value="heatmap">Mapa de Calor</TabsTrigger>
+                {componentChartData.length > 0 && (
+                  <TabsTrigger value="heatmap">Mapa de Calor</TabsTrigger>
+                )}
               </TabsList>
 
               {/* Overview Tab */}

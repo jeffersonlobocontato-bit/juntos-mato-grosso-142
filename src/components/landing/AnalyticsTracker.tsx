@@ -26,15 +26,13 @@ const AnalyticsTracker = () => {
   // Track component visibility with Intersection Observer
   useEffect(() => {
     const componentNames = [
-      'HeroSection',
-      'StatsSection',
-      'AboutSection',
-      'SocialEngagementSection',
-      'SuggestionForm',
-      'MapSection',
-      'Footer',
-      'ChatBot',
-      'FloatingShareButton',
+      'HomeHero',
+      'OpinionForm',
+      'AudioRecorder',
+      'LiveCounter',
+      'ParticiparAgora',
+      'ConfirmationMap',
+      'HomeFooter',
     ];
 
     const observer = new IntersectionObserver(
