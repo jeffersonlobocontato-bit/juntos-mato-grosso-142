@@ -571,7 +571,9 @@ const AdminAnalytics = () => {
                     </div>
                     <div>
                       <p className="text-2xl font-bold">{clicks.toLocaleString()}</p>
-                      <p className="text-xs text-muted-foreground">Cliques</p>
+                      <p className="text-xs text-muted-foreground">
+                        Cliques {clicks === 0 && <span className="italic">(rastreamento novo — dados a partir de agora)</span>}
+                      </p>
                     </div>
                   </div>
                 </CardContent>
@@ -585,7 +587,9 @@ const AdminAnalytics = () => {
                     </div>
                     <div>
                       <p className="text-2xl font-bold">{shares.toLocaleString()}</p>
-                      <p className="text-xs text-muted-foreground">Compartilhamentos</p>
+                      <p className="text-xs text-muted-foreground">
+                        Compartilhamentos {shares === 0 && <span className="italic">(sem botões de share na Home atual)</span>}
+                      </p>
                     </div>
                   </div>
                 </CardContent>
@@ -599,7 +603,9 @@ const AdminAnalytics = () => {
                     </div>
                     <div>
                       <p className="text-2xl font-bold">{avgTimeOnPage}s</p>
-                      <p className="text-xs text-muted-foreground">Tempo Médio</p>
+                      <p className="text-xs text-muted-foreground">
+                        Tempo Médio {avgTimeOnPage === 0 && <span className="italic">(dados a partir de agora)</span>}
+                      </p>
                     </div>
                   </div>
                 </CardContent>
@@ -613,7 +619,9 @@ const AdminAnalytics = () => {
                     </div>
                     <div>
                       <p className="text-2xl font-bold">{avgScrollDepth}%</p>
-                      <p className="text-xs text-muted-foreground">Scroll Médio</p>
+                      <p className="text-xs text-muted-foreground">
+                        Scroll Médio {avgScrollDepth === 0 && <span className="italic">(dados a partir de agora)</span>}
+                      </p>
                     </div>
                   </div>
                 </CardContent>
@@ -732,11 +740,13 @@ const AdminAnalytics = () => {
 
             {/* Tabs */}
             <Tabs defaultValue="overview" className="space-y-6">
-              <TabsList className="grid w-full grid-cols-4 lg:w-auto lg:inline-grid">
+              <TabsList className={`grid w-full ${componentChartData.length > 0 ? 'grid-cols-4' : 'grid-cols-3'} lg:w-auto lg:inline-grid`}>
                 <TabsTrigger value="overview">Visão Geral</TabsTrigger>
                 <TabsTrigger value="channels">Canais</TabsTrigger>
                 <TabsTrigger value="geography">Geografia</TabsTrigger>
-                <TabsTrigger value="heatmap">Mapa de Calor</TabsTrigger>
+                {componentChartData.length > 0 && (
+                  <TabsTrigger value="heatmap">Mapa de Calor</TabsTrigger>
+                )}
               </TabsList>
 
               {/* Overview Tab */}
