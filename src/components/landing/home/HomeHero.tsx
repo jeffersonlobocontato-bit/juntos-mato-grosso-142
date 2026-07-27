@@ -52,6 +52,7 @@ const HomeHero = () => {
   const [flash, setFlash] = useState<{ tipo: "ok" | "erro"; texto: string } | null>(null);
   const [enviando, setEnviando] = useState(false);
   const [municipios, setMunicipios] = useState<Municipio[]>([]);
+  const [geoLoading, setGeoLoading] = useState(false);
   const [sent, setSent] = useState(false);
   const [submitted, setSubmitted] = useState<{
     nome: string; cidade: string; sugestao: string; latitude: number | null; longitude: number | null;
