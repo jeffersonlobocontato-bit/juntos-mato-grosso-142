@@ -1,5 +1,6 @@
 import { ShieldCheck, Send } from "lucide-react";
 import { useAnalytics } from "@/hooks/useAnalytics";
+import SocialShareButtons from "@/components/landing/SocialShareButtons";
 
 const HomeFooter = () => {
   const { trackComponentClick } = useAnalytics();
@@ -33,6 +34,21 @@ const HomeFooter = () => {
           Transparência, diálogo e participação. <br />
           Esse é o caminho do <strong className="text-primary">Paraná</strong> que queremos.
         </p>
+        </div>
+
+        <div className="w-full pt-6 mt-2 border-t border-border/50 space-y-4 text-center">
+          <div className="space-y-1">
+            <h3 className="font-display font-black text-2xl md:text-3xl text-foreground">
+              Envie e convide seus amigos e familiares
+            </h3>
+            <p className="text-sm md:text-base text-muted-foreground max-w-2xl mx-auto">
+              Participe da construção do Plano de Governo do Paraná. Compartilhe agora com quem
+              você quer ver contribuindo para o futuro do nosso estado.
+            </p>
+          </div>
+          <SocialShareButtons
+            message="Participe do Juntos Paraná 399 e ajude a construir o Plano de Governo do Paraná com sua opinião. Sua voz transforma o futuro do nosso estado! 🌲"
+          />
         </div>
       </div>
     </footer>
