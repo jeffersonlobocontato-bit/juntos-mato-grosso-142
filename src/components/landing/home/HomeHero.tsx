@@ -393,7 +393,7 @@ const HomeHero = () => {
                     </button>
                   </div>
                   <div style={{ marginTop: 22, paddingTop: 18, borderTop: "1px solid rgba(255,255,255,.18)" }}>
-                    <h4 style={{ fontFamily: "'Montserrat',sans-serif", fontWeight: 800, fontSize: 18, color: "#fff", marginBottom: 6 }}>
+                    <h4 style={{ fontFamily: "'Montserrat',sans-serif", fontWeight: 800, fontSize: 18, color: "#00A85A", marginBottom: 6 }}>
                       Envie e convide amigos e familiares
                     </h4>
                     <p style={{ color: "rgba(236,243,236,.8)", fontSize: 14, lineHeight: 1.5, marginBottom: 14 }}>
@@ -516,7 +516,7 @@ const HomeHero = () => {
             Consulta, correção ou exclusão dos seus dados:{" "}
             <a href="mailto:sergiomoro@juntosparana399.com.br">sergiomoro@juntosparana399.com.br</a>
             <div style={{ marginTop: 28, paddingTop: 22, borderTop: "1px solid rgba(255,255,255,.15)", textAlign: "center" }}>
-              <h3 style={{ fontFamily: "'Montserrat',sans-serif", fontWeight: 800, fontSize: 22, color: "#fff", marginBottom: 6, letterSpacing: "-.01em" }}>
+              <h3 style={{ fontFamily: "'Montserrat',sans-serif", fontWeight: 800, fontSize: 22, color: "#00A85A", marginBottom: 6, letterSpacing: "-.01em" }}>
                 Envie e convide seus amigos e familiares
               </h3>
               <p style={{ color: "rgba(236,243,236,.75)", fontSize: 14, lineHeight: 1.55, maxWidth: 560, margin: "0 auto 16px" }}>
