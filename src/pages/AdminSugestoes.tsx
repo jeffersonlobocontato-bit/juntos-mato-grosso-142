@@ -125,16 +125,28 @@ const AdminSugestoes = () => {
 
   const fetchSugestoes = async () => {
     setIsLoading(true);
-    const { data, error } = await supabase
-      .from('sugestoes_populares')
-      .select('*')
-      .order('created_at', { ascending: false });
-    
-    if (error) {
+    const PAGE_SIZE = 1000;
+    const MAX_ROWS = 100000;
+    const all: any[] = [];
+    let from = 0;
+    try {
+      while (from < MAX_ROWS) {
+        const to = Math.min(from + PAGE_SIZE, MAX_ROWS) - 1;
+        const { data, error } = await supabase
+          .from('sugestoes_populares')
+          .select('*')
+          .order('created_at', { ascending: false })
+          .range(from, to);
+        if (error) throw error;
+        const batch = data || [];
+        all.push(...batch);
+        if (batch.length < PAGE_SIZE) break;
+        from += PAGE_SIZE;
+      }
+      setSugestoes(all);
+    } catch (error) {
       toast.error('Erro ao carregar sugestões');
       console.error(error);
-    } else {
-      setSugestoes(data || []);
     }
     setIsLoading(false);
   };

@@ -67,9 +67,24 @@ const Dashboard = () => {
   const { data: sugestoes, isLoading: loadingSugestoes } = useQuery({
     queryKey: ["dashboard-sugestoes"],
     queryFn: async () => {
-      const { data, error } = await supabase.from("sugestoes_populares").select("id, eixo, municipio, created_at");
-      if (error) throw error;
-      return data || [];
+      const PAGE_SIZE = 1000;
+      const MAX_ROWS = 100000;
+      const all: Array<{ id: string; eixo: string | null; municipio: string | null; created_at: string }> = [];
+      let from = 0;
+      while (from < MAX_ROWS) {
+        const to = Math.min(from + PAGE_SIZE, MAX_ROWS) - 1;
+        const { data, error } = await supabase
+          .from("sugestoes_populares")
+          .select("id, eixo, municipio, created_at")
+          .order("created_at", { ascending: false })
+          .range(from, to);
+        if (error) throw error;
+        const batch = (data as any[]) || [];
+        all.push(...(batch as any));
+        if (batch.length < PAGE_SIZE) break;
+        from += PAGE_SIZE;
+      }
+      return all;
     },
   });
 
