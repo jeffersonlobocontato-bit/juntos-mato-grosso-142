@@ -5,6 +5,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import AudioRecorderBlock from "./AudioRecorderBlock";
 import SuggestionConfirmationMap from "@/components/landing/SuggestionConfirmationMap";
+import SocialShareButtons from "@/components/landing/SocialShareButtons";
 import { trackSugestaoLead } from "@/lib/metaPixel";
 import { useAnalytics } from "@/hooks/useAnalytics";
 
@@ -198,6 +199,21 @@ const OpinionFormCard = () => {
             >
               Enviar outra opinião
             </button>
+          </div>
+
+          <div className="pt-6 mt-4 border-t border-border/60 space-y-4">
+            <div className="space-y-1">
+              <h4 className="font-display font-bold text-xl text-foreground">
+                Convide amigos e familiares
+              </h4>
+              <p className="text-sm text-muted-foreground max-w-xl mx-auto">
+                Quanto mais paranaenses participarem, mais forte fica o Plano de Governo. Compartilhe
+                agora e chame quem você quer ver construindo o futuro do Paraná.
+              </p>
+            </div>
+            <SocialShareButtons
+              message="Acabei de enviar minha opinião para o Plano de Governo do Paraná no Juntos Paraná 399. Participe você também e ajude a construir o futuro do nosso estado! 🌲"
+            />
           </div>
         </div>
 
