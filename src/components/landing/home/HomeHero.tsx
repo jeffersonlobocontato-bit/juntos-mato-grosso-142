@@ -52,6 +52,7 @@ const HomeHero = () => {
   const [flash, setFlash] = useState<{ tipo: "ok" | "erro"; texto: string } | null>(null);
   const [enviando, setEnviando] = useState(false);
   const [municipios, setMunicipios] = useState<Municipio[]>([]);
+  const [geoLoading, setGeoLoading] = useState(false);
   const [sent, setSent] = useState(false);
   const [submitted, setSubmitted] = useState<{
     nome: string; cidade: string; sugestao: string; latitude: number | null; longitude: number | null;
@@ -168,6 +169,43 @@ const HomeHero = () => {
     setTimeout(() => mapRef.current?.scrollIntoView({ behavior: "smooth", block: "start" }), 80);
   };
 
+  const handleGeolocate = () => {
+    trackComponentClick("OpinionForm", "geolocate_click");
+    if (!("geolocation" in navigator)) {
+      setFlash({ tipo: "erro", texto: "Geolocalização indisponível neste dispositivo." });
+      return;
+    }
+    setGeoLoading(true);
+    navigator.geolocation.getCurrentPosition(
+      (pos) => {
+        try {
+          const { latitude, longitude } = pos.coords;
+          let melhor: { nome: string; dist: number } | null = null;
+          for (const m of municipios) {
+            if (m.latitude == null || m.longitude == null) continue;
+            const dLat = Number(m.latitude) - latitude;
+            const dLon = Number(m.longitude) - longitude;
+            const dist = dLat * dLat + dLon * dLon;
+            if (!melhor || dist < melhor.dist) melhor = { nome: m.nome, dist };
+          }
+          if (melhor) {
+            setCidade(melhor.nome);
+            setFlash({ tipo: "ok", texto: `Cidade detectada: ${melhor.nome}` });
+          } else {
+            setFlash({ tipo: "erro", texto: "Não foi possível detectar sua cidade." });
+          }
+        } finally {
+          setGeoLoading(false);
+        }
+      },
+      () => {
+        setGeoLoading(false);
+        setFlash({ tipo: "erro", texto: "Permissão de geolocalização negada." });
+      },
+      { enableHighAccuracy: false, timeout: 10000, maximumAge: 60000 },
+    );
+  };
+
   const hasCoords = submitted?.latitude != null && submitted?.longitude != null &&
     Number.isFinite(Number(submitted.latitude)) && Number.isFinite(Number(submitted.longitude));
 
@@ -259,6 +297,36 @@ const HomeHero = () => {
                       <svg className="chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.1} strokeLinecap="round" strokeLinejoin="round"><path d="m6 9 6 6 6-6" /></svg>
                     </div>
                   </div>
+
+                  <button
+                    type="button"
+                    onClick={handleGeolocate}
+                    disabled={geoLoading}
+                    style={{
+                      marginTop: 8,
+                      display: "inline-flex",
+                      alignItems: "center",
+                      justifyContent: "center",
+                      gap: 8,
+                      height: 44,
+                      padding: "0 18px",
+                      borderRadius: 999,
+                      border: "1.5px solid var(--jp-primary, #0a5c36)",
+                      background: "rgba(10, 92, 54, 0.08)",
+                      color: "var(--jp-primary, #0a5c36)",
+                      fontWeight: 700,
+                      fontSize: 14,
+                      cursor: geoLoading ? "wait" : "pointer",
+                      opacity: geoLoading ? 0.7 : 1,
+                    }}
+                    aria-label="Detectar minha cidade pela geolocalização"
+                  >
+                    <svg width={18} height={18} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round">
+                      <circle cx="12" cy="12" r="3" />
+                      <path d="M12 2v3M12 19v3M2 12h3M19 12h3" />
+                    </svg>
+                    {geoLoading ? "Detectando..." : "Geolocalizar minha cidade"}
+                  </button>
 
                   <div className="field field--zap">
                     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.7} strokeLinecap="round" strokeLinejoin="round">
