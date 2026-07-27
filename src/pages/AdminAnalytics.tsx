@@ -197,9 +197,13 @@ const AdminAnalytics = () => {
       if (cur) cur.count += 1;
       else map.set(key, { nome, municipio: (s.municipio || '').trim(), count: 1 });
     });
-    return Array.from(map.values()).sort((a, b) => b.count - a.count).slice(0, 10);
+    return Array.from(map.values()).sort((a, b) => b.count - a.count);
   })();
   const topCidades = cidadesRanking.slice(0, 10);
+  const [expandCidades, setExpandCidades] = useState(false);
+  const [expandCidadaos, setExpandCidadaos] = useState(false);
+  const cidadesExibidas = expandCidades ? cidadesRanking : topCidades;
+  const cidadaosExibidos = expandCidadaos ? cidadaosRanking : cidadaosRanking.slice(0, 10);
 
   // Cálculos de métricas
   const pageviews = events?.filter(e => e.event_type === 'pageview').length || 0;
@@ -693,9 +697,10 @@ const AdminAnalytics = () => {
                       </div>
                       {topCidades.length === 0 ? (
                         <p className="text-sm text-muted-foreground">Sem dados no período.</p>
-                      ) : (
-                        <div className="divide-y divide-border/40">
-                          {topCidades.map((c, i) => (
+                       ) : (
+                         <>
+                         <div className={`divide-y divide-border/40 ${expandCidades ? 'max-h-96 overflow-y-auto pr-1' : ''}`}>
+                           {cidadesExibidas.map((c, i) => (
                             <div key={c.label + i} className="flex items-center justify-between py-2 text-sm">
                               <div className="flex items-center gap-3">
                                 <span className={`w-6 text-xs text-right ${i < 3 ? 'text-accent font-bold' : 'text-muted-foreground'}`}>{i + 1}º</span>
@@ -705,7 +710,18 @@ const AdminAnalytics = () => {
                             </div>
                           ))}
                         </div>
-                      )}
+                         {cidadesRanking.length > 10 && (
+                           <Button
+                             variant="ghost"
+                             size="sm"
+                             className="mt-2 w-full text-xs"
+                             onClick={() => setExpandCidades((v) => !v)}
+                           >
+                             {expandCidades ? 'Recolher' : `Expandir ranking completo (${cidadesRanking.length})`}
+                           </Button>
+                         )}
+                         </>
+                       )}
                     </div>
                     <div>
                       <div className="flex items-center gap-2 mb-3 text-sm font-semibold text-muted-foreground">
@@ -714,9 +730,10 @@ const AdminAnalytics = () => {
                       </div>
                       {cidadaosRanking.length === 0 ? (
                         <p className="text-sm text-muted-foreground">Sem dados no período.</p>
-                      ) : (
-                        <div className="divide-y divide-border/40">
-                          {cidadaosRanking.map((p, i) => (
+                       ) : (
+                         <>
+                         <div className={`divide-y divide-border/40 ${expandCidadaos ? 'max-h-96 overflow-y-auto pr-1' : ''}`}>
+                           {cidadaosExibidos.map((p, i) => (
                             <div key={p.nome + i} className="flex items-center justify-between py-2 text-sm gap-3">
                               <div className="flex items-center gap-3 min-w-0">
                                 <span className={`w-6 text-xs text-right ${i < 3 ? 'text-accent font-bold' : 'text-muted-foreground'}`}>{i + 1}º</span>
@@ -731,7 +748,18 @@ const AdminAnalytics = () => {
                             </div>
                           ))}
                         </div>
-                      )}
+                         {cidadaosRanking.length > 10 && (
+                           <Button
+                             variant="ghost"
+                             size="sm"
+                             className="mt-2 w-full text-xs"
+                             onClick={() => setExpandCidadaos((v) => !v)}
+                           >
+                             {expandCidadaos ? 'Recolher' : `Expandir ranking completo (${cidadaosRanking.length})`}
+                           </Button>
+                         )}
+                         </>
+                       )}
                     </div>
                   </div>
                 </CardContent>
