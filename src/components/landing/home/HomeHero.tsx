@@ -169,6 +169,43 @@ const HomeHero = () => {
     setTimeout(() => mapRef.current?.scrollIntoView({ behavior: "smooth", block: "start" }), 80);
   };
 
+  const handleGeolocate = () => {
+    trackComponentClick("OpinionForm", "geolocate_click");
+    if (!("geolocation" in navigator)) {
+      setFlash({ tipo: "erro", texto: "Geolocalização indisponível neste dispositivo." });
+      return;
+    }
+    setGeoLoading(true);
+    navigator.geolocation.getCurrentPosition(
+      (pos) => {
+        try {
+          const { latitude, longitude } = pos.coords;
+          let melhor: { nome: string; dist: number } | null = null;
+          for (const m of municipios) {
+            if (m.latitude == null || m.longitude == null) continue;
+            const dLat = Number(m.latitude) - latitude;
+            const dLon = Number(m.longitude) - longitude;
+            const dist = dLat * dLat + dLon * dLon;
+            if (!melhor || dist < melhor.dist) melhor = { nome: m.nome, dist };
+          }
+          if (melhor) {
+            setCidade(melhor.nome);
+            setFlash({ tipo: "ok", texto: `Cidade detectada: ${melhor.nome}` });
+          } else {
+            setFlash({ tipo: "erro", texto: "Não foi possível detectar sua cidade." });
+          }
+        } finally {
+          setGeoLoading(false);
+        }
+      },
+      () => {
+        setGeoLoading(false);
+        setFlash({ tipo: "erro", texto: "Permissão de geolocalização negada." });
+      },
+      { enableHighAccuracy: false, timeout: 10000, maximumAge: 60000 },
+    );
+  };
+
   const hasCoords = submitted?.latitude != null && submitted?.longitude != null &&
     Number.isFinite(Number(submitted.latitude)) && Number.isFinite(Number(submitted.longitude));
 
