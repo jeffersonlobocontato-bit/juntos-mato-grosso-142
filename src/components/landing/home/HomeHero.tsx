@@ -6,6 +6,7 @@ import { useAnalytics } from "@/hooks/useAnalytics";
 import { trackSugestaoLead } from "@/lib/metaPixel";
 import AudioRecorderBlock from "./AudioRecorderBlock";
 import SuggestionConfirmationMap from "@/components/landing/SuggestionConfirmationMap";
+import SocialShareButtons from "@/components/landing/SocialShareButtons";
 
 interface Municipio { id: string; nome: string; latitude: number | null; longitude: number | null; }
 
@@ -391,6 +392,18 @@ const HomeHero = () => {
                       <span className="submit__txt">Enviar outra opinião</span>
                     </button>
                   </div>
+                  <div style={{ marginTop: 22, paddingTop: 18, borderTop: "1px solid rgba(255,255,255,.18)" }}>
+                    <h4 style={{ fontFamily: "'Montserrat',sans-serif", fontWeight: 800, fontSize: 18, color: "#fff", marginBottom: 6 }}>
+                      Envie e convide amigos e familiares
+                    </h4>
+                    <p style={{ color: "rgba(236,243,236,.8)", fontSize: 14, lineHeight: 1.5, marginBottom: 14 }}>
+                      Chame quem você quer ver participando da construção do Plano de Governo do Paraná.
+                    </p>
+                    <SocialShareButtons
+                      variant="compact"
+                      message="Acabei de enviar minha opinião para o Plano de Governo do Paraná no Juntos Paraná 399. Participe você também! 🌲"
+                    />
+                  </div>
                 </div>
               )}
             </form>
@@ -502,6 +515,17 @@ const HomeHero = () => {
             não são compartilhados com terceiros e não são usados para fins comerciais.<br />
             Consulta, correção ou exclusão dos seus dados:{" "}
             <a href="mailto:sergiomoro@juntosparana399.com.br">sergiomoro@juntosparana399.com.br</a>
+            <div style={{ marginTop: 28, paddingTop: 22, borderTop: "1px solid rgba(255,255,255,.15)", textAlign: "center" }}>
+              <h3 style={{ fontFamily: "'Montserrat',sans-serif", fontWeight: 800, fontSize: 22, color: "#fff", marginBottom: 6, letterSpacing: "-.01em" }}>
+                Envie e convide seus amigos e familiares
+              </h3>
+              <p style={{ color: "rgba(236,243,236,.75)", fontSize: 14, lineHeight: 1.55, maxWidth: 560, margin: "0 auto 16px" }}>
+                Participe da construção do Plano de Governo do Paraná. Compartilhe agora com quem você quer ver contribuindo para o futuro do nosso estado.
+              </p>
+              <SocialShareButtons
+                message="Participe do Juntos Paraná 399 e ajude a construir o Plano de Governo do Paraná. Sua voz transforma o futuro do nosso estado! 🌲"
+              />
+            </div>
           </div>
         </footer>
       </main>
