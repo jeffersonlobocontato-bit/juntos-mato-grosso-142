@@ -1,61 +1,53 @@
+## Diagnóstico atual (medido no banco)
 
-## Diagnóstico
+Rodei as consultas antes de propor qualquer código. Não há queda anômala nem bug de gravação de sugestões:
 
-O `/admin/meu-painel` (dashboard principal do admin) executa **9 queries pesadas em paralelo** ao Supabase sem paginação nem limite de colunas. Com o crescimento recente da base (1.312 sugestões, propostas + joins, milhares de eventos de analytics, todos os leads, todos os `user_roles`, todos os `profiles`, todos os 399 municípios, todos os `ai_documents`), o volume trafegado em rede móvel/3G causa:
+- **Sugestões nas últimas 8h** (03h–11h UTC ≈ 00h–08h BRT): **11 cadastros** (2, 2, 0, 0, 2, 2, 4, 1) — não 1.
+- **`form_submit` com `success` bate 1:1** com as linhas inseridas em `sugestoes_populares` no mesmo intervalo. Zero erros de submit nas últimas 24h.
+- **Tráfego pago (últimas 12h, path `/`)**: `ig / paid` = 146 pageviews → 29 conversões (~19,8%). Total geral: 305 pv → 65 subs (~21%).
+- O intervalo em questão é madrugada+início da manhã, historicamente o vale da curva (picos ficam entre 19h–23h BRT com 9–14 subs/h).
 
-- carregamento lento (segundos a dezenas de segundos até renderizar);
-- travamento intermitente quando alguma resposta demora e a query fica pendente sem `staleTime`;
-- re-execução dupla das queries porque elas dependem de `userEixos` / `userMunicipios` que só chegam **depois** do primeiro render de `useUserAccess`, sem `enabled` para gatear;
-- `page_analytics_events` puxando `*` do período inteiro (pode ser dezenas de milhares de linhas).
+**Conclusão:** o site está gravando corretamente. O “1 cadastro em 8h” muito provavelmente vem de outra fonte (Meta Ads Manager, um card específico do painel, ou leitura de intervalo diferente).
 
-Além disso, `ProtectedRoute` e `useAuth` marcam `isLoading = false` dentro de cada evento de `onAuthStateChange`, o que em algumas conexões causa uma piscada de "Carregando…" contínua enquanto papéis ainda são buscados via `setTimeout(0)`.
+## Único sinal técnico anômalo
 
-## O que fazer
+Console em produção reporta:
+```
+Warning: Function components cannot be given refs.
+Check the render method of `SocialShareButtons`.
+```
+Origem: `motion.a` do framer-motion tentando passar `ref` para o componente `Icon` de lucide-react dentro de `src/components/landing/SocialShareButtons.tsx`. Não bloqueia envio do formulário, mas polui o console e pode mascarar erros reais em auditorias futuras.
 
-### 1. Reduzir o payload das queries em `src/pages/AdminMeuPainel.tsx`
+## O que vou fazer (após aprovação)
 
-Trocar `select("*")` por listas de colunas mínimas realmente usadas nos `useMemo` de métricas:
+### 1. Corrigir o warning do `SocialShareButtons`
+- Ajustar `src/components/landing/SocialShareButtons.tsx` para que o `motion.a` receba um elemento nativo (não o componente `Icon`) — usar `<Icon />` como filho e deixar o `ref` no `<a>`. Sem mudança visual.
 
-- `propostas_tecnicas`: `id, status, etapa, eixo_id, municipio_id, autor_id, titulo, entrevistado, created_at, updated_at` + joins já existentes.
-- `sugestoes_populares`: `id, eixo, municipio, created_at`.
-- `leads`: `id, origem, municipio, proposta_id, created_at`.
-- `page_analytics_events`: `event_type, session_id, device_type, created_at` (removendo metadata/user_agent/etc.).
-- `ai_documents`: já está enxuto, manter.
-- `user_roles` / `profiles`: apenas para admin, já `enabled`, manter minimalismo (`id, full_name`).
+### 2. Painel de reconciliação de conversões
+Adicionar em `src/pages/AdminAnalytics.tsx` um card "**Reconciliação de conversões (últimas 24h)**" mostrando lado a lado, por hora:
+- Pageviews do path `/`
+- `form_submit` sucesso
+- Linhas realmente inseridas em `sugestoes_populares`
+- Leads `formulario` criados
 
-### 2. Gatear queries até `useUserAccess` estar pronto
+Objetivo: qualquer divergência entre esses quatro números fica visível imediatamente e a suspeita de "só 1 cadastro" é resolvida em segundos, sem depender de consulta ad-hoc.
 
-Adicionar `enabled: !accessLoading` (novo estado exposto pelo hook) nas queries que dependem de `userEixos`/`userMunicipios`/`userId` (propostas, sugestões, leads), evitando dupla execução (uma vez sem escopo, outra com escopo) e requisições descartáveis.
+### 3. Card comparativo Meta ↔ site
+Ainda em `AdminAnalytics.tsx`, um bloco pequeno com:
+- Conversões contabilizadas no site nas últimas 24h por `utm_source` (`ig`, `fb`, direto, etc.).
+- Nota explícita: "se este número diverge do Meta Ads Manager, o problema é atribuição/CAPI, não o site" + link para verificar `META_CAPI_TEST_EVENT_CODE`.
 
-### 3. Cache mais tolerante em React Query
-
-No `QueryClient` global (ou nas queries do painel) definir:
-
-- `staleTime: 60_000`
-- `refetchOnWindowFocus: false`
-- `refetchOnMount: false` para dados de referência (eixos, municípios).
-
-Isso elimina o comportamento de "buscando, buscando" a cada troca de aba.
-
-### 4. Suavizar loading do admin
-
-Em `src/hooks/useAuth.tsx`, só marcar `isLoading = false` **depois** que o fetch inicial de papéis retornar (ou pelo menos após `getSession` inicial), para o `ProtectedRoute` não redesenhar entre "sem papéis" e "com papéis".
-
-Em `src/pages/AdminMeuPainel.tsx`, renderizar o esqueleto do dashboard imediatamente e mostrar spinners locais por card em vez de bloquear a página inteira até todas as queries responderem.
-
-### 5. Analytics: recorte enxuto
-
-Reduzir a query de `page_analytics_events` a apenas as colunas usadas (`event_type, session_id, device_type`) e continuar respeitando o filtro `gte("created_at", startDate)`. Se ainda vier acima de ~5k linhas em "12m/all", trocar por uma RPC/`analytics_query` agregada em SQL para retornar somente contadores (pageviews, sessions, breakdown por device).
+### 4. Ajuste no `useAnalytics` para não perder `utm_source` em sessões longas
+Hoje `getUTMParams()` lê da URL a cada evento. Se o visitante navegar/refresh, o UTM some. Passar a persistir os UTMs originais em `sessionStorage` (`rota399_utm`) e usá-los como fallback nos eventos subsequentes — melhora a atribuição de conversões vindas de tráfego pago sem alterar rota de dados.
 
 ## Detalhes técnicos
 
-- Arquivos: `src/pages/AdminMeuPainel.tsx`, `src/hooks/useUserAccess.tsx` (expor `isLoading` como `accessLoading`), `src/hooks/useAuth.tsx`, `src/main.tsx` (config do `QueryClient`).
-- Nenhuma mudança de schema; nenhuma migration.
-- Nenhuma alteração em RLS/policies.
-- Sem impacto nas rotas públicas.
+- Sem migrations. Sem mudanças em RLS ou schema.
+- Alterações restritas a: `src/components/landing/SocialShareButtons.tsx`, `src/pages/AdminAnalytics.tsx`, `src/hooks/useAnalytics.tsx`.
+- Nenhum comportamento da LP muda visualmente para o visitante.
+- Queries do card de reconciliação usam `page_analytics_events` (já indexado por `created_at`) e `sugestoes_populares` com `count exact` — leves.
 
-## Validação
+## Fora de escopo
 
-- Abrir `/admin/meu-painel` em rede lenta simulada; a página deve renderizar shell em <1s e os cards preencherem à medida que cada query responde.
-- Verificar no DevTools/Network que cada tabela é consultada **uma vez** por sessão (não duas).
-- Confirmar que o total de bytes recebidos cai substancialmente (esperado: >70% de redução no payload de `propostas_tecnicas` + `page_analytics_events`).
+- Não vou "aumentar" contagens artificialmente nem alterar o gatilho de `Lead` na Meta CAPI enquanto não confirmarmos que a discrepância vem de lá.
+- Não vou mexer em `HomeHero.tsx` / formulário — os dados provam que ele está funcionando.
