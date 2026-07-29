@@ -71,13 +71,32 @@ const getOS = () => {
 
 // Extrair UTM params da URL
 const getUTMParams = () => {
+  const STORAGE_KEY = 'rota399_utm';
   const params = new URLSearchParams(window.location.search);
-  return {
-    utm_source: params.get('utm_source') || null,
-    utm_medium: params.get('utm_medium') || null,
-    utm_campaign: params.get('utm_campaign') || null,
-    utm_content: params.get('utm_content') || null,
+  const fromUrl = {
+    utm_source: params.get('utm_source'),
+    utm_medium: params.get('utm_medium'),
+    utm_campaign: params.get('utm_campaign'),
+    utm_content: params.get('utm_content'),
   };
+  const hasUrlUtm = Object.values(fromUrl).some(Boolean);
+  if (hasUrlUtm) {
+    try { sessionStorage.setItem(STORAGE_KEY, JSON.stringify(fromUrl)); } catch { /* noop */ }
+    return fromUrl;
+  }
+  try {
+    const cached = sessionStorage.getItem(STORAGE_KEY);
+    if (cached) {
+      const parsed = JSON.parse(cached);
+      return {
+        utm_source: parsed.utm_source || null,
+        utm_medium: parsed.utm_medium || null,
+        utm_campaign: parsed.utm_campaign || null,
+        utm_content: parsed.utm_content || null,
+      };
+    }
+  } catch { /* noop */ }
+  return { utm_source: null, utm_medium: null, utm_campaign: null, utm_content: null };
 };
 
 // Classificar referrer em canal
