@@ -208,6 +208,70 @@ const AdminAnalytics = () => {
   const cidadesExibidas = expandCidades ? cidadesRanking : topCidades;
   const cidadaosExibidos = expandCidadaos ? cidadaosRanking : cidadaosRanking.slice(0, 10);
 
+  // ---- Reconciliação de conversões (últimas 24h) ----
+  const { data: reconcile24h } = useQuery({
+    queryKey: ['reconcile-24h'],
+    queryFn: async () => {
+      const since = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString();
+      const [ev, sug, lds] = await Promise.all([
+        supabase
+          .from('page_analytics_events')
+          .select('event_type, component_action, created_at, utm_source, page_path')
+          .gte('created_at', since)
+          .eq('page_path', '/')
+          .limit(50000),
+        supabase
+          .from('sugestoes_populares')
+          .select('created_at, municipio')
+          .gte('created_at', since)
+          .limit(50000),
+        supabase
+          .from('leads')
+          .select('created_at, origem')
+          .gte('created_at', since)
+          .eq('origem', 'formulario')
+          .limit(50000),
+      ]);
+      return {
+        events: ev.data || [],
+        sugestoes: sug.data || [],
+        leads: lds.data || [],
+      };
+    },
+    enabled: !!user && (isAdmin || roles.includes('lider_tematico')),
+    refetchInterval: 60_000,
+  });
+
+  const reconcileTotals = (() => {
+    const ev = reconcile24h?.events || [];
+    const pageviews = ev.filter(e => e.event_type === 'pageview').length;
+    const submitsOk = ev.filter(e => e.event_type === 'form_submit' && e.component_action === 'success').length;
+    const submitsErr = ev.filter(e => e.event_type === 'form_submit' && e.component_action === 'error').length;
+    const sugestoes = reconcile24h?.sugestoes.length || 0;
+    const leadsCount = reconcile24h?.leads.length || 0;
+    return { pageviews, submitsOk, submitsErr, sugestoes, leadsCount };
+  })();
+
+  const attributionRows = (() => {
+    const ev = reconcile24h?.events || [];
+    const map = new Map<string, { pv: number; subs: number }>();
+    ev.forEach(e => {
+      const src = e.utm_source || '(direto)';
+      const row = map.get(src) || { pv: 0, subs: 0 };
+      if (e.event_type === 'pageview') row.pv += 1;
+      if (e.event_type === 'form_submit' && e.component_action === 'success') row.subs += 1;
+      map.set(src, row);
+    });
+    return Array.from(map.entries())
+      .map(([source, v]) => ({
+        source,
+        pv: v.pv,
+        subs: v.subs,
+        rate: v.pv > 0 ? (v.subs / v.pv) * 100 : 0,
+      }))
+      .sort((a, b) => b.pv - a.pv);
+  })();
+
   // Cálculos de métricas
   const pageviews = events?.filter(e => e.event_type === 'pageview').length || 0;
   const uniqueVisitors = new Set(events?.map(e => e.visitor_id)).size;
