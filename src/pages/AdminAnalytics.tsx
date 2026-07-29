@@ -690,6 +690,15 @@ const AdminAnalytics = () => {
                     <Trophy className="w-5 h-5 text-accent" />
                     Ranking de Engajamento
                   </CardTitle>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="mt-2 gap-2 w-fit"
+                    onClick={() => setOpenCidadesSem(true)}
+                  >
+                    <MapPinOff className="w-4 h-4" />
+                    Cidades sem participação
+                  </Button>
                 </CardHeader>
                 <CardContent className="pt-0">
                   <div className="grid gap-6 md:grid-cols-2">
