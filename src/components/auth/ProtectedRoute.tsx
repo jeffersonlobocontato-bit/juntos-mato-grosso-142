@@ -14,7 +14,7 @@ interface ProtectedRouteProps {
 }
 
 const ProtectedRoute = ({ children, requiredRoles }: ProtectedRouteProps) => {
-  const { user, roles, isLoading } = useAuth();
+  const { user, roles, isLoading, rolesLoading } = useAuth();
   const location = useLocation();
 
   // Injeta noindex/nofollow + remove og:image em rotas administrativas para
@@ -48,7 +48,7 @@ const ProtectedRoute = ({ children, requiredRoles }: ProtectedRouteProps) => {
     };
   }, []);
 
-  if (isLoading) {
+  if (isLoading || (user && rolesLoading)) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-background">
         <div className="animate-spin text-4xl" aria-label="Carregando">⏳</div>

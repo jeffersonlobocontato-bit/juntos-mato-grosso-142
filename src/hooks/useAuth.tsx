@@ -9,6 +9,7 @@ interface AuthContextType {
   session: Session | null;
   roles: AppRole[];
   isLoading: boolean;
+  rolesLoading: boolean;
   signIn: (email: string, password: string) => Promise<{ error: Error | null }>;
   signUp: (email: string, password: string, fullName: string) => Promise<{ error: Error | null }>;
   signOut: () => Promise<void>;
@@ -24,15 +25,21 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const [session, setSession] = useState<Session | null>(null);
   const [roles, setRoles] = useState<AppRole[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [rolesLoading, setRolesLoading] = useState(true);
 
   const fetchUserRoles = async (userId: string) => {
-    const { data, error } = await supabase
-      .from('user_roles')
-      .select('role')
-      .eq('user_id', userId);
-
-    if (!error && data) {
-      setRoles(data.map(r => r.role as AppRole));
+    try {
+      const { data, error } = await supabase
+        .from('user_roles')
+        .select('role')
+        .eq('user_id', userId);
+      if (!error && data) {
+        setRoles(data.map(r => r.role as AppRole));
+      }
+    } catch (err) {
+      console.error('fetchUserRoles failed', err);
+    } finally {
+      setRolesLoading(false);
     }
   };
 
@@ -46,29 +53,31 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         setSession(session);
         setUser(session?.user ?? null);
         if (session?.user) {
-          // Defer role fetching to avoid deadlock inside the auth callback
+          setRolesLoading(true);
           setTimeout(() => {
             fetchUserRoles(session.user.id);
           }, 0);
         } else {
           setRoles([]);
+          setRolesLoading(false);
         }
+        setIsLoading(false);
       }
     );
 
-    // THEN check for existing session — only flip isLoading after we've
-    // resolved roles (or confirmed there's no user) so ProtectedRoute
-    // doesn't flash while roles are still loading.
-    (async () => {
-      const { data: { session } } = await supabase.auth.getSession();
+    // THEN check for existing session
+    supabase.auth.getSession().then(({ data: { session } }) => {
       if (!mounted) return;
       setSession(session);
       setUser(session?.user ?? null);
       if (session?.user) {
-        await fetchUserRoles(session.user.id);
+        setRolesLoading(true);
+        fetchUserRoles(session.user.id);
+      } else {
+        setRolesLoading(false);
       }
-      if (mounted) setIsLoading(false);
-    })();
+      setIsLoading(false);
+    });
 
     return () => {
       mounted = false;
@@ -112,6 +121,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       session,
       roles,
       isLoading,
+      rolesLoading,
       signIn,
       signUp,
       signOut,
