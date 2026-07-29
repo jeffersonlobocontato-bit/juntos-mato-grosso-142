@@ -109,7 +109,7 @@ export default function AdminMeuPainel() {
     queryKey: ["meu-painel-propostas", userEixos, userMunicipios, userId],
     queryFn: async () => {
       let query = supabase.from("propostas_tecnicas").select(`
-        id, titulo, descricao, status, etapa, eixo_id, municipio_id, autor_id, tipo_proposta, created_at, updated_at,
+        id, titulo, descricao, status, etapa, eixo_id, municipio_id, autor_id, entrevistado, tipo_proposta, created_at, updated_at,
         eixos_tematicos(nome),
         municipios(nome),
         temas(nome)
