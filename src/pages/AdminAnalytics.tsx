@@ -31,6 +31,8 @@ import {
   Trophy,
   User as UserIcon
 } from 'lucide-react';
+import CidadesSemParticipacaoModal from '@/components/admin/CidadesSemParticipacaoModal';
+import { MapPinOff } from 'lucide-react';
 import {
   BarChart,
   Bar,
@@ -202,6 +204,7 @@ const AdminAnalytics = () => {
   const topCidades = cidadesRanking.slice(0, 10);
   const [expandCidades, setExpandCidades] = useState(false);
   const [expandCidadaos, setExpandCidadaos] = useState(false);
+  const [openCidadesSem, setOpenCidadesSem] = useState(false);
   const cidadesExibidas = expandCidades ? cidadesRanking : topCidades;
   const cidadaosExibidos = expandCidadaos ? cidadaosRanking : cidadaosRanking.slice(0, 10);
 
@@ -687,6 +690,15 @@ const AdminAnalytics = () => {
                     <Trophy className="w-5 h-5 text-accent" />
                     Ranking de Engajamento
                   </CardTitle>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="mt-2 gap-2 w-fit"
+                    onClick={() => setOpenCidadesSem(true)}
+                  >
+                    <MapPinOff className="w-4 h-4" />
+                    Cidades sem participação
+                  </Button>
                 </CardHeader>
                 <CardContent className="pt-0">
                   <div className="grid gap-6 md:grid-cols-2">
@@ -1066,6 +1078,7 @@ const AdminAnalytics = () => {
           </motion.div>
         )}
       </main>
+      <CidadesSemParticipacaoModal open={openCidadesSem} onOpenChange={setOpenCidadesSem} />
     </div>
   );
 };

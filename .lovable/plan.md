@@ -1,22 +1,26 @@
-## Diagnóstico
+# Cidades sem sugestões populares — botão no Analytics
 
-O Analytics mostra o total real de sugestões porque usa `count: 'exact'` (ex.: 1.037 no log de rede). Já o Dashboard e a página de Sugestões carregam as linhas em si com `.select(...)` sem paginação — e o PostgREST corta em 1.000 linhas por padrão. Por isso o painel "trava" em 1.000 cadastros mesmo quando o total real já passa disso.
+## O que faz
+Novo botão em `/admin/analytics`, ao lado dos rankings de cidades, chamado **"Cidades sem participação"**. Ao clicar, abre um modal com:
 
-Arquivos afetados:
-- `src/pages/Dashboard.tsx` (linha 70): `supabase.from("sugestoes_populares").select("id, eixo, municipio, created_at")` — sem paginação.
-- `src/pages/AdminSugestoes.tsx` (linhas 128-131): `.select('*').order(...)` — mesma limitação; a lista de sugestões e os filtros também ficam capados em 1.000.
+- Contagem: "X de 399 municípios ainda sem nenhuma sugestão registrada".
+- Lista completa dos municípios ausentes, ordenada alfabeticamente, com região (quando disponível).
+- Campo de busca para filtrar pelo nome.
+- Botão **"Exportar CSV"** para baixar a lista (nome, região, código IBGE).
 
-## Correção
+## Como funciona (técnico)
+- Consulta 1: `SELECT id, nome, regiao, codigo_ibge FROM municipios ORDER BY nome` (paginado em lotes de 1.000, mesmo padrão já usado no Dashboard, para garantir os 399).
+- Consulta 2: `SELECT DISTINCT municipio FROM sugestoes_populares` (também paginado, teto 100k).
+- Diff no client: municípios cuja `nome` (normalizado — trim + lowercase + sem acento) não aparece na lista de sugestões.
+- Exportação CSV feita no client (Blob), sem dependência nova.
 
-Aplicar paginação em lote (mesmo padrão já usado no `AdminAnalytics.tsx` para `sugestoes-periodo-ranking`), iterando com `.range(from, to)` até esgotar as linhas.
+## Arquivos
+- `src/pages/AdminAnalytics.tsx` — adicionar botão na seção de Top Cidades e estado do modal.
+- `src/components/admin/CidadesSemParticipacaoModal.tsx` (novo) — modal com busca, lista e export CSV, usando shadcn `Dialog`, `Input`, `Button`, `ScrollArea`.
 
-1. **`src/pages/Dashboard.tsx`** — substituir o `queryFn` de `dashboard-sugestoes` por um loop paginado (`PAGE_SIZE = 1000`, teto de segurança 100.000) que concatena todas as páginas de `id, eixo, municipio, created_at` ordenadas por `created_at`.
-2. **`src/pages/AdminSugestoes.tsx`** — reescrever `fetchSugestoes` com o mesmo loop paginado, mantendo `order('created_at', ascending: false)` e `select('*')`.
+Sem mudanças de schema, RLS ou edge functions.
 
 ## Validação
-
-- No Dashboard, o card/contagem de sugestões passa a bater com o número mostrado no Analytics (>1.000).
-- Em `/admin/sugestoes`, a listagem passa a exibir todas as sugestões e os filtros por município/eixo consideram o dataset completo.
-- Analytics continua igual (já estava correto).
-
-Sem mudanças de schema, RLS, edge functions ou UI — apenas remoção do teto de 1.000 linhas em duas consultas.
+- Total exibido + total com sugestões = 399.
+- Busca filtra em tempo real.
+- CSV baixa com todos os municípios ausentes.
