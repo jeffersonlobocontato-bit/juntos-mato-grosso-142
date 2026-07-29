@@ -555,6 +555,89 @@ const AdminAnalytics = () => {
                 </CardContent>
               </Card>
 
+              {/* Reconciliação de Conversões — últimas 24h */}
+              <Card className="col-span-2 md:col-span-3 lg:col-span-6 border-amber-500/40 bg-gradient-to-br from-amber-500/5 via-background to-amber-500/10">
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2 text-base">
+                    <RefreshCw className="w-4 h-4 text-amber-600" />
+                    Reconciliação de conversões — últimas 24h
+                  </CardTitle>
+                  <p className="text-xs text-muted-foreground mt-1">
+                    Os quatro números abaixo devem bater. Qualquer divergência aponta onde a perda está acontecendo.
+                  </p>
+                </CardHeader>
+                <CardContent>
+                  <div className="grid grid-cols-2 md:grid-cols-5 gap-4 mb-4">
+                    <div>
+                      <p className="text-2xl font-bold">{reconcileTotals.pageviews.toLocaleString('pt-BR')}</p>
+                      <p className="text-[11px] text-muted-foreground">Pageviews da Home</p>
+                    </div>
+                    <div>
+                      <p className="text-2xl font-bold">{reconcileTotals.submitsOk.toLocaleString('pt-BR')}</p>
+                      <p className="text-[11px] text-muted-foreground">form_submit sucesso</p>
+                    </div>
+                    <div>
+                      <p className={`text-2xl font-bold ${reconcileTotals.submitsErr > 0 ? 'text-destructive' : ''}`}>
+                        {reconcileTotals.submitsErr.toLocaleString('pt-BR')}
+                      </p>
+                      <p className="text-[11px] text-muted-foreground">form_submit erro</p>
+                    </div>
+                    <div>
+                      <p className="text-2xl font-bold">{reconcileTotals.sugestoes.toLocaleString('pt-BR')}</p>
+                      <p className="text-[11px] text-muted-foreground">Sugestões gravadas</p>
+                    </div>
+                    <div>
+                      <p className="text-2xl font-bold">{reconcileTotals.leadsCount.toLocaleString('pt-BR')}</p>
+                      <p className="text-[11px] text-muted-foreground">Leads (formulario)</p>
+                    </div>
+                  </div>
+                  {reconcileTotals.submitsOk !== reconcileTotals.sugestoes && (
+                    <div className="text-xs bg-amber-500/10 border border-amber-500/30 rounded-md p-2 mb-3">
+                      ⚠️ Diferença entre <b>form_submit sucesso ({reconcileTotals.submitsOk})</b> e{' '}
+                      <b>sugestões gravadas ({reconcileTotals.sugestoes})</b>. Se sugestões {'>'} form_submit, o tracker
+                      perdeu eventos (in-app browser, ad-blocker). Se form_submit {'>'} sugestões, houve rejeição do
+                      banco (rate-limit, RLS ou trigger).
+                    </div>
+                  )}
+                  <div className="border-t border-border/60 pt-3">
+                    <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground mb-2">
+                      Atribuição por origem (últimas 24h)
+                    </p>
+                    {attributionRows.length === 0 ? (
+                      <p className="text-sm text-muted-foreground">Sem eventos rastreados no período.</p>
+                    ) : (
+                      <div className="overflow-x-auto">
+                        <table className="w-full text-sm">
+                          <thead>
+                            <tr className="text-left text-xs text-muted-foreground border-b border-border/40">
+                              <th className="py-1.5 pr-3">utm_source</th>
+                              <th className="py-1.5 pr-3 text-right">Pageviews</th>
+                              <th className="py-1.5 pr-3 text-right">Conversões</th>
+                              <th className="py-1.5 pr-3 text-right">Taxa</th>
+                            </tr>
+                          </thead>
+                          <tbody>
+                            {attributionRows.map(r => (
+                              <tr key={r.source} className="border-b border-border/20 last:border-0">
+                                <td className="py-1.5 pr-3 font-medium">{r.source}</td>
+                                <td className="py-1.5 pr-3 text-right tabular-nums">{r.pv.toLocaleString('pt-BR')}</td>
+                                <td className="py-1.5 pr-3 text-right tabular-nums">{r.subs.toLocaleString('pt-BR')}</td>
+                                <td className="py-1.5 pr-3 text-right tabular-nums">{r.rate.toFixed(1)}%</td>
+                              </tr>
+                            ))}
+                          </tbody>
+                        </table>
+                      </div>
+                    )}
+                    <p className="text-[11px] text-muted-foreground mt-2 leading-snug">
+                      Se o Meta Ads Manager mostrar número muito diferente destas conversões, o problema é de
+                      atribuição/CAPI (não do site). Cheque se o pixel dispara o evento <b>Lead</b> e se o{' '}
+                      <code>event_id</code> está sendo enviado tanto pelo browser quanto pela Conversions API.
+                    </p>
+                  </div>
+                </CardContent>
+              </Card>
+
               {/* Card de Taxa de Conversão: Visualizações LP × Sugestões Populares */}
               <Card className="col-span-2 md:col-span-3 lg:col-span-6 border-accent/40 bg-gradient-to-br from-accent/10 via-background to-primary/10">
                 <CardContent className="pt-6">
