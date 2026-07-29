@@ -1078,6 +1078,7 @@ const AdminAnalytics = () => {
           </motion.div>
         )}
       </main>
+      <CidadesSemParticipacaoModal open={openCidadesSem} onOpenChange={setOpenCidadesSem} />
     </div>
   );
 };
