@@ -31,6 +31,8 @@ import {
   Trophy,
   User as UserIcon
 } from 'lucide-react';
+import CidadesSemParticipacaoModal from '@/components/admin/CidadesSemParticipacaoModal';
+import { MapPinOff } from 'lucide-react';
 import {
   BarChart,
   Bar,
@@ -202,6 +204,7 @@ const AdminAnalytics = () => {
   const topCidades = cidadesRanking.slice(0, 10);
   const [expandCidades, setExpandCidades] = useState(false);
   const [expandCidadaos, setExpandCidadaos] = useState(false);
+  const [openCidadesSem, setOpenCidadesSem] = useState(false);
   const cidadesExibidas = expandCidades ? cidadesRanking : topCidades;
   const cidadaosExibidos = expandCidadaos ? cidadaosRanking : cidadaosRanking.slice(0, 10);
 
