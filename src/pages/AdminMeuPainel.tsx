@@ -54,7 +54,7 @@ const getRoleBadge = (roles: string[]) => {
 
 export default function AdminMeuPainel() {
   const { roles } = useAuth();
-  const { userEixos, userMunicipios, isAdmin, isAdminMaster, isLiderTematico: isLider, isCuradorMunicipal: isCurador, getEixoIds, getMunicipioIds, userId } = useUserAccess();
+  const { userEixos, userMunicipios, isAdmin, isAdminMaster, isLiderTematico: isLider, isCuradorMunicipal: isCurador, getMunicipioIds, userId, isLoading: accessLoading } = useUserAccess();
   const [period, setPeriod] = useState<PeriodFilter>("30d");
   const [isSeeding, setIsSeeding] = useState(false);
   const [selectedEixosForComparison, setSelectedEixosForComparison] = useState<string[]>([]);
@@ -109,7 +109,7 @@ export default function AdminMeuPainel() {
     queryKey: ["meu-painel-propostas", userEixos, userMunicipios, userId],
     queryFn: async () => {
       let query = supabase.from("propostas_tecnicas").select(`
-        *,
+        id, titulo, descricao, status, etapa, eixo_id, municipio_id, autor_id, entrevistado, tipo_proposta, created_at, updated_at,
         eixos_tematicos(nome),
         municipios(nome),
         temas(nome)
@@ -123,12 +123,13 @@ export default function AdminMeuPainel() {
       if (error) throw error;
       return data || [];
     },
+    enabled: !accessLoading,
   });
 
   const { data: sugestoes, isLoading: loadingSugestoes, refetch: refetchSugestoes } = useQuery({
     queryKey: ["meu-painel-sugestoes", userEixos, userId],
     queryFn: async () => {
-      let query = supabase.from("sugestoes_populares").select("*");
+      let query = supabase.from("sugestoes_populares").select("id, eixo, municipio, descricao, created_at");
       if (isLider && !isAdmin && !isAdminMaster && userEixos.length > 0) {
         const eixoNomes = userEixos.map(e => e.eixo_nome).filter(Boolean) as string[];
         if (eixoNomes.length > 0) {
@@ -139,6 +140,7 @@ export default function AdminMeuPainel() {
       if (error) throw error;
       return data || [];
     },
+    enabled: !accessLoading,
   });
 
   const { data: leads, isLoading: loadingLeads, refetch: refetchLeads } = useQuery({
@@ -156,16 +158,17 @@ export default function AdminMeuPainel() {
         
         const { data, error } = await supabase
           .from("leads")
-          .select("*")
+          .select("id, nome, email, origem, municipio, proposta_id, created_at")
           .in("proposta_id", myPropostaIds);
         if (error) throw error;
         return data || [];
       }
       
-      const { data, error } = await supabase.from("leads").select("*");
+      const { data, error } = await supabase.from("leads").select("id, nome, email, origem, municipio, proposta_id, created_at");
       if (error) throw error;
       return data || [];
     },
+    enabled: !accessLoading,
   });
 
   const { data: eixos, isLoading: loadingEixos } = useQuery({
@@ -202,12 +205,12 @@ export default function AdminMeuPainel() {
       const startDate = getDateRange();
       const { data, error } = await supabase
         .from("page_analytics_events")
-        .select("*")
+        .select("event_type, session_id, device_type, created_at")
         .gte("created_at", startDate.toISOString());
       if (error) throw error;
       return data || [];
     },
-    enabled: isAdmin || isLider,
+    enabled: !accessLoading && (isAdmin || isLider),
   });
 
   const { data: userRoles } = useQuery({
