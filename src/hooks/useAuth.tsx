@@ -30,45 +30,50 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       .from('user_roles')
       .select('role')
       .eq('user_id', userId);
-    
+
     if (!error && data) {
       setRoles(data.map(r => r.role as AppRole));
     }
   };
 
   useEffect(() => {
+    let mounted = true;
+
     // Set up auth state listener FIRST
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      (event, session) => {
+      (_event, session) => {
+        if (!mounted) return;
         setSession(session);
         setUser(session?.user ?? null);
-        
-        // Defer role fetching with setTimeout to prevent deadlock
         if (session?.user) {
+          // Defer role fetching to avoid deadlock inside the auth callback
           setTimeout(() => {
             fetchUserRoles(session.user.id);
           }, 0);
         } else {
           setRoles([]);
         }
-        
-        setIsLoading(false);
       }
     );
 
-    // THEN check for existing session
-    supabase.auth.getSession().then(({ data: { session } }) => {
+    // THEN check for existing session — only flip isLoading after we've
+    // resolved roles (or confirmed there's no user) so ProtectedRoute
+    // doesn't flash while roles are still loading.
+    (async () => {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!mounted) return;
       setSession(session);
       setUser(session?.user ?? null);
-      
       if (session?.user) {
-        fetchUserRoles(session.user.id);
+        await fetchUserRoles(session.user.id);
       }
-      
-      setIsLoading(false);
-    });
+      if (mounted) setIsLoading(false);
+    })();
 
-    return () => subscription.unsubscribe();
+    return () => {
+      mounted = false;
+      subscription.unsubscribe();
+    };
   }, []);
 
   const signIn = async (email: string, password: string) => {
