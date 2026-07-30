@@ -31,6 +31,9 @@ import Liderancas from "./pages/Liderancas";
 import PublicPresentation from "./pages/PublicPresentation";
 import NotFound from "./pages/NotFound";
 import ProtectedRoute from "./components/auth/ProtectedRoute";
+import CookieConsentBanner from "./components/CookieConsentBanner";
+import PoliticaPrivacidade from "./pages/PoliticaPrivacidade";
+import TermosDeUso from "./pages/TermosDeUso";
 const queryClient = new QueryClient({
   defaultOptions: {
     queries: {
@@ -77,9 +80,12 @@ const App = () => (
             <Route path="/entrevista-institucional" element={<EntrevistaInstitucional />} />
             <Route path="/liderancas" element={<Liderancas />} />
             <Route path="/apresentacao/:publicId" element={<PublicPresentation />} />
+            <Route path="/politica-privacidade" element={<PoliticaPrivacidade />} />
+            <Route path="/termos-de-uso" element={<TermosDeUso />} />
             {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
             <Route path="*" element={<NotFound />} />
           </Routes>
+          <CookieConsentBanner />
         </AuthProvider>
       </BrowserRouter>
     </TooltipProvider>
