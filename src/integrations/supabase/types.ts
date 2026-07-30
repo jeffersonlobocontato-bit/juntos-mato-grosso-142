@@ -696,6 +696,24 @@ export type Database = {
           },
         ]
       }
+      login_attempts: {
+        Row: {
+          created_at: string
+          id: string
+          ip_hash: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          ip_hash: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          ip_hash?: string
+        }
+        Relationships: []
+      }
       municipios: {
         Row: {
           codigo_ibge: string | null
@@ -2167,6 +2185,14 @@ export type Database = {
       }
     }
     Functions: {
+      check_login_rate_limit: {
+        Args: {
+          p_ip_hash: string
+          p_max_attempts?: number
+          p_window_minutes?: number
+        }
+        Returns: boolean
+      }
       get_inactive_users: {
         Args: { hours_threshold?: number }
         Returns: {
