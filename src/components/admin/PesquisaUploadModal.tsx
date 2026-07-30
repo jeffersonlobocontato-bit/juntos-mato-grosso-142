@@ -171,7 +171,8 @@ export const PesquisaUploadModal = ({
     try {
       const pdfjsLib = await loadPdfJs();
       const arrayBuffer = await file.arrayBuffer();
-      const pdf = await pdfjsLib.getDocument({ data: arrayBuffer }).promise;
+      // isEvalSupported: false — nunca usar eval() ao processar fontes/scripts do PDF
+      const pdf = await pdfjsLib.getDocument({ data: arrayBuffer, isEvalSupported: false }).promise;
       
       let fullText = '';
       for (let i = 1; i <= pdf.numPages; i++) {
