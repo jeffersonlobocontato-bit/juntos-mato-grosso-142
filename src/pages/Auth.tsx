@@ -9,7 +9,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { toast } from 'sonner';
-import { Eye, EyeOff, LogIn, UserPlus, ArrowLeft } from 'lucide-react';
+import { Eye, EyeOff, LogIn, ArrowLeft } from 'lucide-react';
 import { Link } from 'react-router-dom';
 
 const loginSchema = z.object({
@@ -17,25 +17,63 @@ const loginSchema = z.object({
   password: z.string().min(6, 'Senha deve ter no mínimo 6 caracteres'),
 });
 
-const signupSchema = loginSchema.extend({
-  fullName: z.string().min(2, 'Nome deve ter no mínimo 2 caracteres'),
-  confirmPassword: z.string(),
-}).refine((data) => data.password === data.confirmPassword, {
-  message: 'Senhas não conferem',
-  path: ['confirmPassword'],
-});
+const RECAPTCHA_SITE_KEY = import.meta.env.VITE_RECAPTCHA_SITE_KEY as string | undefined;
+
+declare global {
+  interface Window {
+    grecaptcha?: {
+      ready: (cb: () => void) => void;
+      execute: (siteKey: string, options: { action: string }) => Promise<string>;
+    };
+  }
+}
+
+function loadRecaptchaScript(): Promise<void> {
+  return new Promise((resolve, reject) => {
+    if (window.grecaptcha) return resolve();
+    if (!RECAPTCHA_SITE_KEY) return reject(new Error('reCAPTCHA site key não configurada'));
+    const script = document.createElement('script');
+    script.src = `https://www.google.com/recaptcha/api.js?render=${RECAPTCHA_SITE_KEY}`;
+    script.async = true;
+    script.onload = () => resolve();
+    script.onerror = () => reject(new Error('Falha ao carregar reCAPTCHA'));
+    document.head.appendChild(script);
+  });
+}
+
+async function runLoginSecurityGate(): Promise<{ allowed: boolean; reason?: string }> {
+  try {
+    await loadRecaptchaScript();
+    const token: string = await new Promise((resolve, reject) => {
+      window.grecaptcha!.ready(() => {
+        window
+          .grecaptcha!.execute(RECAPTCHA_SITE_KEY!, { action: 'login' })
+          .then(resolve)
+          .catch(reject);
+      });
+    });
+
+    const { data, error } = await supabase.functions.invoke('verify-login-attempt', {
+      body: { recaptcha_token: token },
+    });
+
+    if (error) return { allowed: false, reason: 'server_error' };
+    return data as { allowed: boolean; reason?: string };
+  } catch (err) {
+    console.error('login security gate failed', err);
+    // Se o reCAPTCHA não carregar (ex.: bloqueado por extensão), não travamos o login legítimo.
+    return { allowed: true };
+  }
+}
 
 const Auth = () => {
-  const [isLogin, setIsLogin] = useState(true);
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
-  const [confirmPassword, setConfirmPassword] = useState('');
-  const [fullName, setFullName] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [errors, setErrors] = useState<Record<string, string>>({});
   
-  const { user, signIn, signUp } = useAuth();
+  const { user, signIn } = useAuth();
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -60,11 +98,7 @@ const Auth = () => {
 
   const validateForm = () => {
     try {
-      if (isLogin) {
-        loginSchema.parse({ email, password });
-      } else {
-        signupSchema.parse({ email, password, confirmPassword, fullName });
-      }
+      loginSchema.parse({ email, password });
       setErrors({});
       return true;
     } catch (error) {
@@ -89,44 +123,39 @@ const Auth = () => {
     setIsLoading(true);
     
     try {
-      if (isLogin) {
-        const { error } = await signIn(email, password);
-        if (error) {
-          if (error.message.includes('Invalid login credentials')) {
-            toast.error('Email ou senha incorretos');
-          } else {
-            toast.error(error.message);
-          }
+      // Reforço anti-bot: reCAPTCHA v3 + limite de tentativas por IP, validados no servidor.
+      const gate = await runLoginSecurityGate();
+      if (!gate.allowed) {
+        if (gate.reason === 'rate_limited') {
+          toast.error('Muitas tentativas em pouco tempo. Aguarde alguns minutos e tente novamente.');
         } else {
-          toast.success('Login realizado com sucesso!');
-          // Fetch roles to determine redirect
-          const { data: { user: loggedUser } } = await supabase.auth.getUser();
-          if (loggedUser) {
-            const { data: rolesData } = await supabase
-              .from('user_roles')
-              .select('role')
-              .eq('user_id', loggedUser.id);
-            const userRoles = rolesData?.map(r => r.role) || [];
-            if (userRoles.includes('admin') || userRoles.includes('admin_master')) {
-              navigate('/admin');
-            } else if (userRoles.includes('lider_tematico')) {
-              navigate('/admin');
-            } else {
-              navigate('/');
-            }
-          }
+          toast.error('Não foi possível validar essa tentativa de login. Tente novamente.');
+        }
+        setIsLoading(false);
+        return;
+      }
+
+      const { error } = await signIn(email, password);
+      if (error) {
+        if (error.message.includes('Invalid login credentials')) {
+          toast.error('Email ou senha incorretos');
+        } else {
+          toast.error(error.message);
         }
       } else {
-        const { error } = await signUp(email, password, fullName);
-        if (error) {
-          if (error.message.includes('User already registered')) {
-            toast.error('Este email já está cadastrado');
+        toast.success('Login realizado com sucesso!');
+        const { data: { user: loggedUser } } = await supabase.auth.getUser();
+        if (loggedUser) {
+          const { data: rolesData } = await supabase
+            .from('user_roles')
+            .select('role')
+            .eq('user_id', loggedUser.id);
+          const userRoles = rolesData?.map(r => r.role) || [];
+          if (userRoles.includes('admin') || userRoles.includes('admin_master') || userRoles.includes('lider_tematico')) {
+            navigate('/admin');
           } else {
-            toast.error(error.message);
+            navigate('/');
           }
-        } else {
-          toast.success('Cadastro realizado com sucesso!');
-          navigate('/admin');
         }
       }
     } finally {
