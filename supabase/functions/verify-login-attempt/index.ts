@@ -22,14 +22,8 @@ Deno.serve(async (req) => {
   }
 
   try {
-    const { recaptcha_token } = await req.json();
-
-    if (!recaptcha_token) {
-      return new Response(JSON.stringify({ allowed: false, reason: "missing_token" }), {
-        status: 400,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
-    }
+    const body = await req.json().catch(() => ({}));
+    const recaptcha_token = typeof body?.recaptcha_token === "string" ? body.recaptcha_token : null;
 
     // IP real do visitante (Supabase Edge Functions rodam atrás de proxy Cloudflare/Deno Deploy)
     const ip =
@@ -66,12 +60,13 @@ Deno.serve(async (req) => {
       });
     }
 
-    // 2) Verificação do token reCAPTCHA v3 direto com o Google
+    // 2) Verificação do token reCAPTCHA v3 direto com o Google.
+    // Se o captcha ainda não estiver configurado (sem site key no cliente ou sem secret),
+    // seguimos apenas com o rate limit por IP — nunca travamos o login legítimo.
     const secretKey = Deno.env.get("RECAPTCHA_SECRET_KEY");
-    if (!secretKey) {
-      console.error("RECAPTCHA_SECRET_KEY não configurada");
-      return new Response(JSON.stringify({ allowed: false, reason: "server_misconfigured" }), {
-        status: 500,
+    if (!secretKey || !recaptcha_token) {
+      return new Response(JSON.stringify({ allowed: true, reason: "rate_limit_only" }), {
+        status: 200,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
