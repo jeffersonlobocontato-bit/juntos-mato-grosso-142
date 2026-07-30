@@ -19,9 +19,49 @@ serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
 
   try {
-    const { sugestao_id, descricao } = await req.json();
-    if (!sugestao_id || !descricao || typeof descricao !== "string") {
-      return new Response(JSON.stringify({ error: "Missing sugestao_id/descricao" }), {
+    const body = await req.json().catch(() => ({}));
+    const sugestao_id = body?.sugestao_id;
+    const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+    if (typeof sugestao_id !== "string" || !UUID_RE.test(sugestao_id)) {
+      return new Response(JSON.stringify({ error: "Invalid sugestao_id" }), {
+        status: 400,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
+    const supabase = createClient(Deno.env.get("SUPABASE_URL")!, Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!);
+
+    // Only classify a freshly created, not-yet-classified suggestion, and always
+    // use the stored text (never client-supplied content).
+    const { data: sugestao } = await supabase
+      .from("sugestoes_populares")
+      .select("id, descricao, created_at, analise_semantica")
+      .eq("id", sugestao_id)
+      .maybeSingle();
+
+    if (!sugestao) {
+      return new Response(JSON.stringify({ error: "Not found" }), {
+        status: 404,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
+    const ageMs = Date.now() - new Date(sugestao.created_at as string).getTime();
+    const alreadyClassified =
+      sugestao.analise_semantica &&
+      typeof sugestao.analise_semantica === "object" &&
+      (sugestao.analise_semantica as Record<string, unknown>).eixo_classificacao;
+
+    if (ageMs > 10 * 60 * 1000 || alreadyClassified) {
+      return new Response(JSON.stringify({ error: "Classification not available for this record" }), {
+        status: 403,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
+    const descricao = String(sugestao.descricao ?? "").slice(0, 4000);
+    if (!descricao.trim()) {
+      return new Response(JSON.stringify({ error: "Empty suggestion" }), {
         status: 400,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
@@ -103,8 +143,6 @@ Regras:
     if (!parsed || !EIXOS.includes(parsed.eixo)) {
       parsed = { eixo: "Não classificado", confianca: 0, justificativa: "Resposta inválida da IA" };
     }
-
-    const supabase = createClient(Deno.env.get("SUPABASE_URL")!, Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!);
 
     // Preserve any existing analise_semantica content and append eixo_classificacao
     const { data: existing } = await supabase
