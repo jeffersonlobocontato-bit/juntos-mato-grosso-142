@@ -186,34 +186,15 @@ const Auth = () => {
               <span className="text-3xl font-display font-black text-accent">399</span>
             </div>
             <CardTitle className="text-2xl font-display">
-              {isLogin ? 'Acessar Painel' : 'Criar Conta'}
+              Acessar Painel
             </CardTitle>
             <CardDescription>
-              {isLogin 
-                ? 'Entre com suas credenciais para acessar o painel de gestão' 
-                : 'Preencha os dados para criar sua conta'}
+              Entre com suas credenciais para acessar o painel de gestão
             </CardDescription>
           </CardHeader>
           
           <CardContent>
             <form onSubmit={handleSubmit} className="space-y-4">
-              {!isLogin && (
-                <div className="space-y-2">
-                  <Label htmlFor="fullName">Nome Completo</Label>
-                  <Input
-                    id="fullName"
-                    type="text"
-                    placeholder="Seu nome completo"
-                    value={fullName}
-                    onChange={(e) => setFullName(e.target.value)}
-                    className={errors.fullName ? 'border-destructive' : ''}
-                  />
-                  {errors.fullName && (
-                    <p className="text-sm text-destructive">{errors.fullName}</p>
-                  )}
-                </div>
-              )}
-              
               <div className="space-y-2">
                 <Label htmlFor="email">Email</Label>
                 <Input
@@ -253,23 +234,6 @@ const Auth = () => {
                 )}
               </div>
               
-              {!isLogin && (
-                <div className="space-y-2">
-                  <Label htmlFor="confirmPassword">Confirmar Senha</Label>
-                  <Input
-                    id="confirmPassword"
-                    type="password"
-                    placeholder="••••••••"
-                    value={confirmPassword}
-                    onChange={(e) => setConfirmPassword(e.target.value)}
-                    className={errors.confirmPassword ? 'border-destructive' : ''}
-                  />
-                  {errors.confirmPassword && (
-                    <p className="text-sm text-destructive">{errors.confirmPassword}</p>
-                  )}
-                </div>
-              )}
-              
               <Button 
                 type="submit" 
                 className="w-full" 
@@ -279,29 +243,20 @@ const Auth = () => {
                 {isLoading ? (
                   <span className="flex items-center gap-2">
                     <span className="animate-spin">⏳</span>
-                    {isLogin ? 'Entrando...' : 'Cadastrando...'}
+                    Entrando...
                   </span>
                 ) : (
                   <span className="flex items-center gap-2">
-                    {isLogin ? <LogIn className="w-4 h-4" /> : <UserPlus className="w-4 h-4" />}
-                    {isLogin ? 'Entrar' : 'Criar Conta'}
+                    <LogIn className="w-4 h-4" />
+                    Entrar
                   </span>
                 )}
               </Button>
             </form>
-            
-            <div className="mt-6 text-center">
-              <button
-                type="button"
-                onClick={() => {
-                  setIsLogin(!isLogin);
-                  setErrors({});
-                }}
-                className="text-sm text-muted-foreground hover:text-primary transition-colors"
-              >
-                {isLogin ? 'Não tem conta? Cadastre-se' : 'Já tem conta? Faça login'}
-              </button>
-            </div>
+
+            <p className="mt-6 text-center text-sm text-muted-foreground">
+              Acesso restrito. Novas contas são criadas por um administrador.
+            </p>
           </CardContent>
         </Card>
       </motion.div>
