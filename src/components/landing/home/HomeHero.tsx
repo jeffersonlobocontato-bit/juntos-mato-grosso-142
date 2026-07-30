@@ -354,7 +354,7 @@ const HomeHero = () => {
                     <div className="consent">
                       <input id="jp-consent-ads" type="checkbox" checked={consentAds} onChange={(e) => setConsentAds(e.target.checked)} />
                       <label htmlFor="jp-consent-ads">
-                        Autorizo (opcional) o compartilhamento do meu nome, telefone e cidade com o Meta (Facebook/Instagram) para fins de campanha publicitária.
+                        Autorizo (opcional) o compartilhamento do meu nome, telefone e cidade com o Meta.
                       </label>
                     </div>
                     <button type="submit" className="submit" disabled={enviando || !isValid}>
