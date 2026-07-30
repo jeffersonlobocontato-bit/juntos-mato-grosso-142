@@ -38,7 +38,7 @@
   <meta property="og:description" content="Juntos Paraná 399 - Uma iniciativa para construir colaborativamente um Plano de Governo para o Paraná, ouvindo quem vive os 399 municípios.">
   <meta name="twitter:description" content="Juntos Paraná 399 - Uma iniciativa para construir colaborativamente um Plano de Governo para o Paraná, ouvindo quem vive os 399 municípios.">
 
-  <!-- Meta Pixel Code -->
+  <!-- Meta Pixel Code — só inicializa após consentimento (ver src/lib/cookieConsent.ts) -->
   <script>
     !function(f,b,e,v,n,t,s)
     {if(f.fbq)return;n=f.fbq=function(){n.callMethod?
@@ -48,28 +48,36 @@
     t.src=v;s=b.getElementsByTagName(e)[0];
     s.parentNode.insertBefore(t,s)}(window, document,'script',
     'https://connect.facebook.net/en_US/fbevents.js');
-    fbq('init', '959625647096421');
-    fbq('track', 'PageView');
+    window.__initMetaPixel = function () {
+      if (window.__metaPixelReady) return;
+      window.__metaPixelReady = true;
+      fbq('init', '959625647096421');
+      fbq('track', 'PageView');
+    };
   </script>
   <!-- End Meta Pixel Code -->
 
-  <!-- Google tag (gtag.js) -->
-  <script async src="https://www.googletagmanager.com/gtag/js?id=G-FDS3P0R3T6"></script>
+  <!-- Google tag (gtag.js) — só inicializa após consentimento -->
   <script>
-    window.dataLayer = window.dataLayer || [];
-    function gtag(){dataLayer.push(arguments);}
-    gtag('js', new Date());
-    gtag('config', 'G-FDS3P0R3T6');
+    window.__initGoogleAnalytics = function () {
+      if (window.__gaReady) return;
+      window.__gaReady = true;
+      var s = document.createElement('script');
+      s.async = true;
+      s.src = 'https://www.googletagmanager.com/gtag/js?id=G-FDS3P0R3T6';
+      document.head.appendChild(s);
+      window.dataLayer = window.dataLayer || [];
+      function gtag(){dataLayer.push(arguments);}
+      window.gtag = gtag;
+      gtag('js', new Date());
+      gtag('config', 'G-FDS3P0R3T6');
+    };
   </script>
   <!-- End Google tag -->
 </head>
 
   <body>
     <div id="root"></div>
-    <noscript>
-      <img height="1" width="1" style="display:none"
-        src="https://www.facebook.com/tr?id=959625647096421&ev=PageView&noscript=1" />
-    </noscript>
     <script type="module" src="/src/main.tsx"></script>
   </body>
 </html>

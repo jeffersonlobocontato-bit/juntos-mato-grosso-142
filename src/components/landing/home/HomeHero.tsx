@@ -4,6 +4,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { useAnalytics } from "@/hooks/useAnalytics";
 import { trackSugestaoLead } from "@/lib/metaPixel";
+import { hasAdsConsent } from "@/lib/cookieConsent";
 import AudioRecorderBlock from "./AudioRecorderBlock";
 import SuggestionConfirmationMap from "@/components/landing/SuggestionConfirmationMap";
 import SocialShareButtons from "@/components/landing/SocialShareButtons";
@@ -50,6 +51,7 @@ const HomeHero = () => {
   const [whatsapp, setWhatsapp] = useState("");
   const [opiniao, setOpiniao] = useState("");
   const [consent, setConsent] = useState(false);
+  const [consentAds, setConsentAds] = useState(false);
   const [flash, setFlash] = useState<{ tipo: "ok" | "erro"; texto: string } | null>(null);
   const [enviando, setEnviando] = useState(false);
   const [municipios, setMunicipios] = useState<Municipio[]>([]);
@@ -143,7 +145,9 @@ const HomeHero = () => {
     supabase.functions.invoke("classify-suggestion-eixo", {
       body: { sugestao_id: sugestaoId, descricao: opiniao },
     }).catch(() => {});
-    trackSugestaoLead({ municipio: cidade, nome, telefone: whatsapp });
+    if (consentAds || hasAdsConsent()) {
+      trackSugestaoLead({ municipio: cidade, nome, telefone: whatsapp });
+    }
     const mun = municipios.find(m => m.nome === cidade);
     setSubmitted({
       nome, cidade, sugestao: opiniao,
@@ -161,7 +165,7 @@ const HomeHero = () => {
 
   const resetAll = () => {
     setSent(false); setSubmitted(null); setShowMap(false);
-    setNome(""); setWhatsapp(""); setCidade(""); setOpiniao(""); setConsent(false); setFlash(null);
+    setNome(""); setWhatsapp(""); setCidade(""); setOpiniao(""); setConsent(false); setConsentAds(false); setFlash(null);
   };
 
   const revealMap = () => {
@@ -230,7 +234,7 @@ const HomeHero = () => {
           <nav className="menu" data-open={menuOpen ? "true" : "false"} onClick={(e) => e.stopPropagation()}>
             <a href="#participar" onClick={() => setMenuOpen(false)}>Enviar minha opinião</a>
             <a href="#como-funciona" onClick={() => setMenuOpen(false)}>Como funciona</a>
-            <a href="#privacidade" onClick={() => setMenuOpen(false)}>Privacidade e LGPD</a>
+            <a href="/politica-privacidade" onClick={() => setMenuOpen(false)}>Privacidade e LGPD</a>
           </nav>
         </div>
       </header>
@@ -343,7 +347,14 @@ const HomeHero = () => {
                     <div className="consent">
                       <input id="jp-consent" type="checkbox" required checked={consent} onChange={(e) => setConsent(e.target.checked)} />
                       <label htmlFor="jp-consent">
-                        Autorizo o uso da minha opinião para fins de construção do Plano de Governo.
+                        Li e concordo com a <a href="/politica-privacidade" target="_blank" rel="noopener noreferrer">Política de Privacidade</a> e os{" "}
+                        <a href="/termos-de-uso" target="_blank" rel="noopener noreferrer">Termos de Uso</a>, e autorizo o uso da minha opinião para fins de construção do Plano de Governo.
+                      </label>
+                    </div>
+                    <div className="consent">
+                      <input id="jp-consent-ads" type="checkbox" checked={consentAds} onChange={(e) => setConsentAds(e.target.checked)} />
+                      <label htmlFor="jp-consent-ads">
+                        Autorizo (opcional) o compartilhamento do meu nome, telefone e cidade com o Meta (Facebook/Instagram) para fins de campanha publicitária.
                       </label>
                     </div>
                     <button type="submit" className="submit" disabled={enviando || !isValid}>
