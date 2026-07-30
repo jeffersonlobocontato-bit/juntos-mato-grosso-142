@@ -2216,6 +2216,10 @@ export type Database = {
         }
         Returns: boolean
       }
+      increment_presentation_view: {
+        Args: { p_public_id: string }
+        Returns: undefined
+      }
       increment_shared_presentation_view: {
         Args: { _public_id: string }
         Returns: undefined
