@@ -42,9 +42,10 @@ function loadRecaptchaScript(): Promise<void> {
 }
 
 async function runLoginSecurityGate(): Promise<{ allowed: boolean; reason?: string }> {
+  let token: string | null = null;
   try {
     await loadRecaptchaScript();
-    const token: string = await new Promise((resolve, reject) => {
+    token = await new Promise<string>((resolve, reject) => {
       window.grecaptcha!.ready(() => {
         window
           .grecaptcha!.execute(RECAPTCHA_SITE_KEY!, { action: 'login' })
@@ -52,16 +53,24 @@ async function runLoginSecurityGate(): Promise<{ allowed: boolean; reason?: stri
           .catch(reject);
       });
     });
+  } catch (err) {
+    // reCAPTCHA indisponível ou não configurado: seguimos apenas com o rate limit por IP.
+    console.warn('reCAPTCHA indisponível, aplicando apenas limite por IP');
+  }
 
+  try {
     const { data, error } = await supabase.functions.invoke('verify-login-attempt', {
       body: { recaptcha_token: token },
     });
-
-    if (error) return { allowed: false, reason: 'server_error' };
+    if (error) {
+      const status = (error as { context?: { status?: number } }).context?.status;
+      if (status === 429) return { allowed: false, reason: 'rate_limited' };
+      if (status === 403) return { allowed: false, reason: 'recaptcha_failed' };
+      return { allowed: true };
+    }
     return data as { allowed: boolean; reason?: string };
   } catch (err) {
     console.error('login security gate failed', err);
-    // Se o reCAPTCHA não carregar (ex.: bloqueado por extensão), não travamos o login legítimo.
     return { allowed: true };
   }
 }
