@@ -17,7 +17,10 @@ const loginSchema = z.object({
   password: z.string().min(6, 'Senha deve ter no mínimo 6 caracteres'),
 });
 
-const RECAPTCHA_SITE_KEY = import.meta.env.VITE_RECAPTCHA_SITE_KEY as string | undefined;
+// Chave pública (site key) do reCAPTCHA v3 — pode ficar no código-fonte.
+const RECAPTCHA_SITE_KEY =
+  (import.meta.env.VITE_RECAPTCHA_SITE_KEY as string | undefined) ||
+  '6Ldjc20tAAAAAOmwL6Poc7ieG6BQJyRXTRqt4-0l';
 
 declare global {
   interface Window {
