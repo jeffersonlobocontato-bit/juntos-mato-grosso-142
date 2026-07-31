@@ -90,18 +90,24 @@ export default function AdminCruzamentoSugestoes() {
   });
 
   const refetchAll = () => {
-    [resumo, porRegiao, porEixo, regiaoEixo, ranking, semantico, reclass, cidadeEixo].forEach(q => q.refetch());
+    [resumo, porRegiao, porEixo, regiaoEixo, ranking, semantico, reclass, cidadeEixo, nuvem].forEach(q => q.refetch());
     setLastEvent(new Date());
   };
 
-  // Realtime
+  // Realtime (com debounce de 3s para evitar rajadas)
   useEffect(() => {
     if (!authorized) return;
+    let timer: ReturnType<typeof setTimeout> | null = null;
+    const schedule = () => {
+      if (timer) clearTimeout(timer);
+      timer = setTimeout(() => { refetchAll(); timer = null; }, 3000);
+    };
     const channel = supabase
       .channel('painel-cruzamento')
-      .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'sugestoes_populares' }, () => refetchAll())
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'sugestoes_populares' }, schedule)
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'sugestao_classificacao_semantica' }, schedule)
       .subscribe();
-    return () => { supabase.removeChannel(channel); };
+    return () => { if (timer) clearTimeout(timer); supabase.removeChannel(channel); };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [authorized]);
 
@@ -403,18 +409,33 @@ export default function AdminCruzamentoSugestoes() {
           </CardContent>
         </Card>
 
-        {/* Nuvem de palavras */}
+        {/* Nuvem de termos (eixos, temas e subtemas) */}
         <Card>
-          <CardHeader className="pb-2"><CardTitle className="text-base">Nuvem de palavras (atualiza a cada 60s)</CardTitle></CardHeader>
-          <CardContent className="flex flex-wrap gap-x-3 gap-y-1 items-baseline">
-            {(nuvem.data ?? []).map((w: any) => {
-              const r = Number(w.freq) / nuvemMax;
-              return (
-                <span key={w.palavra} style={{ fontSize: `${0.75 + r * 1.6}rem`, color: r > 0.5 ? RED : r > 0.25 ? NAVY : GOLD, fontWeight: r > 0.4 ? 700 : 500 }} title={`${w.freq} menções`}>
-                  {w.palavra}
-                </span>
-              );
-            })}
+          <CardHeader className="pb-2">
+            <CardTitle className="text-base">Nuvem de temas mencionados (eixos, temas e subtemas)</CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-3">
+            <div className="flex flex-wrap gap-3 text-[11px] text-muted-foreground">
+              <span className="flex items-center gap-1"><span className="w-3 h-3 rounded-sm" style={{ background: NAVY }} />Eixo</span>
+              <span className="flex items-center gap-1"><span className="w-3 h-3 rounded-sm" style={{ background: RED }} />Tema</span>
+              <span className="flex items-center gap-1"><span className="w-3 h-3 rounded-sm" style={{ background: GOLD }} />Subtema</span>
+            </div>
+            <div className="flex flex-wrap gap-x-4 gap-y-2 items-baseline">
+              {(nuvem.data ?? []).map((w: any) => {
+                const r = Number(w.freq) / nuvemMax;
+                const color = w.nivel === 'eixo' ? NAVY : w.nivel === 'tema' ? RED : GOLD;
+                return (
+                  <span
+                    key={`${w.nivel}-${w.palavra}`}
+                    className="leading-tight whitespace-nowrap"
+                    style={{ fontSize: `${0.8 + r * 1.5}rem`, color, fontWeight: r > 0.4 ? 700 : 600 }}
+                    title={`${w.nivel} · ${w.freq} menções`}
+                  >
+                    {w.palavra}
+                  </span>
+                );
+              })}
+            </div>
           </CardContent>
         </Card>
 
