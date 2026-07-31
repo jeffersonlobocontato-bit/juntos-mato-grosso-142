@@ -1540,6 +1540,78 @@ export type Database = {
           },
         ]
       }
+      sugestao_taxonomia: {
+        Row: {
+          created_at: string
+          eixo_id: string
+          id: string
+          origem: string
+          score: number
+          subtema_id: string | null
+          sugestao_id: string
+          tema_id: string | null
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          eixo_id: string
+          id?: string
+          origem?: string
+          score?: number
+          subtema_id?: string | null
+          sugestao_id: string
+          tema_id?: string | null
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          eixo_id?: string
+          id?: string
+          origem?: string
+          score?: number
+          subtema_id?: string | null
+          sugestao_id?: string
+          tema_id?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "sugestao_taxonomia_eixo_id_fkey"
+            columns: ["eixo_id"]
+            isOneToOne: false
+            referencedRelation: "eixos_tematicos"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "sugestao_taxonomia_subtema_id_fkey"
+            columns: ["subtema_id"]
+            isOneToOne: false
+            referencedRelation: "subtemas"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "sugestao_taxonomia_sugestao_id_fkey"
+            columns: ["sugestao_id"]
+            isOneToOne: false
+            referencedRelation: "sugestoes_populares"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "sugestao_taxonomia_sugestao_id_fkey"
+            columns: ["sugestao_id"]
+            isOneToOne: false
+            referencedRelation: "sugestoes_publicas"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "sugestao_taxonomia_tema_id_fkey"
+            columns: ["tema_id"]
+            isOneToOne: false
+            referencedRelation: "temas"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       sugestoes_populares: {
         Row: {
           analise_semantica: Json | null
@@ -1586,6 +1658,64 @@ export type Database = {
         Relationships: [
           {
             foreignKeyName: "sugestoes_populares_tema_id_fkey"
+            columns: ["tema_id"]
+            isOneToOne: false
+            referencedRelation: "temas"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      taxonomia_keywords: {
+        Row: {
+          ativo: boolean
+          created_at: string
+          eixo_id: string
+          id: string
+          padrao: string
+          peso: number
+          subtema_id: string | null
+          tema_id: string | null
+          updated_at: string
+        }
+        Insert: {
+          ativo?: boolean
+          created_at?: string
+          eixo_id: string
+          id?: string
+          padrao: string
+          peso?: number
+          subtema_id?: string | null
+          tema_id?: string | null
+          updated_at?: string
+        }
+        Update: {
+          ativo?: boolean
+          created_at?: string
+          eixo_id?: string
+          id?: string
+          padrao?: string
+          peso?: number
+          subtema_id?: string | null
+          tema_id?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "taxonomia_keywords_eixo_id_fkey"
+            columns: ["eixo_id"]
+            isOneToOne: false
+            referencedRelation: "eixos_tematicos"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "taxonomia_keywords_subtema_id_fkey"
+            columns: ["subtema_id"]
+            isOneToOne: false
+            referencedRelation: "subtemas"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "taxonomia_keywords_tema_id_fkey"
             columns: ["tema_id"]
             isOneToOne: false
             referencedRelation: "temas"
@@ -2239,6 +2369,19 @@ export type Database = {
           subeixo: string
         }[]
       }
+      classificar_sugestao_taxonomia: {
+        Args: { p_sugestao_id: string }
+        Returns: number
+      }
+      classificar_texto_taxonomia: {
+        Args: { p_texto: string }
+        Returns: {
+          eixo_id: string
+          score: number
+          subtema_id: string
+          tema_id: string
+        }[]
+      }
       get_inactive_users: {
         Args: { hours_threshold?: number }
         Returns: {
@@ -2386,7 +2529,32 @@ export type Database = {
           total: number
         }[]
       }
+      painel_taxonomia_cobertura: {
+        Args: never
+        Returns: {
+          classificadas: number
+          com_subtema: number
+          com_tema: number
+          total_sugestoes: number
+        }[]
+      }
+      painel_taxonomia_resumo: {
+        Args: never
+        Returns: {
+          eixo: string
+          subtema: string
+          tema: string
+          total: number
+        }[]
+      }
       pode_ver_painel_cruzamento: { Args: never; Returns: boolean }
+      reclassificar_sugestoes_taxonomia: {
+        Args: { p_limite?: number; p_somente_pendentes?: boolean }
+        Returns: {
+          processadas: number
+          vinculos: number
+        }[]
+      }
       unaccent: { Args: { "": string }; Returns: string }
     }
     Enums: {
