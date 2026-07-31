@@ -3,7 +3,6 @@ import { Link } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
-import { useUserAccess } from '@/hooks/useUserAccess';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -35,8 +34,7 @@ const heatColor = (ratio: number) => {
 };
 
 export default function AdminCruzamentoSugestoes() {
-  const { user, isLoading: authLoading } = useAuth();
-  const { isAdmin, roles } = useUserAccess();
+  const { user, isLoading: authLoading, isAdmin, roles } = useAuth();
   const [lastEvent, setLastEvent] = useState<Date>(new Date());
   const [secondsAgo, setSecondsAgo] = useState(0);
   const [regiaoAberta, setRegiaoAberta] = useState<string | null>(null);
