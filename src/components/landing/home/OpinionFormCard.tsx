@@ -51,6 +51,15 @@ const OpinionFormCard = () => {
     cidade.trim().length > 0 &&
     sugestao.trim().length >= 10;
 
+  const normalizeCidade = (v: string) =>
+    v.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase().trim()
+      .replace(/[\s,\-]+(pr|parana)$/, "").trim();
+
+  const resolveMunicipioOficial = (v: string) => {
+    const alvo = normalizeCidade(v);
+    return municipios.find((m) => normalizeCidade(m.nome) === alvo)?.nome ?? v.trim();
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     trackComponentClick("OpinionForm", "submit_click");
@@ -62,6 +71,7 @@ const OpinionFormCard = () => {
       return;
     }
     setLoading(true);
+    const cidadeOficial = resolveMunicipioOficial(cidade);
     const sugestaoId =
       typeof crypto !== "undefined" && "randomUUID" in crypto
         ? crypto.randomUUID()
@@ -70,7 +80,7 @@ const OpinionFormCard = () => {
       id: sugestaoId,
       nome: nome || null,
       whatsapp: telefone || null,
-      municipio: cidade,
+      municipio: cidadeOficial,
       eixo: "Geral",
       descricao: sugestao,
       publico: true,
@@ -84,11 +94,11 @@ const OpinionFormCard = () => {
     supabase.functions.invoke("classify-suggestion-eixo", {
       body: { sugestao_id: sugestaoId, descricao: sugestao },
     }).catch(() => {});
-    trackSugestaoLead({ municipio: cidade, nome, telefone });
-    const municipio = municipios.find((m) => m.nome === cidade);
+    trackSugestaoLead({ municipio: cidadeOficial, nome, telefone });
+    const municipio = municipios.find((m) => m.nome === cidadeOficial);
     setSubmitted({
       nome,
-      cidade,
+      cidade: cidadeOficial,
       sugestao,
       latitude: municipio?.latitude ?? null,
       longitude: municipio?.longitude ?? null,

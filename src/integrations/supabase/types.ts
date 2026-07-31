@@ -2372,6 +2372,7 @@ export type Database = {
         Returns: {
           total_eixos: number
           total_municipios: number
+          total_nao_identificados: number
           total_regioes: number
           total_sugestoes: number
         }[]
