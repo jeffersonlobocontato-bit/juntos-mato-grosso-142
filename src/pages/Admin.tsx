@@ -23,7 +23,8 @@ import {
   ClipboardList,
   Building2,
   BookOpen,
-  Zap
+  Zap,
+  Network
 } from 'lucide-react';
 
 const Admin = () => {
@@ -174,6 +175,14 @@ const Admin = () => {
       href: '/admin/analytics',
       color: 'secondary',
       roles: ['admin']
+    },
+    {
+      icon: Network,
+      title: 'Painel de Cruzamento',
+      description: 'Sugestões populares por região, tema e cidade em tempo real',
+      href: '/admin/cruzamento-sugestoes',
+      color: 'primary',
+      roles: ['admin', 'admin_master', 'lider_tematico']
     },
     { 
       icon: BarChart2, 
