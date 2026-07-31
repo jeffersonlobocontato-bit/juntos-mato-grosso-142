@@ -414,6 +414,56 @@ export default function AdminCruzamentoSugestoes() {
 
         {/* Heatmap cidade x eixo */}
         <Card>
+          <CardHeader className="pb-2 flex-row items-center justify-between space-y-0">
+            <CardTitle className="text-base">Reclassificação pela taxonomia (Eixos › Temas › Subtemas)</CardTitle>
+            <Button variant="outline" size="sm" onClick={reclassificar} disabled={reclassificando}>
+              <RefreshCw className={`w-4 h-4 mr-2 ${reclassificando ? 'animate-spin' : ''}`} />
+              {reclassificando ? 'Reclassificando…' : 'Reclassificar pendentes'}
+            </Button>
+          </CardHeader>
+          <CardContent className="space-y-5">
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+              {[
+                { label: 'Sugestões', value: cob?.total_sugestoes },
+                { label: 'Classificadas', value: cob?.classificadas },
+                { label: 'Com tema', value: cob?.com_tema },
+                { label: 'Com subtema', value: cob?.com_subtema },
+              ].map(m => (
+                <div key={m.label}>
+                  <p className="text-xs text-muted-foreground">{m.label}</p>
+                  <p className="text-2xl font-bold" style={{ color: NAVY }}>{Number(m.value ?? 0).toLocaleString('pt-BR')}</p>
+                  {Number(cob?.total_sugestoes ?? 0) > 0 && (
+                    <p className="text-[11px] text-muted-foreground">
+                      {((Number(m.value ?? 0) / Number(cob.total_sugestoes)) * 100).toFixed(1)}% do total
+                    </p>
+                  )}
+                </div>
+              ))}
+            </div>
+            <div className="space-y-2">
+              <p className="text-[11px] uppercase tracking-wide text-muted-foreground">Temas oficiais mais recorrentes</p>
+              {topTemas.map(t => {
+                const max = topTemas[0]?.total || 1;
+                return (
+                  <div key={t.tema} className="space-y-1">
+                    <div className="flex justify-between text-xs gap-4">
+                      <span className="truncate">{t.tema} <span className="text-muted-foreground">· {t.eixo}</span></span>
+                      <span className="font-semibold">{t.total}</span>
+                    </div>
+                    <div className="h-2 rounded bg-muted overflow-hidden">
+                      <div className="h-full" style={{ width: `${(t.total / max) * 100}%`, background: NAVY }} />
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+            <p className="text-[11px] text-muted-foreground">
+              Os vínculos são gravados por eixo, tema e subtema oficiais — base para cruzar sugestões populares com propostas técnicas no gerador do plano de governo.
+            </p>
+          </CardContent>
+        </Card>
+
+        <Card>
           <CardHeader className="pb-2"><CardTitle className="text-base">Mapa de calor — 20 cidades com mais sugestões × eixo</CardTitle></CardHeader>
           <CardContent className="overflow-auto">
             <table className="w-full text-xs border-collapse">
