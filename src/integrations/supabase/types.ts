@@ -2324,6 +2324,7 @@ export type Database = {
         Args: { p_limit?: number }
         Returns: {
           freq: number
+          nivel: string
           palavra: string
         }[]
       }
