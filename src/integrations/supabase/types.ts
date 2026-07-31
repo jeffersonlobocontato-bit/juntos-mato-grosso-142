@@ -1501,6 +1501,45 @@ export type Database = {
           },
         ]
       }
+      sugestao_classificacao_semantica: {
+        Row: {
+          created_at: string
+          eixo_detectado: string
+          origem: string
+          subeixo_detectado: string
+          sugestao_id: string
+        }
+        Insert: {
+          created_at?: string
+          eixo_detectado: string
+          origem?: string
+          subeixo_detectado?: string
+          sugestao_id: string
+        }
+        Update: {
+          created_at?: string
+          eixo_detectado?: string
+          origem?: string
+          subeixo_detectado?: string
+          sugestao_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "sugestao_classificacao_semantica_sugestao_id_fkey"
+            columns: ["sugestao_id"]
+            isOneToOne: false
+            referencedRelation: "sugestoes_populares"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "sugestao_classificacao_semantica_sugestao_id_fkey"
+            columns: ["sugestao_id"]
+            isOneToOne: false
+            referencedRelation: "sugestoes_publicas"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       sugestoes_populares: {
         Row: {
           analise_semantica: Json | null
@@ -2193,6 +2232,13 @@ export type Database = {
         }
         Returns: boolean
       }
+      classificar_sugestao: {
+        Args: { p_texto: string }
+        Returns: {
+          eixo: string
+          subeixo: string
+        }[]
+      }
       get_inactive_users: {
         Args: { hours_threshold?: number }
         Returns: {
@@ -2266,6 +2312,80 @@ export type Database = {
           similarity: number
         }[]
       }
+      painel_cruzamento_cidade_eixo: {
+        Args: { p_limit?: number }
+        Returns: {
+          eixo: string
+          municipio: string
+          total: number
+        }[]
+      }
+      painel_cruzamento_nuvem_palavras: {
+        Args: { p_limit?: number }
+        Returns: {
+          freq: number
+          palavra: string
+        }[]
+      }
+      painel_cruzamento_por_eixo: {
+        Args: never
+        Returns: {
+          eixo: string
+          total: number
+        }[]
+      }
+      painel_cruzamento_por_regiao: {
+        Args: never
+        Returns: {
+          mesorregiao: string
+          total: number
+        }[]
+      }
+      painel_cruzamento_ranking_cidades: {
+        Args: never
+        Returns: {
+          mesorregiao: string
+          municipio: string
+          total: number
+        }[]
+      }
+      painel_cruzamento_reclassificacao: {
+        Args: never
+        Returns: {
+          geral_com_tema: number
+          geral_sem_tema: number
+          geral_total: number
+          multi_tema: number
+        }[]
+      }
+      painel_cruzamento_regiao_eixo: {
+        Args: never
+        Returns: {
+          eixo: string
+          mesorregiao: string
+          total: number
+        }[]
+      }
+      painel_cruzamento_resumo: {
+        Args: never
+        Returns: {
+          total_eixos: number
+          total_municipios: number
+          total_regioes: number
+          total_sugestoes: number
+        }[]
+      }
+      painel_cruzamento_semantico_regiao: {
+        Args: never
+        Returns: {
+          eixo_detectado: string
+          mesorregiao: string
+          subeixo_detectado: string
+          total: number
+        }[]
+      }
+      pode_ver_painel_cruzamento: { Args: never; Returns: boolean }
+      unaccent: { Args: { "": string }; Returns: string }
     }
     Enums: {
       app_role:
