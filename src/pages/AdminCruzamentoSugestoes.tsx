@@ -88,9 +88,30 @@ export default function AdminCruzamentoSugestoes() {
     enabled: authorized,
     refetchInterval: 60_000,
   });
+  const taxCobertura = useQuery({
+    queryKey: ['pc-tax-cobertura'],
+    queryFn: () => rpc<any>('painel_taxonomia_cobertura'),
+    enabled: authorized,
+  });
+  const taxResumo = useQuery({
+    queryKey: ['pc-tax-resumo'],
+    queryFn: () => rpc<any>('painel_taxonomia_resumo'),
+    enabled: authorized,
+  });
+  const [reclassificando, setReclassificando] = useState(false);
+
+  const reclassificar = async () => {
+    setReclassificando(true);
+    try {
+      await db.rpc('reclassificar_sugestoes_taxonomia', { p_somente_pendentes: true, p_limite: 5000 });
+      await Promise.all([taxCobertura.refetch(), taxResumo.refetch()]);
+    } finally {
+      setReclassificando(false);
+    }
+  };
 
   const refetchAll = () => {
-    [resumo, porRegiao, porEixo, regiaoEixo, ranking, semantico, reclass, cidadeEixo, nuvem].forEach(q => q.refetch());
+    [resumo, porRegiao, porEixo, regiaoEixo, ranking, semantico, reclass, cidadeEixo, nuvem, taxCobertura, taxResumo].forEach(q => q.refetch());
     setLastEvent(new Date());
   };
 
@@ -163,6 +184,20 @@ export default function AdminCruzamentoSugestoes() {
   }, [cidadeEixo.data]);
 
   const rec = reclass.data?.[0];
+  const cob = taxCobertura.data?.[0];
+  const topTemas = useMemo(() => {
+    const map: Record<string, { eixo: string; total: number }> = {};
+    (taxResumo.data ?? []).forEach((r: any) => {
+      if (!r.tema) return;
+      const cur = map[r.tema];
+      const total = Number(r.total);
+      if (!cur || total > cur.total) map[r.tema] = { eixo: r.eixo, total };
+    });
+    return Object.entries(map)
+      .map(([tema, v]) => ({ tema, ...v }))
+      .sort((a, b) => b.total - a.total)
+      .slice(0, 15);
+  }, [taxResumo.data]);
   const nuvemMax = Math.max(1, ...(nuvem.data ?? []).map((w: any) => Number(w.freq)));
 
   if (authLoading) {
