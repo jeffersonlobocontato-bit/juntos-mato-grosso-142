@@ -1,13 +1,16 @@
-# Nuvem de palavras inteiras + atualização em tempo real
+# Nuvem de termos da taxonomia + atualização em tempo real
 
 ## 1. Palavras cortadas na nuvem
-As palavras aparecem cortadas ("paran", "públic", "seguranc") porque a função que gera a nuvem usa o dicionário de busca do Postgres em português, que reduz cada palavra ao seu radical. Vamos trocar essa lógica por uma extração de palavras reais do texto das sugestões:
+As palavras aparecem cortadas ("paran", "públic", "seguranc") porque a função da nuvem usa o dicionário de busca do Postgres em português, que reduz cada palavra ao seu radical.
 
-- Separar o texto por espaços/pontuação, manter a palavra completa (sem radicalização), em minúsculas e sem acento apenas para agrupar duplicatas — exibindo a forma acentuada mais frequente.
-- Ignorar palavras com menos de 4 letras, números e uma lista de palavras vazias em português (que, para, com, mais, uma, dos, das, nos, nas, pelo, sobre, quando, muito, etc.).
-- Manter o limite de 80 termos, ordenados por frequência.
+Faz sentido, sim, usar a taxonomia da plataforma. A nuvem passa a ser construída sobre os nomes oficiais de **Eixos, Temas e Subtemas** já cadastrados, e não sobre palavras soltas:
 
-Resultado: "Paraná", "público", "segurança", "educação", "saúde", "escola" — inteiras e acentuadas.
+- Para cada eixo/tema/subtema, contar quantas sugestões mencionam aquele termo no texto (comparação sem acento e sem diferenciar maiúsculas, aceitando singular/plural simples).
+- Exibir o nome oficial completo e legível ("Segurança Pública", "Educação", "Saneamento e Água"), com tamanho proporcional à frequência.
+- Cores por nível: eixo (maior destaque), tema, subtema — permitindo enxergar a hierarquia na própria nuvem.
+- Termos com zero menções ficam de fora; ordenação por frequência.
+
+Assim a nuvem fica alinhada aos 5 eixos, 34 temas e subtemas da plataforma, sem palavras quebradas nem ruído.
 
 ## 2. Tempo real
 Já está previsto e funcionando na base: a tabela de sugestões populares está publicada em tempo real e o painel escuta novas inserções, recarregando os gráficos. Melhorias:
@@ -22,5 +25,5 @@ Sim, e sem consumo de crédito de IA. A classificação por eixo/subeixo das sug
 Observação: existe um classificador por IA usado em outro fluxo do sistema. Ele não faz parte deste painel e não será acionado por essas atualizações.
 
 ## Detalhes técnicos
-- Migração: substituir `painel_cruzamento_nuvem_palavras` — trocar `tsvector_to_array(to_tsvector('portuguese', ...))` por `regexp_split_to_table(lower(descricao), '[^[:alpha:]áéíóúâêôãõç]+')`, agrupar por forma sem acento (`unaccent`) e retornar a variante mais comum; filtro de stopwords via array constante; permanece `security definer` com checagem `pode_ver_painel_cruzamento()`.
-- `src/pages/AdminCruzamentoSugestoes.tsx`: incluir `nuvem` no `refetchAll`, ouvir eventos `*` no canal Realtime e aplicar debounce de 3s.
+- Migração: reescrever `painel_cruzamento_nuvem_palavras(p_limit)` para retornar `(termo text, nivel text, freq bigint)`. Fonte dos termos: união de `eixos_tematicos.nome`, `temas.nome` e `subtemas.nome`. Contagem via join lateral em `sugestoes_populares` usando `public.unaccent(lower(descricao)) ~ ('\m' || regexp de palavras do termo)`; permanece `security definer` com checagem `pode_ver_painel_cruzamento()` e grants inalterados.
+- `src/pages/AdminCruzamentoSugestoes.tsx`: renderizar a nuvem com `nivel` definindo cor/peso (eixo = NAVY forte, tema = RED, subtema = GOLD), incluir `nuvem` no `refetchAll`, ouvir eventos `*` no canal Realtime e aplicar debounce de 3s.
