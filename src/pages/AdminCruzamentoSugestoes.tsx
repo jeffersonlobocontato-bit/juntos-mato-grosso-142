@@ -207,7 +207,7 @@ export default function AdminCruzamentoSugestoes() {
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
           {[
             { label: 'Sugestões', value: totals?.total_sugestoes, icon: Layers },
-            { label: 'Municípios', value: totals?.total_municipios, icon: Building2 },
+            { label: 'Municípios do PR', value: totals?.total_municipios, icon: Building2 },
             { label: 'Mesorregiões', value: totals?.total_regioes, icon: MapPin },
             { label: 'Eixos', value: totals?.total_eixos, icon: Network },
           ].map(item => (
@@ -442,6 +442,11 @@ export default function AdminCruzamentoSugestoes() {
         <p className="text-xs text-muted-foreground">
           Painel analítico agregado — não exibe nome ou WhatsApp dos cidadãos. A classificação semântica é derivada automaticamente e pode ser recalculada a qualquer momento.
         </p>
+        {Number(totals?.total_nao_identificados ?? 0) > 0 && (
+          <p className="text-xs text-muted-foreground">
+            {Number(totals?.total_nao_identificados).toLocaleString('pt-BR')} registro(s) com cidade fora do Paraná ou não identificada não entram na contagem de municípios.
+          </p>
+        )}
       </main>
     </div>
   );
