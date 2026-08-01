@@ -335,6 +335,9 @@ export default function AdminCruzamentoSugestoes() {
         </div>
 
         {/* Top 3 temas por região */}
+        {/* Perfil por gênero */}
+        <GeneroPanel enabled={authorized} />
+
         <Card>
           <CardHeader className="pb-2"><CardTitle className="text-base">Top 3 temas por região</CardTitle></CardHeader>
           <CardContent className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-3">
@@ -343,6 +346,8 @@ export default function AdminCruzamentoSugestoes() {
               const destaque = (semantico.data ?? [])
                 .filter((s: any) => s.mesorregiao === regiao)
                 .sort((a: any, b: any) => Number(b.total) - Number(a.total))[0];
+              const gen = generoRegiao.data?.[regiao];
+              const genTotal = (gen?.masculino ?? 0) + (gen?.feminino ?? 0);
               return (
                 <div
                   key={regiao}
@@ -351,6 +356,28 @@ export default function AdminCruzamentoSugestoes() {
                   onClick={() => { setRegiaoAberta(aberta ? null : regiao); setTemaAberto(null); }}
                 >
                   <p className="font-semibold text-sm" style={{ color: NAVY }}>{regiao}</p>
+                  {gen && (
+                    <div className="mt-2 grid grid-cols-3 gap-2 rounded-md bg-muted/50 p-2">
+                      <div>
+                        <p className="text-[10px] uppercase tracking-wide text-muted-foreground">Homens</p>
+                        <p className="text-xl font-bold leading-tight" style={{ color: '#2E5FA3' }}>
+                          {gen.masculino.toLocaleString('pt-BR')}
+                        </p>
+                      </div>
+                      <div>
+                        <p className="text-[10px] uppercase tracking-wide text-muted-foreground">Mulheres</p>
+                        <p className="text-xl font-bold leading-tight" style={{ color: '#C0407A' }}>
+                          {gen.feminino.toLocaleString('pt-BR')}
+                        </p>
+                      </div>
+                      <div>
+                        <p className="text-[10px] uppercase tracking-wide text-muted-foreground">% Mulheres</p>
+                        <p className="text-xl font-bold leading-tight" style={{ color: GOLD }}>
+                          {genTotal ? Math.round((gen.feminino / genTotal) * 100) : 0}%
+                        </p>
+                      </div>
+                    </div>
+                  )}
                   {destaque && (
                     <p className="text-xs text-muted-foreground mt-1">
                       Subtema mais citado: <span className="font-semibold" style={{ color: GOLD }}>{destaque.subeixo_detectado || destaque.eixo_detectado}</span> ({destaque.total})
