@@ -139,6 +139,7 @@ export default function AdminCruzamentoSugestoes() {
   }, [lastEvent]);
 
   const totals = resumo.data?.[0];
+  const generoRegiao = useGeneroPorRegiao(authorized);
   const eixoData = (porEixo.data ?? []).map((d: any) => ({ name: d.eixo, value: Number(d.total) }));
   const regiaoData = (porRegiao.data ?? []).map((d: any) => ({ name: d.mesorregiao, total: Number(d.total) }));
   const totalGeral = eixoData.reduce((s, d) => s + d.value, 0) || 1;
