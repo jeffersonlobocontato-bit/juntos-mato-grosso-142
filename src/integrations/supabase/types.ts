@@ -744,6 +744,30 @@ export type Database = {
         }
         Relationships: []
       }
+      nomes_genero: {
+        Row: {
+          created_at: string
+          genero: string
+          id: string
+          nome: string
+          peso: number
+        }
+        Insert: {
+          created_at?: string
+          genero: string
+          id?: string
+          nome: string
+          peso?: number
+        }
+        Update: {
+          created_at?: string
+          genero?: string
+          id?: string
+          nome?: string
+          peso?: number
+        }
+        Relationships: []
+      }
       page_analytics_events: {
         Row: {
           browser: string | null
@@ -1535,6 +1559,54 @@ export type Database = {
             foreignKeyName: "sugestao_classificacao_semantica_sugestao_id_fkey"
             columns: ["sugestao_id"]
             isOneToOne: false
+            referencedRelation: "sugestoes_publicas"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      sugestao_genero: {
+        Row: {
+          confianca: number
+          created_at: string
+          genero: string
+          id: string
+          origem: string
+          primeiro_nome: string | null
+          sugestao_id: string
+          updated_at: string
+        }
+        Insert: {
+          confianca?: number
+          created_at?: string
+          genero?: string
+          id?: string
+          origem?: string
+          primeiro_nome?: string | null
+          sugestao_id: string
+          updated_at?: string
+        }
+        Update: {
+          confianca?: number
+          created_at?: string
+          genero?: string
+          id?: string
+          origem?: string
+          primeiro_nome?: string | null
+          sugestao_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "sugestao_genero_sugestao_id_fkey"
+            columns: ["sugestao_id"]
+            isOneToOne: true
+            referencedRelation: "sugestoes_populares"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "sugestao_genero_sugestao_id_fkey"
+            columns: ["sugestao_id"]
+            isOneToOne: true
             referencedRelation: "sugestoes_publicas"
             referencedColumns: ["id"]
           },
@@ -2362,6 +2434,18 @@ export type Database = {
         }
         Returns: boolean
       }
+      classificar_genero_nome: {
+        Args: { p_nome: string }
+        Returns: {
+          confianca: number
+          genero: string
+          primeiro_nome: string
+        }[]
+      }
+      classificar_genero_sugestao: {
+        Args: { p_sugestao_id: string }
+        Returns: string
+      }
       classificar_sugestao: {
         Args: { p_texto: string }
         Returns: {
@@ -2381,6 +2465,10 @@ export type Database = {
           subtema_id: string
           tema_id: string
         }[]
+      }
+      definir_genero_manual: {
+        Args: { p_genero: string; p_sugestao_id: string }
+        Returns: undefined
       }
       get_inactive_users: {
         Args: { hours_threshold?: number }
@@ -2529,6 +2617,35 @@ export type Database = {
           total: number
         }[]
       }
+      painel_genero_indefinidos: {
+        Args: { p_limite?: number; p_offset?: number }
+        Returns: {
+          created_at: string
+          municipio: string
+          nome: string
+          sugestao_id: string
+          trecho: string
+        }[]
+      }
+      painel_genero_por_regiao: {
+        Args: never
+        Returns: {
+          feminino: number
+          indefinido: number
+          masculino: number
+          mesorregiao: string
+        }[]
+      }
+      painel_genero_resumo: {
+        Args: never
+        Returns: {
+          feminino: number
+          indefinido: number
+          masculino: number
+          sem_registro: number
+          total: number
+        }[]
+      }
       painel_taxonomia_cobertura: {
         Args: never
         Returns: {
@@ -2548,6 +2665,13 @@ export type Database = {
         }[]
       }
       pode_ver_painel_cruzamento: { Args: never; Returns: boolean }
+      reclassificar_genero_sugestoes: {
+        Args: { p_limite?: number; p_somente_pendentes?: boolean }
+        Returns: {
+          definidas: number
+          processadas: number
+        }[]
+      }
       reclassificar_sugestoes_taxonomia: {
         Args: { p_limite?: number; p_somente_pendentes?: boolean }
         Returns: {
