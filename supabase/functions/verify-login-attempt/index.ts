@@ -78,7 +78,18 @@ Deno.serve(async (req) => {
     });
     const verifyData = await verifyResp.json();
 
-    if (!verifyData.success || (verifyData.score ?? 0) < MIN_RECAPTCHA_SCORE) {
+    // Falha de configuração/token (chave errada, domínio não cadastrado, token
+    // expirado ou reenviado) NÃO é sinal de bot — nesses casos seguimos apenas
+    // com o rate limit por IP para não travar o login legítimo.
+    if (!verifyData.success) {
+      console.error("recaptcha verify failed", verifyData["error-codes"]);
+      return new Response(
+        JSON.stringify({ allowed: true, reason: "rate_limit_only" }),
+        { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
+    if ((verifyData.score ?? 1) < MIN_RECAPTCHA_SCORE) {
       return new Response(
         JSON.stringify({ allowed: false, reason: "recaptcha_failed", score: verifyData.score ?? null }),
         { status: 403, headers: { ...corsHeaders, "Content-Type": "application/json" } }
