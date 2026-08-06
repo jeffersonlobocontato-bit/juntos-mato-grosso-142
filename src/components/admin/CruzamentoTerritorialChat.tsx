@@ -5,12 +5,32 @@ import { Card } from '@/components/ui/card';
 import { Textarea } from '@/components/ui/textarea';
 import { Badge } from '@/components/ui/badge';
 import { toast } from 'sonner';
-import { Compass, ChevronDown, ChevronUp, Send, Loader2, Trash2 } from 'lucide-react';
+import { Compass, ChevronDown, ChevronUp, Send, Loader2, Trash2, History, Plus, X } from 'lucide-react';
 import MarkdownRenderer from '@/components/admin/MarkdownRenderer';
 
 const NAVY = '#1F3864';
 
 interface Msg { role: 'user' | 'assistant'; content: string }
+interface Conversa { id: string; title: string; updatedAt: number; messages: Msg[] }
+
+const STORAGE_KEY = 'cruzamento_territorial_chat_history';
+
+function loadHistory(): Conversa[] {
+  if (typeof window === 'undefined') return [];
+  try {
+    const raw = window.localStorage.getItem(STORAGE_KEY);
+    const parsed = raw ? JSON.parse(raw) : [];
+    return Array.isArray(parsed) ? parsed : [];
+  } catch {
+    return [];
+  }
+}
+
+function saveHistory(list: Conversa[]) {
+  try {
+    window.localStorage.setItem(STORAGE_KEY, JSON.stringify(list.slice(0, 50)));
+  } catch { /* ignore quota */ }
+}
 
 const CHIPS = [
   'Qual região está mais engajada em segurança agora?',
@@ -24,6 +44,9 @@ export default function CruzamentoTerritorialChat() {
   const [messages, setMessages] = useState<Msg[]>([]);
   const [input, setInput] = useState('');
   const [loading, setLoading] = useState(false);
+  const [history, setHistory] = useState<Conversa[]>(() => loadHistory());
+  const [showHistory, setShowHistory] = useState(false);
+  const [activeId, setActiveId] = useState<string | null>(null);
   const scrollRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLTextAreaElement>(null);
 
@@ -35,13 +58,26 @@ export default function CruzamentoTerritorialChat() {
     if (open) inputRef.current?.focus();
   }, [open, loading]);
 
+  const persist = (id: string, msgs: Msg[]) => {
+    setHistory(prev => {
+      const title = msgs.find(m => m.role === 'user')?.content.slice(0, 80) || 'Conversa';
+      const rest = prev.filter(c => c.id !== id);
+      const next = [{ id, title, updatedAt: Date.now(), messages: msgs }, ...rest];
+      saveHistory(next);
+      return next;
+    });
+  };
+
   const send = async (text: string) => {
     const question = text.trim();
     if (!question || loading) return;
     setOpen(true);
     setInput('');
+    const convId = activeId ?? (crypto.randomUUID?.() || String(Date.now()));
+    if (!activeId) setActiveId(convId);
     const next = [...messages, { role: 'user' as const, content: question }];
     setMessages(next);
+    persist(convId, next);
     setLoading(true);
     try {
       const { data: { session } } = await supabase.auth.getSession();
@@ -51,7 +87,9 @@ export default function CruzamentoTerritorialChat() {
       });
       if (error) throw error;
       if ((data as any)?.error) throw new Error((data as any).error);
-      setMessages([...next, { role: 'assistant', content: (data as any)?.content || 'Sem resposta.' }]);
+      const done: Msg[] = [...next, { role: 'assistant', content: (data as any)?.content || 'Sem resposta.' }];
+      setMessages(done);
+      persist(convId, done);
     } catch (e: any) {
       console.error(e);
       toast.error(e?.message || 'Erro ao consultar o agente');
@@ -59,6 +97,29 @@ export default function CruzamentoTerritorialChat() {
     } finally {
       setLoading(false);
     }
+  };
+
+  const novaConversa = () => {
+    setMessages([]);
+    setActiveId(null);
+    setShowHistory(false);
+    inputRef.current?.focus();
+  };
+
+  const abrirConversa = (c: Conversa) => {
+    setMessages(c.messages);
+    setActiveId(c.id);
+    setShowHistory(false);
+    setOpen(true);
+  };
+
+  const excluirConversa = (id: string) => {
+    setHistory(prev => {
+      const next = prev.filter(c => c.id !== id);
+      saveHistory(next);
+      return next;
+    });
+    if (activeId === id) { setMessages([]); setActiveId(null); }
   };
 
   return (
@@ -103,6 +164,54 @@ export default function CruzamentoTerritorialChat() {
 
         {open && (
           <div className="border-t border-border">
+            <div className="px-3 pt-3 flex items-center gap-2 flex-wrap">
+              <Button
+                variant="outline"
+                size="sm"
+                className="h-7 text-[11px]"
+                onClick={() => setShowHistory(s => !s)}
+              >
+                <History className="w-3 h-3 mr-1" />
+                Histórico de conversas ({history.length})
+                {showHistory ? <ChevronUp className="w-3 h-3 ml-1" /> : <ChevronDown className="w-3 h-3 ml-1" />}
+              </Button>
+              <Button variant="ghost" size="sm" className="h-7 text-[11px]" onClick={novaConversa}>
+                <Plus className="w-3 h-3 mr-1" />nova conversa
+              </Button>
+            </div>
+
+            {showHistory && (
+              <div className="px-3 pt-2">
+                <div className="rounded-md border border-border bg-muted/30 max-h-56 overflow-y-auto divide-y divide-border">
+                  {history.length === 0 && (
+                    <p className="p-3 text-[11px] text-muted-foreground">Nenhuma conversa salva ainda.</p>
+                  )}
+                  {history.map(c => (
+                    <div key={c.id} className="flex items-center gap-2 px-3 py-2 hover:bg-muted/60">
+                      <button
+                        type="button"
+                        onClick={() => abrirConversa(c)}
+                        className="flex-1 text-left min-w-0"
+                      >
+                        <p className="text-xs truncate" style={{ color: NAVY }}>{c.title}</p>
+                        <p className="text-[10px] text-muted-foreground">
+                          {new Date(c.updatedAt).toLocaleString('pt-BR')} · {c.messages.length} mensagens
+                        </p>
+                      </button>
+                      <button
+                        type="button"
+                        aria-label="Excluir conversa"
+                        onClick={() => excluirConversa(c.id)}
+                        className="text-muted-foreground hover:text-destructive shrink-0"
+                      >
+                        <X className="w-3.5 h-3.5" />
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
             <div className="p-3 flex flex-wrap gap-2">
               {CHIPS.map(c => (
                 <Badge
@@ -115,8 +224,8 @@ export default function CruzamentoTerritorialChat() {
                 </Badge>
               ))}
               {messages.length > 0 && (
-                <Button variant="ghost" size="sm" className="h-6 text-[11px]" onClick={() => setMessages([])}>
-                  <Trash2 className="w-3 h-3 mr-1" />limpar
+                <Button variant="ghost" size="sm" className="h-6 text-[11px]" onClick={novaConversa}>
+                  <Trash2 className="w-3 h-3 mr-1" />limpar tela
                 </Button>
               )}
             </div>
