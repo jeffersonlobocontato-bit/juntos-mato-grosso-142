@@ -62,7 +62,7 @@ export default function CruzamentoTerritorialChat() {
   };
 
   return (
-    <div className="sticky top-[73px] z-40 bg-muted/20/ backdrop-blur-md pt-3 pb-2">
+    <div className="sticky top-[73px] z-40 bg-muted/20 backdrop-blur-md pt-3 pb-2">
       <Card className="border-l-4 shadow-sm" style={{ borderLeftColor: NAVY }}>
         <div className="p-3 flex items-center gap-3 flex-wrap">
           <div className="flex items-center gap-2 shrink-0">
