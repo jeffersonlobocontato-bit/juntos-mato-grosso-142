@@ -8,6 +8,7 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { ArrowLeft, RefreshCw, Network, MapPin, Layers, Building2 } from 'lucide-react';
 import GeneroPanel, { useGeneroPorRegiao } from '@/components/admin/GeneroPanel';
+import CruzamentoTerritorialChat from '@/components/admin/CruzamentoTerritorialChat';
 import {
   BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid,
   PieChart, Pie, Cell, Legend,
@@ -240,6 +241,7 @@ export default function AdminCruzamentoSugestoes() {
       </header>
 
       <main className="container mx-auto px-4 py-8 space-y-8">
+        <CruzamentoTerritorialChat />
         {/* Hero counters */}
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
           {[
