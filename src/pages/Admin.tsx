@@ -192,14 +192,6 @@ const Admin = () => {
       color: 'primary',
       roles: ['admin', 'admin_master']
     },
-    { 
-      icon: Vote, 
-      title: 'Dados TSE', 
-      description: 'Histórico eleitoral e mapas de votos',
-      href: '/admin/tse',
-      color: 'accent',
-      roles: ['admin', 'admin_master']
-    },
   ];
 
   const filteredMenuItems = menuItems.filter(item => {
