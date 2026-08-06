@@ -67,9 +67,17 @@ serve(async (req) => {
     const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
     if (!LOVABLE_API_KEY) return json({ error: "Serviço indisponível" }, 503);
 
+    // RPCs do painel validam o usuário logado (auth.uid()), então precisam
+    // de um client autenticado com o token do usuário — não o service role.
+    const userClient = createClient(
+      Deno.env.get("SUPABASE_URL")!,
+      Deno.env.get("SUPABASE_ANON_KEY")!,
+      { global: { headers: { Authorization: `Bearer ${token}` } } },
+    );
+
     const runTool = async (name: string, args: any): Promise<unknown> => {
       const rpc = async (fn: string, params?: Record<string, unknown>) => {
-        const { data, error } = await supabase.rpc(fn, params ?? {});
+        const { data, error } = await userClient.rpc(fn, params ?? {});
         if (error) throw error;
         return data ?? [];
       };
