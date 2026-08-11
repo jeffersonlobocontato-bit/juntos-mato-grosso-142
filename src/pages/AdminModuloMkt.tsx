@@ -54,19 +54,6 @@ function ExpandHint({ children }: { children: React.ReactNode }) {
   );
 }
 
-interface SugestaoListaUnused {
-  id: string;
-  nome: string;
-  municipio: string;
-  mesorregiao: string;
-  eixo: string;
-  descricao: string;
-  genero: string;
-  latitude: number | null;
-  longitude: number | null;
-  created_at: string;
-}
-
 export default function AdminModuloMkt() {
   const { user, isLoading: authLoading, isAdmin, roles } = useAuth();
   const authorized = !!user && (isAdmin || roles.includes('lider_tematico' as any) || roles.includes('marketing' as any) || roles.includes('admin_master' as any));
