@@ -184,6 +184,14 @@ const Admin = () => {
       color: 'primary',
       roles: ['admin', 'admin_master', 'lider_tematico']
     },
+    {
+      icon: Sparkles,
+      title: 'Módulo MKT — Expectativa dos paranaenses',
+      description: 'Microanálise e insights de marketing a partir das sugestões populares',
+      href: '/admin/modulo-mkt',
+      color: 'accent',
+      roles: ['admin', 'admin_master', 'lider_tematico']
+    },
     { 
       icon: BarChart2, 
       title: 'Pesquisas Eleitorais', 
