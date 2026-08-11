@@ -7,7 +7,10 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
-import { ArrowLeft, Sparkles, Users, MapPin, Layers, TrendingUp, ChevronDown, RefreshCw } from 'lucide-react';
+import { ArrowLeft, Sparkles, Users, MapPin, Layers, TrendingUp, ChevronDown, RefreshCw, Search } from 'lucide-react';
+import { Input } from '@/components/ui/input';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import ParanaMap from '@/components/admin/ParanaMap';
 import MarketingIAChat from '@/components/admin/MarketingIAChat';
 import { PERSONAS, CASES, ARGUMENTOS_POR_EIXO } from '@/components/admin/mkt/mktContent';
 import { contarPalavras, dorDominante } from '@/components/admin/mkt/textAnalysis';
@@ -31,11 +34,14 @@ const EIXOS_ORDEM = [
 
 interface SugestaoLista {
   id: string;
+  nome: string;
   municipio: string;
   mesorregiao: string;
   eixo: string;
   descricao: string;
   genero: string;
+  latitude: number | null;
+  longitude: number | null;
   created_at: string;
 }
 
@@ -45,6 +51,12 @@ export default function AdminModuloMkt() {
 
   const [eixoAberto, setEixoAberto] = useState<string | null>(null);
   const [regiaoAberta, setRegiaoAberta] = useState<string | null>(null);
+  const [fEixo, setFEixo] = useState('all');
+  const [fRegiao, setFRegiao] = useState('all');
+  const [fMunicipio, setFMunicipio] = useState('all');
+  const [fGenero, setFGenero] = useState('all');
+  const [busca, setBusca] = useState('');
+  const [sugestaoAberta, setSugestaoAberta] = useState<string | null>(null);
 
   const resumo = useQuery({ queryKey: ['mkt-resumo'], queryFn: () => rpc<any>('painel_cruzamento_resumo'), enabled: authorized });
   const porRegiao = useQuery({ queryKey: ['mkt-regiao'], queryFn: () => rpc<any>('painel_cruzamento_por_regiao'), enabled: authorized });
