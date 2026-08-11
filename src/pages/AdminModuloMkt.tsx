@@ -656,11 +656,6 @@ export default function AdminModuloMkt() {
             </div>
 
             <div>
-              <h2 className="font-display text-lg font-bold text-primary mb-1">Cases de sucesso</h2>
-
-            </div>
-
-            <div>
               <h2 className="font-display text-lg font-bold text-destructive mb-1">Riscos e vulnerabilidades</h2>
               <p className="text-sm text-muted-foreground mb-4">
                 Achados de pesquisa qualitativa real (16 grupos focais, 5 cidades do PR, mai/2026) que a equipe de conteúdo não deve ignorar.
