@@ -2566,8 +2566,11 @@ export type Database = {
           eixo: string
           genero: string
           id: string
+          latitude: number
+          longitude: number
           mesorregiao: string
           municipio: string
+          nome: string
         }[]
       }
       painel_cruzamento_nuvem_palavras: {
