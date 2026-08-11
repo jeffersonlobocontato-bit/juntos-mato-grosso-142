@@ -66,6 +66,13 @@ export default function AdminModuloMkt() {
   const [fGenero, setFGenero] = useState('all');
   const [busca, setBusca] = useState('');
   const [sugestaoAberta, setSugestaoAberta] = useState<string | null>(null);
+  const [tabAtiva, setTabAtiva] = useState('geral');
+  const chatRef = useRef<HTMLDivElement>(null);
+
+  const irParaChat = () => {
+    setTabAtiva('estrategia');
+    setTimeout(() => chatRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' }), 150);
+  };
 
   const resumo = useQuery({ queryKey: ['mkt-resumo'], queryFn: () => rpc<any>('painel_cruzamento_resumo'), enabled: authorized });
   const porRegiao = useQuery({ queryKey: ['mkt-regiao'], queryFn: () => rpc<any>('painel_cruzamento_por_regiao'), enabled: authorized });
@@ -277,7 +284,8 @@ export default function AdminModuloMkt() {
       </div>
 
       <main className="container mx-auto px-4 py-8 space-y-8">
-        <Tabs defaultValue="geral" className="space-y-6">
+        <Tabs value={tabAtiva} onValueChange={setTabAtiva} className="space-y-6">
+          <div className="flex flex-wrap items-center gap-3">
           <TabsList className="flex-wrap h-auto">
             <TabsTrigger value="geral">Visão Geral</TabsTrigger>
             <TabsTrigger value="temas">Temas</TabsTrigger>
@@ -286,6 +294,14 @@ export default function AdminModuloMkt() {
             <TabsTrigger value="mapa">Mapa</TabsTrigger>
             <TabsTrigger value="estrategia">Estratégia</TabsTrigger>
           </TabsList>
+          <Button
+            onClick={irParaChat}
+            className="animate-pulse bg-accent text-accent-foreground hover:bg-accent/90 font-semibold shadow-lg shadow-accent/30"
+          >
+            <Sparkles className="h-4 w-4 mr-2" />
+            Pergunte ao agente de IA de MKT
+          </Button>
+          </div>
 
           {/* ================= VISÃO GERAL ================= */}
           <TabsContent value="geral" className="space-y-6">
@@ -650,7 +666,7 @@ export default function AdminModuloMkt() {
               </div>
             </div>
 
-            <div>
+            <div ref={chatRef} className="scroll-mt-24">
               <h2 className="font-display text-lg font-bold text-primary mb-1">Agente de marketing</h2>
               <p className="text-sm text-muted-foreground mb-4">
                 Pergunte diretamente — o agente só enxerga sugestões populares e sempre traz a nota técnica de neuromarketing usada em cada peça.
