@@ -309,7 +309,8 @@ export default function AdminModuloMkt() {
           </TabsList>
           <Button
             onClick={irParaChat}
-            className="animate-[pulse_1.5s_cubic-bezier(0.4,0,0.6,1)_infinite] bg-accent text-accent-foreground hover:bg-accent/90 font-semibold shadow-lg shadow-accent/30"
+            style={{ animation: 'pulse 3.2s ease-in-out infinite' }}
+            className="bg-accent text-accent-foreground hover:bg-accent/90 font-semibold shadow-lg shadow-accent/30"
           >
             <Sparkles className="h-4 w-4 mr-2" />
             Pergunte ao agente de IA de MKT
