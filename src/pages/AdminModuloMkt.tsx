@@ -7,10 +7,11 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
-import { ArrowLeft, Sparkles, Users, MapPin, Layers, TrendingUp, ChevronDown } from 'lucide-react';
+import { ArrowLeft, Sparkles, Users, MapPin, Layers, TrendingUp, ChevronDown, RefreshCw } from 'lucide-react';
 import MarketingIAChat from '@/components/admin/MarketingIAChat';
 import { PERSONAS, CASES, ARGUMENTOS_POR_EIXO } from '@/components/admin/mkt/mktContent';
 import { contarPalavras, dorDominante } from '@/components/admin/mkt/textAnalysis';
+import { gerarNarrativaRegiao } from '@/components/admin/mkt/regiaoNarrativa';
 
 const db = supabase as any;
 const rpc = async <T,>(fn: string, args?: Record<string, unknown>): Promise<T[]> => {
@@ -109,6 +110,7 @@ export default function AdminModuloMkt() {
   // ---- Regiões: dados combinados (contagem + tema dominante + gênero + narrativa + dor) ----
   const regioesCombinadas = useMemo(() => {
     const regioes = (porRegiao.data ?? []).map((r: any) => r.mesorregiao as string);
+    const totalEstado = (porRegiao.data ?? []).reduce((s: number, r: any) => s + Number(r.total), 0);
     return regioes.map(regiao => {
       const total = Number((porRegiao.data ?? []).find((r: any) => r.mesorregiao === regiao)?.total ?? 0);
       const temas = (regiaoEixo.data ?? [])
@@ -121,16 +123,31 @@ export default function AdminModuloMkt() {
       const textosRegiao = (lista.data ?? []).filter(r => r.mesorregiao === regiao).map(r => r.descricao);
       const dor = dorDominante(textosRegiao);
       const narrativa = narrativas.data?.[regiao];
+      const gerada = gerarNarrativaRegiao({
+        regiao, total, totalEstado,
+        temas: temas.map((t: any) => ({ eixo: t.eixo, total: Number(t.total) })),
+        femPct, mascPct: 100 - femPct, dor, textos: textosRegiao,
+      });
       return {
         regiao, total,
         temaDominante: temaDominante?.eixo ?? '—',
         temaDominantePct: temaDominante ? Math.round((Number(temaDominante.total) / total) * 100) : 0,
         femPct, mascPct: 100 - femPct,
         dor,
-        nota: narrativa?.nota, foco: narrativa?.foco,
+        nota: narrativa?.nota ?? gerada.nota,
+        foco: narrativa?.foco ?? gerada.foco,
+        curada: !!narrativa?.nota,
       };
     }).sort((a, b) => b.total - a.total);
   }, [porRegiao.data, regiaoEixo.data, generoRegiao.data, lista.data, narrativas.data]);
+
+  const carregando =
+    resumo.isFetching || porRegiao.isFetching || porEixo.isFetching ||
+    regiaoEixo.isFetching || generoRegiao.isFetching || lista.isFetching || narrativas.isFetching;
+
+  const atualizarTudo = () => {
+    [resumo, porRegiao, porEixo, regiaoEixo, generoRegiao, lista, narrativas].forEach(q => q.refetch());
+  };
 
   if (authLoading) {
     return <div className="min-h-screen flex items-center justify-center bg-background"><div className="animate-spin text-4xl">⏳</div></div>;
@@ -148,9 +165,21 @@ export default function AdminModuloMkt() {
       {/* Hero — mesmo padrão visual da LP principal */}
       <div className="relative bg-gradient-primary overflow-hidden">
         <div className="container mx-auto px-4 py-10 md:py-14 relative z-10">
-          <Link to="/admin" className="inline-flex items-center gap-2 text-primary-foreground/80 hover:text-primary-foreground text-sm mb-6">
-            <ArrowLeft className="w-4 h-4" />Voltar ao painel
-          </Link>
+          <div className="flex items-center justify-between gap-3 mb-6">
+            <Link to="/admin" className="inline-flex items-center gap-2 text-primary-foreground/80 hover:text-primary-foreground text-sm">
+              <ArrowLeft className="w-4 h-4" />Voltar ao painel
+            </Link>
+            <Button
+              size="sm"
+              variant="secondary"
+              onClick={atualizarTudo}
+              disabled={carregando}
+              className="gap-2"
+            >
+              <RefreshCw className={`w-4 h-4 ${carregando ? 'animate-spin' : ''}`} />
+              Atualizar
+            </Button>
+          </div>
           <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-primary-foreground/10 backdrop-blur-md border border-primary-foreground/20 mb-5">
             <Sparkles className="w-4 h-4 text-accent" />
             <span className="text-sm font-medium text-primary-foreground">Exclusivo equipe de marketing</span>
