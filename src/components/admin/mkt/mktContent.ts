@@ -85,6 +85,25 @@ export const PERSONAS: Persona[] = [
     ],
     cuidados: 'Não prometer política pública específica ainda. Prioridade é awareness e convite à participação.',
   },
+  {
+    nome: 'Direita da moralidade pública (classe B/C1)',
+    regioes: 'Validada por pesquisa qualitativa real (16 grupos focais, mai/2026) em Maringá, Londrina, Curitiba, Ponta Grossa e Cascavel — é um recorte de classe social, não de território fixo',
+    desc: 'A pesquisa qualitativa mostra esse segmento como explicitamente diferente de moralidade religiosa — é anti-corrupção, anti-privilégio, rejeita um STF politizado, mas também rejeita radicalismo puro. É exatamente a faixa de classe onde a viabilidade de Moro pro governo está em disputa real contra Ratinho Jr.',
+    emocional: 'O gatilho é indignação ética, não medo nem carência. Rejeita corrupção, privilégio e impunidade — mas assusta com radicalismo: discurso anti-STF explícito ou tom de confronto afasta parte desse público, mesmo entre quem rejeita o STF politizado. Quer firmeza sem truculência.',
+    racional: 'Cobra função e entrega, não passado — a própria pesquisa registra a frase: cobra função, emendas, fiscalização, segurança firme e verbas para saúde e infraestrutura, resultado prático, não só passado. Esse público compara com Ratinho, que "dá certo" — se Moro não mostrar diferencial concreto e recente, a tendência é migrar pro conforto do resultado já provado.',
+    insights: [
+      'Pesquisa qualitativa real (16 grupos focais, 5 cidades, mai/2026): direita da moralidade pública é forte especificamente na classe média B/C1, e a própria pesquisa faz questão de separá-la de moralidade religiosa.',
+      'Frase testada e mais aceita nos grupos: "menos briga ideológica e mais gente que entregue resultado" — agradou especialmente em Cascavel, Maringá e Londrina.',
+      'Esse público rejeita tanto a esquerda quanto o radicalismo puro de direita — bem posicionado pra discurso técnico e institucional, não passional.',
+      'A mesma pesquisa mostra a vulnerabilidade que essa persona expõe: Moro é visto como "sumido no Senado" e "melhor como juiz" — a força dele hoje está concentrada na classe A/B1 e no bolsonarismo raiz, exatamente fora desse recorte B/C1 que decide a eleição de governo.',
+    ],
+    ganchos: [
+      'Peça com a frase já testada como headline: "menos briga ideológica e mais gente que entregue resultado".',
+      'Roteiro que mostra Moro fiscalizando ou cobrando resultado concreto agora, não discursando sobre o passado da Lava Jato.',
+      'Contraponto direto à percepção de ausência: nomear uma entrega recente e específica do mandato, nunca currículo genérico.',
+    ],
+    cuidados: 'Nunca usar linguagem anti-STF radical aqui — a própria pesquisa mostra que isso assusta parte desse público. Separar sempre "ser de direita" de "ser um radical de direita". Nunca deixar Moro parecer só reativo ao passado sem mostrar o que fez recentemente — essa é a vulnerabilidade nomeada pela pesquisa.',
+  },
 ];
 
 export interface CaseSucesso {
