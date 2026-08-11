@@ -8,7 +8,7 @@ import { toast } from 'sonner';
 import { Compass, ChevronDown, ChevronUp, Send, Loader2, Trash2, History, Plus, X } from 'lucide-react';
 import MarkdownRenderer from '@/components/admin/MarkdownRenderer';
 
-const NAVY = '#1F3864';
+const NAVY = '#14713B';
 
 interface Msg { role: 'user' | 'assistant'; content: string }
 interface Conversa { id: string; title: string; updatedAt: number; messages: Msg[] }

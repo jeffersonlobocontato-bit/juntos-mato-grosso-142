@@ -6,9 +6,9 @@ import { Button } from '@/components/ui/button';
 import { useToast } from '@/hooks/use-toast';
 import { RefreshCw, Loader2, Users, ChevronDown, ChevronUp } from 'lucide-react';
 
-const NAVY = '#1F3864';
-const RED = '#C00000';
-const MALE = '#2E5FA3';
+const NAVY = '#14713B';
+const RED = '#2273C3';
+const MALE = '#2273C3';
 const FEMALE = '#C0407A';
 
 const db = supabase as any;

@@ -9,15 +9,17 @@ import { Badge } from '@/components/ui/badge';
 import { ArrowLeft, RefreshCw, Network, MapPin, Layers, Building2 } from 'lucide-react';
 import GeneroPanel, { useGeneroPorRegiao } from '@/components/admin/GeneroPanel';
 import CruzamentoTerritorialChat from '@/components/admin/CruzamentoTerritorialChat';
+import MarketingIAChat from '@/components/admin/MarketingIAChat';
 import {
   BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid,
   PieChart, Pie, Cell, Legend,
 } from 'recharts';
 
-const NAVY = '#1F3864';
-const RED = '#C00000';
-const GOLD = '#B4872E';
-const PALETTE = [NAVY, RED, GOLD, '#2E5FA3', '#7A1F1F', '#0E6B4F'];
+// Design system real da LP (verde institucional / azul / dourado)
+const NAVY = '#14713B';   // primary (verde institucional)
+const RED = '#2273C3';    // secondary (azul)
+const GOLD = '#F9C31F';   // accent (dourado)
+const PALETTE = [NAVY, GOLD, RED, '#279B57', '#0A4729', '#2E5FA3'];
 
 const db = supabase as any;
 
@@ -29,8 +31,8 @@ const rpc = async <T,>(fn: string, args?: Record<string, unknown>): Promise<T[]>
 
 const heatColor = (ratio: number) => {
   if (ratio <= 0) return 'transparent';
-  const from = [31, 56, 100];
-  const to = [192, 0, 0];
+  const from = [20, 113, 59]; // primary (verde)
+  const to = [249, 195, 31]; // accent (dourado)
   const c = from.map((f, i) => Math.round(f + (to[i] - f) * ratio));
   return `rgba(${c[0]}, ${c[1]}, ${c[2]}, ${0.15 + ratio * 0.75})`;
 };
@@ -203,6 +205,18 @@ export default function AdminCruzamentoSugestoes() {
   }, [taxResumo.data]);
   const nuvemMax = Math.max(1, ...(nuvem.data ?? []).map((w: any) => Number(w.freq)));
 
+  const regioesDisponiveis = useMemo(
+    () => Array.from(new Set((porRegiao.data ?? []).map((r: any) => r.mesorregiao).filter(Boolean))).sort(),
+    [porRegiao.data],
+  );
+  const municipiosDisponiveis = useMemo(
+    () => Array.from(new Set((ranking.data ?? [])
+      .filter((c: any) => !regiaoAberta || c.mesorregiao === regiaoAberta)
+      .map((c: any) => c.municipio)
+      .filter(Boolean))).sort(),
+    [ranking.data, regiaoAberta],
+  );
+
   if (authLoading) {
     return <div className="min-h-screen flex items-center justify-center bg-background"><div className="animate-spin text-4xl">⏳</div></div>;
   }
@@ -229,8 +243,8 @@ export default function AdminCruzamentoSugestoes() {
             </div>
           </div>
           <div className="flex items-center gap-3">
-            <Badge variant="outline" className="gap-2 border-[#00A85A]/40 text-[#00A85A]">
-              <span className="w-2 h-2 rounded-full bg-[#00A85A] animate-pulse" />
+            <Badge variant="outline" className="gap-2 border-[#14713B]/40 text-[#14713B]">
+              <span className="w-2 h-2 rounded-full bg-[#14713B] animate-pulse" />
               ao vivo — atualizado há {secondsAgo}s
             </Badge>
             <Button variant="outline" size="sm" onClick={refetchAll}>
@@ -242,6 +256,14 @@ export default function AdminCruzamentoSugestoes() {
 
       <main className="container mx-auto px-4 py-8 space-y-8">
         <CruzamentoTerritorialChat />
+
+        {/* Estratégia IA — agente de marketing exclusivo das sugestões populares */}
+        <MarketingIAChat
+          authorized={authorized}
+          regioesDisponiveis={regioesDisponiveis}
+          municipiosDisponiveis={municipiosDisponiveis}
+        />
+
         {/* Hero counters */}
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
           {[
@@ -362,7 +384,7 @@ export default function AdminCruzamentoSugestoes() {
                     <div className="mt-2 grid grid-cols-3 gap-2 rounded-md bg-muted/50 p-2">
                       <div>
                         <p className="text-[10px] uppercase tracking-wide text-muted-foreground">Homens</p>
-                        <p className="text-xl font-bold leading-tight" style={{ color: '#2E5FA3' }}>
+                        <p className="text-xl font-bold leading-tight" style={{ color: '#2273C3' }}>
                           {gen.masculino.toLocaleString('pt-BR')}
                         </p>
                       </div>

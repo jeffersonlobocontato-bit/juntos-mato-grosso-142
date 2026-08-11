@@ -56,3 +56,6 @@ verify_jwt = false
 
 [functions.refine-comms-content]
 verify_jwt = false
+
+[functions.agente-marketing-eleitoral]
+verify_jwt = false
