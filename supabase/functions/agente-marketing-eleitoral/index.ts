@@ -8,9 +8,14 @@ const corsHeaders = {
 const SYSTEM_PROMPT = `Você é o Agente de Marketing Eleitoral do Painel de Cruzamento, especializado em transformar sugestões populares em conteúdo de alta conversão para a campanha do senador Sérgio Moro ao governo do Paraná.
 
 FONTE DE DADOS — REGRA ABSOLUTA
-- Sua única fonte de dados é o recorte de sugestões populares que vem no bloco CONTEXTO DE DADOS desta conversa. Você nunca consulta, cita ou infere de nenhuma outra base da plataforma (documentos técnicos, propostas, pesquisas eleitorais, plano de governo). Se um recorte vier vazio ou pequeno demais, diga isso explicitamente em vez de complementar com suposição.
+- Sua única fonte de DADOS DE CAMPANHA é o recorte de sugestões populares que vem no bloco CONTEXTO DE DADOS desta conversa. Você nunca consulta, cita ou infere de nenhuma outra base da plataforma (documentos técnicos, propostas, pesquisas eleitorais, plano de governo). Se um recorte vier vazio ou pequeno demais, diga isso explicitamente em vez de complementar com suposição.
+- Sua única fonte de TÉCNICA (neuromarketing, cases, estrutura de formato) é o bloco REPERTÓRIO DE TÉCNICA, quando presente na conversa — não invente técnica ou case fora dele; se ele não vier, use apenas o repertório já descrito abaixo neste prompt.
 - Nunca exibe nome, e-mail ou WhatsApp de quem enviou a sugestão — o contexto que você recebe já vem sem isso.
 - Nunca inventa citação literal de cidadão. Pode parafrasear o padrão de linguagem observado, nunca apresentar uma frase como se fosse uma citação exata que você não recebeu.
+
+RIGOR ESTATÍSTICO
+- Sempre que analisar o recorte, informe quantas sugestões o compõem. Se o recorte tiver menos de 20 sugestões, avise explicitamente que a amostra é pequena e que a leitura deve ser tratada como indicativa, não conclusiva.
+- Se o recorte vier vazio, responda "não há evidência suficiente nesse recorte" em vez de generalizar a partir de outros recortes ou do conhecimento geral do modelo.
 
 REPERTÓRIO DE TÉCNICAS (use com critério, nunca todas de uma vez)
 - Prova social: mostrar que outras pessoas do mesmo perfil já participaram/concordam.
@@ -121,6 +126,77 @@ Deno.serve(async (req) => {
       ? Object.entries(filtros).filter(([, v]) => v && v !== 'all').map(([k, v]) => `${k}=${v}`).join(', ') || 'nenhum (base geral)'
       : 'nenhum (base geral)';
 
+    // ---------------------------------------------------------------------
+    // RAG — repertório de técnica (neuromarketing, cases, guia de formato).
+    // Isolado por categoria própria (rag_tecnica_marketing_ia) e por
+    // filter_doc_ids explícito: a busca semântica nunca alcança nenhum
+    // outro documento da plataforma, só este repertório de ofício.
+    // ---------------------------------------------------------------------
+    let contextoRag = '';
+    try {
+      const { data: docsRag } = await supabase
+        .from('ai_documents')
+        .select('id')
+        .eq('doc_category', 'rag_tecnica_marketing_ia')
+        .eq('is_active', true);
+      const ragDocIds = (docsRag || []).map((d: any) => d.id);
+
+      if (ragDocIds.length > 0) {
+        // Auto-indexação: se algum desses documentos ainda não tem chunks
+        // (ex: acabou de ser inserido por migração), processa uma vez.
+        const { count: chunkCount } = await supabase
+          .from('ai_document_chunks')
+          .select('id', { count: 'exact', head: true })
+          .in('document_id', ragDocIds);
+        if (!chunkCount || chunkCount === 0) {
+          for (const docId of ragDocIds) {
+            try {
+              await supabase.functions.invoke('process-document-chunks', { body: { document_id: docId } });
+            } catch (e) {
+              console.error('Falha ao indexar documento RAG', docId, e);
+            }
+          }
+        }
+
+        const lastUserMessage = [...messages].reverse().find((m) => m.role === 'user');
+        const queryText = `${modo}: ${lastUserMessage?.content || ''}`;
+
+        const embResponse = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${lovableApiKey}` },
+          body: JSON.stringify({
+            model: 'google/gemini-3-flash-preview',
+            messages: [
+              { role: 'system', content: 'You are an embedding generator. Given the input text, output ONLY a JSON array of exactly 768 floating point numbers representing a semantic embedding vector. No other text.' },
+              { role: 'user', content: `Generate a 768-dimensional embedding vector for: ${queryText.substring(0, 1000)}` },
+            ],
+          }),
+        });
+        if (embResponse.ok) {
+          const embData = await embResponse.json();
+          const embContent = embData.choices?.[0]?.message?.content || '';
+          const match = embContent.match(/\[[\s\S]*\]/);
+          if (match) {
+            const queryEmbedding = JSON.parse(match[0]);
+            if (Array.isArray(queryEmbedding) && queryEmbedding.length === 768) {
+              const { data: chunks } = await supabase.rpc('match_document_chunks', {
+                query_embedding: JSON.stringify(queryEmbedding),
+                match_threshold: 0.3,
+                match_count: 8,
+                filter_doc_ids: ragDocIds,
+              });
+              if (chunks && chunks.length > 0) {
+                contextoRag = '\n\nREPERTÓRIO DE TÉCNICA (RAG — playbook, cases, guia de formato):\n' +
+                  chunks.map((c: any, i: number) => `[Trecho ${i + 1}]\n${c.content}`).join('\n\n---\n\n');
+              }
+            }
+          }
+        }
+      }
+    } catch (ragError) {
+      console.error('RAG retrieval falhou, seguindo sem repertório de técnica:', ragError);
+    }
+
     const contexto = `CONTEXTO DE DADOS
 Filtros aplicados: ${filtrosDescricao}
 Total de sugestões no recorte: ${total}
@@ -128,6 +204,7 @@ Distribuição por eixo no recorte: ${resumoEixos || 'sem dados suficientes'}
 
 Amostra de trechos (até 40, sem identificação do autor):
 ${amostra || 'Nenhuma sugestão encontrada para este recorte.'}
+${contextoRag}
 
 MODO SOLICITADO: ${modo}`;
 
