@@ -79,7 +79,7 @@ const App = () => (
             <Route path="/admin/gerador-conteudo" element={<ProtectedRoute requiredRoles={['lider_tematico']}><AdminGeradorConteudo /></ProtectedRoute>} />
             <Route path="/admin/cadastro-rapido" element={<ProtectedRoute><AdminCadastroRapido /></ProtectedRoute>} />
             <Route path="/admin/cruzamento-sugestoes" element={<ProtectedRoute requiredRoles={['lider_tematico']}><AdminCruzamentoSugestoes /></ProtectedRoute>} />
-            <Route path="/admin/modulo-mkt" element={<ProtectedRoute requiredRoles={['lider_tematico']}><AdminModuloMkt /></ProtectedRoute>} />
+            <Route path="/admin/modulo-mkt" element={<ProtectedRoute requiredRoles={['lider_tematico','marketing']}><AdminModuloMkt /></ProtectedRoute>} />
             <Route path="/entrevista" element={<Entrevista />} />
             <Route path="/entrevista-institucional" element={<EntrevistaInstitucional />} />
             <Route path="/liderancas" element={<Liderancas />} />
