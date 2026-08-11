@@ -657,7 +657,7 @@ export default function AdminModuloMkt() {
 
             <div>
               <h2 className="font-display text-lg font-bold text-primary mb-1">Cases de sucesso</h2>
-              <span className="hidden" />
+
             </div>
 
             <div>
