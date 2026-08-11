@@ -60,6 +60,13 @@ const ProtectedRoute = ({ children, requiredRoles }: ProtectedRouteProps) => {
     return <Navigate to="/auth" state={{ from: location.pathname }} replace />;
   }
 
+  // Usuários exclusivamente de marketing só podem acessar o Módulo MKT.
+  const isMarketingOnly =
+    roles.includes('marketing') && roles.every((r) => r === 'marketing');
+  if (isMarketingOnly && !location.pathname.startsWith('/admin/modulo-mkt')) {
+    return <Navigate to="/admin/modulo-mkt" replace />;
+  }
+
   if (requiredRoles && requiredRoles.length > 0) {
     const hasAccess =
       roles.includes('admin') ||
