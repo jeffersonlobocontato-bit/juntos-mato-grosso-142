@@ -81,7 +81,20 @@ export default function AdminModuloMkt() {
   const generoRegiao = useQuery({ queryKey: ['mkt-genero-regiao'], queryFn: () => rpc<any>('painel_genero_por_regiao'), enabled: authorized });
   const lista = useQuery({
     queryKey: ['mkt-lista'],
-    queryFn: () => rpc<SugestaoLista>('painel_cruzamento_lista_sugestoes', { p_limit: 3000, p_offset: 0 }),
+    queryFn: async () => {
+      // PostgREST limita cada resposta a 1000 linhas — paginar até esgotar
+      const page = 1000;
+      const all: SugestaoLista[] = [];
+      for (let offset = 0; offset < 50000; offset += page) {
+        const rows = await rpc<SugestaoLista>('painel_cruzamento_lista_sugestoes', {
+          p_limit: page,
+          p_offset: offset,
+        });
+        all.push(...rows);
+        if (rows.length < page) break;
+      }
+      return all;
+    },
     enabled: authorized,
   });
   const narrativas = useQuery({
