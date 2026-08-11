@@ -5,7 +5,7 @@ import { Card } from '@/components/ui/card';
 import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { toast } from 'sonner';
-import { Sparkles, Send, Loader2, BarChart3, Clapperboard, Film, PenLine, Trash2 } from 'lucide-react';
+import { Megaphone, Send, Loader2, BarChart3, Clapperboard, Film, PenLine, Trash2 } from 'lucide-react';
 import MarkdownRenderer from '@/components/admin/MarkdownRenderer';
 
 interface Msg { role: 'user' | 'assistant'; content: string }
@@ -79,7 +79,7 @@ export default function MarketingIAChat({ authorized, regioesDisponiveis, munici
       <div className="p-4 space-y-4">
         <div className="flex items-center gap-2">
           <span className="w-9 h-9 rounded-full flex items-center justify-center bg-primary/10">
-            <Sparkles className="w-4 h-4 text-primary" />
+            <Megaphone className="w-4 h-4 text-primary" />
           </span>
           <div className="leading-tight">
             <p className="font-display font-bold text-sm text-primary">Agente de Marketing Eleitoral</p>
