@@ -45,6 +45,28 @@ interface SugestaoLista {
   created_at: string;
 }
 
+function ExpandHint({ children }: { children: React.ReactNode }) {
+  return (
+    <div className="flex items-center gap-2 rounded-lg border border-accent/40 bg-accent/10 px-3 py-2 text-sm text-foreground/80">
+      <ChevronDown className="h-4 w-4 text-accent shrink-0" />
+      <span>{children}</span>
+    </div>
+  );
+}
+
+interface SugestaoListaUnused {
+  id: string;
+  nome: string;
+  municipio: string;
+  mesorregiao: string;
+  eixo: string;
+  descricao: string;
+  genero: string;
+  latitude: number | null;
+  longitude: number | null;
+  created_at: string;
+}
+
 export default function AdminModuloMkt() {
   const { user, isLoading: authLoading, isAdmin, roles } = useAuth();
   const authorized = !!user && (isAdmin || roles.includes('lider_tematico' as any) || roles.includes('marketing' as any) || roles.includes('admin_master' as any));
