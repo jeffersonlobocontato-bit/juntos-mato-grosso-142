@@ -64,7 +64,7 @@ Deno.serve(async (req) => {
       });
     }
     const { data: roles } = await supabase.from('user_roles').select('role').eq('user_id', user.id);
-    const allowedRoles = ['admin', 'admin_master', 'lider_tematico'];
+    const allowedRoles = ['admin', 'admin_master', 'lider_tematico', 'marketing'];
     const hasPermission = (roles || []).some((r: { role: string }) => allowedRoles.includes(r.role));
     if (!hasPermission) {
       return new Response(JSON.stringify({ error: 'Permissão negada.' }), {
@@ -84,8 +84,13 @@ Deno.serve(async (req) => {
       });
     }
 
+    // Cliente com o token do usuário — as RPCs do painel validam auth.uid()
+    const supabaseUser = createClient(supabaseUrl, Deno.env.get('SUPABASE_ANON_KEY')!, {
+      global: { headers: { Authorization: authHeader } },
+    });
+
     // Busca o recorte de sugestões populares — única fonte que este agente enxerga
-    const { data: sugestoes, error: rpcError } = await supabase.rpc('painel_cruzamento_lista_sugestoes', {
+    const { data: sugestoes, error: rpcError } = await supabaseUser.rpc('painel_cruzamento_lista_sugestoes', {
       p_eixo: filtros?.eixo && filtros.eixo !== 'all' ? filtros.eixo : null,
       p_regiao: filtros?.regiao && filtros.regiao !== 'all' ? filtros.regiao : null,
       p_municipio: filtros?.municipio && filtros.municipio !== 'all' ? filtros.municipio : null,
