@@ -12,7 +12,7 @@ import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import ParanaMap from '@/components/admin/ParanaMap';
 import MarketingIAChat from '@/components/admin/MarketingIAChat';
-import { PERSONAS, CASES, ARGUMENTOS_POR_EIXO } from '@/components/admin/mkt/mktContent';
+import { PERSONAS, CASES, ARGUMENTOS_POR_EIXO, RISCOS_VULNERABILIDADES } from '@/components/admin/mkt/mktContent';
 import { contarPalavras, dorDominante } from '@/components/admin/mkt/textAnalysis';
 import { gerarNarrativaRegiao } from '@/components/admin/mkt/regiaoNarrativa';
 
@@ -653,6 +653,37 @@ export default function AdminModuloMkt() {
                   </Card>
                 ))}
               </div>
+            </div>
+
+            <div>
+              <h2 className="font-display text-lg font-bold text-destructive mb-1">Riscos e vulnerabilidades</h2>
+              <p className="text-sm text-muted-foreground mb-4">
+                Achados de pesquisa qualitativa real (16 grupos focais, 5 cidades do PR, mai/2026) que a equipe de conteúdo não deve ignorar.
+              </p>
+              <div className="grid md:grid-cols-2 gap-4">
+                {RISCOS_VULNERABILIDADES.map((r, i) => (
+                  <Card key={i} className="shadow-soft border-l-4 border-l-destructive">
+                    <CardContent className="pt-5 space-y-2.5">
+                      <h3 className="font-display font-bold text-sm">{r.titulo}</h3>
+                      <div>
+                        <p className="text-[10px] uppercase tracking-wide font-bold text-muted-foreground mb-1">O que a pesquisa mostrou</p>
+                        <p className="text-sm">{r.achado}</p>
+                      </div>
+                      <div>
+                        <p className="text-[10px] uppercase tracking-wide font-bold text-destructive mb-1">Implicação</p>
+                        <p className="text-sm">{r.implicacao}</p>
+                      </div>
+                      <div className="rounded-lg bg-muted/50 p-2.5">
+                        <p className="text-[10px] uppercase tracking-wide font-bold text-primary mb-1">Recomendação</p>
+                        <p className="text-sm">{r.recomendacao}</p>
+                      </div>
+                    </CardContent>
+                  </Card>
+                ))}
+              </div>
+              <p className="text-[11px] text-muted-foreground mt-3">
+                Fonte: pesquisa qualitativa interna da campanha (Paraná, 21/05–28/05, 16 grupos, Maringá/Londrina/Curitiba/Ponta Grossa/Cascavel).
+              </p>
             </div>
 
             <div>
