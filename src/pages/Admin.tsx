@@ -190,7 +190,7 @@ const Admin = () => {
       description: 'Microanálise e insights de marketing a partir das sugestões populares',
       href: '/admin/modulo-mkt',
       color: 'accent',
-      roles: ['admin', 'admin_master', 'lider_tematico']
+      roles: ['admin', 'admin_master', 'lider_tematico', 'marketing']
     },
     { 
       icon: BarChart2, 

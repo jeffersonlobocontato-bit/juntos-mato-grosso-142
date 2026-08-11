@@ -47,7 +47,7 @@ interface SugestaoLista {
 
 export default function AdminModuloMkt() {
   const { user, isLoading: authLoading, isAdmin, roles } = useAuth();
-  const authorized = !!user && (isAdmin || roles.includes('lider_tematico' as any));
+  const authorized = !!user && (isAdmin || roles.includes('lider_tematico' as any) || roles.includes('marketing' as any) || roles.includes('admin_master' as any));
 
   const [eixoAberto, setEixoAberto] = useState<string | null>(null);
   const [regiaoAberta, setRegiaoAberta] = useState<string | null>(null);

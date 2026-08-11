@@ -2710,6 +2710,7 @@ export type Database = {
         | "curador_municipal"
         | "especialista"
         | "admin_master"
+        | "marketing"
       lead_origem: "formulario" | "chatbot" | "proposta"
       pergunta_tipo:
         | "intencao_espontanea"
@@ -2865,6 +2866,7 @@ export const Constants = {
         "curador_municipal",
         "especialista",
         "admin_master",
+        "marketing",
       ],
       lead_origem: ["formulario", "chatbot", "proposta"],
       pergunta_tipo: [
