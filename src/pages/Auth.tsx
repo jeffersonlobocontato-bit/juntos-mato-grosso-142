@@ -101,6 +101,8 @@ const Auth = () => {
             navigate('/admin');
           } else if (userRoles.includes('lider_tematico')) {
               navigate('/admin');
+          } else if (userRoles.includes('marketing')) {
+            navigate('/admin/modulo-mkt');
           } else {
             navigate('/');
           }
@@ -165,6 +167,8 @@ const Auth = () => {
           const userRoles = rolesData?.map(r => r.role) || [];
           if (userRoles.includes('admin') || userRoles.includes('admin_master') || userRoles.includes('lider_tematico')) {
             navigate('/admin');
+          } else if (userRoles.includes('marketing')) {
+            navigate('/admin/modulo-mkt');
           } else {
             navigate('/');
           }
