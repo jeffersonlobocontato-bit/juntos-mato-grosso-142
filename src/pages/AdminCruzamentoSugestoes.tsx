@@ -364,7 +364,7 @@ export default function AdminCruzamentoSugestoes() {
                     <div className="mt-2 grid grid-cols-3 gap-2 rounded-md bg-muted/50 p-2">
                       <div>
                         <p className="text-[10px] uppercase tracking-wide text-muted-foreground">Homens</p>
-                        <p className="text-xl font-bold leading-tight" style={{ color: '#2E5FA3' }}>
+                        <p className="text-xl font-bold leading-tight" style={{ color: '#2273C3' }}>
                           {gen.masculino.toLocaleString('pt-BR')}
                         </p>
                       </div>
