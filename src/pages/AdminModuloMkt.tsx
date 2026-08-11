@@ -12,7 +12,7 @@ import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import ParanaMap from '@/components/admin/ParanaMap';
 import MarketingIAChat from '@/components/admin/MarketingIAChat';
-import { PERSONAS, CASES, ARGUMENTOS_POR_EIXO } from '@/components/admin/mkt/mktContent';
+import { PERSONAS, CASES, ARGUMENTOS_POR_EIXO, RISCOS_VULNERABILIDADES } from '@/components/admin/mkt/mktContent';
 import { contarPalavras, dorDominante } from '@/components/admin/mkt/textAnalysis';
 import { gerarNarrativaRegiao } from '@/components/admin/mkt/regiaoNarrativa';
 
@@ -657,6 +657,7 @@ export default function AdminModuloMkt() {
 
             <div>
               <h2 className="font-display text-lg font-bold text-primary mb-1">Cases de sucesso</h2>
+              <span className="hidden" />
               <p className="text-sm text-muted-foreground mb-4">Dor → estratégia → resultado → lição aplicada ao Paraná.</p>
               <div className="space-y-4">
                 {CASES.map((c, i) => (
