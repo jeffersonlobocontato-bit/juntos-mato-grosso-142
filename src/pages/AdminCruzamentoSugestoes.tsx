@@ -205,6 +205,18 @@ export default function AdminCruzamentoSugestoes() {
   }, [taxResumo.data]);
   const nuvemMax = Math.max(1, ...(nuvem.data ?? []).map((w: any) => Number(w.freq)));
 
+  const regioesDisponiveis = useMemo(
+    () => Array.from(new Set((porRegiao.data ?? []).map((r: any) => r.mesorregiao).filter(Boolean))).sort(),
+    [porRegiao.data],
+  );
+  const municipiosDisponiveis = useMemo(
+    () => Array.from(new Set((ranking.data ?? [])
+      .filter((c: any) => !regiaoAberta || c.mesorregiao === regiaoAberta)
+      .map((c: any) => c.municipio)
+      .filter(Boolean))).sort(),
+    [ranking.data, regiaoAberta],
+  );
+
   if (authLoading) {
     return <div className="min-h-screen flex items-center justify-center bg-background"><div className="animate-spin text-4xl">⏳</div></div>;
   }
@@ -244,6 +256,14 @@ export default function AdminCruzamentoSugestoes() {
 
       <main className="container mx-auto px-4 py-8 space-y-8">
         <CruzamentoTerritorialChat />
+
+        {/* Estratégia IA — agente de marketing exclusivo das sugestões populares */}
+        <MarketingIAChat
+          authorized={authorized}
+          regioesDisponiveis={regioesDisponiveis}
+          municipiosDisponiveis={municipiosDisponiveis}
+        />
+
         {/* Hero counters */}
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
           {[
