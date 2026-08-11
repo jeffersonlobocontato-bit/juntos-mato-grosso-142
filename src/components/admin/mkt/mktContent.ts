@@ -205,3 +205,40 @@ export const ARGUMENTOS_POR_EIXO: Record<string, string[]> = {
     'Eficiência sem enxugamento raso — o vocabulário pede gestão e projeto, não corte.',
   ],
 };
+
+// Riscos e vulnerabilidades — achados de pesquisa qualitativa real (16 grupos
+// focais, 5 cidades do PR, mai/2026) que a equipe de conteúdo não deve
+// ignorar ao produzir peças pra campanha ao governo.
+export interface RiscoVulnerabilidade {
+  titulo: string;
+  achado: string;
+  implicacao: string;
+  recomendacao: string;
+}
+
+export const RISCOS_VULNERABILIDADES: RiscoVulnerabilidade[] = [
+  {
+    titulo: '"Sumiu no Senado" — percepção de ausência de entrega',
+    achado: 'A pesquisa qualitativa mostra Moro como conhecido, forte e competitivo, mas com poucas entregas percebidas no Senado — o mandato é visto como distante da realidade do eleitor paranaense, mais ligado à pauta nacional. Fissuras de imagem citadas nos grupos: "sumido no Senado", "melhor como juiz", "se perdeu na política".',
+    implicacao: 'Qualquer peça que se apoie só no passado (Lava Jato, currículo de ex-juiz) sem mostrar entrega recente reforça essa vulnerabilidade em vez de resolvê-la.',
+    recomendacao: 'Todo conteúdo institucional deveria nomear uma entrega concreta e recente do mandato — nunca só currículo ou passado.',
+  },
+  {
+    titulo: 'Força concentrada em A/B1 — disputa real é a partir de B2',
+    achado: 'A pesquisa mostra a força de Moro concentrada na classe rica (A/B1, principalmente Curitiba) e no bolsonarismo raiz. A partir da classe B2, quem domina a percepção é Ratinho Jr — eficaz para Senado, mas incompleto para governo.',
+    implicacao: 'Mídia paga generalista por região corre o risco de reforçar quem já converte sozinho (A/B1) e não alcançar o público onde a eleição de governo realmente se decide.',
+    recomendacao: 'Priorizar orçamento e enquadramento de conteúdo pra alcançar B2/C — é ali que fica a persona "Direita da moralidade pública", que ainda não está fechada com ninguém.',
+  },
+  {
+    titulo: 'Risco de contágio ao atacar adversários ligados a Ratinho',
+    achado: 'A pesquisa aponta que casos de corrupção específicos de um adversário poderiam desestabilizar migração de voto — mas ataques mal calibrados correm o risco de respingar em Ratinho Jr, que é avaliado de forma muito positiva, e isso aumentaria a rejeição a Moro, não reduziria.',
+    implicacao: 'Ratinho Jr não deve ser alvo direto de crítica em nenhuma peça — o risco de dano à própria campanha é maior que o ganho.',
+    recomendacao: 'Se for necessário explorar vulnerabilidade de um adversário específico, mirar factualmente só no indivíduo, nunca no governo Ratinho como um todo.',
+  },
+  {
+    titulo: 'Discurso anti-STF radical assusta parte do público moderado',
+    achado: 'A pesquisa mostra que o combate visceral ao STF e a linha de discurso mais radical desagradam parte do público, mesmo entre quem rejeita um STF politizado — há uma linha clara entre "ser de direita" e "ser um radical de direita" nos grupos moderados.',
+    implicacao: 'Um tom de confronto explícito reduz o alcance justamente na classe média B/C1 que decide a eleição.',
+    recomendacao: 'Manter a linha institucional de "rejeição a um STF politizado", sem tom de confronto pessoal ou radicalização explícita — consistente com o enquadramento sóbrio já definido para a voz do senador.',
+  },
+];
