@@ -2551,6 +2551,25 @@ export type Database = {
           total: number
         }[]
       }
+      painel_cruzamento_lista_sugestoes: {
+        Args: {
+          p_eixo?: string
+          p_genero?: string
+          p_limit?: number
+          p_municipio?: string
+          p_offset?: number
+          p_regiao?: string
+        }
+        Returns: {
+          created_at: string
+          descricao: string
+          eixo: string
+          genero: string
+          id: string
+          mesorregiao: string
+          municipio: string
+        }[]
+      }
       painel_cruzamento_nuvem_palavras: {
         Args: { p_limit?: number }
         Returns: {
