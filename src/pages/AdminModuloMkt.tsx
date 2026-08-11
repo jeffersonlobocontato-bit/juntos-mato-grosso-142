@@ -45,6 +45,15 @@ interface SugestaoLista {
   created_at: string;
 }
 
+function ExpandHint({ children }: { children: React.ReactNode }) {
+  return (
+    <div className="flex items-center gap-2 rounded-lg border border-accent/40 bg-accent/10 px-3 py-2 text-sm text-foreground/80">
+      <ChevronDown className="h-4 w-4 text-accent shrink-0" />
+      <span>{children}</span>
+    </div>
+  );
+}
+
 export default function AdminModuloMkt() {
   const { user, isLoading: authLoading, isAdmin, roles } = useAuth();
   const authorized = !!user && (isAdmin || roles.includes('lider_tematico' as any) || roles.includes('marketing' as any) || roles.includes('admin_master' as any));
@@ -312,6 +321,7 @@ export default function AdminModuloMkt() {
 
           {/* ================= TEMAS ================= */}
           <TabsContent value="temas" className="space-y-4">
+            <ExpandHint>Clique nos cards para expandir o detalhamento.</ExpandHint>
             <p className="text-sm text-muted-foreground">
               Clique num eixo para ver a nuvem de palavras (calculada ao vivo, a partir do texto real das sugestões) e os argumentos de campanha associados.
             </p>
@@ -403,6 +413,7 @@ export default function AdminModuloMkt() {
 
           {/* ================= REGIÕES ================= */}
           <TabsContent value="regioes" className="space-y-4">
+            <ExpandHint>Clique nos cards para expandir o detalhamento.</ExpandHint>
             <p className="text-sm text-muted-foreground">Ordenado por volume. Clique numa região para o perfil completo.</p>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               {regioesCombinadas.map(r => {
@@ -519,6 +530,9 @@ export default function AdminModuloMkt() {
             <Card className="shadow-soft">
               <CardContent className="pt-6">
                 <h3 className="font-display font-bold text-primary mb-3">Sugestões</h3>
+                <div className="mb-3">
+                  <ExpandHint>Clique nos cards para expandir o detalhamento.</ExpandHint>
+                </div>
                 {listaFiltrada.length === 0 && (
                   <p className="text-sm text-muted-foreground italic">Nenhuma sugestão para os filtros selecionados.</p>
                 )}
