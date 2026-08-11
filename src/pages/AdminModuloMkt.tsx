@@ -369,22 +369,19 @@ export default function AdminModuloMkt() {
                       </div>
                       {aberta && (
                         <div className="mt-3 pt-3 border-t border-border space-y-2">
-                          {r.nota ? (
-                            <>
-                              <div>
-                                <p className="text-[11px] uppercase tracking-wide text-muted-foreground font-medium">Leitura regional</p>
-                                <p className="text-sm mt-0.5">{r.nota}</p>
-                              </div>
-                              {r.foco && (
-                                <div>
-                                  <p className="text-[11px] uppercase tracking-wide text-muted-foreground font-medium">Foco de mídia</p>
-                                  <p className="text-sm mt-0.5">{r.foco}</p>
-                                </div>
-                              )}
-                            </>
-                          ) : (
-                            <p className="text-xs text-muted-foreground italic">
-                              Narrativa ainda não gerada — clique em "Atualizar" no Painel de Cruzamento para gerar.
+                          <div>
+                            <p className="text-[11px] uppercase tracking-wide text-muted-foreground font-medium">Leitura regional</p>
+                            <p className="text-sm mt-0.5">{r.nota}</p>
+                          </div>
+                          {r.foco && (
+                            <div>
+                              <p className="text-[11px] uppercase tracking-wide text-muted-foreground font-medium">Foco de mídia</p>
+                              <p className="text-sm mt-0.5">{r.foco}</p>
+                            </div>
+                          )}
+                          {!r.curada && (
+                            <p className="text-[11px] text-muted-foreground italic">
+                              Narrativa gerada ao vivo a partir dos dados da região.
                             </p>
                           )}
                         </div>
