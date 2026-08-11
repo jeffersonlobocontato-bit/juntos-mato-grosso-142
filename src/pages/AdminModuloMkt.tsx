@@ -157,6 +157,51 @@ export default function AdminModuloMkt() {
     resumo.isFetching || porRegiao.isFetching || porEixo.isFetching ||
     regiaoEixo.isFetching || generoRegiao.isFetching || lista.isFetching || narrativas.isFetching;
 
+  // ---- Mapa: filtros, lista filtrada e marcadores agregados por cidade ----
+  const municipiosDisponiveis = useMemo(
+    () => Array.from(new Set((lista.data ?? []).map(r => r.municipio))).sort((a, b) => a.localeCompare(b, 'pt-BR')),
+    [lista.data],
+  );
+  const regioesDisponiveis = useMemo(
+    () => Array.from(new Set((lista.data ?? []).map(r => r.mesorregiao))).sort((a, b) => a.localeCompare(b, 'pt-BR')),
+    [lista.data],
+  );
+  const eixosDisponiveis = useMemo(
+    () => Array.from(new Set((lista.data ?? []).map(r => r.eixo))).sort((a, b) => a.localeCompare(b, 'pt-BR')),
+    [lista.data],
+  );
+
+  const listaFiltrada = useMemo(() => {
+    const q = busca.trim().toLowerCase();
+    return (lista.data ?? []).filter(r =>
+      (fEixo === 'all' || r.eixo === fEixo) &&
+      (fRegiao === 'all' || r.mesorregiao === fRegiao) &&
+      (fMunicipio === 'all' || r.municipio === fMunicipio) &&
+      (fGenero === 'all' || r.genero === fGenero) &&
+      (!q || r.descricao.toLowerCase().includes(q) || r.nome.toLowerCase().includes(q) || r.municipio.toLowerCase().includes(q))
+    );
+  }, [lista.data, fEixo, fRegiao, fMunicipio, fGenero, busca]);
+
+  const marcadores = useMemo(() => {
+    const porCidade = new Map<string, { lat: number; lng: number; total: number; eixo: string; mesorregiao: string }>();
+    for (const r of listaFiltrada) {
+      if (r.latitude == null || r.longitude == null) continue;
+      const atual = porCidade.get(r.municipio);
+      if (atual) atual.total += 1;
+      else porCidade.set(r.municipio, { lat: Number(r.latitude), lng: Number(r.longitude), total: 1, eixo: r.eixo, mesorregiao: r.mesorregiao });
+    }
+    return Array.from(porCidade.entries()).map(([municipio, v]) => ({
+      id: municipio,
+      latitude: v.lat,
+      longitude: v.lng,
+      title: municipio,
+      description: `${v.total} sugestão(ões) · ${v.mesorregiao}`,
+      eixo: v.eixo,
+      municipio,
+      count: v.total,
+    }));
+  }, [listaFiltrada]);
+
   const atualizarTudo = () => {
     [resumo, porRegiao, porEixo, regiaoEixo, generoRegiao, lista, narrativas].forEach(q => q.refetch());
   };
