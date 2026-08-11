@@ -274,6 +274,7 @@ export default function AdminModuloMkt() {
             <TabsTrigger value="temas">Temas</TabsTrigger>
             <TabsTrigger value="genero">Gênero</TabsTrigger>
             <TabsTrigger value="regioes">Regiões</TabsTrigger>
+            <TabsTrigger value="mapa">Mapa</TabsTrigger>
             <TabsTrigger value="estrategia">Estratégia</TabsTrigger>
           </TabsList>
 
@@ -448,6 +449,120 @@ export default function AdminModuloMkt() {
                 );
               })}
             </div>
+          </TabsContent>
+
+          {/* ================= ESTRATÉGIA ================= */}
+          {/* ================= MAPA ================= */}
+          <TabsContent value="mapa" className="space-y-4">
+            <Card className="shadow-soft">
+              <CardContent className="pt-6 space-y-4">
+                <div>
+                  <h2 className="font-display text-lg font-bold text-primary mb-1">Mapa da escuta</h2>
+                  <p className="text-sm text-muted-foreground">
+                    Cada ponto é um município — o tamanho reflete o volume de sugestões filtradas. Clique num ponto para focar a cidade na lista.
+                  </p>
+                </div>
+                <div className="grid grid-cols-2 md:grid-cols-5 gap-2">
+                  <Select value={fEixo} onValueChange={setFEixo}>
+                    <SelectTrigger><SelectValue placeholder="Eixo" /></SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="all">Todos os eixos</SelectItem>
+                      {eixosDisponiveis.map(e => <SelectItem key={e} value={e}>{e}</SelectItem>)}
+                    </SelectContent>
+                  </Select>
+                  <Select value={fRegiao} onValueChange={setFRegiao}>
+                    <SelectTrigger><SelectValue placeholder="Região" /></SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="all">Todas as regiões</SelectItem>
+                      {regioesDisponiveis.map(e => <SelectItem key={e} value={e}>{e}</SelectItem>)}
+                    </SelectContent>
+                  </Select>
+                  <Select value={fMunicipio} onValueChange={setFMunicipio}>
+                    <SelectTrigger><SelectValue placeholder="Cidade" /></SelectTrigger>
+                    <SelectContent className="max-h-72">
+                      <SelectItem value="all">Todas as cidades</SelectItem>
+                      {municipiosDisponiveis.map(e => <SelectItem key={e} value={e}>{e}</SelectItem>)}
+                    </SelectContent>
+                  </Select>
+                  <Select value={fGenero} onValueChange={setFGenero}>
+                    <SelectTrigger><SelectValue placeholder="Gênero" /></SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="all">Todos os gêneros</SelectItem>
+                      <SelectItem value="feminino">Feminino</SelectItem>
+                      <SelectItem value="masculino">Masculino</SelectItem>
+                      <SelectItem value="indefinido">Indefinido</SelectItem>
+                    </SelectContent>
+                  </Select>
+                  <div className="relative col-span-2 md:col-span-1">
+                    <Search className="w-4 h-4 absolute left-2.5 top-1/2 -translate-y-1/2 text-muted-foreground" />
+                    <Input className="pl-8" placeholder="Buscar no texto" value={busca} onChange={e => setBusca(e.target.value)} />
+                  </div>
+                </div>
+                <div className="flex items-center gap-2 flex-wrap text-sm text-muted-foreground">
+                  <Badge variant="outline">{listaFiltrada.length.toLocaleString('pt-BR')} sugestões</Badge>
+                  <Badge variant="outline">{marcadores.length.toLocaleString('pt-BR')} cidades no mapa</Badge>
+                  {(fEixo !== 'all' || fRegiao !== 'all' || fMunicipio !== 'all' || fGenero !== 'all' || busca) && (
+                    <Button variant="ghost" size="sm" onClick={() => { setFEixo('all'); setFRegiao('all'); setFMunicipio('all'); setFGenero('all'); setBusca(''); }}>
+                      Limpar filtros
+                    </Button>
+                  )}
+                </div>
+              </CardContent>
+            </Card>
+
+            <ParanaMap
+              markers={marcadores}
+              title="Geolocalização das sugestões populares"
+              onMarkerClick={(id) => setFMunicipio(id)}
+            />
+
+            <Card className="shadow-soft">
+              <CardContent className="pt-6">
+                <h3 className="font-display font-bold text-primary mb-3">Sugestões</h3>
+                {listaFiltrada.length === 0 && (
+                  <p className="text-sm text-muted-foreground italic">Nenhuma sugestão para os filtros selecionados.</p>
+                )}
+                <div className="space-y-2 max-h-[600px] overflow-y-auto pr-1">
+                  {listaFiltrada.slice(0, 300).map(s => {
+                    const aberta = sugestaoAberta === s.id;
+                    return (
+                      <div key={s.id} className="rounded-lg border border-border overflow-hidden">
+                        <button
+                          type="button"
+                          onClick={() => setSugestaoAberta(aberta ? null : s.id)}
+                          className="w-full text-left p-3 hover:bg-muted/40 transition-colors flex items-start justify-between gap-3"
+                        >
+                          <div className="min-w-0">
+                            <p className="text-sm font-medium truncate">{s.nome}</p>
+                            <p className="text-xs text-muted-foreground flex items-center gap-1">
+                              <MapPin className="w-3 h-3" />{s.municipio} · {s.mesorregiao}
+                            </p>
+                            {!aberta && <p className="text-xs text-muted-foreground mt-1 line-clamp-1">{s.descricao}</p>}
+                          </div>
+                          <div className="flex items-center gap-2 shrink-0">
+                            <Badge variant="outline" className="text-[10px] max-w-[160px] truncate">{s.eixo}</Badge>
+                            <ChevronDown className={`w-4 h-4 text-muted-foreground transition-transform ${aberta ? 'rotate-180' : ''}`} />
+                          </div>
+                        </button>
+                        {aberta && (
+                          <div className="px-3 pb-3 pt-0 border-t border-border space-y-2">
+                            <p className="text-sm whitespace-pre-wrap pt-3">{s.descricao}</p>
+                            <p className="text-[11px] text-muted-foreground">
+                              {new Date(s.created_at).toLocaleString('pt-BR')} · {s.genero}
+                            </p>
+                          </div>
+                        )}
+                      </div>
+                    );
+                  })}
+                </div>
+                {listaFiltrada.length > 300 && (
+                  <p className="text-xs text-muted-foreground mt-3">
+                    Mostrando as 300 mais recentes de {listaFiltrada.length.toLocaleString('pt-BR')} — refine os filtros para ver o restante.
+                  </p>
+                )}
+              </CardContent>
+            </Card>
           </TabsContent>
 
           {/* ================= ESTRATÉGIA ================= */}
