@@ -96,10 +96,10 @@ const MetodologiaGaleria = ({ brand, manageMode = false }: { brand: Brand; manag
     <section className="py-14 md:py-20" style={{ background: "#f7f8f5" }}>
       <div className="container mx-auto px-6 max-w-6xl mb-8">
         <span className="text-xs font-bold tracking-wide uppercase" style={{ color: brand.green700 }}>
-          Registro do processo
+          PROCESSO
         </span>
         <h2 className="font-black text-2xl md:text-3xl mt-2" style={{ color: brand.navy }}>
-          Reuniões, entregas e participação em cada região do Paraná
+          Reuniões, entregas e estudos documentados
         </h2>
       </div>
 

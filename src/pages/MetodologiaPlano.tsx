@@ -218,7 +218,7 @@ export default function MetodologiaPlano() {
           <div className="grid grid-cols-2 md:grid-cols-4 gap-5 mb-10">
             {[
               { value: 399, label: "municípios paranaenses alcançados pela escuta" },
-              { value: 250, suffix: "+", label: "entidades que enviaram documentos e propostas" },
+              { value: 100, suffix: "+", label: "entidades que enviaram documentos e propostas" },
               { value: 200, suffix: "+", label: "especialistas técnicos de todas as regiões" },
               { value: sugestoesCount ?? BASE_SUGESTOES, label: "sugestões populares recebidas e geolocalizadas" },
             ].map((n, i) => (
