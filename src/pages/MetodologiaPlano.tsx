@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import { BASE_SUGESTOES } from "@/lib/sugestoesCounter";
 import { supabase } from "@/integrations/supabase/client";
+import MetodologiaVideo from "@/components/landing/MetodologiaVideo";
 import logoClara from "@/assets/metodologia/logo-clara-recortada.png";
 import fotoOficial from "@/assets/metodologia/foto-oficial-moro.png";
 
@@ -248,36 +249,7 @@ export default function MetodologiaPlano() {
       </section>
 
       {/* ============ VÍDEO ============ */}
-      <section className="py-14 md:py-20 container mx-auto px-6 max-w-5xl">
-        <div className="text-center mb-8">
-          <span className="text-xs font-bold tracking-wide uppercase" style={{ color: BRAND.green700 }}>
-            Veja como funcionou
-          </span>
-          <h2 className="font-black text-2xl md:text-3xl mt-2" style={{ color: BRAND.navy }}>
-            A campanha que convidou o Paraná a opinar
-          </h2>
-        </div>
-        <div
-          className="w-full aspect-video rounded-2xl border-2 border-dashed flex flex-col items-center justify-center gap-3"
-          style={{ borderColor: `${BRAND.navy}44`, background: `${BRAND.navy}08` }}
-        >
-          <div
-            className="w-16 h-16 rounded-full flex items-center justify-center"
-            style={{ background: `${BRAND.green900}22` }}
-          >
-            <div
-              className="w-0 h-0 ml-1"
-              style={{
-                borderTop: "12px solid transparent",
-                borderBottom: "12px solid transparent",
-                borderLeft: `18px solid ${BRAND.green900}`,
-              }}
-            />
-          </div>
-          <p className="text-sm" style={{ color: BRAND.navy }}>Vídeo da campanha de sugestões populares</p>
-          <p className="text-[11px] text-gray-400">substituir por embed real (YouTube/Vimeo) ou arquivo</p>
-        </div>
-      </section>
+      <MetodologiaVideo navy={BRAND.navy} green700={BRAND.green700} green900={BRAND.green900} />
 
       {/* ============ NOTA EXPLICATIVA — MAPA DE CALOR ============ */}
       <section className="py-14 md:py-20" style={{ background: `${BRAND.green500}0d` }}>

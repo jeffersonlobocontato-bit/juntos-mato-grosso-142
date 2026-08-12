@@ -1532,6 +1532,30 @@ export type Database = {
           },
         ]
       }
+      site_video_config: {
+        Row: {
+          chave: string
+          poster_path: string | null
+          updated_at: string
+          updated_by: string | null
+          video_url: string | null
+        }
+        Insert: {
+          chave: string
+          poster_path?: string | null
+          updated_at?: string
+          updated_by?: string | null
+          video_url?: string | null
+        }
+        Update: {
+          chave?: string
+          poster_path?: string | null
+          updated_at?: string
+          updated_by?: string | null
+          video_url?: string | null
+        }
+        Relationships: []
+      }
       subtemas: {
         Row: {
           created_at: string | null
