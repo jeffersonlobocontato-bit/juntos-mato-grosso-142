@@ -284,6 +284,84 @@ export default function MetodologiaPlano() {
         </div>
       </section>
 
+      {/* ============ DESTAQUE NA MÍDIA ============ */}
+      <section className="py-14 md:py-20" style={{ background: "#f7f8f5" }}>
+        <div className="container mx-auto px-6 max-w-6xl">
+          <div className="text-center mb-10">
+            <span className="text-xs font-bold tracking-wide uppercase" style={{ color: BRAND.green700 }}>
+              O Paraná está falando
+            </span>
+            <h2 className="font-black text-2xl md:text-3xl mt-2" style={{ color: BRAND.navy }}>
+              Destaque na Mídia
+            </h2>
+            <p className="text-gray-500 text-sm mt-3 max-w-xl mx-auto">
+              O maior processo de escuta popular do Paraná repercutiu em veículos de comunicação de todo o Estado.
+            </p>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            {[
+              { veiculo: "Gazeta do Povo", titulo: "Moro percorre 399 municípios em escuta popular para plano de governo" },
+              { veiculo: "Bem Paraná", titulo: "Plano de governo do candidato Sergio Moro é construído com base em sugestões populares" },
+              { veiculo: "Tribuna do Paraná", titulo: "Paraná constrói maior processo de escuta popular para plano de governo" },
+              { veiculo: "RPC", titulo: "Escuta popular geolocalizada: como o Paraná está construindo seu plano de governo" },
+              { veiculo: "Band Paraná", titulo: "Especialistas debatem propostas técnicas para o futuro do Paraná" },
+              { veiculo: "O Estado do Paraná", titulo: "Plano de governo nasce nas ruas: metodologia inédita de escuta popular" },
+            ].map((item, i) => (
+              <div
+                key={i}
+                className="group rounded-2xl overflow-hidden bg-white shadow-sm border transition-all duration-300 hover:shadow-lg hover:-translate-y-0.5"
+                style={{ borderColor: `${BRAND.green500}33` }}
+              >
+                {/* Imagem placeholder */}
+                <div
+                  className="relative h-40 flex items-center justify-center overflow-hidden"
+                  style={{ background: `linear-gradient(135deg, ${BRAND.navy}0d, ${BRAND.green500}0d)` }}
+                >
+                  <div
+                    className="w-16 h-16 rounded-full flex items-center justify-center"
+                    style={{ background: `${BRAND.green500}22`, color: BRAND.green700 }}
+                  >
+                    <svg width="32" height="32" viewBox="0 0 24 24" fill="none">
+                      <path d="M4 5a2 2 0 0 1 2-2h12a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V5z" stroke="currentColor" strokeWidth="1.5"/>
+                      <path d="M8 7h8M8 11h8M8 15h5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"/>
+                    </svg>
+                  </div>
+                  <span
+                    className="absolute top-3 left-3 text-[11px] font-bold uppercase tracking-wide px-3 py-1 rounded-full"
+                    style={{ background: `${BRAND.navy}ee`, color: "#fff" }}
+                  >
+                    {item.veiculo}
+                  </span>
+                </div>
+
+                {/* Conteúdo */}
+                <div className="p-5">
+                  <h3 className="font-bold text-sm md:text-base leading-snug mb-3" style={{ color: BRAND.navy }}>
+                    {item.titulo}
+                  </h3>
+                  <a
+                    href="#"
+                    onClick={(e) => e.preventDefault()}
+                    className="inline-flex items-center gap-1.5 text-xs font-bold transition-colors group-hover:gap-2.5"
+                    style={{ color: BRAND.green700 }}
+                  >
+                    Leia mais
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none">
+                      <path d="M5 12h14M12 5l7 7-7 7" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                    </svg>
+                  </a>
+                </div>
+              </div>
+            ))}
+          </div>
+
+          <p className="text-center text-xs text-gray-400 mt-8">
+            Substitua as imagens placeholder pelas prints reais das matérias.
+          </p>
+        </div>
+      </section>
+
       {/* ============ VÍDEO ============ */}
       <MetodologiaVideo navy={BRAND.navy} green700={BRAND.green700} green900={BRAND.green900} />
 
