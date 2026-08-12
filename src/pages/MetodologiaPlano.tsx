@@ -319,6 +319,83 @@ export default function MetodologiaPlano() {
           </p>
         </div>
       </footer>
+
+      {/* ============ MODAL — MENSAGEM DO SERGIO MORO ============ */}
+      {showMensagem && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center p-4 md:p-6 animate-in fade-in duration-200"
+          style={{ background: "rgba(33, 49, 82, 0.75)", backdropFilter: "blur(4px)" }}
+          onClick={() => setShowMensagem(false)}
+        >
+          <div
+            className="relative bg-white rounded-2xl max-w-3xl w-full max-h-[85vh] overflow-y-auto shadow-2xl"
+            onClick={(e) => e.stopPropagation()}
+            style={{ border: `1px solid ${BRAND.gold}44` }}
+          >
+            {/* Header */}
+            <div
+              className="sticky top-0 z-10 flex items-center justify-between px-6 md:px-8 py-5"
+              style={{ background: `linear-gradient(135deg, ${BRAND.navy}, #182642)` }}
+            >
+              <div className="flex items-center gap-3">
+                <img src={logoClara} alt="Sergio Moro 22" className="h-8" />
+                <div>
+                  <h3 className="font-black text-white text-lg leading-tight">Mensagem do Sergio Moro</h3>
+                  <p className="text-white/60 text-xs">Carta de compromissos com o Paraná</p>
+                </div>
+              </div>
+              <button
+                onClick={() => setShowMensagem(false)}
+                className="text-white/60 hover:text-white transition-colors p-1 rounded-full hover:bg-white/10"
+                aria-label="Fechar"
+              >
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="none">
+                  <path d="M18 6L6 18M6 6l12 12" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                </svg>
+              </button>
+            </div>
+
+            {/* Body */}
+            <div className="px-6 md:px-10 py-8">
+              <div className="flex items-center gap-4 mb-6 pb-6 border-b" style={{ borderColor: `${BRAND.green500}33` }}>
+                <img
+                  src={fotoOficial}
+                  alt="Sergio Moro"
+                  className="w-16 h-16 object-contain rounded-full shrink-0"
+                  style={{ background: `${BRAND.navy}0d` }}
+                />
+                <div>
+                  <p className="font-bold text-sm" style={{ color: BRAND.navy }}>Sergio Moro</p>
+                  <p className="text-xs text-gray-500">Candidato a Governador do Paraná</p>
+                </div>
+              </div>
+              <div className="space-y-4">
+                {MENSAGEM_MORO.split("\n\n").map((paragraph, i) => (
+                  <p
+                    key={i}
+                    className="text-gray-700 leading-relaxed text-sm md:text-base"
+                    style={{ textAlign: "justify" }}
+                  >
+                    {paragraph}
+                  </p>
+                ))}
+              </div>
+              <div className="mt-8 pt-6 border-t text-center" style={{ borderColor: `${BRAND.green500}22` }}>
+                <p className="font-black text-lg" style={{ color: BRAND.green900 }}>
+                  Vamos governar o Paraná juntos.
+                </p>
+                <button
+                  onClick={() => setShowMensagem(false)}
+                  className="mt-4 px-6 py-2.5 rounded-full font-bold text-sm transition-all hover:scale-105"
+                  style={{ background: BRAND.gold, color: BRAND.navy }}
+                >
+                  Continuar navegando
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
