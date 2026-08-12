@@ -1,4 +1,3 @@
-import MidiaClippingSection from "@/components/landing/home/MidiaClippingSection";
 import "@/styles/jp399.css";
 import { useEffect, useMemo, useRef, useState, type FormEvent } from "react";
 import { supabase } from "@/integrations/supabase/client";
