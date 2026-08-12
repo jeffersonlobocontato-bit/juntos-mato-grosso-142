@@ -113,15 +113,17 @@ export default function MetodologiaPlano() {
                 </div>
               </div>
             </div>
-            <div className="relative flex justify-center md:justify-end">
+            <div className="relative flex justify-center md:block md:h-full md:self-stretch">
               <div
-                className="absolute -inset-4 rounded-full blur-2xl opacity-40"
+                className="absolute inset-x-0 bottom-0 h-3/4 rounded-full blur-3xl opacity-40 pointer-events-none"
                 style={{ background: `linear-gradient(135deg, ${BRAND.green500}, ${BRAND.gold})` }}
               />
               <img
                 src={fotoOficial}
                 alt="Sergio Moro"
-                className="relative w-64 md:w-80 object-contain drop-shadow-2xl"
+                className="relative w-72 sm:w-80 object-contain object-bottom drop-shadow-2xl
+                           md:absolute md:w-auto md:max-w-none md:right-[-4rem] lg:right-[-6rem]
+                           md:bottom-[-3.5rem] md:h-[calc(100%+3.5rem)] lg:bottom-[-5rem] lg:h-[calc(100%+5rem)]"
               />
             </div>
           </div>
