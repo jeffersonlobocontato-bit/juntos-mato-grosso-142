@@ -7,8 +7,8 @@
    ============================================================ */
 .jp399{
   /* Paleta oficial ID MORO 26 */
-  --forest:#00insert;
-  --green-900:#00insert;
+  --forest:#013D22;
+  --green-900:#00522D;
   --green-800:#005E33;
   --green-700:#007540;
   --green-600:#008544;
@@ -17,7 +17,7 @@
   --yellow:#F8ED31;
   --brand:#007540;           /* verde da MARCA */
   --card-top:#008544;
-  --card-bot:#00insert;
+  --card-bot:#004B29;
   --gold:#FCB913;            /* amarelo-ouro da marca */
   --ink:#0C1A17;
   --slate:#5A635C;
