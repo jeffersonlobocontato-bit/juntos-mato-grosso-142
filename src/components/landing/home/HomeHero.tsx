@@ -13,7 +13,9 @@ import SocialShareButtons from "@/components/landing/SocialShareButtons";
 interface Municipio { id: string; nome: string; latitude: number | null; longitude: number | null; }
 
 const LIMITE = 600;
-const BASE_FAKE = 3852;
+import { BASE_SUGESTOES } from "@/lib/sugestoesCounter";
+
+const BASE_FAKE = BASE_SUGESTOES;
 
 function mascaraTelefone(v: string) {
   const d = v.replace(/\D/g, "").slice(0, 11);
