@@ -269,7 +269,7 @@ export default function MetodologiaPlano() {
             ].map((n, i) => (
               <div key={i} className="rounded-2xl p-6 text-center" style={{ background: `${BRAND.green900}55`, border: `1px solid ${BRAND.green500}33` }}>
                 <p className="font-black text-2xl md:text-3xl mb-1 text-white">
-                  <CountUp value={n.value} />
+                  <CountUp value={n.value} suffix={n.suffix || ""} />
                 </p>
                 <p className="text-white/70 text-xs md:text-sm">{n.label}</p>
               </div>
