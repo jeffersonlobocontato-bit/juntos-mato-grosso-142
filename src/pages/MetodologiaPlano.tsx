@@ -6,7 +6,7 @@ import MetodologiaDestaqueMidia from "@/components/landing/MetodologiaDestaqueMi
 import MetodologiaGaleria from "@/components/landing/MetodologiaGaleria";
 import MetodologiaEntidades from "@/components/landing/MetodologiaEntidades";
 const logoClara = "/marca/moro-branco.png";
-import fotoOficial from "@/assets/metodologia/foto-oficial-moro.png";
+import fotoOficial from "@/assets/metodologia/foto-oficial-moro-ombros.png";
 
 // ---------------------------------------------------------------------------
 // Design system: identidade visual oficial da campanha Sergio Moro 2026,
@@ -158,7 +158,7 @@ export default function MetodologiaPlano() {
               <img
                 src={fotoOficial}
                 alt="Sergio Moro"
-                width={1440}
+                width={1920}
                 height={1311}
                 decoding="async"
                 className="relative w-72 sm:w-80 object-contain object-bottom drop-shadow-2xl
