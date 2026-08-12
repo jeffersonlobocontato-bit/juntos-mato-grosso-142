@@ -24,11 +24,11 @@ type FormState = {
 
 const EMPTY: FormState = { veiculo: "", titulo: "", url_materia: "", data_publicacao: "" };
 
-const PLACEHOLDERS: { veiculo: string }[] = [
-  { veiculo: "Gazeta do Povo" },
-  { veiculo: "Bem Paraná" },
-  { veiculo: "Tribuna do Paraná" },
-  { veiculo: "RPC" },
+const PLACEHOLDERS: { veiculo: string; titulo: string }[] = [
+  { veiculo: "Gazeta do Povo", titulo: "Plano de governo ouve demandas em todo o Paraná" },
+  { veiculo: "Bem Paraná", titulo: "Expectativas dos paranaenses viram pauta prioritária" },
+  { veiculo: "Tribuna do Paraná", titulo: "Curadoria técnica especializada analisa propostas" },
+  { veiculo: "RPC", titulo: "Maior processo de escuta popular repercute no Estado" },
 ];
 
 const MetodologiaDestaqueMidia = ({ brand }: { brand: Brand }) => {
