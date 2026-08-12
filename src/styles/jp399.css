@@ -6,26 +6,29 @@
    Fontes = Cabinet Grotesk (display) + General Sans (corpo) · Acento = verde.
    ============================================================ */
 .jp399{
-  --forest:#02231A;          /* verde quase-preto cinematográfico */
-  --green-900:#04301F;
-  --green-800:#02231A;
-  --green-700:#0B5836;
-  --green-600:#0E5231;
-  --green-500:#1E8A54;       /* verde vivo (acento) */
-  --brand:#03422C;           /* verde da MARCA = logo + formulário + "Paraná" */
-  --card-top:#0C4A30;
-  --card-bot:#02271B;
-  --gold:#B78E2D;            /* dourado da logo — só filete/acento fino */
+  /* Paleta oficial ID MORO 26 */
+  --forest:#013D22;
+  --green-900:#00522D;
+  --green-800:#005E33;
+  --green-700:#007540;
+  --green-600:#008544;
+  --green-500:#8DC73F;       /* verde-limão (acento) */
+  --lime:#8DC73F;
+  --yellow:#F8ED31;
+  --brand:#007540;           /* verde da MARCA */
+  --card-top:#008544;
+  --card-bot:#004B29;
+  --gold:#FCB913;            /* amarelo-ouro da marca */
   --ink:#0C1A17;
   --slate:#5A635C;
   --slate-soft:#7C857D;
   --line:#E4E8E1;
   --line-strong:#D6DCD3;
-  --paper:#F4F5F0;           /* fundo levemente esverdeado */
-  --paper-2:#EEF0EA;
+  --paper:#F5F7F0;
+  --paper-2:#EDF2E7;
   --surface:#FFFFFF;
-  --on-green:#ECF3EC;
-  --on-green-dim:rgba(236,243,236,.66);
+  --on-green:#F2FBEF;
+  --on-green-dim:rgba(242,251,239,.72);
   --field-bg:rgba(255,255,255,.05);
   --field-line:rgba(255,255,255,.15);
   --r-lg:22px;

@@ -2,7 +2,7 @@ import { useEffect, useRef, useState } from "react";
 import { BASE_SUGESTOES } from "@/lib/sugestoesCounter";
 import { supabase } from "@/integrations/supabase/client";
 import MetodologiaVideo from "@/components/landing/MetodologiaVideo";
-import logoClara from "@/assets/metodologia/logo-clara-recortada.png";
+const logoClara = "/marca/moro-governador-branco.png";
 import fotoOficial from "@/assets/metodologia/foto-oficial-moro.png";
 
 // ---------------------------------------------------------------------------
@@ -12,15 +12,15 @@ import fotoOficial from "@/assets/metodologia/foto-oficial-moro.png";
 // Juntos Paraná 399, por exigência de fidelidade rigorosa à IDV oficial.
 // ---------------------------------------------------------------------------
 const BRAND = {
-  navy: "#213152",
-  green900: "#327832",
-  green700: "#4a9a3f",
-  green500: "#96b932",
-  lime: "#b4c828",
-  yellow: "#f5e600",
-  gold: "#fadc00",
-  amber: "#f0c300",
-  orange: "#e1a514",
+  navy: "#013D22",
+  green900: "#00522D",
+  green700: "#007540",
+  green500: "#008544",
+  lime: "#8DC73F",
+  yellow: "#F8ED31",
+  gold: "#FCB913",
+  amber: "#F0B90B",
+  orange: "#E1A514",
 };
 
 const CountUp = ({ value, suffix = "" }: { value: number; suffix?: string }) => {
@@ -98,7 +98,7 @@ export default function MetodologiaPlano() {
           style={{ background: `radial-gradient(circle at 85% 15%, ${BRAND.gold}33, transparent 55%)` }}
         />
         <div className="relative container mx-auto px-6 py-14 md:py-20 max-w-6xl">
-          <img src={logoClara} alt="Sergio Moro 22 - Governador" className="h-16 md:h-20 mb-10" />
+          <img src={logoClara} alt="Moro Governador" className="h-16 md:h-20 mb-10" />
 
           <div className="grid md:grid-cols-[1.3fr_1fr] gap-10 items-center md:items-stretch">
             <div>
@@ -398,7 +398,7 @@ export default function MetodologiaPlano() {
       {/* ============ FOOTER ============ */}
       <footer className="py-10" style={{ background: BRAND.navy }}>
         <div className="container mx-auto px-6 max-w-6xl flex flex-col md:flex-row items-center justify-between gap-4">
-          <img src={logoClara} alt="Sergio Moro 22 - Governador" className="h-10" />
+          <img src={logoClara} alt="Moro Governador" className="h-10" />
           <p className="text-white/50 text-xs text-center md:text-right">
             Paraná, a nossa fortaleza! — Metodologia do Plano de Governo, construída com o Paraná.
           </p>
@@ -423,7 +423,7 @@ export default function MetodologiaPlano() {
               style={{ background: `linear-gradient(135deg, ${BRAND.navy}, #182642)` }}
             >
               <div className="flex items-center gap-3">
-                <img src={logoClara} alt="Sergio Moro 22" className="h-8" />
+                <img src={logoClara} alt="Moro Governador" className="h-8" />
                 <div>
                   <h3 className="font-black text-white text-lg leading-tight">Mensagem do Sergio Moro</h3>
                   <p className="text-white/60 text-xs">Carta de compromissos com o Paraná</p>
