@@ -23,13 +23,13 @@ const MetodologiaEntidades = ({ brand }: { brand: Brand }) => {
       <div className="container mx-auto px-6 max-w-6xl">
         <div className="text-center mb-8">
           <span className="text-xs font-bold tracking-wide uppercase" style={{ color: brand.green700 }}>
-            Escuta qualificada
+            PARTICIPAÇÃO
           </span>
           <h2 className="font-black text-2xl md:text-4xl mt-2" style={{ color: brand.navy }}>
-            Entidades que participaram do processo
+            Entidades de todo o Paraná
           </h2>
           <p className="text-gray-600 mt-3 max-w-2xl mx-auto text-sm">
-            {ENTIDADES.length} instituições, federações, associações e movimentos que contribuíram
+            Algumas das instituições, federações, associações e movimentos que contribuíram
             com a construção do plano de governo.
           </p>
         </div>
