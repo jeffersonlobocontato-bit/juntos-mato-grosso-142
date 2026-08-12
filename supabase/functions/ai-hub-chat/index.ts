@@ -44,6 +44,25 @@ serve(async (req) => {
       });
     }
 
+    // Role check: only admins and thematic leaders may use the AI Hub
+    const _adminClient = createClient(
+      Deno.env.get("SUPABASE_URL")!,
+      Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!
+    );
+    const { data: _roles } = await _adminClient
+      .from("user_roles")
+      .select("role")
+      .eq("user_id", _u.user.id);
+    const _userRoles = (_roles ?? []).map((r: { role: string }) => r.role);
+    const _authorized = _userRoles.some((r: string) =>
+      ["admin", "admin_master", "lider_tematico"].includes(r)
+    );
+    if (!_authorized) {
+      return new Response(JSON.stringify({ error: "Forbidden" }), {
+        status: 403, headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
     const { agent_id, messages, selected_pesquisa_ids } = await req.json();
 
     if (!agent_id) {
