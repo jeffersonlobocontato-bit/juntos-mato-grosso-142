@@ -714,6 +714,36 @@ export type Database = {
         }
         Relationships: []
       }
+      metodologia_galeria: {
+        Row: {
+          ativo: boolean
+          created_at: string
+          created_by: string | null
+          id: string
+          image_path: string
+          legenda: string | null
+          ordem: number
+        }
+        Insert: {
+          ativo?: boolean
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          image_path: string
+          legenda?: string | null
+          ordem?: number
+        }
+        Update: {
+          ativo?: boolean
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          image_path?: string
+          legenda?: string | null
+          ordem?: number
+        }
+        Relationships: []
+      }
       midia_clipping: {
         Row: {
           ativo: boolean

@@ -3,6 +3,7 @@ import { BASE_SUGESTOES } from "@/lib/sugestoesCounter";
 import { supabase } from "@/integrations/supabase/client";
 import MetodologiaVideo from "@/components/landing/MetodologiaVideo";
 import MetodologiaDestaqueMidia from "@/components/landing/MetodologiaDestaqueMidia";
+import MetodologiaGaleria from "@/components/landing/MetodologiaGaleria";
 const logoClara = "/marca/moro-branco.png";
 import fotoOficial from "@/assets/metodologia/foto-oficial-moro.png";
 
@@ -84,8 +85,6 @@ export default function MetodologiaPlano() {
       setSugestoesCount(total);
     });
   }, []);
-
-  const galeriaPlaceholders = Array.from({ length: 8 }, (_, i) => i);
 
   return (
     <div style={{ fontFamily: "'Montserrat', sans-serif" }} className="bg-white">
@@ -199,39 +198,7 @@ export default function MetodologiaPlano() {
         </div>
       </section>
 
-      {/* ============ GALERIA — SCROLL LATERAL ============ */}
-      <section className="py-14 md:py-20" style={{ background: "#f7f8f5" }}>
-        <div className="container mx-auto px-6 max-w-6xl mb-8">
-          <span className="text-xs font-bold tracking-wide uppercase" style={{ color: BRAND.green700 }}>
-            Registro do processo
-          </span>
-          <h2 className="font-black text-2xl md:text-3xl mt-2" style={{ color: BRAND.navy }}>
-            Reuniões, entregas e participação em cada região do Paraná
-          </h2>
-        </div>
-        <div className="overflow-x-auto pb-4">
-          <div className="flex gap-4 px-6 container mx-auto max-w-6xl" style={{ width: "max-content" }}>
-            {galeriaPlaceholders.map((i) => (
-              <div
-                key={i}
-                className="w-64 h-80 shrink-0 rounded-2xl flex flex-col items-center justify-center gap-3 border-2 border-dashed"
-                style={{ borderColor: `${BRAND.green500}66`, background: `${BRAND.green500}0a` }}
-              >
-                <div
-                  className="w-14 h-14 rounded-full flex items-center justify-center text-2xl font-black"
-                  style={{ background: `${BRAND.green500}22`, color: BRAND.green700 }}
-                >
-                  {i + 1}
-                </div>
-                <p className="text-sm text-center px-4" style={{ color: BRAND.navy }}>
-                  Foto de reunião / entrega de documento
-                </p>
-                <p className="text-[11px] text-gray-400 px-4 text-center">substituir por imagem real</p>
-              </div>
-            ))}
-          </div>
-        </div>
-      </section>
+      <MetodologiaGaleria brand={{ navy: BRAND.navy, green500: BRAND.green500, green700: BRAND.green700 }} />
 
       {/* ============ BIG NUMBERS ============ */}
       <section className="py-16 md:py-24" style={{ background: BRAND.navy }}>
