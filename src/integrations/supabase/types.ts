@@ -714,6 +714,45 @@ export type Database = {
         }
         Relationships: []
       }
+      midia_clipping: {
+        Row: {
+          ativo: boolean
+          created_at: string
+          created_by: string | null
+          data_publicacao: string | null
+          id: string
+          image_path: string
+          ordem: number
+          titulo: string | null
+          url_materia: string | null
+          veiculo: string
+        }
+        Insert: {
+          ativo?: boolean
+          created_at?: string
+          created_by?: string | null
+          data_publicacao?: string | null
+          id?: string
+          image_path: string
+          ordem?: number
+          titulo?: string | null
+          url_materia?: string | null
+          veiculo: string
+        }
+        Update: {
+          ativo?: boolean
+          created_at?: string
+          created_by?: string | null
+          data_publicacao?: string | null
+          id?: string
+          image_path?: string
+          ordem?: number
+          titulo?: string | null
+          url_materia?: string | null
+          veiculo?: string
+        }
+        Relationships: []
+      }
       municipios: {
         Row: {
           codigo_ibge: string | null
