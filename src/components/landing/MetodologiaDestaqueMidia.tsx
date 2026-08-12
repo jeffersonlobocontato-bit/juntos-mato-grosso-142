@@ -24,11 +24,11 @@ type FormState = {
 
 const EMPTY: FormState = { veiculo: "", titulo: "", url_materia: "", data_publicacao: "" };
 
-const PLACEHOLDERS: { veiculo: string; titulo: string }[] = [
-  { veiculo: "Gazeta do Povo", titulo: "Moro percorre 399 municípios em escuta popular para plano de governo" },
-  { veiculo: "Bem Paraná", titulo: "Plano de governo do candidato Sergio Moro é construído com base em sugestões populares" },
-  { veiculo: "Tribuna do Paraná", titulo: "Paraná constrói maior processo de escuta popular para plano de governo" },
-  { veiculo: "RPC", titulo: "Escuta popular geolocalizada: como o Paraná está construindo seu plano de governo" },
+const PLACEHOLDERS: { veiculo: string }[] = [
+  { veiculo: "Gazeta do Povo" },
+  { veiculo: "Bem Paraná" },
+  { veiculo: "Tribuna do Paraná" },
+  { veiculo: "RPC" },
 ];
 
 const MetodologiaDestaqueMidia = ({ brand }: { brand: Brand }) => {
@@ -199,12 +199,6 @@ const MetodologiaDestaqueMidia = ({ brand }: { brand: Brand }) => {
                 />
                 <input
                   className={inputCls}
-                  placeholder="Título da matéria"
-                  value={form.titulo}
-                  onChange={(e) => setForm({ ...form, titulo: e.target.value })}
-                />
-                <input
-                  className={inputCls}
                   placeholder="Link do 'Leia mais' (https://...)"
                   value={form.url_materia}
                   onChange={(e) => setForm({ ...form, url_materia: e.target.value })}
@@ -255,7 +249,7 @@ const MetodologiaDestaqueMidia = ({ brand }: { brand: Brand }) => {
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
           {(usePlaceholders ? PLACEHOLDERS : visible).map((raw, i) => {
-            const item = raw as Partial<Clipping> & { veiculo: string; titulo: string | null };
+            const item = raw as Partial<Clipping> & { veiculo: string; titulo?: string | null };
             const img = item.image_path ? urls[item.image_path] : undefined;
             return (
               <div
@@ -264,15 +258,18 @@ const MetodologiaDestaqueMidia = ({ brand }: { brand: Brand }) => {
                 style={{ borderColor: `${brand.green500}33` }}
               >
                 <div
-                  className="relative h-40 flex items-center justify-center overflow-hidden"
-                  style={{ background: `linear-gradient(135deg, ${brand.navy}0d, ${brand.green500}0d)` }}
+                  className="relative flex items-center justify-center overflow-hidden"
+                  style={{
+                    aspectRatio: "15 / 7",
+                    background: `linear-gradient(135deg, ${brand.navy}0d, ${brand.green500}0d)`,
+                  }}
                 >
                   {img ? (
                     <img
                       src={img}
-                      alt={`${item.veiculo}${item.titulo ? " — " + item.titulo : ""}`}
+                      alt={`Matéria publicada em ${item.veiculo}`}
                       loading="lazy"
-                      className="w-full h-full object-cover object-top"
+                      className="w-full h-full object-cover object-center"
                     />
                   ) : (
                     <div
@@ -285,18 +282,15 @@ const MetodologiaDestaqueMidia = ({ brand }: { brand: Brand }) => {
                       </svg>
                     </div>
                   )}
+                </div>
+
+                <div className="p-5">
                   <span
-                    className="absolute top-3 left-3 text-[11px] font-bold uppercase tracking-wide px-3 py-1 rounded-full"
+                    className="inline-block mb-3 text-[11px] font-bold uppercase tracking-wide px-3 py-1 rounded-full"
                     style={{ background: `${brand.navy}ee`, color: "#fff" }}
                   >
                     {item.veiculo}
                   </span>
-                </div>
-
-                <div className="p-5">
-                  <h3 className="font-bold text-sm md:text-base leading-snug mb-3" style={{ color: brand.navy }}>
-                    {item.titulo}
-                  </h3>
                   <div className="flex items-center gap-4">
                     <a
                       href={item.url_materia || "#"}
