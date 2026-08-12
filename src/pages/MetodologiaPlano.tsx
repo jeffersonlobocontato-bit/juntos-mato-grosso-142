@@ -149,10 +149,26 @@ export default function MetodologiaPlano() {
               />
             </div>
           </div>
+
+          {/* CTA — Mensagem do Sergio Moro */}
+          <div className="mt-10 md:mt-14 flex justify-center md:justify-start">
+            <button
+              onClick={() => setShowMensagem(true)}
+              className="group inline-flex items-center gap-3 px-7 py-3.5 rounded-full font-bold text-sm md:text-base transition-all duration-300 hover:scale-105 hover:shadow-2xl"
+              style={{
+                background: `linear-gradient(135deg, ${BRAND.gold}, ${BRAND.amber})`,
+                color: BRAND.navy,
+                boxShadow: `0 8px 30px ${BRAND.gold}40`,
+              }}
+            >
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" className="transition-transform group-hover:translate-x-0.5">
+                <path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+              </svg>
+              Mensagem do Sergio Moro
+            </button>
+          </div>
         </div>
       </section>
-
-      {/* ============ RESPEITO — DUPLA LEITURA ============ */}
       <section className="container mx-auto px-6 py-14 md:py-20 max-w-5xl">
         <div className="grid md:grid-cols-2 gap-8">
           <div
