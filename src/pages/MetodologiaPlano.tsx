@@ -192,7 +192,7 @@ export default function MetodologiaPlano() {
             style={{ background: `${BRAND.navy}0d`, borderLeft: `4px solid ${BRAND.navy}` }}
           >
             <h3 className="font-black text-xl mb-3" style={{ color: BRAND.navy }}>
-              Respeito a quem constribuiu
+              Respeito a quem contribuiu
             </h3>
             <p className="text-gray-700 leading-relaxed">
               Cada proposta técnica passou por curadoria de exequibilidade e orçamento antes de
