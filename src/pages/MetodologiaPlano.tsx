@@ -116,7 +116,7 @@ export default function MetodologiaPlano() {
                 <span style={{ color: BRAND.gold }}>não discursando</span>
               </h1>
               <p className="text-white/85 text-lg md:text-xl leading-relaxed max-w-xl mb-8">
-                Antes de escrever uma proposta, fomos ouvir. Percorremos o Paraná, cidade por cidade,
+                Antes de escrever uma proposta, fomos ouvir. Percorremos o Paraná,
                 para que este plano de governo carregasse a voz de quem vive o Estado — e não apenas
                 o discurso de quem quer governá-lo.
               </p>
