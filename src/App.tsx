@@ -36,6 +36,7 @@ import ProtectedRoute from "./components/auth/ProtectedRoute";
 import CookieConsentBanner from "./components/CookieConsentBanner";
 import PoliticaPrivacidade from "./pages/PoliticaPrivacidade";
 import TermosDeUso from "./pages/TermosDeUso";
+import MetodologiaPlano from "./pages/MetodologiaPlano";
 const queryClient = new QueryClient({
   defaultOptions: {
     queries: {
@@ -86,6 +87,7 @@ const App = () => (
             <Route path="/apresentacao/:publicId" element={<PublicPresentation />} />
             <Route path="/politica-privacidade" element={<PoliticaPrivacidade />} />
             <Route path="/termos-de-uso" element={<TermosDeUso />} />
+            <Route path="/metodologia" element={<MetodologiaPlano />} />
             {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
             <Route path="*" element={<NotFound />} />
           </Routes>
