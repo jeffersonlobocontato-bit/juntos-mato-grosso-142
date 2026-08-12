@@ -258,9 +258,9 @@ const MetodologiaDestaqueMidia = ({ brand }: { brand: Brand }) => {
                 style={{ borderColor: `${brand.green500}33` }}
               >
                 <div
-                  className="relative flex items-center justify-center overflow-hidden"
+                  className="relative flex items-start justify-center overflow-hidden"
                   style={{
-                    aspectRatio: "15 / 7",
+                    aspectRatio: "16 / 10",
                     background: `linear-gradient(135deg, ${brand.navy}0d, ${brand.green500}0d)`,
                   }}
                 >
@@ -269,7 +269,7 @@ const MetodologiaDestaqueMidia = ({ brand }: { brand: Brand }) => {
                       src={img}
                       alt={`Matéria publicada em ${item.veiculo}`}
                       loading="lazy"
-                      className="w-full h-full object-cover object-center"
+                      className="w-full h-full object-cover object-top"
                     />
                   ) : (
                     <div
