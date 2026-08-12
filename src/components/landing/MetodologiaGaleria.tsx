@@ -12,9 +12,9 @@ type Foto = {
 
 type Brand = { navy: string; green500: string; green700: string };
 
-const MetodologiaGaleria = ({ brand }: { brand: Brand }) => {
+const MetodologiaGaleria = ({ brand, manageMode = false }: { brand: Brand; manageMode?: boolean }) => {
   const { user, isAdmin, isAdminMaster } = useAuth();
-  const canManage = !!user && (isAdmin || isAdminMaster);
+  const canManage = manageMode && !!user && (isAdmin || isAdminMaster);
 
   const [items, setItems] = useState<Foto[]>([]);
   const [urls, setUrls] = useState<Record<string, string>>({});

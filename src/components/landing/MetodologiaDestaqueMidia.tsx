@@ -31,9 +31,9 @@ const PLACEHOLDERS: { veiculo: string; titulo: string }[] = [
   { veiculo: "RPC", titulo: "Maior processo de escuta popular repercute no Estado" },
 ];
 
-const MetodologiaDestaqueMidia = ({ brand }: { brand: Brand }) => {
+const MetodologiaDestaqueMidia = ({ brand, manageMode = false }: { brand: Brand; manageMode?: boolean }) => {
   const { user, isAdmin, isAdminMaster } = useAuth();
-  const canManage = !!user && (isAdmin || isAdminMaster);
+  const canManage = manageMode && !!user && (isAdmin || isAdminMaster);
 
   const [items, setItems] = useState<Clipping[]>([]);
   const [urls, setUrls] = useState<Record<string, string>>({});

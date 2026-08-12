@@ -154,6 +154,14 @@ const Admin = () => {
     },
     {
       icon: BookOpen,
+      title: 'Conteúdo LP Metodologia',
+      description: 'Galeria, destaques na mídia e capa do vídeo',
+      href: '/admin/metodologia',
+      color: 'secondary',
+      roles: ['admin', 'admin_master']
+    },
+    {
+      icon: BookOpen,
       title: 'Biblioteca de Documentos',
       description: 'Gerenciar documentos e vínculos com agentes/ferramentas',
       href: '/admin/biblioteca',
