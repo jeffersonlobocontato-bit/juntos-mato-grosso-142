@@ -284,6 +284,35 @@ export default function MetodologiaPlano() {
         </div>
       </section>
 
+      {/* ============ CTA POPULAR ============ */}
+      <section className="py-12 md:py-16" style={{ background: BRAND.green900 }}>
+        <div className="container mx-auto px-6 max-w-4xl text-center">
+          <h2 className="font-black text-2xl md:text-4xl text-white mb-4">
+            O QUE VOCÊ ESPERA DO PRÓXIMO GOVERNO?
+          </h2>
+          <p className="text-white/80 text-base md:text-lg mb-8 max-w-2xl mx-auto leading-relaxed">
+            Sua opinião é fundamental para construirmos um Paraná mais justo, seguro e próspero.
+            Conte o que você espera do próximo governo e ajude a definir as prioridades do Estado.
+          </p>
+          <a
+            href="https://juntosparana399.com.br/"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="inline-flex items-center gap-3 px-8 py-4 rounded-full font-black text-base md:text-lg transition-all duration-300 hover:scale-105 hover:shadow-2xl"
+            style={{
+              background: `linear-gradient(135deg, ${BRAND.gold}, ${BRAND.amber})`,
+              color: BRAND.navy,
+              boxShadow: `0 10px 35px ${BRAND.gold}50`,
+            }}
+          >
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" className="shrink-0">
+              <path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+            </svg>
+            ENVIAR MINHA OPINIÃO
+          </a>
+        </div>
+      </section>
+
       {/* ============ FOOTER ============ */}
       <footer className="py-10" style={{ background: BRAND.navy }}>
         <div className="container mx-auto px-6 max-w-6xl flex flex-col md:flex-row items-center justify-between gap-4">
