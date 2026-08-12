@@ -120,7 +120,7 @@ export default function MetodologiaPlano() {
                 para que este plano de governo carregasse a voz de quem vive o Estado — e não apenas
                 o discurso de quem quer governá-lo.
               </p>
-              <div className="flex flex-wrap gap-4">
+              <div className="flex flex-wrap gap-4 mb-6">
                 <div className="flex items-center gap-2 text-white/90 text-sm">
                   <span className="w-2 h-2 rounded-full" style={{ background: BRAND.gold }} />
                   Escuta popular geolocalizada
@@ -134,6 +134,21 @@ export default function MetodologiaPlano() {
                   Revisão ponto a ponto
                 </div>
               </div>
+              {/* CTA — Mensagem do Sergio Moro */}
+              <button
+                onClick={() => setShowMensagem(true)}
+                className="group inline-flex items-center gap-3 px-6 py-3 rounded-full font-bold text-sm md:text-base transition-all duration-300 hover:scale-105 hover:shadow-2xl"
+                style={{
+                  background: `linear-gradient(135deg, ${BRAND.gold}, ${BRAND.amber})`,
+                  color: BRAND.navy,
+                  boxShadow: `0 8px 30px ${BRAND.gold}40`,
+                }}
+              >
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" className="transition-transform group-hover:translate-x-0.5">
+                  <path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                </svg>
+                Mensagem do Sergio Moro
+              </button>
             </div>
             <div className="relative flex justify-center -mb-14 md:mb-0 md:block md:h-full md:self-stretch">
               <div
