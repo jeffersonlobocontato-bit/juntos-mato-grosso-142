@@ -26,6 +26,7 @@ import AdminBiblioteca from "./pages/AdminBiblioteca";
 import AdminGeradorConteudo from "./pages/AdminGeradorConteudo";
 import AdminCadastroRapido from "./pages/AdminCadastroRapido";
 import AdminCruzamentoSugestoes from "./pages/AdminCruzamentoSugestoes";
+import AdminMetodologia from "./pages/AdminMetodologia";
 import AdminModuloMkt from "./pages/AdminModuloMkt";
 import Entrevista from "./pages/Entrevista";
 import EntrevistaInstitucional from "./pages/EntrevistaInstitucional";
@@ -80,6 +81,7 @@ const App = () => (
             <Route path="/admin/gerador-conteudo" element={<ProtectedRoute requiredRoles={['lider_tematico']}><AdminGeradorConteudo /></ProtectedRoute>} />
             <Route path="/admin/cadastro-rapido" element={<ProtectedRoute><AdminCadastroRapido /></ProtectedRoute>} />
             <Route path="/admin/cruzamento-sugestoes" element={<ProtectedRoute requiredRoles={['lider_tematico']}><AdminCruzamentoSugestoes /></ProtectedRoute>} />
+            <Route path="/admin/metodologia" element={<ProtectedRoute requiredRoles={[]}><AdminMetodologia /></ProtectedRoute>} />
             <Route path="/admin/modulo-mkt" element={<ProtectedRoute requiredRoles={['lider_tematico','marketing']}><AdminModuloMkt /></ProtectedRoute>} />
             <Route path="/entrevista" element={<Entrevista />} />
             <Route path="/entrevista-institucional" element={<EntrevistaInstitucional />} />
