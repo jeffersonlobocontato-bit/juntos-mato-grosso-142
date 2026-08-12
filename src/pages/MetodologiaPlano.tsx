@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from "react";
+import { BASE_SUGESTOES } from "@/lib/sugestoesCounter";
 import { supabase } from "@/integrations/supabase/client";
 import logoClara from "@/assets/metodologia/logo-clara-recortada.png";
 import fotoOficial from "@/assets/metodologia/foto-oficial-moro.png";
@@ -56,8 +57,8 @@ export default function MetodologiaPlano() {
 
   useEffect(() => {
     supabase.rpc("get_sugestoes_formulario_count").then(({ data }) => {
-      if (typeof data === "number") setSugestoesCount(data);
-      else if (data != null) setSugestoesCount(Number(data) || null);
+      const total = BASE_SUGESTOES + (Number(data) || 0);
+      setSugestoesCount(total);
     });
   }, []);
 
@@ -210,7 +211,7 @@ export default function MetodologiaPlano() {
               { value: 399, label: "municípios paranaenses alcançados pela escuta" },
               { value: 200, suffix: "+", label: "entidades que enviaram documentos e propostas" },
               { value: 200, suffix: "+", label: "especialistas técnicos de todas as regiões" },
-              { value: sugestoesCount ?? 0, label: "sugestões populares recebidas e geolocalizadas" },
+              { value: sugestoesCount ?? BASE_SUGESTOES, label: "sugestões populares recebidas e geolocalizadas" },
             ].map((n, i) => (
               <div key={i} className="rounded-2xl p-6 text-center" style={{ background: "#ffffff0f", border: "1px solid #ffffff1a" }}>
                 <p className="font-black text-3xl md:text-4xl mb-1" style={{ color: BRAND.gold }}>
