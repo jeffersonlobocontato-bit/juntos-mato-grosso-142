@@ -1,3 +1,4 @@
+import MidiaClippingSection from "@/components/landing/home/MidiaClippingSection";
 import "@/styles/jp399.css";
 import { useEffect, useMemo, useRef, useState, type FormEvent } from "react";
 import { supabase } from "@/integrations/supabase/client";
@@ -462,6 +463,9 @@ const HomeHero = () => {
             </div>
           </div>
         </section>
+
+        {/* SAIU NA MÍDIA */}
+        <MidiaClippingSection />
 
         {/* COMO FUNCIONA */}
         <section className="how" id="como-funciona">
