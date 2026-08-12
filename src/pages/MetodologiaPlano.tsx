@@ -269,7 +269,7 @@ export default function MetodologiaPlano() {
             ].map((n, i) => (
               <div key={i} className="rounded-2xl p-6 text-center" style={{ background: `${BRAND.green900}55`, border: `1px solid ${BRAND.green500}33` }}>
                 <p className="font-black text-2xl md:text-3xl mb-1 text-white">
-                  <CountUp value={n.value} />
+                  <CountUp value={n.value} suffix={n.suffix || ""} />
                 </p>
                 <p className="text-white/70 text-xs md:text-sm">{n.label}</p>
               </div>
@@ -277,8 +277,8 @@ export default function MetodologiaPlano() {
           </div>
 
           <p className="text-white/50 text-xs text-center mt-8 max-w-2xl mx-auto">
-            Coordenação geral do processo: candidato a vice-governador Edson Vasconcelos. Cada
-            contribuição foi analisada, ponto a ponto, pelo candidato a governador Sergio Moro.
+            Coordenação geral do processo: pré-candidato a vice-governador Edson Vasconcelos. Cada
+            contribuição foi analisada, ponto a ponto, pelo pré-candidato a governador Sergio Moro.
             100% das contribuições foram documentadas, catalogadas e geolocalizadas.
           </p>
         </div>
