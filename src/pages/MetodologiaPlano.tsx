@@ -12,15 +12,15 @@ import fotoOficial from "@/assets/metodologia/foto-oficial-moro.png";
 // Juntos Paraná 399, por exigência de fidelidade rigorosa à IDV oficial.
 // ---------------------------------------------------------------------------
 const BRAND = {
-  navy: "#213152",
-  green900: "#327832",
-  green700: "#4a9a3f",
-  green500: "#96b932",
-  lime: "#b4c828",
-  yellow: "#f5e600",
-  gold: "#fadc00",
-  amber: "#f0c300",
-  orange: "#e1a514",
+  navy: "#013D22",
+  green900: "#00522D",
+  green700: "#007540",
+  green500: "#008544",
+  lime: "#8DC73F",
+  yellow: "#F8ED31",
+  gold: "#FCB913",
+  amber: "#F0B90B",
+  orange: "#E1A514",
 };
 
 const CountUp = ({ value, suffix = "" }: { value: number; suffix?: string }) => {
