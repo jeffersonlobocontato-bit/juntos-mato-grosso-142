@@ -53,8 +53,29 @@ const CountUp = ({ value, suffix = "" }: { value: number; suffix?: string }) => 
   return <span ref={ref}>{display.toLocaleString("pt-BR")}{suffix}</span>;
 };
 
+const MENSAGEM_MORO = `Sou paranaense do interior. Atuei em várias regiões do Estado até me estabelecer em Curitiba. Como Juiz Federal e Senador da República, conheci a grande amplitude econômica do Paraná e a diversidade cultural de nossa gente.
+
+Sabendo que cada cidade e cada região tem uma realidade própria, determinei à minha equipe que precisávamos de um Plano de Governo que olhasse de perto cada canto desse nosso Paraná, com o zelo e a obrigação de visitar todas as regiões, ouvindo as pessoas.
+
+Um Plano de Governo corajoso para enfrentar as lutas ao lado do povo paranaense. Afinal, encarar desafios faz parte da minha história. Para promover uma revolução no judiciário brasileiro, com a Operação Lava Jato de Combate à Corrupção, enfrentei poderosos e o arcaico sistema político de nosso País.
+
+Sempre lutei e continuarei lutando para transformar o lugar onde vivemos em um lugar mais justo, mais seguro, mais humano, mais próspero, mais sustentável e, principalmente, mais ético.
+
+Para definir as prioridades do nosso projeto de governo, promovemos um amplo diálogo com a sociedade paranaense. Realizamos encontros e reuniões com representantes da população, homens e mulheres, lideranças regionais, entidades civis organizadas, associações empresariais, universidades e instituições técnicas.
+
+Ao percorrer todas as regiões do Paraná, ouvimos atentamente as necessidades mais urgentes e estruturantes. Consultamos especialistas nos temas mais relevantes — saúde, educação, logística, desenvolvimento econômico, inovação, segurança e sustentabilidade. Identificamos soluções viáveis, com base em experiências de sucesso e dados concretos.
+
+Esta carta de compromissos é o resultado desse esforço coletivo. Ela foi construída com a contribuição de centenas de técnicos, gestores públicos, lideranças comunitárias, empresários, intelectuais e voluntários que acreditam em um Paraná mais eficiente, justo e competitivo.
+
+As demandas por melhores serviços públicos crescem a cada dia: atendimento digno na saúde, escolas mais modernas, transporte público de qualidade com tarifa justa, saneamento básico, mais segurança nas cidades, acesso a tecnologia, cultura e esporte, além da preservação ambiental.
+
+O Paraná tem uma economia forte, diversificada e conectada ao mundo. Temos um povo trabalhador, inovador e resiliente. É hora de transformar esse potencial em oportunidades reais, com políticas públicas ágeis, eficientes e focadas em resultados.
+
+O que propomos é um governo com planejamento, com metas e compromisso com as pessoas. Um governo que olha para o futuro, sem deixar ninguém para trás. Acima de tudo, vamos governar o Paraná juntos.`;
+
 export default function MetodologiaPlano() {
   const [sugestoesCount, setSugestoesCount] = useState<number | null>(null);
+  const [showMensagem, setShowMensagem] = useState(false);
 
   useEffect(() => {
     supabase.rpc("get_sugestoes_formulario_count").then(({ data }) => {
