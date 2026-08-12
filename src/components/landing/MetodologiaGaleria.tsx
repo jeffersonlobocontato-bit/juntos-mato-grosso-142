@@ -164,7 +164,7 @@ const MetodologiaGaleria = ({ brand }: { brand: Brand }) => {
                       loading="lazy"
                       onClick={() => setLightbox(urls[item.image_path])}
                       className="w-full h-72 object-cover cursor-zoom-in"
-                      style={{ objectPosition: "center 65%" }}
+                      style={{ objectPosition: "center 20%" }}
                     />
                   )}
                   {(item.legenda || canManage) && (
