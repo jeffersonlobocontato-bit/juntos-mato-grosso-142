@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import { BASE_SUGESTOES } from "@/lib/sugestoesCounter";
 import { supabase } from "@/integrations/supabase/client";
+import MetodologiaVideo from "@/components/landing/MetodologiaVideo";
 import logoClara from "@/assets/metodologia/logo-clara-recortada.png";
 import fotoOficial from "@/assets/metodologia/foto-oficial-moro.png";
 
