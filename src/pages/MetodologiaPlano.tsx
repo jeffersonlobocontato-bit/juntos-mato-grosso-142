@@ -78,7 +78,7 @@ export default function MetodologiaPlano() {
         <div className="relative container mx-auto px-6 py-14 md:py-20 max-w-6xl">
           <img src={logoClara} alt="Sergio Moro 22 - Governador" className="h-16 md:h-20 mb-10" />
 
-          <div className="grid md:grid-cols-[1.3fr_1fr] gap-10 items-center">
+          <div className="grid md:grid-cols-[1.3fr_1fr] gap-10 items-center md:items-stretch">
             <div>
               <span
                 className="inline-block text-xs md:text-sm font-bold tracking-wide uppercase px-4 py-2 rounded-full mb-6"
