@@ -3,7 +3,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import videoAsset from "@/assets/metodologia-campanha.mp4.asset.json";
 
-type Props = { navy: string; green700: string; green900: string };
+type Props = { navy: string; green700: string; green900: string; manageMode?: boolean };
 
 const fmt = (s: number) => {
   if (!isFinite(s)) return "0:00";
@@ -12,9 +12,9 @@ const fmt = (s: number) => {
   return `${m}:${String(sec).padStart(2, "0")}`;
 };
 
-const MetodologiaVideo = ({ navy, green700, green900 }: Props) => {
+const MetodologiaVideo = ({ navy, green700, green900, manageMode = false }: Props) => {
   const { isAdmin, isAdminMaster, user } = useAuth();
-  const canManage = !!user && (isAdmin || isAdminMaster);
+  const canManage = manageMode && !!user && (isAdmin || isAdminMaster);
 
   const videoRef = useRef<HTMLVideoElement>(null);
   const scrubRef = useRef<HTMLVideoElement>(null);
