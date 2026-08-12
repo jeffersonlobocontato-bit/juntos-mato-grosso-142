@@ -297,6 +297,11 @@ const MetodologiaDestaqueMidia = ({ brand }: { brand: Brand }) => {
                   >
                     {item.veiculo}
                   </span>
+                  {item.titulo && (
+                    <h3 className="font-bold text-base mb-3 leading-snug" style={{ color: brand.navy }}>
+                      {item.titulo}
+                    </h3>
+                  )}
                   <div className="flex items-center gap-4">
                     <a
                       href={item.url_materia || "#"}
