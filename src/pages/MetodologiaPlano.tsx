@@ -256,16 +256,16 @@ export default function MetodologiaPlano() {
         <div className="container mx-auto px-6 max-w-4xl">
           <div className="rounded-2xl p-8 md:p-10 bg-white shadow-sm" style={{ border: `1px solid ${BRAND.green500}33` }}>
             <h3 className="font-black text-xl md:text-2xl mb-4" style={{ color: BRAND.green900 }}>
-              Como a sugestão popular se tornou plano de governo
+              Como a sugestão popular contribuiu para o plano de governo
             </h3>
             <p className="text-gray-700 leading-relaxed mb-4">
-              A sugestão popular não foi tratada como proposta pronta — foi tratada como{" "}
+              A sugestão popular não foi tratada como proposta pronta, foi tratada como{" "}
               <strong style={{ color: BRAND.navy }}>mapa de calor de expectativa</strong>. Cada
               sugestão, geolocalizada por município e região, revelou onde a dor da população é
               mais forte e qual prioridade pesa mais em cada canto do Estado.
             </p>
             <p className="text-gray-700 leading-relaxed">
-              Esse mapa foi cruzado com as propostas técnicas estruturadas pelos especialistas —
+              Esse mapa foi cruzado com as propostas técnicas estruturadas pelos especialistas,
               garantindo que o plano final tivesse aderência real às dores e prioridades de cada
               região, e não apenas a uma leitura genérica do Paraná.
             </p>
