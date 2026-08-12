@@ -4,6 +4,7 @@ import { supabase } from "@/integrations/supabase/client";
 import MetodologiaVideo from "@/components/landing/MetodologiaVideo";
 import MetodologiaDestaqueMidia from "@/components/landing/MetodologiaDestaqueMidia";
 import MetodologiaGaleria from "@/components/landing/MetodologiaGaleria";
+import MetodologiaEntidades from "@/components/landing/MetodologiaEntidades";
 const logoClara = "/marca/moro-branco.png";
 import fotoOficial from "@/assets/metodologia/foto-oficial-moro.png";
 
@@ -199,6 +200,8 @@ export default function MetodologiaPlano() {
       </section>
 
       <MetodologiaGaleria brand={{ navy: BRAND.navy, green500: BRAND.green500, green700: BRAND.green700 }} />
+
+      <MetodologiaEntidades brand={{ navy: BRAND.navy, green500: BRAND.green500, green700: BRAND.green700 }} />
 
       {/* ============ BIG NUMBERS ============ */}
       <section className="py-16 md:py-24" style={{ background: BRAND.navy }}>
