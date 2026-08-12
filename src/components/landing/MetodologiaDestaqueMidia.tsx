@@ -24,11 +24,11 @@ type FormState = {
 
 const EMPTY: FormState = { veiculo: "", titulo: "", url_materia: "", data_publicacao: "" };
 
-const PLACEHOLDERS: { veiculo: string }[] = [
-  { veiculo: "Gazeta do Povo" },
-  { veiculo: "Bem Paraná" },
-  { veiculo: "Tribuna do Paraná" },
-  { veiculo: "RPC" },
+const PLACEHOLDERS: { veiculo: string; titulo: string }[] = [
+  { veiculo: "Gazeta do Povo", titulo: "Plano de governo ouve demandas em todo o Paraná" },
+  { veiculo: "Bem Paraná", titulo: "Expectativas dos paranaenses viram pauta prioritária" },
+  { veiculo: "Tribuna do Paraná", titulo: "Curadoria técnica especializada analisa propostas" },
+  { veiculo: "RPC", titulo: "Maior processo de escuta popular repercute no Estado" },
 ];
 
 const MetodologiaDestaqueMidia = ({ brand }: { brand: Brand }) => {
@@ -199,6 +199,12 @@ const MetodologiaDestaqueMidia = ({ brand }: { brand: Brand }) => {
                 />
                 <input
                   className={inputCls}
+                  placeholder="Título da matéria"
+                  value={form.titulo}
+                  onChange={(e) => setForm({ ...form, titulo: e.target.value })}
+                />
+                <input
+                  className={inputCls}
                   placeholder="Link do 'Leia mais' (https://...)"
                   value={form.url_materia}
                   onChange={(e) => setForm({ ...form, url_materia: e.target.value })}
@@ -291,6 +297,11 @@ const MetodologiaDestaqueMidia = ({ brand }: { brand: Brand }) => {
                   >
                     {item.veiculo}
                   </span>
+                  {item.titulo && (
+                    <h3 className="font-bold text-base mb-3 leading-snug" style={{ color: brand.navy }}>
+                      {item.titulo}
+                    </h3>
+                  )}
                   <div className="flex items-center gap-4">
                     <a
                       href={item.url_materia || "#"}
