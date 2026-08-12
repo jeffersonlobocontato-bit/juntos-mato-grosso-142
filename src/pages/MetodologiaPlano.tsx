@@ -162,7 +162,7 @@ export default function MetodologiaPlano() {
                 height={1311}
                 decoding="async"
                 className="relative w-72 sm:w-80 object-contain object-bottom drop-shadow-2xl
-                           md:absolute md:w-auto md:max-w-none md:right-[-4rem] lg:right-[-6rem]
+                           md:absolute md:w-auto md:max-w-full md:right-0 md:left-auto
                            md:bottom-[-3.5rem] md:h-[calc(100%+3.5rem)] lg:bottom-[-5rem] lg:h-[calc(100%+5rem)]"
               />
             </div>
