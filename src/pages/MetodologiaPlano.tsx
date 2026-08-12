@@ -118,8 +118,7 @@ export default function MetodologiaPlano() {
               </h1>
               <p className="text-white/85 text-lg md:text-xl leading-relaxed max-w-xl mb-8">
                 Antes de escrever uma proposta, fomos ouvir. Percorremos o Paraná,
-                para que este plano de governo carregasse a voz de quem vive o Estado — e não apenas
-                o discurso de quem quer governá-lo.
+                para que este plano de governo carregasse a voz de quem vive o Estado.
               </p>
               <div className="flex flex-wrap gap-4 mb-6">
                 <div className="flex items-center gap-2 text-white/90 text-sm">
@@ -128,7 +127,7 @@ export default function MetodologiaPlano() {
                 </div>
                 <div className="flex items-center gap-2 text-white/90 text-sm">
                   <span className="w-2 h-2 rounded-full" style={{ background: BRAND.gold }} />
-                  Curadoria técnica independente
+                  Curadoria técnica especializada. 
                 </div>
                 <div className="flex items-center gap-2 text-white/90 text-sm">
                   <span className="w-2 h-2 rounded-full" style={{ background: BRAND.gold }} />
@@ -179,9 +178,9 @@ export default function MetodologiaPlano() {
               Respeito a quem foi ouvido
             </h3>
             <p className="text-gray-700 leading-relaxed">
-              Cada sugestão enviada por um cidadão paranaense foi lida, catalogada e geolocalizada —
-              não como estatística de campanha, mas como retrato real de uma cidade, de um bairro,
-              de uma vida. Ouvir de verdade é o oposto de fingir que ouviu.
+              Cada sugestão enviada por um cidadão paranaense foi lida, catalogada e geolocalizada,
+              não como estatística, mas como retrato real de uma cidade, de uma vida. Ouvir de verdade,
+              reafirma o propósito de governar para as familias paranaenses.
             </p>
           </div>
           <div
@@ -189,11 +188,11 @@ export default function MetodologiaPlano() {
             style={{ background: `${BRAND.navy}0d`, borderLeft: `4px solid ${BRAND.navy}` }}
           >
             <h3 className="font-black text-xl mb-3" style={{ color: BRAND.navy }}>
-              Respeito a quem construiu com técnica
+              Respeito a quem constribuiu
             </h3>
             <p className="text-gray-700 leading-relaxed">
               Cada proposta técnica passou por curadoria de exequibilidade e orçamento antes de
-              chegar à versão final. Ineditismo não é só ouvir — é ter a cautela de transformar
+              chegar à versão final. Ineditismo, também foi a cautela de transformar
               escuta em proposta que pode, de fato, ser cumprida.
             </p>
           </div>
@@ -207,7 +206,7 @@ export default function MetodologiaPlano() {
             Registro do processo
           </span>
           <h2 className="font-black text-2xl md:text-3xl mt-2" style={{ color: BRAND.navy }}>
-            Reuniões, entregas e escuta em cada região do Paraná
+            Reuniões, entregas e participação em cada região do Paraná
           </h2>
         </div>
         <div className="overflow-x-auto pb-4">
@@ -249,7 +248,7 @@ export default function MetodologiaPlano() {
           <div className="grid grid-cols-2 md:grid-cols-4 gap-5 mb-10">
             {[
               { value: 399, label: "municípios paranaenses alcançados pela escuta" },
-              { value: 200, suffix: "+", label: "entidades que enviaram documentos e propostas" },
+              { value: 250, suffix: "+", label: "entidades que enviaram documentos e propostas" },
               { value: 200, suffix: "+", label: "especialistas técnicos de todas as regiões" },
               { value: sugestoesCount ?? BASE_SUGESTOES, label: "sugestões populares recebidas e geolocalizadas" },
             ].map((n, i) => (
@@ -266,7 +265,7 @@ export default function MetodologiaPlano() {
             {[
               { value: 5, label: "eixos estruturantes" },
               { value: 27, label: "temáticas de governo" },
-              { value: 327, label: "propostas técnicas estruturadas" },
+              { value: 1200, suffix: "+", label: "propostas técnicas analisadas" },
             ].map((n, i) => (
               <div key={i} className="rounded-2xl p-6 text-center" style={{ background: `${BRAND.green900}55`, border: `1px solid ${BRAND.green500}33` }}>
                 <p className="font-black text-2xl md:text-3xl mb-1 text-white">
@@ -299,8 +298,7 @@ export default function MetodologiaPlano() {
               Como a sugestão popular contribuiu para o plano de governo
             </h3>
             <p className="text-gray-700 leading-relaxed mb-4">
-              A sugestão popular não foi tratada como proposta pronta, foi tratada como{" "}
-              <strong style={{ color: BRAND.navy }}>mapa de calor de expectativa</strong>. Cada
+              A sugestão popular foi tratada como mapa de calor de expectativa. Cada
               sugestão, geolocalizada por município e região, revelou onde a dor da população é
               mais forte e qual prioridade pesa mais em cada canto do Estado.
             </p>

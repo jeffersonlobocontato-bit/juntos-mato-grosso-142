@@ -167,7 +167,7 @@ const MetodologiaDestaqueMidia = ({ brand }: { brand: Brand }) => {
             Destaque na Mídia
           </h2>
           <p className="text-gray-500 text-sm mt-3 max-w-xl mx-auto">
-            O maior processo de escuta popular do Paraná repercutiu em veículos de comunicação de todo o Estado.
+            Repercutiu em veículos de comunicação de todo o Estado.
           </p>
         </div>
 
