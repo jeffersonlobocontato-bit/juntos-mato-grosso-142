@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
-import logoClara from "@/assets/metodologia/logo-clara-horizontal.png";
-import fotoOficial from "@/assets/metodologia/foto-oficial-moro.jpg";
+import logoClara from "@/assets/metodologia/logo-clara-recortada.png";
+import fotoOficial from "@/assets/metodologia/foto-oficial-moro.png";
 
 // ---------------------------------------------------------------------------
 // Design system: identidade visual oficial da campanha Sergio Moro 2026,
@@ -120,7 +120,7 @@ export default function MetodologiaPlano() {
               <img
                 src={fotoOficial}
                 alt="Sergio Moro"
-                className="relative w-64 md:w-80 rounded-2xl object-cover shadow-2xl"
+                className="relative w-64 md:w-80 object-contain drop-shadow-2xl"
               />
             </div>
           </div>
