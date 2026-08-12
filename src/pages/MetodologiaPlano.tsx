@@ -299,14 +299,12 @@ export default function MetodologiaPlano() {
             </p>
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             {[
               { veiculo: "Gazeta do Povo", titulo: "Moro percorre 399 municípios em escuta popular para plano de governo" },
               { veiculo: "Bem Paraná", titulo: "Plano de governo do candidato Sergio Moro é construído com base em sugestões populares" },
               { veiculo: "Tribuna do Paraná", titulo: "Paraná constrói maior processo de escuta popular para plano de governo" },
               { veiculo: "RPC", titulo: "Escuta popular geolocalizada: como o Paraná está construindo seu plano de governo" },
-              { veiculo: "Band Paraná", titulo: "Especialistas debatem propostas técnicas para o futuro do Paraná" },
-              { veiculo: "O Estado do Paraná", titulo: "Plano de governo nasce nas ruas: metodologia inédita de escuta popular" },
             ].map((item, i) => (
               <div
                 key={i}
@@ -356,9 +354,19 @@ export default function MetodologiaPlano() {
             ))}
           </div>
 
-          <p className="text-center text-xs text-gray-400 mt-8">
-            Substitua as imagens placeholder pelas prints reais das matérias.
-          </p>
+          <div className="text-center mt-10">
+            <a
+              href="#"
+              onClick={(e) => e.preventDefault()}
+              className="inline-flex items-center gap-2 px-7 py-3 rounded-full font-bold text-sm transition-all hover:gap-3 hover:shadow-lg"
+              style={{ background: BRAND.navy, color: "#fff" }}
+            >
+              VER MAIS
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
+                <path d="M5 12h14M12 5l7 7-7 7" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+              </svg>
+            </a>
+          </div>
         </div>
       </section>
 
