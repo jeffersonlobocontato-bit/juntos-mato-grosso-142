@@ -199,6 +199,12 @@ const MetodologiaDestaqueMidia = ({ brand }: { brand: Brand }) => {
                 />
                 <input
                   className={inputCls}
+                  placeholder="Título da matéria"
+                  value={form.titulo}
+                  onChange={(e) => setForm({ ...form, titulo: e.target.value })}
+                />
+                <input
+                  className={inputCls}
                   placeholder="Link do 'Leia mais' (https://...)"
                   value={form.url_materia}
                   onChange={(e) => setForm({ ...form, url_materia: e.target.value })}
