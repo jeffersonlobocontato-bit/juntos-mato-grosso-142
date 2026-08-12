@@ -16,41 +16,41 @@
     --popover: 0 0% 100%;
     --popover-foreground: 215 25% 15%;
 
-    /* Primary: Deep Government Green */
-    --primary: 145 70% 26%;
+    /* Primary: Verde oficial ID MORO 26 (#007540) */
+    --primary: 152 100% 23%;
     --primary-foreground: 0 0% 100%;
-    --primary-glow: 145 60% 38%;
-    --primary-deep: 150 75% 16%;
+    --primary-glow: 151 100% 26%;
+    --primary-deep: 153 100% 16%;
 
-    /* Secondary: Ocean Blue */
-    --secondary: 210 70% 45%;
-    --secondary-foreground: 0 0% 100%;
+    /* Secondary: Verde-limão (#8DC73F) */
+    --secondary: 85 55% 51%;
+    --secondary-foreground: 153 100% 12%;
 
     /* Muted tones */
     --muted: 210 20% 96%;
     --muted-foreground: 215 15% 45%;
 
-    /* Accent: Vivid Gold */
-    --accent: 45 95% 55%;
+    /* Accent: Amarelo da marca (#F8ED31) */
+    --accent: 56 94% 58%;
     --accent-foreground: 215 25% 15%;
-    --accent-soft: 48 100% 75%;
+    --accent-soft: 54 95% 78%;
 
     --destructive: 0 84% 60%;
     --destructive-foreground: 0 0% 100%;
 
     --border: 210 20% 90%;
     --input: 210 20% 90%;
-    --ring: 152 60% 28%;
+    --ring: 152 100% 23%;
 
     --radius: 0.75rem;
 
     /* Custom Variables */
-    --gradient-primary: linear-gradient(135deg, hsl(145 70% 26%) 0%, hsl(145 60% 38%) 100%);
-    --gradient-secondary: linear-gradient(135deg, hsl(210, 70%, 45%) 0%, hsl(210, 60%, 55%) 100%);
+    --gradient-primary: linear-gradient(135deg, hsl(152 100% 23%) 0%, hsl(85 55% 51%) 100%);
+    --gradient-secondary: linear-gradient(135deg, hsl(151 100% 26%) 0%, hsl(85 55% 51%) 100%);
     --gradient-hero: linear-gradient(180deg, rgba(0,0,0,0.5) 0%, rgba(0,0,0,0.3) 50%, rgba(0,0,0,0.6) 100%);
     --gradient-card: linear-gradient(145deg, hsl(0, 0%, 100%) 0%, hsl(210, 20%, 98%) 100%);
-    --gradient-cta: linear-gradient(135deg, hsl(145 70% 26%) 0%, hsl(150 75% 20%) 100%);
-    --gradient-gold: linear-gradient(135deg, hsl(45 95% 55%) 0%, hsl(40 95% 50%) 100%);
+    --gradient-cta: linear-gradient(135deg, hsl(152 100% 23%) 0%, hsl(153 100% 16%) 100%);
+    --gradient-gold: linear-gradient(135deg, hsl(56 94% 58%) 0%, hsl(43 97% 52%) 100%);
     --gradient-canvas: radial-gradient(ellipse at top left, hsl(48 60% 94%) 0%, hsl(48 38% 96%) 60%);
     
     --shadow-soft: 0 4px 20px -4px hsl(215 25% 15% / 0.08);
