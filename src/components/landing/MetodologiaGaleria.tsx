@@ -207,10 +207,23 @@ const MetodologiaGaleria = ({ brand }: { brand: Brand }) => {
       {lightbox && (
         <div
           onClick={() => setLightbox(null)}
-          className="fixed inset-0 z-[999] flex items-center justify-center p-6 cursor-zoom-out"
-          style={{ background: "rgba(0,0,0,.85)" }}
+          className="fixed inset-0 z-[999] flex items-center justify-center p-4 md:p-8 cursor-zoom-out"
+          style={{ background: "rgba(0,0,0,.9)" }}
         >
-          <img src={lightbox} alt="Registro ampliado" className="max-w-full max-h-full rounded-xl" />
+          <button
+            type="button"
+            onClick={() => setLightbox(null)}
+            className="absolute top-4 right-4 text-white/90 hover:text-white text-3xl leading-none p-2"
+            aria-label="Fechar imagem ampliada"
+          >
+            ×
+          </button>
+          <img
+            src={lightbox}
+            alt="Registro ampliado"
+            className="max-w-full max-h-[90vh] rounded-xl object-contain cursor-default"
+            onClick={(e) => e.stopPropagation()}
+          />
         </div>
       )}
     </section>
