@@ -113,7 +113,7 @@ export default function MetodologiaPlano() {
                 </div>
               </div>
             </div>
-            <div className="relative flex justify-center md:block md:h-full md:self-stretch">
+            <div className="relative flex justify-center -mb-14 md:mb-0 md:block md:h-full md:self-stretch">
               <div
                 className="absolute inset-x-0 bottom-0 h-3/4 rounded-full blur-3xl opacity-40 pointer-events-none"
                 style={{ background: `linear-gradient(135deg, ${BRAND.green500}, ${BRAND.gold})` }}
