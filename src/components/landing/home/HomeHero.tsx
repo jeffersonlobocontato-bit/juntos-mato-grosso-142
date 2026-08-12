@@ -222,7 +222,7 @@ const HomeHero = () => {
       <header className={`topbar`} data-scrolled={scrolled ? "true" : "false"}>
         <div className="wrap topbar__in">
           <a className="logo" href="#topo" aria-label="Juntos Paraná 399">
-            <img src="/marca/moro-governador-verde.png" alt="Moro Governador" width={900} height={332} />
+            <img src="/marca/moro-verde.png" alt="Moro" width={900} height={226} />
           </a>
           <button
             className="burger"
@@ -527,7 +527,7 @@ const HomeHero = () => {
 
         <footer className="foot">
           <div className="wrap">
-            <img className="foot__logo" src="/marca/moro-governador-branco.png" alt="Moro Governador" width={900} height={332} loading="lazy" />
+            <img className="foot__logo" src="/marca/moro-branco.png" alt="Moro" width={900} height={226} loading="lazy" />
             Em conformidade com a LGPD (Lei nº 13.709/2018), nome, telefone e cidade não são divulgados publicamente,
             não são compartilhados com terceiros e não são usados para fins comerciais.<br />
             Consulta, correção ou exclusão dos seus dados:{" "}
