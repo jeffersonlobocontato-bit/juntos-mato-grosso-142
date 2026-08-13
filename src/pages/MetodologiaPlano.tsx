@@ -76,6 +76,35 @@ O Paraná tem uma economia forte, diversificada e conectada ao mundo. Temos um p
 
 O que propomos é um governo com planejamento, com metas e compromisso com as pessoas. Um governo que olha para o futuro, sem deixar ninguém para trás. Acima de tudo, vamos governar o Paraná juntos.`;
 
+const DownloadPlanoCTA = () => (
+  <section className="py-12 md:py-16" style={{ background: `${BRAND.navy}0d` }}>
+    <div className="container mx-auto px-6 max-w-4xl text-center">
+      <p className="text-xs md:text-sm font-bold tracking-wide uppercase mb-4" style={{ color: BRAND.green700 }}>
+        O plano de governo será protocolado nesta sexta 14/08, quando poderá ser baixado
+      </p>
+      <h2 className="font-black text-2xl md:text-4xl mb-6" style={{ color: BRAND.navy }}>
+        BAIXE O PLANO DE GOVERNO
+      </h2>
+      <button
+        disabled
+        className="inline-flex items-center gap-3 px-8 py-4 rounded-full font-black text-base md:text-lg transition-all duration-300 opacity-60 cursor-not-allowed"
+        style={{
+          background: `linear-gradient(135deg, ${BRAND.gold}, ${BRAND.amber})`,
+          color: BRAND.navy,
+        }}
+        title="Disponível a partir de 14/08/2026"
+      >
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" className="shrink-0">
+          <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+          <polyline points="7 10 12 15 17 10" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+          <line x1="12" y1="15" x2="12" y2="3" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+        </svg>
+        Disponível em 14/08/2026
+      </button>
+    </div>
+  </section>
+);
+
 export default function MetodologiaPlano() {
   const [sugestoesCount, setSugestoesCount] = useState<number | null>(null);
   const [showMensagem, setShowMensagem] = useState(false);
