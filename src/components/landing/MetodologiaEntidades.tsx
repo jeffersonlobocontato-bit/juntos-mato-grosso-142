@@ -1,7 +1,7 @@
 type Brand = { navy: string; green500: string; green700: string };
 
 const ENTIDADES = [
-  "Sistema Fiep","FAEP/SENAR-PR","Fetranspar","OCEPAR","UOPECAN","Femipa","CRM-PR","AMP",
+  "Faciap\u00a0 .\u00a0 Sistema Fiep","FAEP/SENAR-PR","Fetranspar","OCEPAR","UOPECAN","Femipa","CRM-PR","AMP",
   "Feapaes-PR","POD","Agência de Desenvolvimento do Sudoeste","Sindicato Rural de Cascavel",
   "Sindicato Rural de Toledo","Sindicato Rural de Guarapuava","Sindicato Rural de Palotina",
   "Sindicato Rural de Prudentópolis","Sindicato Rural de Laranjeiras do Sul","Sindicato Rural de Guaíra",
