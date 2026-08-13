@@ -296,9 +296,6 @@ export default function MetodologiaPlano() {
       {/* ============ VÍDEO ============ */}
       <MetodologiaVideo navy={BRAND.navy} green700={BRAND.green700} green900={BRAND.green900} />
 
-      {/* ============ CTA — BAIXE O PLANO DE GOVERNO (entre vídeo e penúltima dobra) ============ */}
-      <DownloadPlanoCTA />
-
       {/* ============ NOTA EXPLICATIVA — MAPA DE CALOR ============ */}
       <section className="py-14 md:py-20" style={{ background: `${BRAND.green500}0d` }}>
         <div className="container mx-auto px-6 max-w-4xl">
