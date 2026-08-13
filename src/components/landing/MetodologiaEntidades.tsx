@@ -14,7 +14,7 @@ const ENTIDADES = [
   "Sindicato Rural de Alto Paraná","Santa Casa de Paranavaí","UENOR","UNDIME","Carta Pato Branco",
   "Todos Pela Educação","ABIOGÁS","CODETRI","Núcleo de Desenvolvimento Empresarial de Londrina","SENEPE",
   "Software By Maringá","Gerar","CREFI","Sociedade Rural do Meio Oeste",
-  "Movimento Contra a Perturbação de Sossego","AMSOP","Agenda Animalista","APEPA",
+  "Movimento Contra a Perturbação de Sossego","AMSOP","ASSOFEPAR","Agenda Animalista","APEPA.\u00a0",
 ];
 
 const MetodologiaEntidades = ({ brand }: { brand: Brand }) => {
