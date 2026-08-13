@@ -203,6 +203,9 @@ export default function MetodologiaPlano() {
         </div>
       </section>
 
+      {/* ============ CTA — BAIXE O PLANO DE GOVERNO (entre 2ª e 3ª dobras) ============ */}
+      <DownloadPlanoCTA />
+
       <MetodologiaGaleria brand={{ navy: BRAND.navy, green500: BRAND.green500, green700: BRAND.green700 }} />
 
       <MetodologiaEntidades brand={{ navy: BRAND.navy, green500: BRAND.green500, green700: BRAND.green700 }} />
