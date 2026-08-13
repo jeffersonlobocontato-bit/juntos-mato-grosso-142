@@ -110,10 +110,19 @@ export default function MetodologiaPlano() {
   const [showMensagem, setShowMensagem] = useState(false);
 
   useEffect(() => {
-    supabase.rpc("get_sugestoes_formulario_count").then(({ data }) => {
+    let cancelled = false;
+    const load = async () => {
+      const { data } = await supabase.rpc("get_sugestoes_formulario_count");
+      if (cancelled) return;
       const total = BASE_SUGESTOES + (Number(data) || 0);
       setSugestoesCount(total);
-    });
+    };
+    load();
+    const id = setInterval(load, 30000);
+    return () => {
+      cancelled = true;
+      clearInterval(id);
+    };
   }, []);
 
   return (
