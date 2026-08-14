@@ -191,6 +191,29 @@ export default function MetodologiaPlano() {
                 </svg>
                 Mensagem do Sergio Moro
               </button>
+
+              {/* CTA — Baixar o Plano de Governo */}
+              <a
+                href={planoPdf.url}
+                download="Plano_de_Governo_MORO26.pdf"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="group inline-flex items-center gap-3 px-6 py-3 rounded-full font-bold text-sm md:text-base transition-all duration-300 hover:scale-105 hover:shadow-2xl mt-4"
+                style={{
+                  background: "transparent",
+                  color: BRAND.gold,
+                  border: `2px solid ${BRAND.gold}`,
+                  boxShadow: `0 8px 30px ${BRAND.gold}30`,
+                }}
+                title="Baixar o Plano de Governo em PDF"
+              >
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" className="transition-transform group-hover:translate-y-0.5">
+                  <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                  <polyline points="7 10 12 15 17 10" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                  <line x1="12" y1="15" x2="12" y2="3" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                </svg>
+                Baixar o Plano de Governo
+              </a>
             </div>
             <div className="relative flex justify-center -mb-14 md:mb-0 md:block md:h-full md:self-stretch">
               <div
