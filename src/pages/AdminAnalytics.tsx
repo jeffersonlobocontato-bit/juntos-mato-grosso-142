@@ -29,7 +29,8 @@ import {
   ChevronDown,
   ChevronUp,
   Trophy,
-  User as UserIcon
+  User as UserIcon,
+  Download
 } from 'lucide-react';
 import CidadesSemParticipacaoModal from '@/components/admin/CidadesSemParticipacaoModal';
 import { MapPinOff } from 'lucide-react';
