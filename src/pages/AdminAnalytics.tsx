@@ -287,6 +287,16 @@ const AdminAnalytics = () => {
     ? (sugestoesCount / homePageviews) * 100
     : 0;
   const clicks = events?.filter(e => e.event_type === 'click').length || 0;
+  // LP Plano de Governo (/planodegoverno, antiga /metodologia)
+  const planoEvents = events?.filter(
+    e => e.page_path === '/planodegoverno' || e.page_path === '/metodologia'
+  ) || [];
+  const planoPageviews = planoEvents.filter(e => e.event_type === 'pageview').length;
+  const planoUniqueVisitors = new Set(planoEvents.map(e => e.visitor_id)).size;
+  const planoDownloads = planoEvents.filter(
+    e => e.event_type === 'download' && e.component_name === 'plano_governo_pdf'
+  ).length;
+  const planoDownloadRate = planoPageviews > 0 ? (planoDownloads / planoPageviews) * 100 : 0;
   const shares = events?.filter(e => e.event_type === 'share').length || 0;
   // Tempo/Scroll só têm valor real em eventos "engagement" e "session_end"
   // (pageview dispara ao carregar, com time_on_page=0 e scroll=0 → puxa a média pra baixo)
