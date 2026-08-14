@@ -566,6 +566,52 @@ const AdminAnalytics = () => {
               </Card>
 
               {/* Reconciliação de Conversões — últimas 24h */}
+              <Card className="col-span-2 md:col-span-3 lg:col-span-6 border-emerald-600/40 bg-gradient-to-br from-emerald-600/10 via-background to-amber-500/10">
+                <CardContent className="pt-6">
+                  <div className="flex flex-wrap items-center justify-between gap-4">
+                    <div className="flex items-center gap-4">
+                      <div className="p-3 rounded-xl bg-emerald-600/15">
+                        <Download className="w-6 h-6 text-emerald-600" />
+                      </div>
+                      <div>
+                        <p className="text-xs uppercase tracking-wide text-muted-foreground font-semibold">
+                          LP Plano de Governo
+                        </p>
+                        <a
+                          href="https://juntosparana399.com.br/planodegoverno"
+                          target="_blank"
+                          rel="noreferrer"
+                          className="text-sm text-emerald-600 hover:underline"
+                        >
+                          juntosparana399.com.br/planodegoverno
+                        </a>
+                      </div>
+                    </div>
+                    <div className="flex items-center gap-8">
+                      <div>
+                        <p className="text-3xl font-bold">{planoPageviews.toLocaleString()}</p>
+                        <p className="text-xs text-muted-foreground">Acessos à página</p>
+                      </div>
+                      <div>
+                        <p className="text-3xl font-bold">{planoUniqueVisitors.toLocaleString()}</p>
+                        <p className="text-xs text-muted-foreground">Visitantes Únicos</p>
+                      </div>
+                      <div>
+                        <p className="text-3xl font-bold text-emerald-600">{planoDownloads.toLocaleString()}</p>
+                        <p className="text-xs text-muted-foreground">Downloads do PDF</p>
+                      </div>
+                      <div className="hidden md:block">
+                        <p className="text-3xl font-bold">{planoDownloadRate.toFixed(1)}%</p>
+                        <p className="text-xs text-muted-foreground">Taxa de download</p>
+                      </div>
+                    </div>
+                  </div>
+                  <p className="mt-4 text-[11px] text-muted-foreground/80 leading-snug">
+                    Downloads contabilizam os cliques nos CTAs "Baixar o Plano de Governo" (hero e dobra de download) dentro do período selecionado.
+                  </p>
+                </CardContent>
+              </Card>
+
               <Card className="col-span-2 md:col-span-3 lg:col-span-6 border-amber-500/40 bg-gradient-to-br from-amber-500/5 via-background to-amber-500/10">
                 <CardHeader>
                   <CardTitle className="flex items-center gap-2 text-base">
