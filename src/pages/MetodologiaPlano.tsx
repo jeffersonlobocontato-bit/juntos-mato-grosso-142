@@ -7,6 +7,7 @@ import MetodologiaGaleria from "@/components/landing/MetodologiaGaleria";
 import MetodologiaEntidades from "@/components/landing/MetodologiaEntidades";
 const logoClara = "/marca/moro-branco.png";
 import fotoOficial from "@/assets/metodologia/foto-oficial-moro-ombros.png";
+import planoPdf from "@/assets/plano-governo.pdf.asset.json";
 
 // ---------------------------------------------------------------------------
 // Design system: identidade visual oficial da campanha Sergio Moro 2026,
@@ -80,27 +81,30 @@ const DownloadPlanoCTA = () => (
   <section className="py-7 md:py-9" style={{ background: `${BRAND.navy}0d` }}>
     <div className="container mx-auto px-6 max-w-3xl text-center">
       <p className="text-[11px] md:text-xs font-bold tracking-wide uppercase mb-2" style={{ color: BRAND.green700 }}>
-        O plano de governo será protocolado nesta sexta 14/08, quando poderá ser baixado
+        Plano de governo protocolado. Documento oficial disponível para download
       </p>
       <h2 className="font-black text-xl md:text-2xl mb-3" style={{ color: BRAND.navy }}>
         BAIXE O PLANO DE GOVERNO
       </h2>
-      <button
-        disabled
-        className="inline-flex items-center gap-2 px-5 py-2.5 rounded-full font-bold text-sm transition-all duration-300 opacity-60 cursor-not-allowed"
+      <a
+        href={planoPdf.url}
+        download="Plano_de_Governo_MORO26.pdf"
+        target="_blank"
+        rel="noopener noreferrer"
+        className="inline-flex items-center gap-2 px-5 py-2.5 rounded-full font-bold text-sm transition-all duration-300 hover:scale-105 hover:shadow-lg"
         style={{
           background: `linear-gradient(135deg, ${BRAND.gold}, ${BRAND.amber})`,
           color: BRAND.navy,
         }}
-        title="Disponível a partir de 14/08/2026"
+        title="Baixar o Plano de Governo em PDF"
       >
         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" className="shrink-0">
           <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
           <polyline points="7 10 12 15 17 10" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
           <line x1="12" y1="15" x2="12" y2="3" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
         </svg>
-        Disponível em 14/08/2026
-      </button>
+        BAIXAR AGORA (PDF)
+      </a>
     </div>
   </section>
 );
