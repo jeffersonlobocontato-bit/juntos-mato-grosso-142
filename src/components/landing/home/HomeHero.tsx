@@ -350,7 +350,7 @@ const HomeHero = () => {
                       <input id="jp-consent" type="checkbox" required checked={consent} onChange={(e) => setConsent(e.target.checked)} />
                       <label htmlFor="jp-consent">
                         Li e concordo com a <a href="/politica-privacidade" target="_blank" rel="noopener noreferrer">Política de Privacidade</a> e os{" "}
-                        <a href="/termos-de-uso" target="_blank" rel="noopener noreferrer">Termos de Uso</a>, e autorizo o uso da minha opinião para fins de construção do Plano de Governo.
+                        <a href="/termos-de-uso" target="_blank" rel="noopener noreferrer">Termos de Uso</a>, declaro ser maior de 18 anos e autorizo o uso da minha opinião para fins de construção do Plano de Governo.
                       </label>
                     </div>
                     <div className="consent">
@@ -524,8 +524,9 @@ const HomeHero = () => {
         <footer className="foot">
           <div className="wrap">
             <img className="foot__logo" src="/jp399/logo-nova.svg" alt="Juntos Paraná 399" width={1434} height={514} loading="lazy" />
-            Em conformidade com a LGPD (Lei nº 13.709/2018), nome, telefone e cidade não são divulgados publicamente,
-            não são compartilhados com terceiros e não são usados para fins comerciais.<br />
+            Em conformidade com a LGPD (Lei nº 13.709/2018), nome, telefone e cidade não são divulgados publicamente
+            nem usados para fins comerciais. Não são compartilhados com terceiros, exceto com a Meta e apenas quando
+            você autoriza expressamente no formulário de envio.<br />
             Consulta, correção ou exclusão dos seus dados:{" "}
             <a href="mailto:sergiomoro@juntosparana399.com.br">sergiomoro@juntosparana399.com.br</a>
             <div style={{ marginTop: 28, paddingTop: 22, borderTop: "1px solid rgba(255,255,255,.15)", textAlign: "center" }}>
