@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import { BASE_SUGESTOES } from "@/lib/sugestoesCounter";
 import { supabase } from "@/integrations/supabase/client";
+import { useAnalytics } from "@/hooks/useAnalytics";
 import MetodologiaVideo from "@/components/landing/MetodologiaVideo";
 import MetodologiaDestaqueMidia from "@/components/landing/MetodologiaDestaqueMidia";
 import MetodologiaGaleria from "@/components/landing/MetodologiaGaleria";
@@ -77,7 +78,7 @@ O Paraná tem uma economia forte, diversificada e conectada ao mundo. Temos um p
 
 O que propomos é um governo com planejamento, com metas e compromisso com as pessoas. Um governo que olha para o futuro, sem deixar ninguém para trás. Acima de tudo, vamos governar o Paraná juntos.`;
 
-const DownloadPlanoCTA = () => (
+const DownloadPlanoCTA = ({ onDownload }: { onDownload?: () => void }) => (
   <section className="py-7 md:py-9" style={{ background: `${BRAND.navy}0d` }}>
     <div className="container mx-auto px-6 max-w-3xl text-center">
       <p className="text-[11px] md:text-xs font-bold tracking-wide uppercase mb-2" style={{ color: BRAND.green700 }}>
@@ -91,6 +92,7 @@ const DownloadPlanoCTA = () => (
         download="Plano_de_Governo_MORO2026-2.pdf"
         target="_blank"
         rel="noopener noreferrer"
+        onClick={onDownload}
         className="inline-flex items-center gap-2 px-5 py-2.5 rounded-full font-bold text-sm transition-all duration-300 hover:scale-105 hover:shadow-lg"
         style={{
           background: `linear-gradient(135deg, ${BRAND.gold}, ${BRAND.amber})`,
