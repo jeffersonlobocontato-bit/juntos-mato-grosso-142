@@ -12,7 +12,7 @@ const PoliticaPrivacidade = () => {
       <Header showSuggestionButton={false} />
       <main className="max-w-3xl mx-auto px-4 py-16 prose prose-sm sm:prose-base">
         <h1>Política de Privacidade</h1>
-        <p className="text-muted-foreground">Última atualização: 30 de julho de 2026</p>
+        <p className="text-muted-foreground">Última atualização: 14 de agosto de 2026</p>
 
         <h2>1. Quem somos</h2>
         <p>
@@ -33,7 +33,17 @@ const PoliticaPrivacidade = () => {
           <li><strong>Geolocalização</strong> (quando autorizada) — associar sugestão à região</li>
           <li><strong>Dados de navegação</strong> — analytics e melhoria da plataforma (mediante consentimento)</li>
         </ul>
-        <p>Não coletamos dados sensíveis (raça, saúde, orientação sexual, religião, etc.).</p>
+        <p>
+          O campo de opinião/sugestão é de texto livre. Como você pode mencionar posicionamentos
+          políticos, o conteúdo desse campo pode se enquadrar como <strong>dado pessoal sensível</strong>
+          nos termos do art. 5º, II, da LGPD (opinião política). Ao marcar a caixa de consentimento no
+          formulário, você autoriza de forma específica e destacada o tratamento desse conteúdo para a
+          finalidade exclusiva de construção do Plano de Governo. Não solicitamos nem incentivamos o
+          envio de outros dados sensíveis (origem racial ou étnica, convicção religiosa, dado de saúde
+          ou vida sexual, dado genético ou biométrico); se você optar por mencioná-los espontaneamente
+          no texto da sua sugestão, eles recebem o mesmo tratamento restrito e a mesma finalidade
+          exclusiva descritos nesta política.
+        </p>
 
         <h2>3. Com quem compartilhamos dados</h2>
         <ul>
