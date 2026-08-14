@@ -114,6 +114,19 @@ const DownloadPlanoCTA = ({ onDownload }: { onDownload?: () => void }) => (
 export default function MetodologiaPlano() {
   const [sugestoesCount, setSugestoesCount] = useState<number | null>(null);
   const [showMensagem, setShowMensagem] = useState(false);
+  const { trackEvent, trackPageview } = useAnalytics();
+
+  useEffect(() => {
+    trackPageview();
+  }, [trackPageview]);
+
+  const trackDownload = (origem: string) =>
+    trackEvent({
+      event_type: 'download',
+      component_name: 'plano_governo_pdf',
+      component_action: origem,
+      metadata: { arquivo: 'Plano_de_Governo_MORO2026-2.pdf' },
+    });
 
   useEffect(() => {
     let cancelled = false;
@@ -200,6 +213,7 @@ export default function MetodologiaPlano() {
                 download="Plano_de_Governo_MORO2026-2.pdf"
                 target="_blank"
                 rel="noopener noreferrer"
+                onClick={() => trackDownload('hero')}
                 className="group inline-flex items-center gap-3 px-6 py-3 rounded-full font-bold text-sm md:text-base transition-all duration-300 hover:scale-105 hover:shadow-2xl mt-4"
                 style={{
                   background: "transparent",
@@ -271,7 +285,7 @@ export default function MetodologiaPlano() {
       </section>
 
       {/* ============ CTA — BAIXE O PLANO DE GOVERNO (entre 2ª e 3ª dobras) ============ */}
-      <DownloadPlanoCTA />
+      <DownloadPlanoCTA onDownload={() => trackDownload('secao_cta')} />
 
       <MetodologiaGaleria brand={{ navy: BRAND.navy, green500: BRAND.green500, green700: BRAND.green700 }} />
 
