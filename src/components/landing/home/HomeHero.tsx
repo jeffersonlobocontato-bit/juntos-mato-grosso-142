@@ -220,12 +220,12 @@ const HomeHero = () => {
     <div className="jp399" data-component="HomeHero">
       <header className={`topbar`} data-scrolled={scrolled ? "true" : "false"}>
         <div className="wrap topbar__in">
-          <a className="logo" href="#topo" aria-label="Moro Governador">
+          <a className="logo" href="#topo" aria-label="Moro Governador — Vice Edson Vasconcelos">
             <img
-              src="/marca/moro-verde.png"
-              alt="Moro Governador"
-              width={900}
-              height={226}
+              src="/marca/moro-governador-vice-verde.png"
+              alt="Moro Governador — Vice Edson Vasconcelos"
+              width={1600}
+              height={602}
             />
           </a>
           <button
