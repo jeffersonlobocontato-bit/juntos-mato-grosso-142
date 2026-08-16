@@ -529,7 +529,7 @@ const HomeHero = () => {
         <footer className="foot">
           <div className="foot__cnpj">
             <div className="foot__cnpj-brand">
-              <span className="out">SERGIO</span> MORO
+              <br />
             </div>
             <p className="foot__cnpj-info">CNPJ de campanha: <strong>68.456.168/0001-40</strong></p>
           </div>
