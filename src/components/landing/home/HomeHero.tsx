@@ -222,7 +222,7 @@ const HomeHero = () => {
         <div className="wrap topbar__in">
           <a className="logo" href="#topo" aria-label="Moro Governador">
             <img
-              src={scrolled ? "/marca/moro-verde.png" : "/marca/moro-branco.png"}
+              src="/marca/moro-verde.png"
               alt="Moro Governador"
               width={900}
               height={226}
