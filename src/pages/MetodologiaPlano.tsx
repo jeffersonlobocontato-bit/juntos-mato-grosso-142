@@ -156,7 +156,7 @@ export default function MetodologiaPlano() {
           style={{ background: `radial-gradient(circle at 85% 15%, ${BRAND.gold}33, transparent 55%)` }}
         />
         <div className="relative container mx-auto px-6 py-14 md:py-20 max-w-6xl">
-          <img src={logoClara} alt="Moro" className="h-16 md:h-20 mb-10" />
+          <img src="/marca/moro-governador-vice-branco.png" alt="Moro Governador — Vice Edson Vasconcelos" className="h-16 md:h-24 mb-10" />
 
           <div className="grid md:grid-cols-[1.3fr_1fr] gap-10 items-center md:items-stretch">
             <div>
