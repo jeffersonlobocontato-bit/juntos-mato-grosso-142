@@ -534,7 +534,7 @@ const HomeHero = () => {
             <p className="foot__cnpj-info">CNPJ de campanha: <strong>68.456.168/0001-40</strong></p>
           </div>
           <div className="wrap">
-            <img className="foot__logo" src="/marca/moro-governador-verde.png" alt="Moro Governador" width={900} height={332} loading="lazy" />
+            <img className="foot__logo" src="/marca/moro-governador-vice-verde.png" alt="Moro Governador — Vice Edson Vasconcelos" width={1600} height={602} loading="lazy" />
             Em conformidade com a LGPD (Lei nº 13.709/2018), nome, telefone e cidade não são divulgados publicamente,
             não são compartilhados com terceiros e não são usados para fins comerciais.<br />
             Consulta, correção ou exclusão dos seus dados:{" "}
