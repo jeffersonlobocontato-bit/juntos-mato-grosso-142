@@ -6,7 +6,7 @@ import MetodologiaVideo from "@/components/landing/MetodologiaVideo";
 import MetodologiaDestaqueMidia from "@/components/landing/MetodologiaDestaqueMidia";
 import MetodologiaGaleria from "@/components/landing/MetodologiaGaleria";
 import MetodologiaEntidades from "@/components/landing/MetodologiaEntidades";
-const logoClara = "/marca/moro-branco.png";
+const logoClara = "/marca/moro-governador-vice-branco.png";
 import fotoOficial from "@/assets/metodologia/foto-oficial-moro-ombros.png";
 import planoPdf from "@/assets/plano-governo.pdf.asset.json";
 
