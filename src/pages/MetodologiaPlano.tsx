@@ -405,7 +405,7 @@ export default function MetodologiaPlano() {
           style={{ background: `linear-gradient(120deg, ${BRAND.green500} 0%, ${BRAND.lime} 100%)` }}
         >
           <div style={{ fontFamily: "'Montserrat',sans-serif", fontWeight: 900, fontSize: "clamp(22px,4.2vw,32px)", letterSpacing: "-.01em", lineHeight: 1, color: "#fff" }}>
-            <span style={{ color: "transparent", WebkitTextStroke: "1.5px #fff" }}>SERGIO</span> MORO
+            <br />
           </div>
           <p style={{ fontFamily: "'Inter',sans-serif", fontSize: 13, color: "#fff", fontWeight: 500 }}>
             CNPJ de campanha: <strong style={{ fontWeight: 800, letterSpacing: ".01em" }}>68.456.168/0001-40</strong>
