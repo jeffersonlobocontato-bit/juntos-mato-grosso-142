@@ -527,13 +527,15 @@ const HomeHero = () => {
         </section>
 
         <footer className="foot">
-          <div className="wrap">
-            <img className="foot__logo" src="/marca/moro-governador-vice-verde.png" alt="Moro Governador — Vice Edson Vasconcelos" width={1600} height={602} loading="lazy" />
-            <div className="foot__cnpj-info" style={{ textAlign: "center", marginTop: 16, marginBottom: 16, fontSize: 13, color: "rgba(236,243,236,.85)", lineHeight: 1.6 }}>
+          <div className="foot__cnpj">
+            <div className="foot__cnpj-info">
               <div>Partido: <strong>Partido Liberal (PL)</strong></div>
               <div>CNPJ de campanha: <strong>68.456.168/0001-40</strong></div>
               <div>Contratante: <strong>ELEICAO 2026 SERGIO FERNANDO MORO GOVERNADOR</strong></div>
             </div>
+          </div>
+          <div className="wrap">
+            <img className="foot__logo" src="/marca/moro-governador-vice-verde.png" alt="Moro Governador — Vice Edson Vasconcelos" width={1600} height={602} loading="lazy" />
             Em conformidade com a LGPD (Lei nº 13.709/2018), nome, telefone e cidade não são divulgados publicamente,
             não são compartilhados com terceiros e não são usados para fins comerciais.<br />
             Consulta, correção ou exclusão dos seus dados:{" "}
