@@ -94,7 +94,7 @@
 .jp399 .hero__eyebrow::before{content:"";width:22px;height:1.5px;background:var(--gold)}
 .jp399 .hero__copy{max-width:70%}
 .jp399 .hero__photo{top:0 !important}
-.jp399 .hero h1{font-family:'Montserrat','Cabinet Grotesk',system-ui,sans-serif;font-weight:700;
+.jp399 .hero h1{font-family:'Montserrat','Cabinet Grotesk',system-ui,sans-serif;font-weight:900;
   font-size:clamp(31px,8.2vw,44px);line-height:1.08;letter-spacing:-.022em;color:var(--forest)}
 .jp399 .hero h1 em{font-style:normal;color:var(--brand)}
 .jp399 .hero__sub{margin-top:14px;max-width:24ch;font-size:clamp(14.5px,3.9vw,16px);line-height:1.5;color:var(--slate)}
@@ -277,9 +277,27 @@
   .jp399 .timeline::after{transform:scaleX(1) !important;transition:none}}
 
 /* ---------------- rodapé ---------------- */
-.jp399 .foot{padding:40px 0 40px;text-align:center;color:var(--slate-soft);font-size:12.5px;line-height:1.65}
+.jp399 .foot{padding:0 0 40px;text-align:center;color:var(--slate-soft);font-size:12.5px;line-height:1.65}
 .jp399 .foot__logo{height:88px;width:auto;margin:0 auto 22px}
 .jp399 .foot a{color:var(--green-700);font-weight:600}
+
+/* barra obrigatória: nome do candidato + CNPJ de campanha */
+.jp399 .foot__cnpj{
+  width:100%;padding:22px 20px;margin-bottom:32px;
+  background:linear-gradient(120deg,var(--green-600) 0%,var(--green-500) 100%);
+  display:flex;flex-direction:column;align-items:center;gap:8px;
+}
+.jp399 .foot__cnpj-brand{
+  font-family:'Montserrat',sans-serif;font-weight:900;font-size:clamp(22px,4.2vw,32px);
+  letter-spacing:-.01em;line-height:1;color:#fff;
+}
+.jp399 .foot__cnpj-brand .out{
+  color:transparent;-webkit-text-stroke:1.5px #fff;
+}
+.jp399 .foot__cnpj-info{
+  font-family:'Inter',sans-serif;font-size:13px;color:#fff;font-weight:500;
+}
+.jp399 .foot__cnpj-info strong{font-weight:800;letter-spacing:.01em}
 
 /* ---------------- flash ---------------- */
 .jp399 .flash{display:none;align-items:flex-start;gap:10px;margin-top:14px;padding:13px 15px;border-radius:11px;font-size:14px;line-height:1.45}

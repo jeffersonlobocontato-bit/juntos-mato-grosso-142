@@ -220,8 +220,13 @@ const HomeHero = () => {
     <div className="jp399" data-component="HomeHero">
       <header className={`topbar`} data-scrolled={scrolled ? "true" : "false"}>
         <div className="wrap topbar__in">
-          <a className="logo" href="#topo" aria-label="Juntos Paraná 399">
-            <img src="/jp399/logo-nova.svg" alt="Juntos Paraná 399" width={1434} height={514} />
+          <a className="logo" href="#topo" aria-label="Moro Governador">
+            <img
+              src={scrolled ? "/marca/moro-verde.png" : "/marca/moro-branco.png"}
+              alt="Moro Governador"
+              width={900}
+              height={226}
+            />
           </a>
           <button
             className="burger"
@@ -318,9 +323,9 @@ const HomeHero = () => {
                       height: 44,
                       padding: "0 18px",
                       borderRadius: 999,
-                      border: "1.5px solid var(--jp-primary, #0a5c36)",
-                      background: "rgba(10, 92, 54, 0.08)",
-                      color: "var(--jp-primary, #0a5c36)",
+                      border: "1.5px solid var(--green-700, #007540)",
+                      background: "rgba(0, 117, 64, 0.08)",
+                      color: "var(--green-700, #007540)",
                       fontWeight: 700,
                       fontSize: 14,
                       cursor: geoLoading ? "wait" : "pointer",
@@ -350,7 +355,7 @@ const HomeHero = () => {
                       <input id="jp-consent" type="checkbox" required checked={consent} onChange={(e) => setConsent(e.target.checked)} />
                       <label htmlFor="jp-consent">
                         Li e concordo com a <a href="/politica-privacidade" target="_blank" rel="noopener noreferrer">Política de Privacidade</a> e os{" "}
-                        <a href="/termos-de-uso" target="_blank" rel="noopener noreferrer">Termos de Uso</a>, e autorizo o uso da minha opinião para fins de construção do Plano de Governo.
+                        <a href="/termos-de-uso" target="_blank" rel="noopener noreferrer">Termos de Uso</a>, declaro ser maior de 18 anos e autorizo o uso da minha opinião para fins de construção do Plano de Governo.
                       </label>
                     </div>
                     <div className="consent">
@@ -406,7 +411,7 @@ const HomeHero = () => {
                     </button>
                   </div>
                   <div style={{ marginTop: 22, paddingTop: 18, borderTop: "1px solid rgba(255,255,255,.18)" }}>
-                    <h4 style={{ fontFamily: "'Montserrat',sans-serif", fontWeight: 800, fontSize: 18, color: "#00A85A", marginBottom: 6 }}>
+                    <h4 style={{ fontFamily: "'Montserrat',sans-serif", fontWeight: 800, fontSize: 18, color: "var(--green-600, #008544)", marginBottom: 6 }}>
                       Envie e convide amigos e familiares
                     </h4>
                     <p style={{ color: "rgba(236,243,236,.8)", fontSize: 14, lineHeight: 1.5, marginBottom: 14 }}>
@@ -522,14 +527,27 @@ const HomeHero = () => {
         </section>
 
         <footer className="foot">
+          <div className="foot__cnpj">
+            <div className="foot__cnpj-brand">
+              <span className="out">SERGIO</span> MORO
+            </div>
+            <p className="foot__cnpj-info">CNPJ de campanha: <strong>68.456.168/0001-40</strong></p>
+          </div>
           <div className="wrap">
-            <img className="foot__logo" src="/jp399/logo-nova.svg" alt="Juntos Paraná 399" width={1434} height={514} loading="lazy" />
-            Em conformidade com a LGPD (Lei nº 13.709/2018), nome, telefone e cidade não são divulgados publicamente,
-            não são compartilhados com terceiros e não são usados para fins comerciais.<br />
+            <img className="foot__logo" src="/marca/moro-governador-verde.png" alt="Moro Governador" width={900} height={332} loading="lazy" />
+            Em conformidade com a LGPD (Lei nº 13.709/2018), nome, telefone e cidade não são divulgados publicamente
+            nem usados para fins comerciais. Não são compartilhados com terceiros, exceto com a Meta e apenas quando
+            você autoriza expressamente no formulário de envio.<br />
             Consulta, correção ou exclusão dos seus dados:{" "}
             <a href="mailto:sergiomoro@juntosparana399.com.br">sergiomoro@juntosparana399.com.br</a>
+            <p style={{ marginTop: 14, fontSize: 12.5, opacity: 0.85 }}>
+              🔒 <strong>Nota de transparência (14/08/2026):</strong> revisamos a redação desta página e da
+              nossa Política de Privacidade para deixar ainda mais claro como protegemos seus dados —
+              nenhuma mudança na forma como os dados são tratados, só na clareza da comunicação.{" "}
+              <a href="/politica-privacidade#historico">Veja o que mudou, com o antes e depois</a>.
+            </p>
             <div style={{ marginTop: 28, paddingTop: 22, borderTop: "1px solid rgba(255,255,255,.15)", textAlign: "center" }}>
-              <h3 style={{ fontFamily: "'Montserrat',sans-serif", fontWeight: 800, fontSize: 22, color: "#00A85A", marginBottom: 6, letterSpacing: "-.01em" }}>
+              <h3 style={{ fontFamily: "'Montserrat',sans-serif", fontWeight: 800, fontSize: 22, color: "var(--green-600, #008544)", marginBottom: 6, letterSpacing: "-.01em" }}>
                 Envie e convide seus amigos e familiares
               </h3>
               <p style={{ color: "rgba(236,243,236,.75)", fontSize: 14, lineHeight: 1.55, maxWidth: 560, margin: "0 auto 16px" }}>
