@@ -355,7 +355,7 @@ const HomeHero = () => {
                       <input id="jp-consent" type="checkbox" required checked={consent} onChange={(e) => setConsent(e.target.checked)} />
                       <label htmlFor="jp-consent">
                         Li e concordo com a <a href="/politica-privacidade" target="_blank" rel="noopener noreferrer">Política de Privacidade</a> e os{" "}
-                        <a href="/termos-de-uso" target="_blank" rel="noopener noreferrer">Termos de Uso</a>, declaro ser maior de 18 anos e autorizo o uso da minha opinião para fins de construção do Plano de Governo.
+                        <a href="/termos-de-uso" target="_blank" rel="noopener noreferrer">Termos de Uso</a>, e autorizo o uso da minha opinião para fins de construção do Plano de Governo.
                       </label>
                     </div>
                     <div className="consent">
@@ -535,17 +535,10 @@ const HomeHero = () => {
           </div>
           <div className="wrap">
             <img className="foot__logo" src="/marca/moro-governador-verde.png" alt="Moro Governador" width={900} height={332} loading="lazy" />
-            Em conformidade com a LGPD (Lei nº 13.709/2018), nome, telefone e cidade não são divulgados publicamente
-            nem usados para fins comerciais. Não são compartilhados com terceiros, exceto com a Meta e apenas quando
-            você autoriza expressamente no formulário de envio.<br />
+            Em conformidade com a LGPD (Lei nº 13.709/2018), nome, telefone e cidade não são divulgados publicamente,
+            não são compartilhados com terceiros e não são usados para fins comerciais.<br />
             Consulta, correção ou exclusão dos seus dados:{" "}
             <a href="mailto:sergiomoro@juntosparana399.com.br">sergiomoro@juntosparana399.com.br</a>
-            <p style={{ marginTop: 14, fontSize: 12.5, opacity: 0.85 }}>
-              🔒 <strong>Nota de transparência (14/08/2026):</strong> revisamos a redação desta página e da
-              nossa Política de Privacidade para deixar ainda mais claro como protegemos seus dados —
-              nenhuma mudança na forma como os dados são tratados, só na clareza da comunicação.{" "}
-              <a href="/politica-privacidade#historico">Veja o que mudou, com o antes e depois</a>.
-            </p>
             <div style={{ marginTop: 28, paddingTop: 22, borderTop: "1px solid rgba(255,255,255,.15)", textAlign: "center" }}>
               <h3 style={{ fontFamily: "'Montserrat',sans-serif", fontWeight: 800, fontSize: 22, color: "var(--green-600, #008544)", marginBottom: 6, letterSpacing: "-.01em" }}>
                 Envie e convide seus amigos e familiares
