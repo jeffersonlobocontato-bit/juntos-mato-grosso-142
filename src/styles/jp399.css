@@ -73,7 +73,7 @@
   box-shadow:0 1px 0 rgba(12,26,23,.06)}
 .jp399 .topbar__in{display:flex;align-items:center;justify-content:space-between;gap:16px;min-height:74px;position:relative}
 .jp399 .logo{display:block;line-height:0}
-.jp399 .logo img{height:46px;width:auto}
+.jp399 .logo img{height:69px;width:auto}
 .jp399 .burger{width:50px;height:50px;flex:0 0 50px;border-radius:50%;background:var(--surface);
   border:1px solid var(--line-strong);display:grid;place-items:center;color:var(--green-800);
   transition:background .2s var(--ease),color .2s var(--ease)}
@@ -330,7 +330,7 @@
 /* ============================================================ ≥940px */
 @media (min-width:940px){
   .jp399 .wrap{padding-inline:34px}
-  .jp399 .logo img{height:64px}
+  .jp399 .logo img{height:96px}
   .jp399 .burger{width:56px;height:56px;flex-basis:56px}
   .jp399 .hero{padding-top:104px}
   .jp399 .hero__copy{max-width:52%;padding-top:22px}
