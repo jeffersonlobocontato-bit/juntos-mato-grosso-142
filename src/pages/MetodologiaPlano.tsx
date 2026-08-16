@@ -400,6 +400,17 @@ export default function MetodologiaPlano() {
 
       {/* ============ FOOTER ============ */}
       <footer className="py-10" style={{ background: BRAND.navy }}>
+        <div
+          className="flex flex-col items-center gap-2 py-6 mb-8"
+          style={{ background: `linear-gradient(120deg, ${BRAND.green500} 0%, ${BRAND.lime} 100%)` }}
+        >
+          <div style={{ fontFamily: "'Montserrat',sans-serif", fontWeight: 900, fontSize: "clamp(22px,4.2vw,32px)", letterSpacing: "-.01em", lineHeight: 1, color: "#fff" }}>
+            <span style={{ color: "transparent", WebkitTextStroke: "1.5px #fff" }}>SERGIO</span> MORO
+          </div>
+          <p style={{ fontFamily: "'Inter',sans-serif", fontSize: 13, color: "#fff", fontWeight: 500 }}>
+            CNPJ de campanha: <strong style={{ fontWeight: 800, letterSpacing: ".01em" }}>68.456.168/0001-40</strong>
+          </p>
+        </div>
         <div className="container mx-auto px-6 max-w-6xl flex flex-col md:flex-row items-center justify-between gap-4">
           <img src={logoClara} alt="Moro" className="h-10" />
           <p className="text-white/50 text-xs text-center md:text-right">

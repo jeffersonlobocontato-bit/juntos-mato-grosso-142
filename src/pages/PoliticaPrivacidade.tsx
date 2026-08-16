@@ -12,7 +12,7 @@ const PoliticaPrivacidade = () => {
       <Header showSuggestionButton={false} />
       <main className="max-w-3xl mx-auto px-4 py-16 prose prose-sm sm:prose-base">
         <h1>Política de Privacidade</h1>
-        <p className="text-muted-foreground">Última atualização: 30 de julho de 2026</p>
+        <p className="text-muted-foreground">Última atualização: 14 de agosto de 2026</p>
 
         <h2>1. Quem somos</h2>
         <p>
@@ -33,7 +33,17 @@ const PoliticaPrivacidade = () => {
           <li><strong>Geolocalização</strong> (quando autorizada) — associar sugestão à região</li>
           <li><strong>Dados de navegação</strong> — analytics e melhoria da plataforma (mediante consentimento)</li>
         </ul>
-        <p>Não coletamos dados sensíveis (raça, saúde, orientação sexual, religião, etc.).</p>
+        <p>
+          O campo de opinião/sugestão é de texto livre. Como você pode mencionar posicionamentos
+          políticos, o conteúdo desse campo pode se enquadrar como <strong>dado pessoal sensível</strong>
+          nos termos do art. 5º, II, da LGPD (opinião política). Ao marcar a caixa de consentimento no
+          formulário, você autoriza de forma específica e destacada o tratamento desse conteúdo para a
+          finalidade exclusiva de construção do Plano de Governo. Não solicitamos nem incentivamos o
+          envio de outros dados sensíveis (origem racial ou étnica, convicção religiosa, dado de saúde
+          ou vida sexual, dado genético ou biométrico); se você optar por mencioná-los espontaneamente
+          no texto da sua sugestão, eles recebem o mesmo tratamento restrito e a mesma finalidade
+          exclusiva descritos nesta política.
+        </p>
 
         <h2>3. Com quem compartilhamos dados</h2>
         <ul>
@@ -72,6 +82,45 @@ const PoliticaPrivacidade = () => {
 
         <h2>8. Alterações desta política</h2>
         <p>Podemos atualizar esta política periodicamente. A data da última atualização está sempre no topo desta página.</p>
+
+        <h2 id="historico">9. Histórico de atualizações e nota de transparência</h2>
+        <p>
+          Em 14 de agosto de 2026 revisamos três trechos desta política e do formulário de envio para
+          reforçar a clareza sobre como tratamos dados pessoais. Nenhuma dessas revisões alterou a
+          forma como os dados são efetivamente tratados — o compartilhamento com a Meta, por exemplo,
+          sempre dependeu (e continua dependendo) da sua autorização específica e opcional. As mudanças
+          foram de redação, para que a comunicação reflita com ainda mais precisão o que a plataforma já
+          fazia. Publicamos o antes e depois abaixo por transparência.
+        </p>
+        <p>
+          <strong>Rodapé do site — compartilhamento com terceiros</strong><br />
+          <em>Antes:</em> "nome, telefone e cidade não são divulgados publicamente, não são
+          compartilhados com terceiros e não são usados para fins comerciais."<br />
+          <em>Depois:</em> "nome, telefone e cidade não são divulgados publicamente nem usados para
+          fins comerciais. Não são compartilhados com terceiros, exceto com a Meta e apenas quando você
+          autoriza expressamente no formulário de envio."
+        </p>
+        <p>
+          <strong>Consentimento do formulário — maioridade</strong><br />
+          <em>Antes:</em> a caixa de consentimento obrigatória cobria o aceite da Política de
+          Privacidade, dos Termos de Uso e o uso da opinião.<br />
+          <em>Depois:</em> a mesma caixa passou a incluir também a declaração "declaro ser maior de 18
+          anos".
+        </p>
+        <p>
+          <strong>Dado sensível — opinião política</strong><br />
+          <em>Antes:</em> "Não coletamos dados sensíveis (raça, saúde, orientação sexual, religião,
+          etc.)."<br />
+          <em>Depois:</em> explicamos, na Seção 2 acima, que o campo de opinião pode se enquadrar como
+          dado pessoal sensível (opinião política, art. 5º, II, da LGPD), que o consentimento do
+          formulário cobre especificamente esse tratamento, e que não solicitamos nem incentivamos o
+          envio de outras categorias de dado sensível.
+        </p>
+        <p>
+          Continuamos à disposição pelo canal <a href="mailto:sergiomoro@juntosparana399.com.br">
+          sergiomoro@juntosparana399.com.br</a> para qualquer dúvida sobre como seus dados são tratados
+          nesta plataforma.
+        </p>
       </main>
       <Footer />
     </div>
