@@ -220,12 +220,12 @@ const HomeHero = () => {
     <div className="jp399" data-component="HomeHero">
       <header className={`topbar`} data-scrolled={scrolled ? "true" : "false"}>
         <div className="wrap topbar__in">
-          <a className="logo" href="#topo" aria-label="Moro Governador — Vice Edson Vasconcelos">
+          <a className="logo" href="#topo" aria-label="Moro 22 Governador — Vice Edson Vasconcelos">
             <img
-              src="/marca/moro-governador-vice-verde.png"
-              alt="Moro Governador — Vice Edson Vasconcelos"
-              width={1600}
-              height={602}
+              src="/marca/moro22-horizontal-verde.png"
+              alt="Moro 22 Governador — Vice Edson Vasconcelos"
+              width={2300}
+              height={852}
             />
           </a>
           <button
@@ -529,13 +529,13 @@ const HomeHero = () => {
         <footer className="foot">
           <div className="foot__cnpj">
             <div className="foot__cnpj-info">
-              <div>Partido: <strong>Partido Liberal (PL)</strong></div>
-              <div>CNPJ de campanha: <strong>68.456.168/0001-40</strong></div>
-              <div>Contratante: <strong>ELEICAO 2026 SERGIO FERNANDO MORO GOVERNADOR</strong></div>
+              <div>
+                <strong>PROPAGANDA ELEITORAL</strong> • Coligação Fortaleza Paraná - PL - NOVO - PODEMOS - CNPJ - 68.456.168/0001-40
+              </div>
             </div>
           </div>
           <div className="wrap">
-            <img className="foot__logo" src="/marca/moro-governador-vice-verde.png" alt="Moro Governador — Vice Edson Vasconcelos" width={1600} height={602} loading="lazy" />
+            <img className="foot__logo" src="/marca/moro22-horizontal-amarela.png" alt="Moro 22 Governador — Vice Edson Vasconcelos" width={2296} height={851} loading="lazy" />
             Em conformidade com a LGPD (Lei nº 13.709/2018), nome, telefone e cidade não são divulgados publicamente,
             não são compartilhados com terceiros e não são usados para fins comerciais.<br />
             Consulta, correção ou exclusão dos seus dados:{" "}
