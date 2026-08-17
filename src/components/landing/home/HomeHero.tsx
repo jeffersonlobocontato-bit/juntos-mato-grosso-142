@@ -535,7 +535,7 @@ const HomeHero = () => {
             </div>
           </div>
           <div className="wrap">
-            <img className="foot__logo" src="/marca/moro22-horizontal-amarela.png" alt="Moro 22 Governador — Vice Edson Vasconcelos" width={2296} height={851} loading="lazy" />
+            <img className="foot__logo" src="/marca/moro22-horizontal-verde.png" alt="Moro 22 Governador — Vice Edson Vasconcelos" width={2300} height={852} loading="lazy" />
             Em conformidade com a LGPD (Lei nº 13.709/2018), nome, telefone e cidade não são divulgados publicamente,
             não são compartilhados com terceiros e não são usados para fins comerciais.<br />
             Consulta, correção ou exclusão dos seus dados:{" "}
