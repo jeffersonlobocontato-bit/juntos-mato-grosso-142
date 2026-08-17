@@ -84,34 +84,29 @@ const Moldura = () => {
 
         const lockup = assets.lockup;
         if (lockup && showPlate) {
-          // a placa é parte da borda: fica centrada sobre o anel, sem invadir o rosto
-          const plateW = r * 0.8;
-          const plateH = Math.min(plateW * (lockup.height / lockup.width) + r * 0.04, r * 0.23);
-          const plateX = cx - plateW / 2;
-          const plateCenterY = cy + r + 14;
-          const plateY = plateCenterY - plateH / 2;
+          // faixa branca (lente) ocupando o terço inferior do círculo, recortada pelo círculo
           c.save();
-          c.shadowColor = "rgba(0,0,0,0.14)";
-          c.shadowBlur = 12;
-          c.shadowOffsetY = 3;
+          c.beginPath();
+          c.arc(cx, cy, r, 0, Math.PI * 2);
+          c.clip();
+          c.beginPath();
+          c.ellipse(cx, cy + r * 0.9, r * 1.18, r * 0.62, 0, 0, Math.PI * 2);
           c.fillStyle = "#FFFFFF";
-          drawRoundedRect(c, plateX, plateY, plateW, plateH, plateH / 2);
           c.fill();
           c.restore();
-          c.save();
-          drawRoundedRect(c, plateX, plateY, plateW, plateH, plateH / 2);
-          c.lineWidth = r * 0.024;
-          c.strokeStyle = "#006731";
-          c.stroke();
-          c.restore();
-          const pad = plateH * 0.1;
-          let imgW = plateW - plateH * 0.5;
+
+          // marca contida na área da faixa
+          const areaTop = cy + r * 0.36;
+          const areaBottom = cy + r * 0.93;
+          const areaH = areaBottom - areaTop;
+          const areaW = r * 1.3;
+          let imgW = areaW;
           let imgH = imgW * (lockup.height / lockup.width);
-          if (imgH > plateH - pad * 2) {
-            imgH = plateH - pad * 2;
+          if (imgH > areaH) {
+            imgH = areaH;
             imgW = imgH * (lockup.width / lockup.height);
           }
-          c.drawImage(lockup, cx - imgW / 2, plateY + (plateH - imgH) / 2, imgW, imgH);
+          c.drawImage(lockup, cx - imgW / 2, areaTop + (areaH - imgH) / 2, imgW, imgH);
         }
       } else {
         c.save();
