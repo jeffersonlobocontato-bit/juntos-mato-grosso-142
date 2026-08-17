@@ -84,11 +84,14 @@ const Moldura = () => {
 
         const lockup = assets.lockup;
         if (lockup && showPlate) {
-          const plateW = r * 1.62;
-          const plateH = plateW * (lockup.height / lockup.width) + 26;
+          const plateW = r * 1.25;
+          const plateH = plateW * (lockup.height / lockup.width) + r * 0.06;
           const plateX = cx - plateW / 2;
-          // sobe a placa para invadir a base da foto, mantendo-a dentro do círculo do avatar
-          const plateY = cy + r - plateH * 0.72;
+          // mantém os cantos da placa dentro do recorte circular do avatar (raio seguro 0.9r)
+          const safeR = r * 0.9;
+          const half = plateW / 2;
+          const bottomY = cy + Math.sqrt(Math.max(0, safeR * safeR - half * half));
+          const plateY = bottomY - plateH;
           c.save();
           c.shadowColor = "rgba(0,0,0,0.18)";
           c.shadowBlur = 14;
@@ -97,7 +100,7 @@ const Moldura = () => {
           drawRoundedRect(c, plateX, plateY, plateW, plateH, plateH / 2.6);
           c.fill();
           c.restore();
-          const pad = plateH * 0.16;
+          const pad = plateH * 0.1;
           const imgW = plateW - pad * 2;
           const imgH = imgW * (lockup.height / lockup.width);
           c.drawImage(lockup, cx - imgW / 2, plateY + (plateH - imgH) / 2, imgW, imgH);
@@ -115,8 +118,8 @@ const Moldura = () => {
           const mark = assets.mmark;
           const badgeR = r * 0.2;
           const angle = (45 * Math.PI) / 180;
-          const bx = cx + Math.cos(angle) * (r * 0.9);
-          const by = cy + Math.sin(angle) * (r * 0.9);
+          const bx = cx + Math.cos(angle) * (r * 0.64);
+          const by = cy + Math.sin(angle) * (r * 0.64);
           c.save();
           c.shadowColor = "rgba(0,0,0,0.2)";
           c.shadowBlur = 10;
