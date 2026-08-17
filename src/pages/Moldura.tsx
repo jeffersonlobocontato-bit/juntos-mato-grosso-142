@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 
-const LOCKUP_SRC = "/marca/moldura-lockup.png";
+const LOCKUP_SRC = "/marca/moro-governador-vice-branco.png";
 const MMARK_SRC = "/marca/moldura-mmark.png";
 const EXEMPLO_SRC = "/marca/moldura-exemplo.png";
 const AMARELA_V_SRC = "/marca/moldura-amarela-v.png";
@@ -91,7 +91,7 @@ const Moldura = () => {
           c.clip();
           c.beginPath();
           c.ellipse(cx, cy + r * 0.9, r * 1.18, r * 0.62, 0, 0, Math.PI * 2);
-          c.fillStyle = "#FFFFFF";
+          c.fillStyle = "#006731";
           c.fill();
           c.restore();
 
