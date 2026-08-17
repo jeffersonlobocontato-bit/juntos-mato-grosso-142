@@ -295,10 +295,38 @@ const Moldura = () => {
   const download = () => {
     const stage = stageRef.current;
     if (!stage || !stateRef.current.img) return;
-    const link = document.createElement("a");
-    link.download = `moro-moldura-${stateRef.current.format}.png`;
-    link.href = stage.toDataURL("image/png");
-    link.click();
+    const fileName = `moro-moldura-${stateRef.current.format}.png`;
+    const triggerDownload = (href: string, revoke?: () => void) => {
+      const link = document.createElement("a");
+      link.download = fileName;
+      link.rel = "noopener";
+      link.href = href;
+      link.style.display = "none";
+      document.body.appendChild(link);
+      link.click();
+      window.setTimeout(() => {
+        document.body.removeChild(link);
+        revoke?.();
+      }, 2000);
+    };
+
+    try {
+      if (stage.toBlob) {
+        stage.toBlob((blob) => {
+          if (!blob) {
+            triggerDownload(stage.toDataURL("image/png"));
+            return;
+          }
+          const url = URL.createObjectURL(blob);
+          triggerDownload(url, () => URL.revokeObjectURL(url));
+        }, "image/png");
+      } else {
+        triggerDownload(stage.toDataURL("image/png"));
+      }
+    } catch {
+      const win = window.open();
+      if (win) win.document.write(`<img src="${stage.toDataURL("image/png")}" alt="${fileName}" />`);
+    }
   };
 
   const btn =
