@@ -84,25 +84,33 @@ const Moldura = () => {
 
         const lockup = assets.lockup;
         if (lockup && showPlate) {
-          const plateW = r * 0.78;
-          const plateH = plateW * (lockup.height / lockup.width) + r * 0.045;
+          // a placa é parte da borda: fica centrada sobre o anel, sem invadir o rosto
+          const plateW = r * 0.8;
+          const plateH = Math.min(plateW * (lockup.height / lockup.width) + r * 0.04, r * 0.23);
           const plateX = cx - plateW / 2;
-          // placa apoiada na borda inferior, sem tampar o rosto (cantos dentro do recorte circular)
-          const safeR = r * 0.97;
-          const half = plateW / 2;
-          const bottomY = cy + Math.sqrt(Math.max(0, safeR * safeR - half * half));
-          const plateY = bottomY - plateH;
+          const plateCenterY = cy + r + 14;
+          const plateY = plateCenterY - plateH / 2;
           c.save();
-          c.shadowColor = "rgba(0,0,0,0.18)";
-          c.shadowBlur = 14;
-          c.shadowOffsetY = 4;
+          c.shadowColor = "rgba(0,0,0,0.14)";
+          c.shadowBlur = 12;
+          c.shadowOffsetY = 3;
           c.fillStyle = "#FFFFFF";
-          drawRoundedRect(c, plateX, plateY, plateW, plateH, plateH / 2.6);
+          drawRoundedRect(c, plateX, plateY, plateW, plateH, plateH / 2);
           c.fill();
           c.restore();
+          c.save();
+          drawRoundedRect(c, plateX, plateY, plateW, plateH, plateH / 2);
+          c.lineWidth = r * 0.024;
+          c.strokeStyle = "#006731";
+          c.stroke();
+          c.restore();
           const pad = plateH * 0.1;
-          const imgW = plateW - pad * 2;
-          const imgH = imgW * (lockup.height / lockup.width);
+          let imgW = plateW - plateH * 0.5;
+          let imgH = imgW * (lockup.height / lockup.width);
+          if (imgH > plateH - pad * 2) {
+            imgH = plateH - pad * 2;
+            imgW = imgH * (lockup.width / lockup.height);
+          }
           c.drawImage(lockup, cx - imgW / 2, plateY + (plateH - imgH) / 2, imgW, imgH);
         }
       } else {
