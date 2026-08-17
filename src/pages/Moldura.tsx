@@ -2,6 +2,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 
 const LOCKUP_SRC = "/marca/moldura-lockup.png";
 const MMARK_SRC = "/marca/moldura-mmark.png";
+const EXEMPLO_SRC = "/marca/moldura-exemplo.png";
 const AMARELA_V_SRC = "/marca/moldura-amarela-v.png";
 const FOOTER_LOGO_SRC = "/marca/moldura-footer-logo.png";
 
@@ -36,7 +37,12 @@ const Moldura = () => {
   const heroRef = useRef<HTMLCanvasElement>(null);
   const fileRef = useRef<HTMLInputElement>(null);
   const editorRef = useRef<HTMLDivElement>(null);
-  const assetsRef = useRef<{ lockup?: HTMLImageElement; mmark?: HTMLImageElement; amarelaV?: HTMLImageElement }>({});
+  const assetsRef = useRef<{
+    lockup?: HTMLImageElement;
+    mmark?: HTMLImageElement;
+    amarelaV?: HTMLImageElement;
+    exemplo?: HTMLImageElement;
+  }>({});
   const stateRef = useRef({
     img: null as HTMLImageElement | null,
     format: "feed" as FormatKey,
@@ -78,10 +84,11 @@ const Moldura = () => {
 
         const lockup = assets.lockup;
         if (lockup && showPlate) {
-          const plateW = r * 1.28;
-          const plateH = plateW * (lockup.height / lockup.width) + 22;
+          const plateW = r * 1.62;
+          const plateH = plateW * (lockup.height / lockup.width) + 26;
           const plateX = cx - plateW / 2;
-          const plateY = cy + r - plateH * 0.34;
+          // sobe a placa para invadir a base da foto, mantendo-a dentro do círculo do avatar
+          const plateY = cy + r - plateH * 0.72;
           c.save();
           c.shadowColor = "rgba(0,0,0,0.18)";
           c.shadowBlur = 14;
@@ -106,10 +113,10 @@ const Moldura = () => {
 
         if (showPlate) {
           const mark = assets.mmark;
-          const badgeR = r * 0.155;
+          const badgeR = r * 0.2;
           const angle = (45 * Math.PI) / 180;
-          const bx = cx + Math.cos(angle) * (r + 10);
-          const by = cy + Math.sin(angle) * (r + 10);
+          const bx = cx + Math.cos(angle) * (r * 0.9);
+          const by = cy + Math.sin(angle) * (r * 0.9);
           c.save();
           c.shadowColor = "rgba(0,0,0,0.2)";
           c.shadowBlur = 10;
@@ -161,8 +168,16 @@ const Moldura = () => {
       ctx.save();
       ctx.beginPath();
       ctx.arc(f.cx, f.cy, f.r, 0, Math.PI * 2);
+      ctx.clip();
       ctx.fillStyle = st.format === "story" ? "rgba(255,255,255,0.18)" : "#E3DFD1";
       ctx.fill();
+      const ex = assetsRef.current.exemplo;
+      if (ex) {
+        const s = (f.r * 2) / Math.min(ex.width, ex.height);
+        const w = ex.width * s;
+        const h = ex.height * s;
+        ctx.drawImage(ex, f.cx - w / 2, f.cy - h / 2, w, h);
+      }
       ctx.restore();
     }
 
@@ -184,8 +199,16 @@ const Moldura = () => {
     hctx.save();
     hctx.beginPath();
     hctx.arc(220, 220, 168, 0, Math.PI * 2);
+    hctx.clip();
     hctx.fillStyle = "#E3DFD1";
     hctx.fill();
+    const ex = assetsRef.current.exemplo;
+    if (ex) {
+      const s = 336 / Math.min(ex.width, ex.height);
+      const w = ex.width * s;
+      const h = ex.height * s;
+      hctx.drawImage(ex, 220 - w / 2, 220 - h / 2, w, h);
+    }
     hctx.restore();
     drawFrame(hctx, 220, 220, 168, "faixa");
   }, [drawFrame]);
@@ -220,6 +243,7 @@ const Moldura = () => {
       loadImg(LOCKUP_SRC).then((i) => (assetsRef.current.lockup = i)),
       loadImg(MMARK_SRC).then((i) => (assetsRef.current.mmark = i)),
       loadImg(AMARELA_V_SRC).then((i) => (assetsRef.current.amarelaV = i)),
+      loadImg(EXEMPLO_SRC).then((i) => (assetsRef.current.exemplo = i)),
     ]).then(() => {
       setAssetsReady(true);
       render();
