@@ -84,7 +84,7 @@ const Moldura = () => {
 
         const lockup = assets.lockup;
         if (lockup && showPlate) {
-          const plateW = r * 1.25;
+          const plateW = r * 1.0;
           const plateH = plateW * (lockup.height / lockup.width) + r * 0.06;
           const plateX = cx - plateW / 2;
           // mantém os cantos da placa dentro do recorte circular do avatar (raio seguro 0.9r)
