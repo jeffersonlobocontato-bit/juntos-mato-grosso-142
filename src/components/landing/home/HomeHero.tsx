@@ -222,10 +222,10 @@ const HomeHero = () => {
         <div className="wrap topbar__in">
           <a className="logo" href="#topo" aria-label="Moro Governador — Vice Edson Vasconcelos">
             <img
-              src="/marca/moro-governador-vice-verde.png"
+              src="/marca/moro-gov-vice-2026-verde.png"
               alt="Moro Governador — Vice Edson Vasconcelos"
               width={1600}
-              height={602}
+              height={833}
             />
           </a>
           <button
@@ -535,7 +535,7 @@ const HomeHero = () => {
             </div>
           </div>
           <div className="wrap">
-            <img className="foot__logo" src="/marca/moro-governador-vice-verde.png" alt="Moro Governador — Vice Edson Vasconcelos" width={1600} height={602} loading="lazy" />
+            <img className="foot__logo" src="/marca/moro-gov-vice-2026-verde.png" alt="Moro Governador — Vice Edson Vasconcelos" width={1600} height={833} loading="lazy" />
             Em conformidade com a LGPD (Lei nº 13.709/2018), nome, telefone e cidade não são divulgados publicamente,
             não são compartilhados com terceiros e não são usados para fins comerciais.<br />
             Consulta, correção ou exclusão dos seus dados:{" "}
