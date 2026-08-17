@@ -168,8 +168,16 @@ const Moldura = () => {
       ctx.save();
       ctx.beginPath();
       ctx.arc(f.cx, f.cy, f.r, 0, Math.PI * 2);
+      ctx.clip();
       ctx.fillStyle = st.format === "story" ? "rgba(255,255,255,0.18)" : "#E3DFD1";
       ctx.fill();
+      const ex = assetsRef.current.exemplo;
+      if (ex) {
+        const s = (f.r * 2) / Math.min(ex.width, ex.height);
+        const w = ex.width * s;
+        const h = ex.height * s;
+        ctx.drawImage(ex, f.cx - w / 2, f.cy - h / 2, w, h);
+      }
       ctx.restore();
     }
 
@@ -191,8 +199,16 @@ const Moldura = () => {
     hctx.save();
     hctx.beginPath();
     hctx.arc(220, 220, 168, 0, Math.PI * 2);
+    hctx.clip();
     hctx.fillStyle = "#E3DFD1";
     hctx.fill();
+    const ex = assetsRef.current.exemplo;
+    if (ex) {
+      const s = 336 / Math.min(ex.width, ex.height);
+      const w = ex.width * s;
+      const h = ex.height * s;
+      hctx.drawImage(ex, 220 - w / 2, 220 - h / 2, w, h);
+    }
     hctx.restore();
     drawFrame(hctx, 220, 220, 168, "faixa");
   }, [drawFrame]);
@@ -227,6 +243,7 @@ const Moldura = () => {
       loadImg(LOCKUP_SRC).then((i) => (assetsRef.current.lockup = i)),
       loadImg(MMARK_SRC).then((i) => (assetsRef.current.mmark = i)),
       loadImg(AMARELA_V_SRC).then((i) => (assetsRef.current.amarelaV = i)),
+      loadImg(EXEMPLO_SRC).then((i) => (assetsRef.current.exemplo = i)),
     ]).then(() => {
       setAssetsReady(true);
       render();
