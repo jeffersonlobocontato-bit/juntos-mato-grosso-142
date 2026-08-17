@@ -2,6 +2,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 
 const LOCKUP_SRC = "/marca/moldura-lockup.png";
 const MMARK_SRC = "/marca/moldura-mmark.png";
+const EXEMPLO_SRC = "/marca/moldura-exemplo.png";
 const AMARELA_V_SRC = "/marca/moldura-amarela-v.png";
 const FOOTER_LOGO_SRC = "/marca/moldura-footer-logo.png";
 
