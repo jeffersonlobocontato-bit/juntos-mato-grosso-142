@@ -37,7 +37,12 @@ const Moldura = () => {
   const heroRef = useRef<HTMLCanvasElement>(null);
   const fileRef = useRef<HTMLInputElement>(null);
   const editorRef = useRef<HTMLDivElement>(null);
-  const assetsRef = useRef<{ lockup?: HTMLImageElement; mmark?: HTMLImageElement; amarelaV?: HTMLImageElement }>({});
+  const assetsRef = useRef<{
+    lockup?: HTMLImageElement;
+    mmark?: HTMLImageElement;
+    amarelaV?: HTMLImageElement;
+    exemplo?: HTMLImageElement;
+  }>({});
   const stateRef = useRef({
     img: null as HTMLImageElement | null,
     format: "feed" as FormatKey,
@@ -79,10 +84,11 @@ const Moldura = () => {
 
         const lockup = assets.lockup;
         if (lockup && showPlate) {
-          const plateW = r * 1.28;
-          const plateH = plateW * (lockup.height / lockup.width) + 22;
+          const plateW = r * 1.62;
+          const plateH = plateW * (lockup.height / lockup.width) + 26;
           const plateX = cx - plateW / 2;
-          const plateY = cy + r - plateH * 0.34;
+          // sobe a placa para invadir a base da foto, mantendo-a dentro do círculo do avatar
+          const plateY = cy + r - plateH * 0.72;
           c.save();
           c.shadowColor = "rgba(0,0,0,0.18)";
           c.shadowBlur = 14;
@@ -107,10 +113,10 @@ const Moldura = () => {
 
         if (showPlate) {
           const mark = assets.mmark;
-          const badgeR = r * 0.155;
+          const badgeR = r * 0.2;
           const angle = (45 * Math.PI) / 180;
-          const bx = cx + Math.cos(angle) * (r + 10);
-          const by = cy + Math.sin(angle) * (r + 10);
+          const bx = cx + Math.cos(angle) * (r * 0.9);
+          const by = cy + Math.sin(angle) * (r * 0.9);
           c.save();
           c.shadowColor = "rgba(0,0,0,0.2)";
           c.shadowBlur = 10;
