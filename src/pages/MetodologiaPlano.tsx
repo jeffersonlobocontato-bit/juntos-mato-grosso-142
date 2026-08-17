@@ -6,7 +6,7 @@ import MetodologiaVideo from "@/components/landing/MetodologiaVideo";
 import MetodologiaDestaqueMidia from "@/components/landing/MetodologiaDestaqueMidia";
 import MetodologiaGaleria from "@/components/landing/MetodologiaGaleria";
 import MetodologiaEntidades from "@/components/landing/MetodologiaEntidades";
-const logoClara = "/marca/moro-governador-vice-branco.png";
+const logoClara = "/marca/moro22-horizontal-amarela.png";
 import fotoOficial from "@/assets/metodologia/foto-oficial-moro-ombros.png";
 import planoPdf from "@/assets/plano-governo.pdf.asset.json";
 
@@ -156,7 +156,7 @@ export default function MetodologiaPlano() {
           style={{ background: `radial-gradient(circle at 85% 15%, ${BRAND.gold}33, transparent 55%)` }}
         />
         <div className="relative container mx-auto px-6 py-14 md:py-20 max-w-6xl">
-          <img src="/marca/moro-governador-vice-branco.png" alt="Moro Governador — Vice Edson Vasconcelos" className="h-16 md:h-24 mb-10" />
+          <img src="/marca/moro22-horizontal-amarela.png" alt="Moro 22 Governador — Vice Edson Vasconcelos" className="h-16 md:h-24 mb-10" />
 
           <div className="grid md:grid-cols-[1.3fr_1fr] gap-10 items-center md:items-stretch">
             <div>
@@ -401,11 +401,11 @@ export default function MetodologiaPlano() {
       {/* ============ FOOTER ============ */}
       <footer className="py-10" style={{ background: BRAND.navy }}>
         <div className="container mx-auto px-6 max-w-6xl flex flex-col items-center gap-4">
-          <img src={logoClara} alt="Moro" className="h-10" />
+          <img src={logoClara} alt="Moro 22 Governador — Vice Edson Vasconcelos" className="h-12" />
           <div className="text-center" style={{ fontFamily: "'Inter',sans-serif", fontSize: 13, color: "rgba(255,255,255,.85)", fontWeight: 500, lineHeight: 1.6 }}>
-            <div>Partido: <strong style={{ fontWeight: 800 }}>Partido Liberal (PL)</strong></div>
-            <div>CNPJ de campanha: <strong style={{ fontWeight: 800, letterSpacing: ".01em" }}>68.456.168/0001-40</strong></div>
-            <div>Contratante: <strong style={{ fontWeight: 800 }}>ELEICAO 2026 SERGIO FERNANDO MORO GOVERNADOR</strong></div>
+            <div>
+              <strong style={{ fontWeight: 800 }}>PROPAGANDA ELEITORAL</strong> • Coligação Fortaleza Paraná - PL - NOVO - PODEMOS - CNPJ - 68.456.168/0001-40
+            </div>
           </div>
           <p className="text-white/50 text-xs text-center">
             Paraná, a nossa fortaleza! — Metodologia do Plano de Governo, construída com o Paraná.
