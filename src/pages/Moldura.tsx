@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
+import lockupAsset from "@/assets/logo-amarela-quadrada.png.asset.json";
 
-const LOCKUP_SRC = "/marca/moro-governador-vice-branco.png";
+const LOCKUP_SRC = lockupAsset.url;
 const MMARK_SRC = "/marca/moldura-mmark.png";
 const EXEMPLO_SRC = "/marca/moldura-exemplo.png";
 const AMARELA_V_SRC = "/marca/moldura-amarela-v.png";
