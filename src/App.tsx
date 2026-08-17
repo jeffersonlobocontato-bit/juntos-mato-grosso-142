@@ -38,6 +38,7 @@ import CookieConsentBanner from "./components/CookieConsentBanner";
 import PoliticaPrivacidade from "./pages/PoliticaPrivacidade";
 import TermosDeUso from "./pages/TermosDeUso";
 import MetodologiaPlano from "./pages/MetodologiaPlano";
+import Moldura from "./pages/Moldura";
 const queryClient = new QueryClient({
   defaultOptions: {
     queries: {
@@ -90,6 +91,7 @@ const App = () => (
             <Route path="/politica-privacidade" element={<PoliticaPrivacidade />} />
             <Route path="/termos-de-uso" element={<TermosDeUso />} />
             <Route path="/planodegoverno" element={<MetodologiaPlano />} />
+            <Route path="/moldura" element={<Moldura />} />
             <Route path="/metodologia" element={<Navigate to="/planodegoverno" replace />} />
             {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
             <Route path="*" element={<NotFound />} />
