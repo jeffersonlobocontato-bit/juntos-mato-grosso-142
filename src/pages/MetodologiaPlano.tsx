@@ -404,7 +404,7 @@ export default function MetodologiaPlano() {
           <img src={logoClara} alt="Moro 22 Governador — Vice Edson Vasconcelos" className="h-12" />
           <div className="text-center" style={{ fontFamily: "'Inter',sans-serif", fontSize: 13, color: "rgba(255,255,255,.85)", fontWeight: 500, lineHeight: 1.6 }}>
             <div>
-              <strong style={{ fontWeight: 800 }}>PROPAGANDA ELEITORAL</strong> • Coligação Fortaleza Paraná - PL - NOVO - PODEMOS - CNPJ - 68.456.168/0001-40
+              • Coligação Fortaleza Paraná - PL - NOVO - PODEMOS - CNPJ - 68.456.168/0001-40
             </div>
           </div>
           <p className="text-white/50 text-xs text-center">

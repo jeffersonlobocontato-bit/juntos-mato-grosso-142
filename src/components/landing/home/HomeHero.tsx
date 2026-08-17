@@ -530,7 +530,7 @@ const HomeHero = () => {
           <div className="foot__cnpj">
             <div className="foot__cnpj-info">
               <div>
-                <strong>PROPAGANDA ELEITORAL</strong> • Coligação Fortaleza Paraná - PL - NOVO - PODEMOS - CNPJ - 68.456.168/0001-40
+                • Coligação Fortaleza Paraná - PL - NOVO - PODEMOS - CNPJ - 68.456.168/0001-40
               </div>
             </div>
           </div>
