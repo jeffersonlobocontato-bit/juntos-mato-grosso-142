@@ -70,14 +70,14 @@ const Moldura = () => {
       localStorage.getItem("moldura_admin") === "1"),
   );
   const [exFit, setExFit] = useState<{ zoom: number; x: number; y: number }>(() => {
-    if (typeof window === "undefined") return { zoom: 1.18, x: 0, y: -0.26 };
+    if (typeof window === "undefined") return { zoom: 1.22, x: 0, y: -0.28 };
     try {
       const raw = localStorage.getItem("moldura_exemplo_fit");
       if (raw) return { zoom: 1.18, x: 0, y: -0.26, ...JSON.parse(raw) };
     } catch {
       /* ignore */
     }
-    return { zoom: 1.18, x: 0, y: -0.26 };
+    return { zoom: 1.22, x: 0, y: -0.28 };
   });
   const exFitRef = useRef(exFit);
   exFitRef.current = exFit;
@@ -533,7 +533,7 @@ const Moldura = () => {
                   </div>
                 ))}
                 <button
-                  onClick={() => setExFit({ zoom: 1.18, x: 0, y: -0.26 })}
+                  onClick={() => setExFit({ zoom: 1.22, x: 0, y: -0.28 })}
                   className="w-full rounded-full border-2 border-[#006731] px-3 py-2 text-xs font-semibold text-[#006731]"
                 >
                   Restaurar padrão
