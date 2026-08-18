@@ -9,6 +9,10 @@ const FOOTER_LOGO_SRC = "/marca/moldura-footer-logo.png";
 
 type FormatKey = "feed" | "story";
 type ArtKey = "faixa" | "leve";
+type ExampleFit = { zoom: number; x: number; y: number };
+
+const EXAMPLE_FIT_STORAGE_KEY = "moldura_exemplo_fit_v2";
+const DEFAULT_EXAMPLE_FIT: ExampleFit = { zoom: 1.04, x: 0, y: 0.03 };
 
 const FORMATS: Record<FormatKey, { w: number; h: number; cx: number; cy: number; r: number }> = {
   feed: { w: 1080, h: 1080, cx: 540, cy: 540, r: 420 },
@@ -69,15 +73,15 @@ const Moldura = () => {
     (new URLSearchParams(window.location.search).has("admin") ||
       localStorage.getItem("moldura_admin") === "1"),
   );
-  const [exFit, setExFit] = useState<{ zoom: number; x: number; y: number }>(() => {
-    if (typeof window === "undefined") return { zoom: 1.22, x: 0, y: -0.28 };
+  const [exFit, setExFit] = useState<ExampleFit>(() => {
+    if (typeof window === "undefined") return DEFAULT_EXAMPLE_FIT;
     try {
-      const raw = localStorage.getItem("moldura_exemplo_fit");
-      if (raw) return { zoom: 1.18, x: 0, y: -0.26, ...JSON.parse(raw) };
+      const raw = localStorage.getItem(EXAMPLE_FIT_STORAGE_KEY);
+      if (raw) return { ...DEFAULT_EXAMPLE_FIT, ...JSON.parse(raw) };
     } catch {
       /* ignore */
     }
-    return { zoom: 1.22, x: 0, y: -0.28 };
+    return DEFAULT_EXAMPLE_FIT;
   });
   const exFitRef = useRef(exFit);
   exFitRef.current = exFit;
@@ -281,7 +285,7 @@ const Moldura = () => {
 
   useEffect(() => {
     try {
-      localStorage.setItem("moldura_exemplo_fit", JSON.stringify(exFit));
+      localStorage.setItem(EXAMPLE_FIT_STORAGE_KEY, JSON.stringify(exFit));
     } catch {
       /* ignore */
     }
