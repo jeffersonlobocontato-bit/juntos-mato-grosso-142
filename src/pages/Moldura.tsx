@@ -217,7 +217,7 @@ const Moldura = () => {
       ctx.fill();
       const ex = assetsRef.current.exemplo;
       if (ex) {
-        const fit = exFitRef.current;
+        const fit = exFitRef.current[st.format];
         const s = ((f.r * 2) / Math.min(ex.width, ex.height)) * fit.zoom;
         const w = ex.width * s;
         const h = ex.height * s;
@@ -249,7 +249,7 @@ const Moldura = () => {
     hctx.fill();
     const ex = assetsRef.current.exemplo;
     if (ex) {
-      const fit = exFitRef.current;
+      const fit = exFitRef.current.feed;
       const s = (336 / Math.min(ex.width, ex.height)) * fit.zoom;
       const w = ex.width * s;
       const h = ex.height * s;
@@ -328,10 +328,23 @@ const Moldura = () => {
   };
 
   const changeFormat = (f: FormatKey) => {
+    const st = stateRef.current;
+    if (st.img) {
+      userFitsRef.current[st.format] = { scale: st.scale, minScale: st.minScale, offX: st.offX, offY: st.offY };
+    }
     stateRef.current.format = f;
     setFormat(f);
     setCanvasSize();
-    fitImage();
+    const saved = userFitsRef.current[f];
+    if (st.img && saved) {
+      st.scale = saved.scale;
+      st.minScale = saved.minScale;
+      st.offX = saved.offX;
+      st.offY = saved.offY;
+      setZoom(Math.round((saved.scale / saved.minScale) * 100));
+    } else {
+      fitImage();
+    }
     render();
   };
 
