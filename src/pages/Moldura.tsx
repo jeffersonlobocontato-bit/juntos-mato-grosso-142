@@ -280,6 +280,16 @@ const Moldura = () => {
   }, [render, renderHero, setCanvasSize]);
 
   useEffect(() => {
+    try {
+      localStorage.setItem("moldura_exemplo_fit", JSON.stringify(exFit));
+    } catch {
+      /* ignore */
+    }
+    render();
+    renderHero();
+  }, [exFit, render, renderHero]);
+
+  useEffect(() => {
     if (assetsReady) renderHero();
   }, [assetsReady, renderHero]);
 
