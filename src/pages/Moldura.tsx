@@ -180,10 +180,10 @@ const Moldura = () => {
       ctx.fill();
       const ex = assetsRef.current.exemplo;
       if (ex) {
-        const s = (f.r * 2) / Math.min(ex.width, ex.height);
+        const s = ((f.r * 2) / Math.min(ex.width, ex.height)) * 1.18;
         const w = ex.width * s;
         const h = ex.height * s;
-        ctx.drawImage(ex, f.cx - w / 2, f.cy - h / 2, w, h);
+        ctx.drawImage(ex, f.cx - w / 2, f.cy - h / 2 - f.r * 0.26, w, h);
       }
       ctx.restore();
     }
@@ -211,10 +211,10 @@ const Moldura = () => {
     hctx.fill();
     const ex = assetsRef.current.exemplo;
     if (ex) {
-      const s = 336 / Math.min(ex.width, ex.height);
+      const s = (336 / Math.min(ex.width, ex.height)) * 1.18;
       const w = ex.width * s;
       const h = ex.height * s;
-      hctx.drawImage(ex, 220 - w / 2, 220 - h / 2, w, h);
+      hctx.drawImage(ex, 220 - w / 2, 220 - h / 2 - 168 * 0.26, w, h);
     }
     hctx.restore();
     drawFrame(hctx, 220, 220, 168, "faixa");
