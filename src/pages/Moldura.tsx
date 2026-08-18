@@ -317,6 +317,15 @@ const Moldura = () => {
   useEffect(() => {
     let active = true;
     const loadPublishedFit = async () => {
+      // Preserve o ajuste já aprovado no navegador do admin para que ele possa
+      // publicá-lo; visitantes sempre recebem a configuração global.
+      if (adminMode) {
+        try {
+          if (localStorage.getItem(EXAMPLE_FIT_STORAGE_KEY)) return;
+        } catch {
+          /* segue com a configuração publicada */
+        }
+      }
       const { data } = await supabase
         .from("moldura_config")
         .select("feed_zoom,feed_x,feed_y,story_zoom,story_x,story_y")
@@ -333,7 +342,7 @@ const Moldura = () => {
     return () => {
       active = false;
     };
-  }, []);
+  }, [adminMode]);
 
   useEffect(() => {
     render();
