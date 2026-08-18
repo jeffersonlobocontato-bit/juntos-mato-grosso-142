@@ -318,6 +318,7 @@ const Moldura = () => {
       const img = new Image();
       img.onload = () => {
         stateRef.current.img = img;
+        userFitsRef.current = {};
         setHasImg(true);
         fitImage();
         render();
