@@ -63,6 +63,25 @@ const Moldura = () => {
   const [hasImg, setHasImg] = useState(false);
   const [assetsReady, setAssetsReady] = useState(false);
 
+  // Ajuste manual (modo admin) do enquadramento da foto de exemplo
+  const [adminMode] = useState(() =>
+    typeof window !== "undefined" &&
+    (new URLSearchParams(window.location.search).has("admin") ||
+      localStorage.getItem("moldura_admin") === "1"),
+  );
+  const [exFit, setExFit] = useState<{ zoom: number; x: number; y: number }>(() => {
+    if (typeof window === "undefined") return { zoom: 1.18, x: 0, y: -0.26 };
+    try {
+      const raw = localStorage.getItem("moldura_exemplo_fit");
+      if (raw) return { zoom: 1.18, x: 0, y: -0.26, ...JSON.parse(raw) };
+    } catch {
+      /* ignore */
+    }
+    return { zoom: 1.18, x: 0, y: -0.26 };
+  });
+  const exFitRef = useRef(exFit);
+  exFitRef.current = exFit;
+
   const drawFrame = useCallback(
     (c: CanvasRenderingContext2D, cx: number, cy: number, r: number, artKey: ArtKey, showPlate = true) => {
       const assets = assetsRef.current;
@@ -180,10 +199,11 @@ const Moldura = () => {
       ctx.fill();
       const ex = assetsRef.current.exemplo;
       if (ex) {
-        const s = ((f.r * 2) / Math.min(ex.width, ex.height)) * 1.18;
+        const fit = exFitRef.current;
+        const s = ((f.r * 2) / Math.min(ex.width, ex.height)) * fit.zoom;
         const w = ex.width * s;
         const h = ex.height * s;
-        ctx.drawImage(ex, f.cx - w / 2, f.cy - h / 2 - f.r * 0.26, w, h);
+        ctx.drawImage(ex, f.cx - w / 2 + f.r * fit.x, f.cy - h / 2 + f.r * fit.y, w, h);
       }
       ctx.restore();
     }
@@ -211,10 +231,11 @@ const Moldura = () => {
     hctx.fill();
     const ex = assetsRef.current.exemplo;
     if (ex) {
-      const s = (336 / Math.min(ex.width, ex.height)) * 1.18;
+      const fit = exFitRef.current;
+      const s = (336 / Math.min(ex.width, ex.height)) * fit.zoom;
       const w = ex.width * s;
       const h = ex.height * s;
-      hctx.drawImage(ex, 220 - w / 2, 220 - h / 2 - 168 * 0.26, w, h);
+      hctx.drawImage(ex, 220 - w / 2 + 168 * fit.x, 220 - h / 2 + 168 * fit.y, w, h);
     }
     hctx.restore();
     drawFrame(hctx, 220, 220, 168, "faixa");
@@ -257,6 +278,16 @@ const Moldura = () => {
       renderHero();
     });
   }, [render, renderHero, setCanvasSize]);
+
+  useEffect(() => {
+    try {
+      localStorage.setItem("moldura_exemplo_fit", JSON.stringify(exFit));
+    } catch {
+      /* ignore */
+    }
+    render();
+    renderHero();
+  }, [exFit, render, renderHero]);
 
   useEffect(() => {
     if (assetsReady) renderHero();
@@ -473,6 +504,44 @@ const Moldura = () => {
               <p className="px-2.5 py-7 text-center text-[13px] text-[#566253]">
                 Nenhuma foto selecionada ainda. Escolha uma foto para começar a ajustar.
               </p>
+            )}
+
+            {adminMode && !hasImg && (
+              <div className="mb-4 rounded-2xl border-2 border-dashed border-[#006731] bg-white p-4">
+                <p className="mb-3 text-center text-[13px] font-bold uppercase text-[#006731]">
+                  Admin · enquadrar foto de modelo
+                </p>
+                {([
+                  ["Zoom", "zoom", 0.8, 2.5, 0.01],
+                  ["Horizontal", "x", -1, 1, 0.01],
+                  ["Vertical", "y", -1, 1, 0.01],
+                ] as const).map(([label, key, min, max, step]) => (
+                  <div key={key} className="mb-3">
+                    <div className="mb-1 flex justify-between text-xs text-[#566253]">
+                      <span>{label}</span>
+                      <span>{exFit[key].toFixed(2)}</span>
+                    </div>
+                    <input
+                      type="range"
+                      min={min}
+                      max={max}
+                      step={step}
+                      value={exFit[key]}
+                      onChange={(e) => setExFit((p) => ({ ...p, [key]: Number(e.target.value) }))}
+                      className="w-full accent-[#006731]"
+                    />
+                  </div>
+                ))}
+                <button
+                  onClick={() => setExFit({ zoom: 1.18, x: 0, y: -0.26 })}
+                  className="w-full rounded-full border-2 border-[#006731] px-3 py-2 text-xs font-semibold text-[#006731]"
+                >
+                  Restaurar padrão
+                </button>
+                <p className="mt-2 text-center text-[11px] text-[#566253]">
+                  Ajuste salvo neste navegador. Acesse com ?admin=1 para reabrir este painel.
+                </p>
+              </div>
             )}
 
             {hasImg && (
