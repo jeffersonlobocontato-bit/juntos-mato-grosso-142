@@ -112,6 +112,7 @@ const Moldura = () => {
   });
   const exFitRef = useRef(exFit);
   exFitRef.current = exFit;
+  const [exFitSaved, setExFitSaved] = useState(true);
 
   const drawFrame = useCallback(
     (c: CanvasRenderingContext2D, cx: number, cy: number, r: number, artKey: ArtKey, showPlate = true) => {
@@ -311,11 +312,6 @@ const Moldura = () => {
   }, [render, renderHero, setCanvasSize]);
 
   useEffect(() => {
-    try {
-      localStorage.setItem(EXAMPLE_FIT_STORAGE_KEY, JSON.stringify(exFit));
-    } catch {
-      /* ignore */
-    }
     render();
     renderHero();
   }, [exFit, render, renderHero]);
@@ -573,20 +569,41 @@ const Moldura = () => {
                       step={step}
                       value={exFit[format][key]}
                       onChange={(e) =>
-                        setExFit((p) => ({ ...p, [format]: { ...p[format], [key]: Number(e.target.value) } }))
+                        {
+                          setExFit((p) => ({ ...p, [format]: { ...p[format], [key]: Number(e.target.value) } }));
+                          setExFitSaved(false);
+                        }
                       }
                       className="w-full accent-[#006731]"
                     />
                   </div>
                 ))}
-                <button
-                  onClick={() => setExFit((p) => ({ ...p, [format]: DEFAULT_EXAMPLE_FIT[format] }))}
-                  className="w-full rounded-full border-2 border-[#006731] px-3 py-2 text-xs font-semibold text-[#006731]"
-                >
-                  Restaurar padrão
-                </button>
+                <div className="flex gap-2">
+                  <button
+                    onClick={() => {
+                      setExFit((p) => ({ ...p, [format]: DEFAULT_EXAMPLE_FIT[format] }));
+                      setExFitSaved(false);
+                    }}
+                    className="flex-1 rounded-full border-2 border-[#006731] px-3 py-2 text-xs font-semibold text-[#006731]"
+                  >
+                    Restaurar padrão
+                  </button>
+                  <button
+                    onClick={() => {
+                      try {
+                        localStorage.setItem(EXAMPLE_FIT_STORAGE_KEY, JSON.stringify(exFitRef.current));
+                        setExFitSaved(true);
+                      } catch {
+                        /* ignore */
+                      }
+                    }}
+                    className="flex-1 rounded-full bg-[#006731] px-3 py-2 text-xs font-bold text-white"
+                  >
+                    {exFitSaved ? "Salvo ✓" : "Salvar ajuste"}
+                  </button>
+                </div>
                 <p className="mt-2 text-center text-[11px] text-[#566253]">
-                  Ajuste independente por formato, salvo neste navegador. Acesse com ?admin=1 para reabrir.
+                  Ajuste independente por formato. Clique em Salvar para gravar neste navegador. Acesse com ?admin=1 para reabrir.
                 </p>
               </div>
             )}
