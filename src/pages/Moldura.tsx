@@ -755,6 +755,12 @@ const Moldura = () => {
                 Baixar imagem
               </button>
             </div>
+            {iosHint && (
+              <p className="mt-3 rounded-[12px] bg-[#FFF7CC] px-3.5 py-2.5 text-xs leading-relaxed text-[#4A3B00]">
+                No iPhone, a imagem abriu em uma nova aba. Toque e segure sobre ela e escolha
+                <strong> “Salvar em Fotos” </strong> para guardar no seu celular.
+              </p>
+            )}
           </div>
         </div>
       </section>
