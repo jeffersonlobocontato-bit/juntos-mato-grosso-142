@@ -13,9 +13,9 @@ type ExampleFit = { zoom: number; x: number; y: number };
 
 type ExampleFitMap = Record<FormatKey, ExampleFit>;
 
-const EXAMPLE_FIT_STORAGE_KEY = "moldura_exemplo_fit_v3";
+const EXAMPLE_FIT_STORAGE_KEY = "moldura_exemplo_fit_v4";
 const DEFAULT_EXAMPLE_FIT: ExampleFitMap = {
-  feed: { zoom: 1.04, x: 0, y: 0.03 },
+  feed: { zoom: 0.9, x: 0, y: 0.08 },
   story: { zoom: 1.04, x: 0, y: 0.03 },
 };
 
