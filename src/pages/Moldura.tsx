@@ -540,7 +540,7 @@ const Moldura = () => {
             {adminMode && !hasImg && (
               <div className="mb-4 rounded-2xl border-2 border-dashed border-[#006731] bg-white p-4">
                 <p className="mb-3 text-center text-[13px] font-bold uppercase text-[#006731]">
-                  Admin · enquadrar foto de modelo
+                  Admin · enquadrar foto de modelo ({format === "feed" ? "Feed / Perfil" : "Story / Status"})
                 </p>
                 {([
                   ["Zoom", "zoom", 0.8, 2.5, 0.01],
@@ -550,27 +550,29 @@ const Moldura = () => {
                   <div key={key} className="mb-3">
                     <div className="mb-1 flex justify-between text-xs text-[#566253]">
                       <span>{label}</span>
-                      <span>{exFit[key].toFixed(2)}</span>
+                      <span>{exFit[format][key].toFixed(2)}</span>
                     </div>
                     <input
                       type="range"
                       min={min}
                       max={max}
                       step={step}
-                      value={exFit[key]}
-                      onChange={(e) => setExFit((p) => ({ ...p, [key]: Number(e.target.value) }))}
+                      value={exFit[format][key]}
+                      onChange={(e) =>
+                        setExFit((p) => ({ ...p, [format]: { ...p[format], [key]: Number(e.target.value) } }))
+                      }
                       className="w-full accent-[#006731]"
                     />
                   </div>
                 ))}
                 <button
-                  onClick={() => setExFit({ zoom: 1.22, x: 0, y: -0.28 })}
+                  onClick={() => setExFit((p) => ({ ...p, [format]: DEFAULT_EXAMPLE_FIT[format] }))}
                   className="w-full rounded-full border-2 border-[#006731] px-3 py-2 text-xs font-semibold text-[#006731]"
                 >
                   Restaurar padrão
                 </button>
                 <p className="mt-2 text-center text-[11px] text-[#566253]">
-                  Ajuste salvo neste navegador. Acesse com ?admin=1 para reabrir este painel.
+                  Ajuste independente por formato, salvo neste navegador. Acesse com ?admin=1 para reabrir.
                 </p>
               </div>
             )}
