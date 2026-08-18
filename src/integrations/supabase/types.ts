@@ -783,6 +783,39 @@ export type Database = {
         }
         Relationships: []
       }
+      moldura_config: {
+        Row: {
+          feed_x: number
+          feed_y: number
+          feed_zoom: number
+          id: string
+          story_x: number
+          story_y: number
+          story_zoom: number
+          updated_at: string
+        }
+        Insert: {
+          feed_x?: number
+          feed_y?: number
+          feed_zoom?: number
+          id?: string
+          story_x?: number
+          story_y?: number
+          story_zoom?: number
+          updated_at?: string
+        }
+        Update: {
+          feed_x?: number
+          feed_y?: number
+          feed_zoom?: number
+          id?: string
+          story_x?: number
+          story_y?: number
+          story_zoom?: number
+          updated_at?: string
+        }
+        Relationships: []
+      }
       municipios: {
         Row: {
           codigo_ibge: string | null
