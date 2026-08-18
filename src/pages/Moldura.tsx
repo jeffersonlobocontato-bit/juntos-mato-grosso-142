@@ -20,9 +20,10 @@ const FORMATS: Record<FormatKey, { w: number; h: number; cx: number; cy: number;
 };
 
 function loadImg(src: string) {
-  return new Promise<HTMLImageElement>((resolve) => {
+  return new Promise<HTMLImageElement>((resolve, reject) => {
     const img = new Image();
     img.onload = () => resolve(img);
+    img.onerror = () => reject(new Error(`Não foi possível carregar o recurso: ${src}`));
     img.src = src;
   });
 }
@@ -271,7 +272,7 @@ const Moldura = () => {
   useEffect(() => {
     document.title = "Sou Moro 22 | Moldura oficial de perfil";
     setCanvasSize();
-    Promise.all([
+    Promise.allSettled([
       loadImg(LOCKUP_SRC).then((i) => (assetsRef.current.lockup = i)),
       loadImg(MMARK_SRC).then((i) => (assetsRef.current.mmark = i)),
       loadImg(AMARELA_V_SRC).then((i) => (assetsRef.current.amarelaV = i)),
