@@ -11,8 +11,13 @@ type FormatKey = "feed" | "story";
 type ArtKey = "faixa" | "leve";
 type ExampleFit = { zoom: number; x: number; y: number };
 
-const EXAMPLE_FIT_STORAGE_KEY = "moldura_exemplo_fit_v2";
-const DEFAULT_EXAMPLE_FIT: ExampleFit = { zoom: 1.04, x: 0, y: 0.03 };
+type ExampleFitMap = Record<FormatKey, ExampleFit>;
+
+const EXAMPLE_FIT_STORAGE_KEY = "moldura_exemplo_fit_v3";
+const DEFAULT_EXAMPLE_FIT: ExampleFitMap = {
+  feed: { zoom: 1.04, x: 0, y: 0.03 },
+  story: { zoom: 1.04, x: 0, y: 0.03 },
+};
 
 const FORMATS: Record<FormatKey, { w: number; h: number; cx: number; cy: number; r: number }> = {
   feed: { w: 1080, h: 1080, cx: 540, cy: 540, r: 420 },
@@ -61,6 +66,8 @@ const Moldura = () => {
     lastX: 0,
     lastY: 0,
   });
+  // Enquadramento da foto enviada, salvo por formato (avatar/feed e story são independentes)
+  const userFitsRef = useRef<Partial<Record<FormatKey, { scale: number; minScale: number; offX: number; offY: number }>>>({});
 
   const [format, setFormat] = useState<FormatKey>("feed");
   const [art, setArt] = useState<ArtKey>("faixa");
@@ -74,11 +81,17 @@ const Moldura = () => {
     (new URLSearchParams(window.location.search).has("admin") ||
       localStorage.getItem("moldura_admin") === "1"),
   );
-  const [exFit, setExFit] = useState<ExampleFit>(() => {
+  const [exFit, setExFit] = useState<ExampleFitMap>(() => {
     if (typeof window === "undefined") return DEFAULT_EXAMPLE_FIT;
     try {
       const raw = localStorage.getItem(EXAMPLE_FIT_STORAGE_KEY);
-      if (raw) return { ...DEFAULT_EXAMPLE_FIT, ...JSON.parse(raw) };
+      if (raw) {
+        const parsed = JSON.parse(raw);
+        return {
+          feed: { ...DEFAULT_EXAMPLE_FIT.feed, ...(parsed?.feed || {}) },
+          story: { ...DEFAULT_EXAMPLE_FIT.story, ...(parsed?.story || {}) },
+        };
+      }
     } catch {
       /* ignore */
     }
