@@ -112,6 +112,7 @@ const Moldura = () => {
   });
   const exFitRef = useRef(exFit);
   exFitRef.current = exFit;
+  const [exFitSaved, setExFitSaved] = useState(true);
 
   const drawFrame = useCallback(
     (c: CanvasRenderingContext2D, cx: number, cy: number, r: number, artKey: ArtKey, showPlate = true) => {
