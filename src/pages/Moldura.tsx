@@ -428,10 +428,21 @@ const Moldura = () => {
     stateRef.current.dragging = false;
   };
 
-  const download = () => {
+  const download = async () => {
     const stage = stageRef.current;
     if (!stage || !stateRef.current.img) return;
     const fileName = `moro-moldura-${stateRef.current.format}.png`;
+
+    const isIOS =
+      /iP(hone|ad|od)/.test(navigator.userAgent) ||
+      (navigator.platform === "MacIntel" && (navigator as unknown as { maxTouchPoints?: number }).maxTouchPoints > 1);
+
+    const toBlob = () =>
+      new Promise<Blob | null>((resolve) => {
+        if (stage.toBlob) stage.toBlob((b) => resolve(b), "image/png");
+        else resolve(null);
+      });
+
     const triggerDownload = (href: string, revoke?: () => void) => {
       const link = document.createElement("a");
       link.download = fileName;
@@ -447,15 +458,35 @@ const Moldura = () => {
     };
 
     try {
-      if (stage.toBlob) {
-        stage.toBlob((blob) => {
-          if (!blob) {
-            triggerDownload(stage.toDataURL("image/png"));
+      const blob = await toBlob();
+
+      // iOS/Safari ignora o atributo download: usa o compartilhamento nativo
+      // (Salvar em Fotos) e, se indisponível, abre a imagem para toque longo.
+      if (blob && isIOS) {
+        const file = new File([blob], fileName, { type: "image/png" });
+        const nav = navigator as Navigator & {
+          canShare?: (data: { files: File[] }) => boolean;
+          share?: (data: { files: File[]; title?: string }) => Promise<void>;
+        };
+        if (nav.canShare?.({ files: [file] }) && nav.share) {
+          try {
+            await nav.share({ files: [file], title: "Sou Moro 22" });
             return;
+          } catch (err) {
+            if ((err as DOMException)?.name === "AbortError") return;
           }
-          const url = URL.createObjectURL(blob);
-          triggerDownload(url, () => URL.revokeObjectURL(url));
-        }, "image/png");
+        }
+        setIosHint(true);
+        const url = URL.createObjectURL(blob);
+        const win = window.open(url, "_blank");
+        if (!win) triggerDownload(url, () => URL.revokeObjectURL(url));
+        else window.setTimeout(() => URL.revokeObjectURL(url), 60000);
+        return;
+      }
+
+      if (blob) {
+        const url = URL.createObjectURL(blob);
+        triggerDownload(url, () => URL.revokeObjectURL(url));
       } else {
         triggerDownload(stage.toDataURL("image/png"));
       }
