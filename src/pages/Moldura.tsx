@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import lockupAsset from "@/assets/logo-amarela-quadrada.png.asset.json";
+import { supabase } from "@/integrations/supabase/client";
 
 const LOCKUP_SRC = lockupAsset.url;
 const MMARK_SRC = "/marca/moldura-mmark.png";
@@ -113,6 +114,8 @@ const Moldura = () => {
   const exFitRef = useRef(exFit);
   exFitRef.current = exFit;
   const [exFitSaved, setExFitSaved] = useState(true);
+  const [exFitSaving, setExFitSaving] = useState(false);
+  const [exFitSaveError, setExFitSaveError] = useState("");
 
   const drawFrame = useCallback(
     (c: CanvasRenderingContext2D, cx: number, cy: number, r: number, artKey: ArtKey, showPlate = true) => {
@@ -310,6 +313,27 @@ const Moldura = () => {
       renderHero();
     });
   }, [render, renderHero, setCanvasSize]);
+
+  useEffect(() => {
+    let active = true;
+    const loadPublishedFit = async () => {
+      const { data } = await supabase
+        .from("moldura_config")
+        .select("feed_zoom,feed_x,feed_y,story_zoom,story_x,story_y")
+        .eq("id", "default")
+        .maybeSingle();
+      if (!active || !data) return;
+      setExFit({
+        feed: { zoom: data.feed_zoom, x: data.feed_x, y: data.feed_y },
+        story: { zoom: data.story_zoom, x: data.story_x, y: data.story_y },
+      });
+      setExFitSaved(true);
+    };
+    void loadPublishedFit();
+    return () => {
+      active = false;
+    };
+  }, []);
 
   useEffect(() => {
     render();
@@ -589,21 +613,41 @@ const Moldura = () => {
                     Restaurar padrão
                   </button>
                   <button
-                    onClick={() => {
+                    disabled={exFitSaving}
+                    onClick={async () => {
+                      setExFitSaving(true);
+                      setExFitSaveError("");
                       try {
                         localStorage.setItem(EXAMPLE_FIT_STORAGE_KEY, JSON.stringify(exFitRef.current));
+                        const current = exFitRef.current;
+                        const { error } = await supabase
+                          .from("moldura_config")
+                          .update({
+                            feed_zoom: current.feed.zoom,
+                            feed_x: current.feed.x,
+                            feed_y: current.feed.y,
+                            story_zoom: current.story.zoom,
+                            story_x: current.story.x,
+                            story_y: current.story.y,
+                            updated_at: new Date().toISOString(),
+                          })
+                          .eq("id", "default");
+                        if (error) throw error;
                         setExFitSaved(true);
                       } catch {
-                        /* ignore */
+                        setExFitSaveError("Não foi possível publicar. Entre no painel administrativo e tente novamente.");
+                      } finally {
+                        setExFitSaving(false);
                       }
                     }}
-                    className="flex-1 rounded-full bg-[#006731] px-3 py-2 text-xs font-bold text-white"
+                    className="flex-1 rounded-full bg-[#006731] px-3 py-2 text-xs font-bold text-white disabled:opacity-50"
                   >
-                    {exFitSaved ? "Salvo ✓" : "Salvar ajuste"}
+                    {exFitSaving ? "Publicando..." : exFitSaved ? "Publicado ✓" : "Salvar e publicar"}
                   </button>
                 </div>
+                {exFitSaveError && <p className="mt-2 text-center text-[11px] font-semibold text-red-700">{exFitSaveError}</p>}
                 <p className="mt-2 text-center text-[11px] text-[#566253]">
-                  Ajuste independente por formato. Clique em Salvar para gravar neste navegador. Acesse com ?admin=1 para reabrir.
+                  Ajuste independente por formato. Salvar publica o enquadramento para todos os visitantes.
                 </p>
               </div>
             )}
