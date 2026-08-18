@@ -76,11 +76,24 @@ const Moldura = () => {
   const [assetsReady, setAssetsReady] = useState(false);
 
   // Ajuste manual (modo admin) do enquadramento da foto de exemplo
-  const [adminMode] = useState(() =>
-    typeof window !== "undefined" &&
-    (new URLSearchParams(window.location.search).has("admin") ||
-      localStorage.getItem("moldura_admin") === "1"),
-  );
+  const [adminMode] = useState(() => {
+    if (typeof window === "undefined") return false;
+    const params = new URLSearchParams(window.location.search);
+    if (params.has("admin")) {
+      // mantém o modo admin ativo neste navegador
+      try {
+        localStorage.setItem("moldura_admin", params.get("admin") === "0" ? "0" : "1");
+      } catch {
+        /* ignore */
+      }
+      return params.get("admin") !== "0";
+    }
+    try {
+      return localStorage.getItem("moldura_admin") === "1";
+    } catch {
+      return false;
+    }
+  });
   const [exFit, setExFit] = useState<ExampleFitMap>(() => {
     if (typeof window === "undefined") return DEFAULT_EXAMPLE_FIT;
     try {
