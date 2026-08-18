@@ -11,8 +11,13 @@ type FormatKey = "feed" | "story";
 type ArtKey = "faixa" | "leve";
 type ExampleFit = { zoom: number; x: number; y: number };
 
-const EXAMPLE_FIT_STORAGE_KEY = "moldura_exemplo_fit_v2";
-const DEFAULT_EXAMPLE_FIT: ExampleFit = { zoom: 1.04, x: 0, y: 0.03 };
+type ExampleFitMap = Record<FormatKey, ExampleFit>;
+
+const EXAMPLE_FIT_STORAGE_KEY = "moldura_exemplo_fit_v3";
+const DEFAULT_EXAMPLE_FIT: ExampleFitMap = {
+  feed: { zoom: 1.04, x: 0, y: 0.03 },
+  story: { zoom: 1.04, x: 0, y: 0.03 },
+};
 
 const FORMATS: Record<FormatKey, { w: number; h: number; cx: number; cy: number; r: number }> = {
   feed: { w: 1080, h: 1080, cx: 540, cy: 540, r: 420 },
@@ -61,6 +66,8 @@ const Moldura = () => {
     lastX: 0,
     lastY: 0,
   });
+  // Enquadramento da foto enviada, salvo por formato (avatar/feed e story são independentes)
+  const userFitsRef = useRef<Partial<Record<FormatKey, { scale: number; minScale: number; offX: number; offY: number }>>>({});
 
   const [format, setFormat] = useState<FormatKey>("feed");
   const [art, setArt] = useState<ArtKey>("faixa");
@@ -74,11 +81,17 @@ const Moldura = () => {
     (new URLSearchParams(window.location.search).has("admin") ||
       localStorage.getItem("moldura_admin") === "1"),
   );
-  const [exFit, setExFit] = useState<ExampleFit>(() => {
+  const [exFit, setExFit] = useState<ExampleFitMap>(() => {
     if (typeof window === "undefined") return DEFAULT_EXAMPLE_FIT;
     try {
       const raw = localStorage.getItem(EXAMPLE_FIT_STORAGE_KEY);
-      if (raw) return { ...DEFAULT_EXAMPLE_FIT, ...JSON.parse(raw) };
+      if (raw) {
+        const parsed = JSON.parse(raw);
+        return {
+          feed: { ...DEFAULT_EXAMPLE_FIT.feed, ...(parsed?.feed || {}) },
+          story: { ...DEFAULT_EXAMPLE_FIT.story, ...(parsed?.story || {}) },
+        };
+      }
     } catch {
       /* ignore */
     }
@@ -204,7 +217,7 @@ const Moldura = () => {
       ctx.fill();
       const ex = assetsRef.current.exemplo;
       if (ex) {
-        const fit = exFitRef.current;
+        const fit = exFitRef.current[st.format];
         const s = ((f.r * 2) / Math.min(ex.width, ex.height)) * fit.zoom;
         const w = ex.width * s;
         const h = ex.height * s;
@@ -236,7 +249,7 @@ const Moldura = () => {
     hctx.fill();
     const ex = assetsRef.current.exemplo;
     if (ex) {
-      const fit = exFitRef.current;
+      const fit = exFitRef.current.feed;
       const s = (336 / Math.min(ex.width, ex.height)) * fit.zoom;
       const w = ex.width * s;
       const h = ex.height * s;
@@ -305,6 +318,7 @@ const Moldura = () => {
       const img = new Image();
       img.onload = () => {
         stateRef.current.img = img;
+        userFitsRef.current = {};
         setHasImg(true);
         fitImage();
         render();
@@ -315,10 +329,23 @@ const Moldura = () => {
   };
 
   const changeFormat = (f: FormatKey) => {
+    const st = stateRef.current;
+    if (st.img) {
+      userFitsRef.current[st.format] = { scale: st.scale, minScale: st.minScale, offX: st.offX, offY: st.offY };
+    }
     stateRef.current.format = f;
     setFormat(f);
     setCanvasSize();
-    fitImage();
+    const saved = userFitsRef.current[f];
+    if (st.img && saved) {
+      st.scale = saved.scale;
+      st.minScale = saved.minScale;
+      st.offX = saved.offX;
+      st.offY = saved.offY;
+      setZoom(Math.round((saved.scale / saved.minScale) * 100));
+    } else {
+      fitImage();
+    }
     render();
   };
 
@@ -514,7 +541,7 @@ const Moldura = () => {
             {adminMode && !hasImg && (
               <div className="mb-4 rounded-2xl border-2 border-dashed border-[#006731] bg-white p-4">
                 <p className="mb-3 text-center text-[13px] font-bold uppercase text-[#006731]">
-                  Admin · enquadrar foto de modelo
+                  Admin · enquadrar foto de modelo ({format === "feed" ? "Feed / Perfil" : "Story / Status"})
                 </p>
                 {([
                   ["Zoom", "zoom", 0.8, 2.5, 0.01],
@@ -524,27 +551,29 @@ const Moldura = () => {
                   <div key={key} className="mb-3">
                     <div className="mb-1 flex justify-between text-xs text-[#566253]">
                       <span>{label}</span>
-                      <span>{exFit[key].toFixed(2)}</span>
+                      <span>{exFit[format][key].toFixed(2)}</span>
                     </div>
                     <input
                       type="range"
                       min={min}
                       max={max}
                       step={step}
-                      value={exFit[key]}
-                      onChange={(e) => setExFit((p) => ({ ...p, [key]: Number(e.target.value) }))}
+                      value={exFit[format][key]}
+                      onChange={(e) =>
+                        setExFit((p) => ({ ...p, [format]: { ...p[format], [key]: Number(e.target.value) } }))
+                      }
                       className="w-full accent-[#006731]"
                     />
                   </div>
                 ))}
                 <button
-                  onClick={() => setExFit({ zoom: 1.22, x: 0, y: -0.28 })}
+                  onClick={() => setExFit((p) => ({ ...p, [format]: DEFAULT_EXAMPLE_FIT[format] }))}
                   className="w-full rounded-full border-2 border-[#006731] px-3 py-2 text-xs font-semibold text-[#006731]"
                 >
                   Restaurar padrão
                 </button>
                 <p className="mt-2 text-center text-[11px] text-[#566253]">
-                  Ajuste salvo neste navegador. Acesse com ?admin=1 para reabrir este painel.
+                  Ajuste independente por formato, salvo neste navegador. Acesse com ?admin=1 para reabrir.
                 </p>
               </div>
             )}
