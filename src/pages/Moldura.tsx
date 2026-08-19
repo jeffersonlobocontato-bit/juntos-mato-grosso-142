@@ -800,9 +800,27 @@ const Moldura = () => {
             </div>
             {iosHint && (
               <p className="mt-3 rounded-[12px] bg-[#FFF7CC] px-3.5 py-2.5 text-xs leading-relaxed text-[#4A3B00]">
-                No iPhone, a imagem abriu em uma nova aba. Toque e segure sobre ela e escolha
-                <strong> “Salvar em Fotos” </strong> para guardar no seu celular.
+                Se a imagem não salvou automaticamente, toque e segure sobre a imagem abaixo e escolha
+                <strong> “Salvar imagem” </strong> (Android/Samsung) ou <strong>“Salvar em Fotos”</strong> (iPhone).
               </p>
+            )}
+            {fallbackUrl && (
+              <div className="mt-3">
+                <img
+                  src={fallbackUrl}
+                  alt="Sua arte pronta para salvar"
+                  className="mx-auto w-full max-w-[320px] rounded-[12px] border border-[#00673120]"
+                />
+                <a
+                  href={fallbackUrl}
+                  download={`moro-moldura-${format}.png`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="mt-2 block text-center text-xs font-semibold text-[#006731] underline"
+                >
+                  Abrir imagem em nova aba
+                </a>
+              </div>
             )}
           </div>
         </div>
