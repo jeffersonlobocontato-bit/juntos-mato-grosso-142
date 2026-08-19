@@ -434,24 +434,48 @@ const Moldura = () => {
     if (!stage || !stateRef.current.img) return;
     const fileName = `moro-moldura-${stateRef.current.format}.png`;
 
+    const ua = navigator.userAgent || "";
     const isIOS =
-      /iP(hone|ad|od)/.test(navigator.userAgent) ||
+      /iP(hone|ad|od)/.test(ua) ||
       (navigator.platform === "MacIntel" && (navigator as unknown as { maxTouchPoints?: number }).maxTouchPoints > 1);
+    const isAndroid = /Android/i.test(ua);
+    // Navegadores embutidos (Instagram, Facebook, TikTok, Messenger...) bloqueiam o download direto
+    const isInApp = /(Instagram|FBAN|FBAV|FB_IAB|Messenger|Line|Twitter|TikTok|Snapchat|Pinterest|LinkedIn|WhatsApp|GSA)/i.test(ua);
+    const supportsDownloadAttr = "download" in document.createElement("a");
 
     const toBlob = () =>
       new Promise<Blob | null>((resolve) => {
-        if (stage.toBlob) stage.toBlob((b) => resolve(b), "image/png");
-        else resolve(null);
+        try {
+          if (stage.toBlob) stage.toBlob((b) => resolve(b), "image/png");
+          else resolve(null);
+        } catch {
+          resolve(null);
+        }
       });
+
+    const dataUrlToBlob = (dataUrl: string) => {
+      const [head, body] = dataUrl.split(",");
+      const mime = /:(.*?);/.exec(head)?.[1] || "image/png";
+      const bin = atob(body);
+      const bytes = new Uint8Array(bin.length);
+      for (let i = 0; i < bin.length; i += 1) bytes[i] = bin.charCodeAt(i);
+      return new Blob([bytes], { type: mime });
+    };
 
     const triggerDownload = (href: string, revoke?: () => void) => {
       const link = document.createElement("a");
       link.download = fileName;
+      link.setAttribute("download", fileName);
+      link.target = "_self";
       link.rel = "noopener";
       link.href = href;
       link.style.display = "none";
       document.body.appendChild(link);
-      link.click();
+      try {
+        link.click();
+      } catch {
+        link.dispatchEvent(new MouseEvent("click", { bubbles: true, cancelable: true, view: window }));
+      }
       window.setTimeout(() => {
         document.body.removeChild(link);
         revoke?.();
@@ -459,41 +483,59 @@ const Moldura = () => {
     };
 
     try {
-      const blob = await toBlob();
+      let blob = await toBlob();
+      let dataUrl = "";
+      if (!blob) {
+        dataUrl = stage.toDataURL("image/png");
+        try {
+          blob = dataUrlToBlob(dataUrl);
+        } catch {
+          blob = null;
+        }
+      }
 
-      // iOS/Safari ignora o atributo download: usa o compartilhamento nativo
-      // (Salvar em Fotos) e, se indisponível, abre a imagem para toque longo.
-      if (blob && isIOS) {
-        const file = new File([blob], fileName, { type: "image/png" });
+      const isMobile = isIOS || isAndroid || isInApp;
+
+      // 1) Mobile (iOS, Android/Samsung e navegadores embutidos): compartilhamento
+      // nativo salva direto na galeria/fotos e é o caminho mais confiável.
+      if (blob && isMobile) {
         const nav = navigator as Navigator & {
           canShare?: (data: { files: File[] }) => boolean;
           share?: (data: { files: File[]; title?: string }) => Promise<void>;
         };
-        if (nav.canShare?.({ files: [file] }) && nav.share) {
-          try {
+        try {
+          const file = new File([blob], fileName, { type: "image/png" });
+          if (nav.share && nav.canShare?.({ files: [file] })) {
             await nav.share({ files: [file], title: "Sou Moro 22" });
+            setIosHint(false);
             return;
-          } catch (err) {
-            if ((err as DOMException)?.name === "AbortError") return;
           }
+        } catch (err) {
+          if ((err as DOMException)?.name === "AbortError") return;
         }
-        setIosHint(true);
+      }
+
+      // 2) Download clássico (desktop e Android com Chrome/Samsung Internet)
+      if (blob && supportsDownloadAttr && !isIOS && !isInApp) {
         const url = URL.createObjectURL(blob);
-        const win = window.open(url, "_blank");
-        if (!win) triggerDownload(url, () => URL.revokeObjectURL(url));
-        else window.setTimeout(() => URL.revokeObjectURL(url), 60000);
+        triggerDownload(url, () => URL.revokeObjectURL(url));
+        if (isAndroid) setIosHint(true);
         return;
       }
 
-      if (blob) {
-        const url = URL.createObjectURL(blob);
-        triggerDownload(url, () => URL.revokeObjectURL(url));
-      } else {
-        triggerDownload(stage.toDataURL("image/png"));
-      }
+      // 3) Fallback universal: mostra a imagem para salvar com toque longo
+      const href = blob ? URL.createObjectURL(blob) : dataUrl || stage.toDataURL("image/png");
+      setIosHint(true);
+      setFallbackUrl(href);
+      if (supportsDownloadAttr && !isIOS) triggerDownload(href);
     } catch {
-      const win = window.open();
-      if (win) win.document.write(`<img src="${stage.toDataURL("image/png")}" alt="${fileName}" />`);
+      try {
+        const fallback = stage.toDataURL("image/png");
+        setIosHint(true);
+        setFallbackUrl(fallback);
+      } catch {
+        /* ignore */
+      }
     }
   };
 
