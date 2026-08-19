@@ -643,6 +643,19 @@ const Moldura = () => {
           >
             Colocar minha moldura
           </button>
+          {avatarCount != null && (
+            <div className="mx-auto mt-6 max-w-[320px] rounded-[18px] border border-[#E1DFD2] bg-white px-5 py-4">
+              <div
+                className="text-[34px] font-bold leading-none text-[#006731]"
+                style={{ fontFamily: "'Oswald',sans-serif" }}
+              >
+                {avatarCount.toLocaleString("pt-BR")}
+              </div>
+              <div className="mt-1 text-[11px] font-semibold uppercase tracking-[0.12em] text-[#566253]">
+                avatares criados com a moldura
+              </div>
+            </div>
+          )}
         </div>
       </section>
 
