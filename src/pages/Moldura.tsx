@@ -340,6 +340,23 @@ const Moldura = () => {
     setZoom(100);
   }, []);
 
+  const [avatarCount, setAvatarCount] = useState<number | null>(null);
+
+  useEffect(() => {
+    let active = true;
+    const carregar = async () => {
+      const { data, error } = await supabase.rpc("get_moldura_avatares_count");
+      if (!active || error) return;
+      setAvatarCount(Number(data ?? 0) + BASE_MOLDURAS);
+    };
+    void carregar();
+    const id = window.setInterval(() => void carregar(), 30000);
+    return () => {
+      active = false;
+      window.clearInterval(id);
+    };
+  }, []);
+
   useEffect(() => {
     document.title = "Sou Moro 22 | Moldura oficial de perfil";
     void trackMoldura("pageview");
