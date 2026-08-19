@@ -342,6 +342,7 @@ const Moldura = () => {
 
   useEffect(() => {
     document.title = "Sou Moro 22 | Moldura oficial de perfil";
+    void trackMoldura("pageview");
     setCanvasSize();
     Promise.allSettled([
       loadImg(LOCKUP_SRC).then((i) => (assetsRef.current.lockup = i)),
