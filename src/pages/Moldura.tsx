@@ -75,6 +75,7 @@ const Moldura = () => {
   const [zoom, setZoom] = useState(100);
   const [hasImg, setHasImg] = useState(false);
   const [iosHint, setIosHint] = useState(false);
+  const [fallbackUrl, setFallbackUrl] = useState("");
   const [assetsReady, setAssetsReady] = useState(false);
 
   // Ajuste manual (modo admin) do enquadramento da foto de exemplo
