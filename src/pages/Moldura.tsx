@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import lockupAsset from "@/assets/logo-amarela-quadrada.png.asset.json";
 import { supabase } from "@/integrations/supabase/client";
+import { BASE_MOLDURAS } from "@/lib/molduraCounter";
 
 const LOCKUP_SRC = lockupAsset.url;
 const MMARK_SRC = "/marca/moldura-mmark.png";
@@ -33,6 +34,44 @@ function loadImg(src: string) {
     img.src = src;
   });
 }
+
+/** Identificador anônimo do visitante (mesma chave do analytics da LP principal). */
+function getMolduraVisitorId() {
+  const KEY = "rota399_visitor_id";
+  try {
+    const stored = localStorage.getItem(KEY);
+    if (stored) return stored;
+    const novo = `visitor_${Date.now()}_${Math.random().toString(36).substring(2, 11)}`;
+    localStorage.setItem(KEY, novo);
+    return novo;
+  } catch {
+    return `visitor_${Date.now()}_${Math.random().toString(36).substring(2, 11)}`;
+  }
+}
+
+const molduraSessionId = `session_${Date.now()}_${Math.random().toString(36).substring(2, 11)}`;
+
+/** Registra eventos da página /moldura em page_analytics_events. */
+async function trackMoldura(eventType: "pageview" | "moldura_download", metadata?: Record<string, unknown>) {
+  try {
+    await supabase.from("page_analytics_events").insert([{
+      session_id: molduraSessionId,
+      visitor_id: getMolduraVisitorId(),
+      event_type: eventType,
+      page_path: "/moldura",
+      component_name: "Moldura",
+      component_action: eventType === "moldura_download" ? "download" : "view",
+      referrer: document.referrer || null,
+      device_type: window.innerWidth < 768 ? "mobile" : window.innerWidth < 1024 ? "tablet" : "desktop",
+      screen_width: window.innerWidth,
+      screen_height: window.innerHeight,
+      metadata: (metadata ?? {}) as never,
+    }]);
+  } catch {
+    /* best effort */
+  }
+}
+
 
 function drawRoundedRect(c: CanvasRenderingContext2D, x: number, y: number, w: number, h: number, r: number) {
   c.beginPath();
@@ -301,8 +340,26 @@ const Moldura = () => {
     setZoom(100);
   }, []);
 
+  const [avatarCount, setAvatarCount] = useState<number | null>(null);
+
+  useEffect(() => {
+    let active = true;
+    const carregar = async () => {
+      const { data, error } = await supabase.rpc("get_moldura_avatares_count");
+      if (!active || error) return;
+      setAvatarCount(Number(data ?? 0) + BASE_MOLDURAS);
+    };
+    void carregar();
+    const id = window.setInterval(() => void carregar(), 30000);
+    return () => {
+      active = false;
+      window.clearInterval(id);
+    };
+  }, []);
+
   useEffect(() => {
     document.title = "Sou Moro 22 | Moldura oficial de perfil";
+    void trackMoldura("pageview");
     setCanvasSize();
     Promise.allSettled([
       loadImg(LOCKUP_SRC).then((i) => (assetsRef.current.lockup = i)),
@@ -434,6 +491,9 @@ const Moldura = () => {
     const stage = stageRef.current;
     if (!stage || !stateRef.current.img) return;
     const fileName = `moro-moldura-${stateRef.current.format}.png`;
+    void trackMoldura("moldura_download", { format: stateRef.current.format }).then(() => {
+      setAvatarCount((c) => (c == null ? c : c + 1));
+    });
 
     const ua = navigator.userAgent || "";
     const isIOS =
@@ -583,6 +643,19 @@ const Moldura = () => {
           >
             Colocar minha moldura
           </button>
+          {avatarCount != null && (
+            <div className="mx-auto mt-6 max-w-[320px] rounded-[18px] border border-[#E1DFD2] bg-white px-5 py-4">
+              <div
+                className="text-[34px] font-bold leading-none text-[#006731]"
+                style={{ fontFamily: "'Oswald',sans-serif" }}
+              >
+                {avatarCount.toLocaleString("pt-BR")}
+              </div>
+              <div className="mt-1 text-[11px] font-semibold uppercase tracking-[0.12em] text-[#566253]">
+                avatares criados com a moldura
+              </div>
+            </div>
+          )}
         </div>
       </section>
 
