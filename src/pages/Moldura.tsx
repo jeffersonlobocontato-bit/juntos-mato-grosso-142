@@ -54,7 +54,7 @@ const molduraSessionId = `session_${Date.now()}_${Math.random().toString(36).sub
 /** Registra eventos da página /moldura em page_analytics_events. */
 async function trackMoldura(eventType: "pageview" | "moldura_download", metadata?: Record<string, unknown>) {
   try {
-    await supabase.from("page_analytics_events").insert({
+    await supabase.from("page_analytics_events").insert([{
       session_id: molduraSessionId,
       visitor_id: getMolduraVisitorId(),
       event_type: eventType,
@@ -66,20 +66,12 @@ async function trackMoldura(eventType: "pageview" | "moldura_download", metadata
       screen_width: window.innerWidth,
       screen_height: window.innerHeight,
       metadata: metadata ?? {},
-    });
+    }]);
   } catch {
     /* best effort */
   }
 }
 
-function loadImgUnused(src: string) {
-  return new Promise<HTMLImageElement>((resolve, reject) => {
-    const img = new Image();
-    img.onload = () => resolve(img);
-    img.onerror = () => reject(new Error(`Não foi possível carregar o recurso: ${src}`));
-    img.src = src;
-  });
-}
 
 function drawRoundedRect(c: CanvasRenderingContext2D, x: number, y: number, w: number, h: number, r: number) {
   c.beginPath();
