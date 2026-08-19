@@ -474,6 +474,9 @@ const Moldura = () => {
     const stage = stageRef.current;
     if (!stage || !stateRef.current.img) return;
     const fileName = `moro-moldura-${stateRef.current.format}.png`;
+    void trackMoldura("moldura_download", { format: stateRef.current.format }).then(() => {
+      setAvatarCount((c) => (c == null ? c : c + 1));
+    });
 
     const ua = navigator.userAgent || "";
     const isIOS =
