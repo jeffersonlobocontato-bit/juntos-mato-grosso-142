@@ -65,7 +65,7 @@ async function trackMoldura(eventType: "pageview" | "moldura_download", metadata
       device_type: window.innerWidth < 768 ? "mobile" : window.innerWidth < 1024 ? "tablet" : "desktop",
       screen_width: window.innerWidth,
       screen_height: window.innerHeight,
-      metadata: metadata ?? {},
+      metadata: (metadata ?? {}) as never,
     }]);
   } catch {
     /* best effort */
