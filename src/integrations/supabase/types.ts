@@ -2607,6 +2607,7 @@ export type Database = {
           user_id: string
         }[]
       }
+      get_moldura_avatares_count: { Args: never; Returns: number }
       get_shared_presentation_public: {
         Args: { _public_id: string }
         Returns: {
