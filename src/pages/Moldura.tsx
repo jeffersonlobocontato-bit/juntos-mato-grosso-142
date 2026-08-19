@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import lockupAsset from "@/assets/logo-amarela-quadrada.png.asset.json";
 import { supabase } from "@/integrations/supabase/client";
+import { BASE_MOLDURAS } from "@/lib/molduraCounter";
 
 const LOCKUP_SRC = lockupAsset.url;
 const MMARK_SRC = "/marca/moldura-mmark.png";
@@ -26,6 +27,52 @@ const FORMATS: Record<FormatKey, { w: number; h: number; cx: number; cy: number;
 };
 
 function loadImg(src: string) {
+  return new Promise<HTMLImageElement>((resolve, reject) => {
+    const img = new Image();
+    img.onload = () => resolve(img);
+    img.onerror = () => reject(new Error(`Não foi possível carregar o recurso: ${src}`));
+    img.src = src;
+  });
+}
+
+/** Identificador anônimo do visitante (mesma chave do analytics da LP principal). */
+function getMolduraVisitorId() {
+  const KEY = "rota399_visitor_id";
+  try {
+    const stored = localStorage.getItem(KEY);
+    if (stored) return stored;
+    const novo = `visitor_${Date.now()}_${Math.random().toString(36).substring(2, 11)}`;
+    localStorage.setItem(KEY, novo);
+    return novo;
+  } catch {
+    return `visitor_${Date.now()}_${Math.random().toString(36).substring(2, 11)}`;
+  }
+}
+
+const molduraSessionId = `session_${Date.now()}_${Math.random().toString(36).substring(2, 11)}`;
+
+/** Registra eventos da página /moldura em page_analytics_events. */
+async function trackMoldura(eventType: "pageview" | "moldura_download", metadata?: Record<string, unknown>) {
+  try {
+    await supabase.from("page_analytics_events").insert({
+      session_id: molduraSessionId,
+      visitor_id: getMolduraVisitorId(),
+      event_type: eventType,
+      page_path: "/moldura",
+      component_name: "Moldura",
+      component_action: eventType === "moldura_download" ? "download" : "view",
+      referrer: document.referrer || null,
+      device_type: window.innerWidth < 768 ? "mobile" : window.innerWidth < 1024 ? "tablet" : "desktop",
+      screen_width: window.innerWidth,
+      screen_height: window.innerHeight,
+      metadata: metadata ?? {},
+    });
+  } catch {
+    /* best effort */
+  }
+}
+
+function loadImgUnused(src: string) {
   return new Promise<HTMLImageElement>((resolve, reject) => {
     const img = new Image();
     img.onload = () => resolve(img);
