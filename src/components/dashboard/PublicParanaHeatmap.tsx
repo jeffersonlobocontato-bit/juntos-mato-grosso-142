@@ -151,7 +151,7 @@ const PublicParanaHeatmap = () => {
       container: mapContainer.current,
       style: "mapbox://styles/mapbox/dark-v11",
       center: PARANA_CENTER,
-      zoom: 6,
+      zoom: 5,
       attributionControl: false,
     });
 
