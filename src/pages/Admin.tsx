@@ -115,7 +115,7 @@ const Admin = () => {
     { 
       icon: MapPin, 
       title: 'Municípios', 
-      description: 'Gerenciar os 399 municípios',
+      description: 'Gerenciar os 142 municípios',
       href: '/admin/municipios',
       color: 'secondary',
       roles: ['admin']
@@ -194,7 +194,7 @@ const Admin = () => {
     },
     {
       icon: Sparkles,
-      title: 'Módulo MKT — Expectativa dos paranaenses',
+      title: 'Módulo MKT — Expectativa dos mato-grossenses',
       description: 'Microanálise e insights de marketing a partir das sugestões populares',
       href: '/admin/modulo-mkt',
       color: 'accent',
@@ -223,8 +223,8 @@ const Admin = () => {
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-4">
               <Link to="/" className="flex items-center gap-1">
-                <span className="text-2xl font-display font-black text-primary">Juntos Paraná</span>
-                <span className="text-2xl font-display font-black text-accent">399</span>
+                <span className="text-2xl font-display font-black text-primary">Juntos Mato Grosso</span>
+                <span className="text-2xl font-display font-black text-accent">142</span>
               </Link>
               <span className="text-muted-foreground">|</span>
               <span className="text-sm font-medium text-muted-foreground">Painel de Gestão</span>
@@ -285,7 +285,7 @@ const Admin = () => {
                 Bem-vindo ao Painel
               </h1>
               <p className="text-muted-foreground">
-                Gerencie propostas, sugestões e acompanhe o progresso do Juntos Paraná 399.
+                Gerencie propostas, sugestões e acompanhe o progresso do Juntos Mato Grosso 142.
               </p>
             </div>
             {(hasRole('lider_tematico') || isAdminMaster || isAdmin) && (
