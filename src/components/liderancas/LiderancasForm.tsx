@@ -190,9 +190,9 @@ const LiderancasForm = () => {
         titulo,
         resumo: resumo || conteudoCompleto.slice(0, 150) + "...",
         eixoNome: selectedEixo?.nome || "Proposta",
-        municipioNome: selectedMunicipio?.nome || "Paraná",
-        municipioLat: Number(selectedMunicipio?.latitude) || -25.4284,
-        municipioLng: Number(selectedMunicipio?.longitude) || -49.2733,
+        municipioNome: selectedMunicipio?.nome || "Mato Grosso",
+        municipioLat: Number(selectedMunicipio?.latitude) || -15.6014,
+        municipioLng: Number(selectedMunicipio?.longitude) || -56.0979,
       });
 
       setIsSubmitted(true);
