@@ -71,14 +71,14 @@ export function CandidateBarChart({ results, hideNeutral = false, height = 320 }
         <XAxis
           type="number"
           domain={[0, Math.ceil((data[0]?.value ?? 50) / 10) * 10 + 10]}
-          tick={{ fontSize: 11, fill: '#8899aa' }}
+          tick={{ fontSize: 11, fill: '#000000' }}
           tickFormatter={v => `${v}%`}
         />
         <YAxis
           type="category"
           dataKey="name"
           width={150}
-          tick={{ fontSize: 12, fill: '#dde4ec' }}
+          tick={{ fontSize: 12, fill: '#000000' }}
         />
         <Tooltip
           formatter={(v: number) => [`${v}%`, 'Intenção']}
