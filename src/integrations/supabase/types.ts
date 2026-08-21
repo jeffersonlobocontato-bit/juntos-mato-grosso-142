@@ -1997,6 +1997,53 @@ export type Database = {
           },
         ]
       }
+      survey_crosstabs: {
+        Row: {
+          basis: string
+          candidate_name: string
+          created_at: string
+          filter_label: string
+          filter_type: string
+          id: string
+          percentage: number
+          question_id: string
+          segment_label: string
+          segment_order: number
+        }
+        Insert: {
+          basis?: string
+          candidate_name: string
+          created_at?: string
+          filter_label: string
+          filter_type: string
+          id?: string
+          percentage: number
+          question_id: string
+          segment_label: string
+          segment_order?: number
+        }
+        Update: {
+          basis?: string
+          candidate_name?: string
+          created_at?: string
+          filter_label?: string
+          filter_type?: string
+          id?: string
+          percentage?: number
+          question_id?: string
+          segment_label?: string
+          segment_order?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "survey_crosstabs_question_id_fkey"
+            columns: ["question_id"]
+            isOneToOne: false
+            referencedRelation: "survey_questions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       survey_questions: {
         Row: {
           cargo: string
