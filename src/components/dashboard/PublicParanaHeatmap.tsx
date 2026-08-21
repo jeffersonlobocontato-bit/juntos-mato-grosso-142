@@ -28,7 +28,7 @@ interface AggregatedMarker {
 }
 
 const MAPBOX_TOKEN = import.meta.env.VITE_MAPBOX_PUBLIC_TOKEN;
-const PARANA_CENTER: [number, number] = [-51.5, -24.5];
+const PARANA_CENTER: [number, number] = [-55.9, -12.7];
 
 const eixoColors: Record<string, string> = {
   "Saúde": "#ef4444",
