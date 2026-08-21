@@ -215,11 +215,25 @@ export default function Inteligencia() {
   }, [waves, questions]);
 
   const latestWave = useMemo(() => [...waves].sort((a, b) => b.releaseDate.localeCompare(a.releaseDate))[0], [waves]);
-  const latestMainQuestion = useMemo(() => {
-    if (!latestWave) return null;
-    const govQs = questions.filter(q => q.waveId === latestWave.id && q.cargo === 'governador');
-    return govQs.find(q => q.isMainScenario) ?? govQs[0] ?? null;
+
+  const govQuestionsLatest = useMemo(() => {
+    if (!latestWave) return [];
+    return questions.filter(q => q.waveId === latestWave.id && q.cargo === 'governador');
   }, [latestWave, questions]);
+
+  const latestMainQuestion = useMemo(() => {
+    return govQuestionsLatest.find(q => q.isMainScenario) ?? govQuestionsLatest[0] ?? null;
+  }, [govQuestionsLatest]);
+
+  const latestEstimuladaQuestion = useMemo(() => {
+    const estim = govQuestionsLatest.filter(q => q.questionType === 'estimulada');
+    return estim.find(q => q.isMainScenario) ?? estim[0] ?? null;
+  }, [govQuestionsLatest]);
+
+  const latestEspontaneaQuestion = useMemo(() => {
+    const esp = govQuestionsLatest.filter(q => q.questionType === 'espontanea');
+    return esp.find(q => q.isMainScenario) ?? esp[0] ?? null;
+  }, [govQuestionsLatest]);
 
   const rejectionQuestion = useMemo(() => {
     if (!latestWave) return null;
@@ -238,6 +252,21 @@ export default function Inteligencia() {
   const segundo = ranking[1];
   const vantagem = lider && segundo ? +(lider.percentage - segundo.percentage).toFixed(1) : null;
 
+  // Votos válidos = estimulada excluindo NS/NR/Nulo/Branco/Indeciso.
+  const validVotesResults = useMemo(() => {
+    if (!latestEstimuladaQuestion) return [];
+    const neutro = /nulo|branco|ns\/|não sabe|nao sabe|indeciso|^nr$|nenhum/i;
+    const totalNeutro = latestEstimuladaQuestion.results
+      .filter(r => neutro.test(r.candidate))
+      .reduce((sum, r) => sum + r.percentage, 0);
+    const base = Math.max(0, 100 - totalNeutro);
+    if (base <= 0) return [];
+    return latestEstimuladaQuestion.results
+      .filter(r => !neutro.test(r.candidate))
+      .map(r => ({ candidate: r.candidate, percentage: +((r.percentage / base) * 100).toFixed(1) }))
+      .sort((a, b) => b.percentage - a.percentage);
+  }, [latestEstimuladaQuestion]);
+
   const contextoParaIA = useMemo(() => ({
     waves: waves.map(w => ({
       instituto: w.institute, territorio: w.territory, divulgacao: w.releaseDate,
@@ -255,9 +284,10 @@ export default function Inteligencia() {
         linhas: ct.rows,
       })),
     })),
+    votos_validos: validVotesResults,
     apoio_de_politicos: APOIO_TRANSFERENCIA,
     operacao_heritage: { total: HERITAGE_TOTAL, por_regiao: HERITAGE_POR_REGIAO },
-  }), [waves, questions]);
+  }), [waves, questions, validVotesResults]);
 
   // Recorte regional do líder no cenário principal mais recente
   const regiaoLider = useMemo(() => {
