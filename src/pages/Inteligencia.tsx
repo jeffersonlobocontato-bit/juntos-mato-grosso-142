@@ -11,7 +11,7 @@
 import { useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
 import {
-  LayoutDashboard, GitCompare, Sparkles, Megaphone, Upload, BarChart2, Map,
+  LayoutDashboard, GitCompare, Sparkles, Megaphone, Upload, BarChart2, Map, Handshake,
 } from 'lucide-react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
