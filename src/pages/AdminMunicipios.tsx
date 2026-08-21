@@ -360,7 +360,7 @@ const AdminMunicipios = () => {
                           step="any"
                           value={formData.latitude}
                           onChange={(e) => setFormData({ ...formData, latitude: e.target.value })}
-                          placeholder="-25.4284"
+                          placeholder="-15.6014"
                         />
                       </div>
                       <div className="space-y-2">
@@ -371,7 +371,7 @@ const AdminMunicipios = () => {
                           step="any"
                           value={formData.longitude}
                           onChange={(e) => setFormData({ ...formData, longitude: e.target.value })}
-                          placeholder="-49.2733"
+                          placeholder="-56.0979"
                         />
                       </div>
                     </div>

@@ -3,7 +3,7 @@ import { MapPin, Users, FileText } from "lucide-react";
 import { useState, useEffect, forwardRef } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
-import paranaMap3D from "@/assets/parana-map-3d.png";
+import estadoMapa from "@/assets/mato-grosso-map.png";
 
 const MapSection = () => {
   const [displayedCities, setDisplayedCities] = useState<string[]>([]);
@@ -72,7 +72,7 @@ const MapSection = () => {
       <div 
         className="absolute inset-0 opacity-10"
         style={{
-          backgroundImage: `url(${paranaMap3D})`,
+          backgroundImage: `url(${estadoMapa})`,
           backgroundSize: 'contain',
           backgroundPosition: 'center',
           backgroundRepeat: 'no-repeat',
@@ -94,10 +94,10 @@ const MapSection = () => {
           </span>
           <h2 className="font-display text-4xl md:text-5xl lg:text-6xl font-bold text-white mb-6">
             Todos os
-            <span className="text-transparent bg-clip-text bg-gradient-to-r from-secondary to-primary"> 399 Municípios</span>
+            <span className="text-transparent bg-clip-text bg-gradient-to-r from-secondary to-primary"> 142 Municípios</span>
           </h2>
           <p className="text-lg md:text-xl text-white/70 leading-relaxed">
-            Construindo um plano de governo que representa cada canto do Paraná, 
+            Construindo um plano de governo que representa cada canto de Mato Grosso, 
             com propostas e sugestões de todas as regiões do estado.
           </p>
         </motion.div>
@@ -166,7 +166,7 @@ const MapSection = () => {
               ))}
             </div>
             <p className="text-white/70">
-              Dados de <span className="font-bold text-white">{municipios.length}</span> municípios paranaenses
+              Dados de <span className="font-bold text-white">{municipios.length}</span> municípios mato-grossenses
             </p>
           </div>
         </motion.div>

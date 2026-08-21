@@ -32,6 +32,8 @@ interface TSEMapProps {
 
 // State centers for map positioning
 const STATE_CENTERS: Record<string, [number, number]> = {
+  MT: [-55.9, -12.7],
+  MS: [-54.6295, -20.4697],
   PR: [-51.4166, -25.2521],
   SP: [-46.6333, -23.5505],
   RJ: [-43.1729, -22.9068],
@@ -40,6 +42,8 @@ const STATE_CENTERS: Record<string, [number, number]> = {
   SC: [-48.5480, -27.5954],
   BA: [-38.5016, -12.9714],
 };
+
+const DEFAULT_CENTER: [number, number] = STATE_CENTERS.MT;
 
 export default function TSEMap({
   estados,
@@ -320,13 +324,13 @@ export default function TSEMap({
       try {
         mapboxgl.accessToken = token;
 
-        const center = STATE_CENTERS[selectedUF] || [-51.4166, -25.2521];
+        const center = STATE_CENTERS[selectedUF] || DEFAULT_CENTER;
 
         map.current = new mapboxgl.Map({
           container: container,
           style: "mapbox://styles/mapbox/dark-v11",
           center,
-          zoom: 7,
+          zoom: selectedUF === "MT" ? 5.2 : 7,
         });
 
         map.current.on('load', () => {
@@ -364,8 +368,8 @@ export default function TSEMap({
   // Update map center when state changes
   useEffect(() => {
     if (!map.current) return;
-    const center = STATE_CENTERS[selectedUF] || [-51.4166, -25.2521];
-    map.current.flyTo({ center, zoom: 7 });
+    const center = STATE_CENTERS[selectedUF] || DEFAULT_CENTER;
+    map.current.flyTo({ center, zoom: selectedUF === "MT" ? 5.2 : 7 });
   }, [selectedUF]);
 
   // Update visualization when data or mode changes
