@@ -11,7 +11,7 @@
 import { useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
 import {
-  LayoutDashboard, GitCompare, Sparkles, Megaphone, Upload, BarChart2, Map,
+  LayoutDashboard, GitCompare, Sparkles, Megaphone, Upload, BarChart2, Map, Handshake,
 } from 'lucide-react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -25,6 +25,12 @@ import { CandidateBarChart } from '@/components/polls/CandidateBarChart';
 import AnaliseIAChat from '@/components/inteligencia/AnaliseIAChat';
 import InsightsComunicacao from '@/components/inteligencia/InsightsComunicacao';
 import CruzamentosSegmentos from '@/components/inteligencia/CruzamentosSegmentos';
+import ApoioHeritage from '@/components/inteligencia/ApoioHeritage';
+import {
+  APOIO_TRANSFERENCIA,
+  HERITAGE_POR_REGIAO,
+  HERITAGE_TOTAL,
+} from '@/data/apoioHeritageMt';
 import { useSurveys } from '@/hooks/useSurveys';
 import { CANDIDATE_COLORS } from '@/data/pollsData';
 
@@ -249,6 +255,8 @@ export default function Inteligencia() {
         linhas: ct.rows,
       })),
     })),
+    apoio_de_politicos: APOIO_TRANSFERENCIA,
+    operacao_heritage: { total: HERITAGE_TOTAL, por_regiao: HERITAGE_POR_REGIAO },
   }), [waves, questions]);
 
   // Recorte regional do líder no cenário principal mais recente
@@ -292,9 +300,10 @@ export default function Inteligencia() {
         </Card>
       ) : (
         <Tabs defaultValue="painel" className="w-full">
-          <TabsList className="grid w-full grid-cols-3 md:grid-cols-5 h-auto">
+          <TabsList className="grid w-full grid-cols-3 md:grid-cols-6 h-auto">
             <TabsTrigger value="painel" className="gap-2"><LayoutDashboard className="w-4 h-4" />Painel Geral</TabsTrigger>
             <TabsTrigger value="segmentos" className="gap-2"><Map className="w-4 h-4" />Regiões e Perfis</TabsTrigger>
+            <TabsTrigger value="apoio" className="gap-2"><Handshake className="w-4 h-4" />Apoios e Heritage</TabsTrigger>
             <TabsTrigger value="cruzamento" className="gap-2"><GitCompare className="w-4 h-4" />Cruzamento</TabsTrigger>
             <TabsTrigger value="insights" className="gap-2"><Megaphone className="w-4 h-4" />Insights</TabsTrigger>
             <TabsTrigger value="ia" className="gap-2"><Sparkles className="w-4 h-4" />Análise IA</TabsTrigger>
@@ -368,6 +377,12 @@ export default function Inteligencia() {
           <TabsContent value="segmentos" className="mt-6">
             <CruzamentosSegmentos waves={waves} questions={questions} destaque={lider?.candidate} />
           </TabsContent>
+
+          <TabsContent value="apoio" className="mt-6">
+            <ApoioHeritage />
+          </TabsContent>
+
+
 
           <TabsContent value="cruzamento" className="space-y-6 mt-6">
             <CruzamentoPesquisas pesquisas={pesquisas} />
