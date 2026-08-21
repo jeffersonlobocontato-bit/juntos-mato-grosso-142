@@ -46,6 +46,18 @@ export interface DbSurveyResult {
   created_at: string;
 }
 
+export interface DbSurveyCrossTab {
+  id: string;
+  question_id: string;
+  filter_type: string;
+  filter_label: string;
+  basis: string;
+  segment_label: string;
+  segment_order: number;
+  candidate_name: string;
+  percentage: number;
+}
+
 // ─── Converters ───────────────────────────────────────────────────────────────
 export function dbSurveyToWave(s: DbSurvey): PollWave {
   return {
@@ -64,9 +76,44 @@ export function dbSurveyToWave(s: DbSurvey): PollWave {
   };
 }
 
+/** Agrupa as linhas de survey_crosstabs de uma pergunta em tabelas cruzadas */
+export function buildCrossTabs(rows: DbSurveyCrossTab[]): CrossTab[] {
+  const byFilter = new Map<string, DbSurveyCrossTab[]>();
+  rows.forEach(r => {
+    const list = byFilter.get(r.filter_type) ?? [];
+    list.push(r);
+    byFilter.set(r.filter_type, list);
+  });
+
+  return [...byFilter.entries()].map(([filterType, list]) => {
+    const segments = [...new Set(list.map(r => r.segment_label))].sort(
+      (a, b) =>
+        (list.find(r => r.segment_label === a)?.segment_order ?? 0) -
+        (list.find(r => r.segment_label === b)?.segment_order ?? 0),
+    );
+    const candidates = [...new Set(list.map(r => r.candidate_name))];
+
+    return {
+      filterType,
+      filterLabel: list[0].filter_label,
+      basis: (list[0].basis === 'perfil' ? 'perfil' : 'segmento') as 'perfil' | 'segmento',
+      candidates,
+      rows: segments.map(seg => ({
+        label: seg,
+        values: Object.fromEntries(
+          list
+            .filter(r => r.segment_label === seg)
+            .map(r => [r.candidate_name, Number(r.percentage)]),
+        ),
+      })),
+    } satisfies CrossTab;
+  });
+}
+
 export function dbQuestionToPoll(
   q: DbSurveyQuestion,
   results: DbSurveyResult[],
+  crossTabRows: DbSurveyCrossTab[] = [],
 ): PollQuestion {
   return {
     id: q.id,
@@ -81,9 +128,10 @@ export function dbQuestionToPoll(
       .filter(r => r.question_id === q.id)
       .map(r => ({ candidate: r.candidate_name, percentage: Number(r.percentage) }))
       .sort((a, b) => b.percentage - a.percentage),
-    crossTabs: [],
+    crossTabs: buildCrossTabs(crossTabRows.filter(r => r.question_id === q.id)),
   };
 }
+
 
 // ─── Hooks ────────────────────────────────────────────────────────────────────
 
