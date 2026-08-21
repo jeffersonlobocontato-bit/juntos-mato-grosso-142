@@ -140,11 +140,12 @@ export function useSurveys() {
   return useQuery({
     queryKey: ['surveys'],
     queryFn: async () => {
-      const [{ data: surveys, error: e1 }, { data: questions, error: e2 }, { data: results, error: e3 }] =
+      const [{ data: surveys, error: e1 }, { data: questions, error: e2 }, { data: results, error: e3 }, { data: crossRows }] =
         await Promise.all([
           db.from('electoral_surveys' as any).select('*').is('deleted_at', null).order('release_date', { ascending: false }),
           db.from('survey_questions' as any).select('*').order('sort_order'),
           db.from('survey_results' as any).select('*'),
+          db.from('survey_crosstabs' as any).select('*').order('segment_order'),
         ]);
 
       if (e1 || e2 || e3) {
@@ -155,10 +156,12 @@ export function useSurveys() {
       const waves: PollWave[] = ((surveys as unknown as DbSurvey[]) ?? []).map(dbSurveyToWave);
       const dbQuestions = ((questions as unknown as DbSurveyQuestion[]) ?? []);
       const dbResults = ((results as unknown as DbSurveyResult[]) ?? []);
+      const dbCross = ((crossRows as unknown as DbSurveyCrossTab[]) ?? []);
 
       const pollQuestions: PollQuestion[] = dbQuestions.map(q =>
-        dbQuestionToPoll(q, dbResults),
+        dbQuestionToPoll(q, dbResults, dbCross),
       );
+
 
       return { waves, questions: pollQuestions };
     },
