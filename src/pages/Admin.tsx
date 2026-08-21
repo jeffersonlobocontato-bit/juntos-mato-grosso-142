@@ -24,7 +24,12 @@ import {
   Building2,
   BookOpen,
   Zap,
-  Network
+  Network,
+  Map,
+  Layers,
+  Brain,
+  Radar
+
 } from 'lucide-react';
 
 const Admin = () => {
