@@ -112,8 +112,9 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   };
 
   const hasRole = (role: AppRole) => roles.includes(role);
-  const isAdmin = hasRole('admin');
+  // No banco (is_admin), 'admin_master' tem os mesmos poderes de 'admin'.
   const isAdminMaster = hasRole('admin_master');
+  const isAdmin = hasRole('admin') || isAdminMaster;
 
   return (
     <AuthContext.Provider value={{
