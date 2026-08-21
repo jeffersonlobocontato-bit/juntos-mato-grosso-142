@@ -290,7 +290,7 @@ const AdminMunicipios = () => {
               <div>
                 <h1 className="text-xl font-display font-bold">Municípios</h1>
                 <p className="text-sm text-muted-foreground">
-                  {municipios.length} de 399 municípios cadastrados
+                  {municipios.length} de 142 municípios cadastrados
                 </p>
               </div>
             </div>
@@ -410,7 +410,7 @@ const AdminMunicipios = () => {
             </Card>
             <Card>
               <CardContent className="py-6 text-center">
-                <p className="text-3xl font-bold">{399 - municipios.length}</p>
+                <p className="text-3xl font-bold">{142 - municipios.length}</p>
                 <p className="text-sm text-muted-foreground">Faltam Cadastrar</p>
               </CardContent>
             </Card>

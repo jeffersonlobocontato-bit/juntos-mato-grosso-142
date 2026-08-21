@@ -8,6 +8,12 @@ import Index from "./pages/Index";
 import Dashboard from "./pages/Dashboard";
 import Auth from "./pages/Auth";
 import Admin from "./pages/Admin";
+import CruzamentoWellington from "./pages/CruzamentoWellington";
+import MapaEstrategico from "./pages/MapaEstrategico";
+import Pesquisas from "./pages/Pesquisas";
+import Inteligencia from "./pages/Inteligencia";
+import TrackingDashboard from "./pages/TrackingDashboard";
+import TrackingColeta from "./pages/TrackingColeta";
 import AdminPropostas from "./pages/AdminPropostas";
 import AdminPropostasPoliticas from "./pages/AdminPropostasPoliticas";
 import AdminSugestoes from "./pages/AdminSugestoes";
@@ -77,6 +83,12 @@ const App = () => (
             <Route path="/admin/meu-painel" element={<ProtectedRoute requiredRoles={['lider_tematico','curador_municipal','especialista']}><AdminMeuPainel /></ProtectedRoute>} />
             <Route path="/admin/ai-hub" element={<ProtectedRoute requiredRoles={[]}><AdminAIHub /></ProtectedRoute>} />
             <Route path="/admin/pesquisas" element={<ProtectedRoute requiredRoles={[]}><AdminPesquisas /></ProtectedRoute>} />
+            <Route path="/admin/cruzamento-wellington" element={<ProtectedRoute requiredRoles={[]}><CruzamentoWellington /></ProtectedRoute>} />
+            <Route path="/admin/mapa-estrategico" element={<ProtectedRoute requiredRoles={[]}><MapaEstrategico /></ProtectedRoute>} />
+            <Route path="/admin/base-pesquisas" element={<ProtectedRoute requiredRoles={[]}><Pesquisas /></ProtectedRoute>} />
+            <Route path="/admin/inteligencia" element={<ProtectedRoute requiredRoles={[]}><Inteligencia /></ProtectedRoute>} />
+            <Route path="/admin/tracking" element={<ProtectedRoute requiredRoles={[]}><TrackingDashboard /></ProtectedRoute>} />
+            <Route path="/tracking/coleta/:shareCode" element={<ProtectedRoute requiredRoles={[]}><TrackingColeta /></ProtectedRoute>} />
             <Route path="/admin/tse" element={<ProtectedRoute requiredRoles={[]}><AdminTSE /></ProtectedRoute>} />
             <Route path="/admin/biblioteca" element={<ProtectedRoute requiredRoles={['lider_tematico']}><AdminBiblioteca /></ProtectedRoute>} />
             <Route path="/admin/gerador-conteudo" element={<ProtectedRoute requiredRoles={['lider_tematico']}><AdminGeradorConteudo /></ProtectedRoute>} />

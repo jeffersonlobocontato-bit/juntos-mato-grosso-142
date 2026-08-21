@@ -24,7 +24,12 @@ import {
   Building2,
   BookOpen,
   Zap,
-  Network
+  Network,
+  Map,
+  Layers,
+  Brain,
+  Radar
+
 } from 'lucide-react';
 
 const Admin = () => {
@@ -208,7 +213,48 @@ const Admin = () => {
       color: 'primary',
       roles: ['admin', 'admin_master']
     },
+    {
+      icon: Map,
+      title: 'Mapa Estratégico',
+      description: 'Choropleth dos 142 municípios por associação política',
+      href: '/admin/mapa-estrategico',
+      color: 'secondary',
+      roles: ['admin', 'admin_master']
+    },
+    {
+      icon: Layers,
+      title: 'Cruzamento Wellington',
+      description: 'Cruzamento quali-quanti do candidato (acesso restrito)',
+      href: '/admin/cruzamento-wellington',
+      color: 'accent',
+      roles: ['admin', 'admin_master']
+    },
+    {
+      icon: ClipboardList,
+      title: 'Base de Pesquisas',
+      description: 'Pesquisas quantitativas de institutos com cenários e rejeição',
+      href: '/admin/base-pesquisas',
+      color: 'primary',
+      roles: ['admin', 'admin_master']
+    },
+    {
+      icon: Brain,
+      title: 'Inteligência de Campanha',
+      description: 'Análise e insights de comunicação a partir das pesquisas',
+      href: '/admin/inteligencia',
+      color: 'accent',
+      roles: ['admin', 'admin_master']
+    },
+    {
+      icon: Radar,
+      title: 'Tracking Eleitoral',
+      description: 'Rodadas de pesquisa de campo próprias e coleta em campo',
+      href: '/admin/tracking',
+      color: 'secondary',
+      roles: ['admin', 'admin_master']
+    },
   ];
+
 
   const filteredMenuItems = menuItems.filter(item => {
     if (!item.roles) return true;
