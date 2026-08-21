@@ -23,7 +23,7 @@ export const blocoFPorEixo: Record<string, BlocoFConfig> = {
   "e1000000-0000-0000-0000-000000000001": {
     eixoNome: "Desenvolvimento Social",
     perguntas: [
-      "Na sua área de atuação, quais indicadores sociais do Paraná estão estagnados ou piorando, apesar dos programas existentes? O que explica essa ineficácia?",
+      "Na sua área de atuação, quais indicadores sociais de Mato Grosso estão estagnados ou piorando, apesar dos programas existentes? O que explica essa ineficácia?",
       "Qual política pública social do Estado hoje tem boa cobertura mas baixa resolutividade — ou seja, atende muitos mas resolve pouco? O que precisa mudar no desenho?",
       "Na integração entre saúde, educação e assistência social, onde está o maior gap operacional: protocolo, sistema, equipe, governança? Cite um exemplo prático.",
       "Qual marco regulatório ou normativa estadual está travando a modernização dos serviços sociais na sua área? O que deveria ser revisado?",
@@ -36,9 +36,9 @@ export const blocoFPorEixo: Record<string, BlocoFConfig> = {
   "e2000000-0000-0000-0000-000000000002": {
     eixoNome: "Desenvolvimento Econômico Sustentável",
     perguntas: [
-      "Na cadeia produtiva do seu setor, onde está o maior gargalo de competitividade no Paraná hoje: tributação, regulação, crédito, logística, mão de obra ou tecnologia? Por quê?",
+      "Na cadeia produtiva do seu setor, onde está o maior gargalo de competitividade em Mato Grosso hoje: tributação, regulação, crédito, logística, mão de obra ou tecnologia? Por quê?",
       "Qual instrumento de política econômica do Estado (incentivo fiscal, fundo, programa de crédito, desburocratização) tem o melhor custo-benefício e qual tem o pior? Justifique.",
-      "A reforma tributária muda a dinâmica do seu setor no Paraná. Qual risco operacional concreto você enxerga na transição e o que o Estado deveria fazer para mitigar?",
+      "A reforma tributária muda a dinâmica do seu setor em Mato Grosso. Qual risco operacional concreto você enxerga na transição e o que o Estado deveria fazer para mitigar?",
       "Em termos de regulação e licenciamento, qual exigência hoje é desproporcional ao risco e poderia ser simplificada sem perda de controle? Cite o caso concreto.",
       "Qual elo da cadeia de valor do seu setor está mais vulnerável à informalidade ou evasão, e que mecanismo de incentivo (não punitivo) funcionaria para trazer esse elo para a formalidade?",
       PERGUNTA_ABERTA_COMUM,
@@ -49,7 +49,7 @@ export const blocoFPorEixo: Record<string, BlocoFConfig> = {
   "e3000000-0000-0000-0000-000000000003": {
     eixoNome: "Desenvolvimento das Cidades e Infraestrutura",
     perguntas: [
-      "Considerando o déficit de infraestrutura na sua área de atuação, qual investimento tem o maior multiplicador econômico e social no Paraná e por que não está sendo priorizado?",
+      "Considerando o déficit de infraestrutura na sua área de atuação, qual investimento tem o maior multiplicador econômico e social em Mato Grosso e por que não está sendo priorizado?",
       "Na modelagem de projetos de infraestrutura (PPP, concessão, contrato de obras), onde está o maior gargalo técnico: estudos de viabilidade, licenciamento ambiental, desapropriação, engenharia de custos? O que resolveria?",
       "Qual norma técnica ou marco regulatório estadual/federal está defasado e impacta diretamente a execução de projetos na sua área? O que deveria mudar?",
       "Na gestão de ativos de infraestrutura existentes (manutenção, operação, fiscalização), onde o Estado mais perde dinheiro por falta de gestão técnica? Cite um exemplo.",
@@ -63,10 +63,10 @@ export const blocoFPorEixo: Record<string, BlocoFConfig> = {
     eixoNome: "Gestão Pública Eficiente",
     perguntas: [
       "Qual processo administrativo do Estado você considera o mais ineficiente em termos de custo por transação? O que a transformação digital resolveria e o que precisa de redesenho de processo antes?",
-      "Em termos de governança de dados, o Estado do Paraná tem capacidade de cruzar informações entre secretarias para tomada de decisão? Onde está o maior silo de dados e qual o impacto?",
+      "Em termos de governança de dados, o Estado de Mato Grosso tem capacidade de cruzar informações entre secretarias para tomada de decisão? Onde está o maior silo de dados e qual o impacto?",
       "Na sua experiência, qual mecanismo de controle (TCE, CGE, ouvidoria, auditorias) gera mais compliance real e qual gera mais burocracia sem retorno? O que ajustaria?",
       "A gestão de pessoal no Estado (concurso, capacitação, avaliação de desempenho, remuneração) está adequada para entregar serviços de qualidade? Qual é a principal distorção?",
-      "Se o Paraná adotasse um modelo de orçamento por resultados (vinculando repasse a indicadores de entrega), quais áreas se beneficiariam mais e quais resistiriam? Como implementar sem paralisar?",
+      "Se Mato Grosso adotasse um modelo de orçamento por resultados (vinculando repasse a indicadores de entrega), quais áreas se beneficiariam mais e quais resistiriam? Como implementar sem paralisar?",
       PERGUNTA_ABERTA_COMUM,
     ],
   },
@@ -77,8 +77,8 @@ export const blocoFPorEixo: Record<string, BlocoFConfig> = {
     perguntas: [
       "Na sua área de atuação, qual indicador de segurança/justiça está piorando apesar dos investimentos? O que a abordagem atual não está capturando?",
       "Integração entre forças estaduais (PM, PC, Bombeiros) e entre Estado e municípios (guardas municipais): onde o gap operacional é mais crítico e o que resolveria em termos de protocolo, sistema ou cadeia de comando?",
-      "No sistema de justiça criminal do Paraná, onde está o maior gargalo de fluxo: inquérito, denúncia, instrução, execução penal? Qual reforma processual ou operacional destravaria?",
-      "Qual tecnologia ou ferramenta de inteligência (câmeras, analytics, cruzamento de bases, georreferenciamento) tem mais potencial de impacto no Paraná e o que impede a adoção em escala?",
+      "No sistema de justiça criminal de Mato Grosso, onde está o maior gargalo de fluxo: inquérito, denúncia, instrução, execução penal? Qual reforma processual ou operacional destravaria?",
+      "Qual tecnologia ou ferramenta de inteligência (câmeras, analytics, cruzamento de bases, georreferenciamento) tem mais potencial de impacto em Mato Grosso e o que impede a adoção em escala?",
       "Nos mecanismos de combate à corrupção e lavagem de dinheiro no âmbito estadual, o que funciona, o que é teatro e o que falta? Qual a principal lacuna institucional?",
       PERGUNTA_ABERTA_COMUM,
     ],
@@ -184,7 +184,7 @@ export const exemplosFormularioPorEixo: Record<string, ExemplosFormulario> = {
   "e3000000-0000-0000-0000-000000000003": {
     a1_area_atuacao: 'Ex: "Saneamento básico em municípios de pequeno porte" ou "Mobilidade urbana em Curitiba e região metropolitana".',
     a2_desafios_hint: "Foque nos gargalos: déficit de saneamento, manutenção viária, transporte público, habitação.",
-    b1_acoes_hint: "O que funciona — ex: concessões de rodovias, programa Paraná Trifásico, consórcios de saneamento.",
+    b1_acoes_hint: "O que funciona — ex: concessões de rodovias, programas estaduais de energia rural, consórcios de saneamento.",
     b2_impacto_hint: "Quantifique: quantos km de estrada deteriorariam? Quantos municípios sem água tratada?",
     c1_causas_hint: "Vá além dos sintomas — ex: licenciamento ambiental travado, falta de projetos executivos, desapropriação lenta.",
     c2_caso_hint: "Um caso concreto — ex: obra de saneamento parada por 2 anos por falta de licença ambiental.",
@@ -200,7 +200,7 @@ export const exemplosFormularioPorEixo: Record<string, ExemplosFormulario> = {
   "e4000000-0000-0000-0000-000000000004": {
     a1_area_atuacao: 'Ex: "Transformação digital nos processos de licenciamento" ou "Capacitação de servidores na área tributária".',
     a2_desafios_hint: "Foque nos gargalos: burocracia, sistemas legados, falta de dados integrados, gestão de pessoal.",
-    b1_acoes_hint: "O que funciona — ex: Nota Paraná, sistema e-Protocolo, concursos regulares para carreiras estratégicas.",
+    b1_acoes_hint: "O que funciona — ex: programas estaduais de nota fiscal cidadã, sistemas de protocolo digital, concursos regulares para carreiras estratégicas.",
     b2_impacto_hint: "Quantifique: quanto tempo/custo seria perdido? Qual processo voltaria ao papel?",
     c1_causas_hint: "Vá além dos sintomas — ex: silos de dados entre secretarias, ausência de avaliação de desempenho, sistemas incompatíveis.",
     c2_caso_hint: "Um caso concreto — ex: processo de licenciamento que exige 5 sistemas diferentes sem integração.",

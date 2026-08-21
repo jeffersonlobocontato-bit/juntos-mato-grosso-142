@@ -99,7 +99,7 @@ const HomeHero = () => {
 
   const totalCount = BASE_FAKE + realCount;
   const countAnim = useCountUp(totalCount, 1400);
-  const munAnim = useCountUp(399, 1400);
+  const munAnim = useCountUp(142, 1400);
 
   const isValid = useMemo(() =>
     nome.trim().length > 0 &&
@@ -158,7 +158,7 @@ const HomeHero = () => {
     });
     setSent(true);
     trackFormSubmit("OpinionForm", true);
-    setFlash({ tipo: "ok", texto: "Opinião enviada. Obrigado por ajudar a construir o Paraná!" });
+    setFlash({ tipo: "ok", texto: "Opinião enviada. Obrigado por ajudar a construir Mato Grosso!" });
   };
 
   const scrollToForm = () => {
@@ -220,10 +220,10 @@ const HomeHero = () => {
     <div className="jp399" data-component="HomeHero">
       <header className={`topbar`} data-scrolled={scrolled ? "true" : "false"}>
         <div className="wrap topbar__in">
-          <a className="logo" href="#topo" aria-label="Moro 22 Governador — Vice Edson Vasconcelos">
+          <a className="logo" href="#topo" aria-label="Wellington 22 Governador">
             <img
               src="/marca/moro22-horizontal-verde.png"
-              alt="Moro 22 Governador — Vice Edson Vasconcelos"
+              alt="Wellington 22 Governador"
               width={2300}
               height={852}
             />
@@ -249,14 +249,14 @@ const HomeHero = () => {
       <main id="topo">
         {/* HERO + FORM */}
         <section className="hero" id="participar">
-          <img className="hero__photo" src="/jp399/hero-moro.webp" alt="Sergio Moro" width={751} height={850} />
+          <img className="hero__photo" src="/jp399/hero-wellington.webp" alt="Wellington Fagundes" width={751} height={850} />
           <div className="wrap hero__in">
             <div className="hero__copy">
               <h1 className="reveal in" style={{ ["--i" as never]: 1 }}>
-                Sua voz&nbsp;<br />transforma<br />o futuro do Paraná.
+                Sua voz&nbsp;<br />transforma<br />o futuro de Mato Grosso.
               </h1>
               <p className="hero__sub reveal in" style={{ ["--i" as never]: 2 }}>
-                Em <strong>menos de 2 minutos</strong>, diga o que o Paraná precisa mudar.
+                Em <strong>menos de 2 minutos</strong>, diga o que Mato Grosso precisa mudar.
               </p>
             </div>
 
@@ -282,7 +282,7 @@ const HomeHero = () => {
                       <textarea
                         maxLength={LIMITE}
                         aria-label="Sua opinião"
-                        placeholder="O que você mudaria ou melhoraria no Paraná?"
+                        placeholder="O que você mudaria ou melhoraria em Mato Grosso?"
                         value={opiniao}
                         onChange={(e) => setOpiniao(e.target.value)}
                       />
@@ -397,7 +397,7 @@ const HomeHero = () => {
                     Obrigado{submitted.nome ? `, ${submitted.nome.split(/\s+/)[0]}` : ""}!
                   </h3>
                   <p style={{ marginTop: 8, color: "rgba(236,243,236,.8)", fontSize: 15, lineHeight: 1.5 }}>
-                    Sua opinião foi registrada e vai ajudar a construir o Plano de Governo do Paraná.
+                    Sua opinião foi registrada e vai ajudar a construir o Plano de Governo de Mato Grosso.
                   </p>
                   <div style={{ display: "flex", gap: 10, justifyContent: "center", flexWrap: "wrap", marginTop: 18 }}>
                     {hasCoords && !showMap && (
@@ -415,11 +415,11 @@ const HomeHero = () => {
                       Envie e convide amigos e familiares
                     </h4>
                     <p style={{ color: "rgba(236,243,236,.8)", fontSize: 14, lineHeight: 1.5, marginBottom: 14 }}>
-                      Chame quem você quer ver participando da construção do Plano de Governo do Paraná.
+                      Chame quem você quer ver participando da construção do Plano de Governo de Mato Grosso.
                     </p>
                     <SocialShareButtons
                       variant="compact"
-                      message="Acabei de enviar minha opinião para o Plano de Governo do Paraná no Juntos Paraná 399. Participe você também! 🌲"
+                      message="Acabei de enviar minha opinião para o Plano de Governo de Mato Grosso no Juntos Mato Grosso 142. Participe você também! 🌲"
                     />
                   </div>
                 </div>
@@ -451,16 +451,16 @@ const HomeHero = () => {
         {/* NÚMEROS — contador ao vivo */}
         <section className="stats" data-component="LiveCounter">
           <div className="wrap">
-            <p className="stats__intro reveal in">Milhares de paranaenses já participaram. Falta a sua voz.</p>
+            <p className="stats__intro reveal in">Milhares de mato-grossenses já participaram. Falta a sua voz.</p>
             <div className="stats__box reveal in">
               <div className="grainlayer" />
               <div className="stat">
                 <span className="stat__num" aria-live="polite">{countAnim.toLocaleString("pt-BR")}</span>
-                <span className="stat__label"><b>opiniões</b> recebidas de todo o Paraná</span>
+                <span className="stat__label"><b>opiniões</b> recebidas de todo o Mato Grosso</span>
               </div>
               <div className="stat">
                 <span className="stat__num">{munAnim}</span>
-                <span className="stat__label"><b>municípios</b> paranaenses representados</span>
+                <span className="stat__label"><b>municípios</b> mato-grossenses representados</span>
               </div>
               <div className="stat">
                 <span className="stat__num">2<i>min</i></span>
@@ -475,11 +475,11 @@ const HomeHero = () => {
           <div className="wrap">
             <div className="how__head">
               <span className="eyebrow">Como funciona</span>
-              <h2>Do que você escreve, ao Plano de Governo do Paraná.</h2>
+              <h2>Do que você escreve, ao Plano de Governo de Mato Grosso.</h2>
             </div>
             <div className="timeline line-in">
               {[
-                { n: 1, t: "Participe", d: "Envie suas ideias, opiniões e sugestões sobre o Paraná." },
+                { n: 1, t: "Participe", d: "Envie suas ideias, opiniões e sugestões sobre Mato Grosso." },
                 { n: 2, t: "Priorize", d: "As contribuições ajudam a definir o que é mais urgente." },
                 { n: 3, t: "Planeje", d: "Transformamos as ideias em propostas concretas e viáveis." },
                 { n: 4, t: "Acompanhe", d: "Você acompanha cada etapa e o impacto da sua participação." },
@@ -505,11 +505,11 @@ const HomeHero = () => {
         <section className="final">
           <div className="wrap">
             <div className="final__card reveal in">
-              <img className="final__bg" src="/jp399/cta-paisagem.webp" alt="" aria-hidden loading="lazy" />
+              <img className="final__bg" src="/jp399/cta-paisagem-mt.webp" alt="" aria-hidden loading="lazy" />
               <div className="grainlayer" />
               <div className="final__lead">
                 <h2>Participe hoje.<em>Transforme o amanhã.</em></h2>
-                <p className="final__sub">Sua opinião faz o Paraná avançar.</p>
+                <p className="final__sub">Sua opinião faz Mato Grosso avançar.</p>
               </div>
               <div className="final__badge">
                 <div className="badge">
@@ -530,25 +530,25 @@ const HomeHero = () => {
           <div className="foot__cnpj">
             <div className="foot__cnpj-info">
               <div>
-                • Coligação Fortaleza Paraná - PL - NOVO - PODEMOS - CNPJ - 68.456.168/0001-40
+                • Coligação "Coração da Gente" - PL - NOVO - MDB - Federação PRD e Solidariedade - DC - CNPJ - [PENDENTE: informar CNPJ oficial da campanha MT]
               </div>
             </div>
           </div>
           <div className="wrap">
-            <img className="foot__logo" src="/marca/moro22-horizontal-verde.png" alt="Moro 22 Governador — Vice Edson Vasconcelos" width={2300} height={852} loading="lazy" />
+            <img className="foot__logo" src="/marca/wellington22-horizontal-verde.png" alt="Wellington 22 Governador" width={2300} height={852} loading="lazy" />
             Em conformidade com a LGPD (Lei nº 13.709/2018), nome, telefone e cidade não são divulgados publicamente,
             não são compartilhados com terceiros e não são usados para fins comerciais.<br />
             Consulta, correção ou exclusão dos seus dados:{" "}
-            <a href="mailto:sergiomoro@juntosparana399.com.br">sergiomoro@juntosparana399.com.br</a>
+            <a href="mailto:contato@juntosmatogrosso142.com.br">contato@juntosmatogrosso142.com.br</a>
             <div style={{ marginTop: 28, paddingTop: 22, borderTop: "1px solid rgba(255,255,255,.15)", textAlign: "center" }}>
               <h3 style={{ fontFamily: "'Montserrat',sans-serif", fontWeight: 800, fontSize: 22, color: "var(--green-600, #008544)", marginBottom: 6, letterSpacing: "-.01em" }}>
                 Envie e convide seus amigos e familiares
               </h3>
               <p style={{ color: "rgba(236,243,236,.75)", fontSize: 14, lineHeight: 1.55, maxWidth: 560, margin: "0 auto 16px" }}>
-                Participe da construção do Plano de Governo do Paraná. Compartilhe agora com quem você quer ver contribuindo para o futuro do nosso estado.
+                Participe da construção do Plano de Governo de Mato Grosso. Compartilhe agora com quem você quer ver contribuindo para o futuro do nosso estado.
               </p>
               <SocialShareButtons
-                message="Participe do Juntos Paraná 399 e ajude a construir o Plano de Governo do Paraná. Sua voz transforma o futuro do nosso estado! 🌲"
+                message="Participe do Juntos Mato Grosso 142 e ajude a construir o Plano de Governo de Mato Grosso. Sua voz transforma o futuro do nosso estado! 🌲"
               />
             </div>
           </div>

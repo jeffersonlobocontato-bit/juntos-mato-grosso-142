@@ -1,77 +1,75 @@
-@import url('https://fonts.googleapis.com/css2?family=Montserrat:wght@300;400;500;600;700;800;900&family=Inter:wght@300;400;500;600;700&display=swap');
-
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
 
 @layer base {
   :root {
-    /* Paraná Government Colors — Juntos Paraná 399 DS */
-    --background: 48 38% 96%;
-    --foreground: 215 25% 15%;
+    /* Mato Grosso Government Colors — Juntos Mato Grosso 142 DS (base: site oficial Wellington Fagundes Governador) */
+    --background: 140 16% 96%;
+    --foreground: 152 29% 10%;
 
     --card: 0 0% 100%;
-    --card-foreground: 215 25% 15%;
+    --card-foreground: 152 29% 10%;
 
     --popover: 0 0% 100%;
-    --popover-foreground: 215 25% 15%;
+    --popover-foreground: 152 29% 10%;
 
-    /* Primary: Deep Government Green */
-    --primary: 145 70% 26%;
+    /* Primary: WFG Green */
+    --primary: 140 78% 27%;
     --primary-foreground: 0 0% 100%;
-    --primary-glow: 145 60% 38%;
-    --primary-deep: 150 75% 16%;
+    --primary-glow: 140 78% 32%;
+    --primary-deep: 141 79% 11%;
 
-    /* Secondary: Ocean Blue */
-    --secondary: 210 70% 45%;
+    /* Secondary: WFG Green Dark (substitui o azul do PR — sem azul na marca WFG) */
+    --secondary: 140 79% 18%;
     --secondary-foreground: 0 0% 100%;
 
     /* Muted tones */
-    --muted: 210 20% 96%;
-    --muted-foreground: 215 15% 45%;
+    --muted: 140 16% 96%;
+    --muted-foreground: 200 18% 26%;
 
-    /* Accent: Vivid Gold */
-    --accent: 45 95% 55%;
-    --accent-foreground: 215 25% 15%;
-    --accent-soft: 48 100% 75%;
+    /* Accent: WFG Yellow */
+    --accent: 48 100% 48%;
+    --accent-foreground: 152 29% 10%;
+    --accent-soft: 48 100% 60%;
 
-    --destructive: 0 84% 60%;
+    --destructive: 6 63% 46%;
     --destructive-foreground: 0 0% 100%;
 
-    --border: 210 20% 90%;
-    --input: 210 20% 90%;
-    --ring: 152 60% 28%;
+    --border: 146 12% 89%;
+    --input: 146 12% 89%;
+    --ring: 140 78% 27%;
 
-    --radius: 0.75rem;
+    --radius: 1.125rem;
 
     /* Custom Variables */
-    --gradient-primary: linear-gradient(135deg, hsl(145 70% 26%) 0%, hsl(145 60% 38%) 100%);
-    --gradient-secondary: linear-gradient(135deg, hsl(210, 70%, 45%) 0%, hsl(210, 60%, 55%) 100%);
+    --gradient-primary: linear-gradient(135deg, hsl(140 78% 27%) 0%, hsl(140 78% 32%) 100%);
+    --gradient-secondary: linear-gradient(135deg, hsl(140 79% 18%) 0%, hsl(140 78% 27%) 100%);
     --gradient-hero: linear-gradient(180deg, rgba(0,0,0,0.5) 0%, rgba(0,0,0,0.3) 50%, rgba(0,0,0,0.6) 100%);
-    --gradient-card: linear-gradient(145deg, hsl(0, 0%, 100%) 0%, hsl(210, 20%, 98%) 100%);
-    --gradient-cta: linear-gradient(135deg, hsl(145 70% 26%) 0%, hsl(150 75% 20%) 100%);
-    --gradient-gold: linear-gradient(135deg, hsl(45 95% 55%) 0%, hsl(40 95% 50%) 100%);
-    --gradient-canvas: radial-gradient(ellipse at top left, hsl(48 60% 94%) 0%, hsl(48 38% 96%) 60%);
+    --gradient-card: linear-gradient(145deg, hsl(0, 0%, 100%) 0%, hsl(138 39% 97%) 100%);
+    --gradient-cta: linear-gradient(135deg, hsl(140 78% 27%) 0%, hsl(140 79% 18%) 100%);
+    --gradient-gold: linear-gradient(135deg, hsl(48 100% 48%) 0%, hsl(48 100% 43%) 100%);
+    --gradient-canvas: radial-gradient(ellipse at top left, hsl(138 39% 94%) 0%, hsl(140 16% 96%) 60%);
     
-    --shadow-soft: 0 4px 20px -4px hsl(215 25% 15% / 0.08);
-    --shadow-medium: 0 8px 30px -8px hsl(215 25% 15% / 0.12);
-    --shadow-strong: 0 20px 50px -15px hsl(215 25% 15% / 0.2);
-    --shadow-card-float: 0 30px 60px -20px hsl(145 50% 15% / 0.18), 0 10px 20px -8px hsl(145 30% 20% / 0.08);
-    --shadow-glow-primary: 0 0 40px hsl(152 60% 28% / 0.3);
-    --shadow-glow-accent: 0 0 30px hsl(42 90% 55% / 0.4);
+    --shadow-soft: 0 4px 20px -4px hsl(152 29% 10% / 0.08);
+    --shadow-medium: 0 8px 30px -8px hsl(152 29% 10% / 0.12);
+    --shadow-strong: 0 20px 50px -15px hsl(152 29% 10% / 0.2);
+    --shadow-card-float: 0 30px 60px -20px hsl(141 79% 11% / 0.18), 0 10px 20px -8px hsl(140 78% 18% / 0.08);
+    --shadow-glow-primary: 0 0 40px hsl(140 78% 27% / 0.3);
+    --shadow-glow-accent: 0 0 30px hsl(48 100% 48% / 0.4);
 
     --transition-smooth: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
     --transition-bounce: all 0.5s cubic-bezier(0.68, -0.55, 0.265, 1.55);
 
     /* Sidebar */
-    --sidebar-background: 152 40% 12%;
+    --sidebar-background: 141 79% 11%;
     --sidebar-foreground: 0 0% 95%;
-    --sidebar-primary: 42 90% 55%;
-    --sidebar-primary-foreground: 215 25% 15%;
-    --sidebar-accent: 152 40% 20%;
+    --sidebar-primary: 48 100% 48%;
+    --sidebar-primary-foreground: 152 29% 10%;
+    --sidebar-accent: 140 79% 18%;
     --sidebar-accent-foreground: 0 0% 95%;
-    --sidebar-border: 152 30% 20%;
-    --sidebar-ring: 42 90% 55%;
+    --sidebar-border: 140 78% 22%;
+    --sidebar-ring: 48 100% 48%;
   }
 
   .dark {
@@ -84,33 +82,33 @@
     --popover: 215 25% 12%;
     --popover-foreground: 0 0% 95%;
 
-    --primary: 152 55% 45%;
+    --primary: 140 60% 40%;
     --primary-foreground: 0 0% 100%;
 
-    --secondary: 210 60% 55%;
+    --secondary: 140 55% 30%;
     --secondary-foreground: 0 0% 100%;
 
-    --muted: 215 25% 18%;
-    --muted-foreground: 215 15% 65%;
+    --muted: 152 25% 18%;
+    --muted-foreground: 146 15% 65%;
 
-    --accent: 42 85% 60%;
-    --accent-foreground: 215 25% 10%;
+    --accent: 48 90% 55%;
+    --accent-foreground: 152 25% 10%;
 
-    --destructive: 0 70% 50%;
+    --destructive: 6 60% 50%;
     --destructive-foreground: 0 0% 100%;
 
-    --border: 215 20% 20%;
-    --input: 215 20% 20%;
-    --ring: 152 55% 45%;
+    --border: 152 20% 20%;
+    --input: 152 20% 20%;
+    --ring: 140 60% 40%;
 
-    --sidebar-background: 215 30% 6%;
+    --sidebar-background: 152 30% 6%;
     --sidebar-foreground: 0 0% 95%;
-    --sidebar-primary: 42 85% 60%;
-    --sidebar-primary-foreground: 215 25% 10%;
-    --sidebar-accent: 215 25% 15%;
+    --sidebar-primary: 48 90% 55%;
+    --sidebar-primary-foreground: 152 25% 10%;
+    --sidebar-accent: 152 25% 15%;
     --sidebar-accent-foreground: 0 0% 95%;
-    --sidebar-border: 215 20% 15%;
-    --sidebar-ring: 42 85% 60%;
+    --sidebar-border: 152 20% 15%;
+    --sidebar-ring: 48 90% 55%;
   }
 }
 
@@ -125,11 +123,11 @@
 
   body {
     @apply bg-background text-foreground font-sans antialiased;
-    font-family: 'Inter', system-ui, sans-serif;
+    font-family: -apple-system, "system-ui", "Segoe UI", Roboto, "Helvetica Neue", Arial, "Noto Sans", sans-serif;
   }
 
   h1, h2, h3, h4, h5, h6 {
-    font-family: 'Montserrat', system-ui, sans-serif;
+    font-family: -apple-system, "system-ui", "Segoe UI", Roboto, "Helvetica Neue", Arial, "Noto Sans", sans-serif;
     @apply font-bold tracking-tight;
   }
 }
@@ -258,7 +256,7 @@
   /* Big numbers styling */
   .big-number {
     @apply text-5xl md:text-6xl lg:text-7xl font-black tracking-tighter;
-    font-family: 'Montserrat', system-ui, sans-serif;
+    font-family: -apple-system, "system-ui", "Segoe UI", Roboto, "Helvetica Neue", Arial, "Noto Sans", sans-serif;
   }
 
   /* Map styling */
