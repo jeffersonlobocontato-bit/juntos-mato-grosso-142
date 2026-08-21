@@ -6,7 +6,7 @@ import MetodologiaVideo from "@/components/landing/MetodologiaVideo";
 import MetodologiaDestaqueMidia from "@/components/landing/MetodologiaDestaqueMidia";
 import MetodologiaGaleria from "@/components/landing/MetodologiaGaleria";
 import MetodologiaEntidades from "@/components/landing/MetodologiaEntidades";
-const logoClara = "/marca/moro22-horizontal-amarela.png";
+const logoClara = "/marca/wellington22-horizontal-amarela.png";
 import fotoOficial from "@/assets/metodologia/foto-oficial-moro-ombros.png";
 import planoPdf from "@/assets/plano-governo.pdf.asset.json";
 
@@ -156,7 +156,7 @@ export default function MetodologiaPlano() {
           style={{ background: `radial-gradient(circle at 85% 15%, ${BRAND.gold}33, transparent 55%)` }}
         />
         <div className="relative container mx-auto px-6 py-14 md:py-20 max-w-6xl">
-          <img src="/marca/moro22-horizontal-amarela.png" alt="Moro 22 Governador — Vice Edson Vasconcelos" className="h-16 md:h-24 mb-10" />
+          <img src="/marca/wellington22-horizontal-amarela.png" alt="Wellington 22 Governador" className="h-16 md:h-24 mb-10" />
 
           <div className="grid md:grid-cols-[1.3fr_1fr] gap-10 items-center md:items-stretch">
             <div>
@@ -174,7 +174,7 @@ export default function MetodologiaPlano() {
                 <span style={{ color: BRAND.gold }}>não discursando</span>
               </h1>
               <p className="text-white/85 text-lg md:text-xl leading-relaxed max-w-xl mb-8">
-                Antes de escrever uma proposta, fomos ouvir. Percorremos o Paraná,
+                Antes de escrever uma proposta, fomos ouvir. Percorremos Mato Grosso,
                 para que este plano de governo carregasse a voz de quem vive o Estado.
               </p>
               <div className="flex flex-wrap gap-4 mb-6">
@@ -263,9 +263,9 @@ export default function MetodologiaPlano() {
               Respeito a quem foi ouvido
             </h3>
             <p className="text-gray-700 leading-relaxed">
-              Cada sugestão enviada por um cidadão paranaense foi lida, catalogada e geolocalizada,
+              Cada sugestão enviada por um cidadão mato-grossense foi lida, catalogada e geolocalizada,
               não como estatística, mas como retrato real de uma cidade, de uma vida. Ouvir de verdade,
-              reafirma o propósito de governar para as familias paranaenses.
+              reafirma o propósito de governar para as famílias mato-grossenses.
             </p>
           </div>
           <div
@@ -299,13 +299,13 @@ export default function MetodologiaPlano() {
               Não é discurso. É método.
             </span>
             <h2 className="font-black text-2xl md:text-4xl text-white mt-2">
-              O maior processo de escuta já feito para um plano de governo no Paraná
+              O maior processo de escuta já feito para um plano de governo em Mato Grosso
             </h2>
           </div>
 
           <div className="grid grid-cols-2 md:grid-cols-4 gap-5 mb-10">
             {[
-              { value: 399, label: "municípios paranaenses alcançados pela escuta" },
+              { value: 142, label: "municípios mato-grossenses alcançados pela escuta" },
               { value: 100, suffix: "+", label: "entidades que enviaram documentos e propostas" },
               { value: 200, suffix: "+", label: "especialistas técnicos de todas as regiões" },
               { value: sugestoesCount ?? BASE_SUGESTOES, label: "sugestões populares recebidas e geolocalizadas" },
@@ -363,7 +363,7 @@ export default function MetodologiaPlano() {
             <p className="text-gray-700 leading-relaxed">
               Esse mapa foi cruzado com as propostas técnicas estruturadas pelos especialistas,
               garantindo que o plano final tivesse aderência real às dores e prioridades de cada
-              região, e não apenas a uma leitura genérica do Paraná.
+              região, e não apenas a uma leitura genérica de Mato Grosso.
             </p>
           </div>
         </div>
@@ -376,11 +376,11 @@ export default function MetodologiaPlano() {
             O QUE VOCÊ ESPERA DO PRÓXIMO GOVERNO?
           </h2>
           <p className="text-white/80 text-base md:text-lg mb-8 max-w-2xl mx-auto leading-relaxed">
-            Sua opinião é fundamental para construirmos um Paraná mais justo, seguro e próspero.
+            Sua opinião é fundamental para construirmos um Mato Grosso mais justo, seguro e próspero.
             Conte o que você espera do próximo governo e ajude a definir as prioridades do Estado.
           </p>
           <a
-            href="https://juntosparana399.com.br/"
+            href="https://juntosmatogrosso142.com.br/"
             target="_blank"
             rel="noopener noreferrer"
             className="inline-flex items-center gap-3 px-8 py-4 rounded-full font-black text-base md:text-lg transition-all duration-300 hover:scale-105 hover:shadow-2xl"
@@ -401,14 +401,14 @@ export default function MetodologiaPlano() {
       {/* ============ FOOTER ============ */}
       <footer className="py-10" style={{ background: BRAND.navy }}>
         <div className="container mx-auto px-6 max-w-6xl flex flex-col items-center gap-4">
-          <img src={logoClara} alt="Moro 22 Governador — Vice Edson Vasconcelos" className="h-12" />
+          <img src={logoClara} alt="Wellington 22 Governador" className="h-12" />
           <div className="text-center" style={{ fontFamily: "'Inter',sans-serif", fontSize: 13, color: "rgba(255,255,255,.85)", fontWeight: 500, lineHeight: 1.6 }}>
             <div>
-              • Coligação Fortaleza Paraná - PL - NOVO - PODEMOS - CNPJ - 68.456.168/0001-40
+              • Coligação "Coração da Gente" - PL - NOVO - MDB - Federação PRD e Solidariedade - DC - CNPJ - [PENDENTE: informar CNPJ oficial da campanha MT]
             </div>
           </div>
           <p className="text-white/50 text-xs text-center">
-            Paraná, a nossa fortaleza! — Metodologia do Plano de Governo, construída com o Paraná.
+            Mato Grosso, a nossa força! — Metodologia do Plano de Governo, construída com Mato Grosso.
           </p>
         </div>
       </footer>
@@ -431,10 +431,10 @@ export default function MetodologiaPlano() {
               style={{ background: `linear-gradient(135deg, ${BRAND.navy}, #182642)` }}
             >
               <div className="flex items-center gap-3">
-                <img src={logoClara} alt="Moro" className="h-8" />
+                <img src={logoClara} alt="Wellington" className="h-8" />
                 <div>
                   <h3 className="font-black text-white text-lg leading-tight">Mensagem do Sergio Moro</h3>
-                  <p className="text-white/60 text-xs">Carta de compromissos com o Paraná</p>
+                  <p className="text-white/60 text-xs">Carta de compromissos com Mato Grosso</p>
                 </div>
               </div>
               <button
@@ -459,7 +459,7 @@ export default function MetodologiaPlano() {
                 />
                 <div>
                   <p className="font-bold text-sm" style={{ color: BRAND.navy }}>Sergio Moro</p>
-                  <p className="text-xs text-gray-500">Candidato a Governador do Paraná</p>
+                  <p className="text-xs text-gray-500">Candidato a Governador de Mato Grosso</p>
                 </div>
               </div>
               <div className="space-y-4">
@@ -475,7 +475,7 @@ export default function MetodologiaPlano() {
               </div>
               <div className="mt-8 pt-6 border-t text-center" style={{ borderColor: `${BRAND.green500}22` }}>
                 <p className="font-black text-lg" style={{ color: BRAND.green900 }}>
-                  Vamos governar o Paraná juntos.
+                  Vamos governar Mato Grosso juntos.
                 </p>
                 <button
                   onClick={() => setShowMensagem(false)}

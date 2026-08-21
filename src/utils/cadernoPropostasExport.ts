@@ -194,7 +194,7 @@ function drawFooter(st: PdfState) {
   pdf.setFont('helvetica', 'normal');
   pdf.setFontSize(8);
   pdf.setTextColor(120, 120, 120);
-  pdf.text('Juntos Paraná 399 · Sergio Moro', MARGIN_X, PAGE_H - MARGIN_BOTTOM + 11);
+  pdf.text('Juntos Mato Grosso 142 · Wellington Fagundes', MARGIN_X, PAGE_H - MARGIN_BOTTOM + 11);
   pdf.text(String(pageNum), PAGE_W - MARGIN_X, PAGE_H - MARGIN_BOTTOM + 11, { align: 'right' });
 }
 
@@ -241,13 +241,13 @@ function drawCover(st: PdfState, title: string, subtitle: string, totalPropostas
   pdf.setFont('helvetica', 'bold');
   pdf.setFontSize(28);
   pdf.setTextColor(15, 23, 42);
-  pdf.text('Juntos Paraná 399', PAGE_W / 2, st.y, { align: 'center' });
+  pdf.text('Juntos Mato Grosso 142', PAGE_W / 2, st.y, { align: 'center' });
   st.y += 10;
 
   pdf.setFont('helvetica', 'normal');
   pdf.setFontSize(14);
   pdf.setTextColor(120, 90, 20);
-  pdf.text('Sergio Moro — Pré-candidato ao Governo do Paraná', PAGE_W / 2, st.y, { align: 'center' });
+  pdf.text('Wellington Fagundes — Pré-candidato ao Governo de Mato Grosso', PAGE_W / 2, st.y, { align: 'center' });
   st.y += 30;
 
   pdf.setDrawColor(BRAND_GOLD_RGB[0], BRAND_GOLD_RGB[1], BRAND_GOLD_RGB[2]);
@@ -713,14 +713,14 @@ function docxCover(title: string, totalPropostas: number): Paragraph[] {
     new Paragraph({
       alignment: AlignmentType.CENTER,
       spacing: { before: 2000, after: 200 },
-      children: [new TextRun({ text: 'Juntos Paraná 399', bold: true, size: 56, color: BRAND_DARK_HEX })],
+      children: [new TextRun({ text: 'Juntos Mato Grosso 142', bold: true, size: 56, color: BRAND_DARK_HEX })],
     }),
     new Paragraph({
       alignment: AlignmentType.CENTER,
       spacing: { after: 600 },
       children: [
         new TextRun({
-          text: 'Sergio Moro — Pré-candidato ao Governo do Paraná',
+          text: 'Wellington Fagundes — Pré-candidato ao Governo de Mato Grosso',
           size: 28,
           color: '785A14',
         }),
@@ -828,7 +828,7 @@ export async function exportCadernoDOCX(data: CadernoData, filename: string) {
   });
 
   const doc = new Document({
-    creator: 'Juntos Paraná 399',
+    creator: 'Juntos Mato Grosso 142',
     title: data.title,
     sections: [
       {
@@ -842,7 +842,7 @@ export async function exportCadernoDOCX(data: CadernoData, filename: string) {
             children: [
               new Paragraph({
                 alignment: AlignmentType.RIGHT,
-                children: [new TextRun({ text: 'Juntos Paraná 399 · Sergio Moro', size: 16, color: '8A8A8A' })],
+                children: [new TextRun({ text: 'Juntos Mato Grosso 142 · Wellington Fagundes', size: 16, color: '8A8A8A' })],
               }),
             ],
           }),

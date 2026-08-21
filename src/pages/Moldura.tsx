@@ -166,7 +166,7 @@ const Moldura = () => {
         c.beginPath();
         c.arc(cx, cy, r + 14, 0, Math.PI * 2);
         c.lineWidth = 20;
-        c.strokeStyle = "#006731";
+        c.strokeStyle = "#0f7a32";
         c.stroke();
         c.restore();
 
@@ -174,7 +174,7 @@ const Moldura = () => {
         c.beginPath();
         c.arc(cx, cy, r + 28, 0, Math.PI * 2);
         c.lineWidth = 4;
-        c.strokeStyle = "#F8DC00";
+        c.strokeStyle = "#f5c400";
         c.stroke();
         c.restore();
 
@@ -187,7 +187,7 @@ const Moldura = () => {
           c.clip();
           c.beginPath();
           c.ellipse(cx, cy + r * 0.9, r * 1.18, r * 0.62, 0, 0, Math.PI * 2);
-          c.fillStyle = "#006731";
+          c.fillStyle = "#0f7a32";
           c.fill();
           c.restore();
 
@@ -209,7 +209,7 @@ const Moldura = () => {
         c.beginPath();
         c.arc(cx, cy, r + 10, 0, Math.PI * 2);
         c.lineWidth = 9;
-        c.strokeStyle = "#006731";
+        c.strokeStyle = "#0f7a32";
         c.stroke();
         c.restore();
 
@@ -250,7 +250,7 @@ const Moldura = () => {
     if (st.format === "story") {
       const grad = ctx.createLinearGradient(0, 0, 0, stage.height);
       grad.addColorStop(0, "#00552A");
-      grad.addColorStop(1, "#006731");
+      grad.addColorStop(1, "#0f7a32");
       ctx.fillStyle = grad;
     } else {
       ctx.fillStyle = "#F7F6EF";
@@ -358,7 +358,7 @@ const Moldura = () => {
   }, []);
 
   useEffect(() => {
-    document.title = "Sou Moro 22 | Moldura oficial de perfil";
+    document.title = "Sou Wellington 22 | Moldura oficial de perfil";
     void trackMoldura("pageview");
     setCanvasSize();
     Promise.allSettled([
@@ -567,7 +567,7 @@ const Moldura = () => {
         try {
           const file = new File([blob], fileName, { type: "image/png" });
           if (nav.share && nav.canShare?.({ files: [file] })) {
-            await nav.share({ files: [file], title: "Sou Moro 22" });
+            await nav.share({ files: [file], title: "Sou Wellington 22" });
             setIosHint(false);
             return;
           }
@@ -602,33 +602,33 @@ const Moldura = () => {
 
   const btn =
     "inline-block rounded-full px-7 py-4 text-sm font-semibold uppercase tracking-wide transition-transform hover:-translate-y-px";
-  const btnPrimary = `${btn} bg-[#006731] text-white shadow-[0_6px_18px_rgba(0,103,49,0.28)] disabled:opacity-50 disabled:hover:translate-y-0`;
-  const btnSecondary = `${btn} border-[1.5px] border-[#006731] bg-transparent text-[#006731]`;
+  const btnPrimary = `${btn} bg-[#0f7a32] text-white shadow-[0_6px_18px_rgba(15,122,50,0.28)] disabled:opacity-50 disabled:hover:translate-y-0`;
+  const btnSecondary = `${btn} border-[1.5px] border-[#0f7a32] bg-transparent text-[#0f7a32]`;
 
   return (
     <div className="min-h-screen bg-[#F7F6EF] text-[#10200F]" style={{ fontFamily: "'Inter',system-ui,sans-serif" }}>
       <header className="flex items-center gap-2.5 border-b border-[#E1DFD2] bg-white px-5 py-3.5">
         <img src={MMARK_SRC} alt="" className="w-[30px]" />
         <div>
-          <div className="text-[15px] font-semibold uppercase tracking-[0.06em] text-[#006731]" style={{ fontFamily: "'Oswald',system-ui,sans-serif" }}>
-            Sou Moro 22
+          <div className="text-[15px] font-semibold uppercase tracking-[0.06em] text-[#0f7a32]" style={{ fontFamily: "-apple-system,'system-ui','Segoe UI',Roboto,'Helvetica Neue',Arial,'Noto Sans',sans-serif" }}>
+            Sou Wellington 22
           </div>
-          <div className="text-[10px] font-medium uppercase tracking-[0.04em] text-[#566253]">Governador · 22 · Paraná</div>
+          <div className="text-[10px] font-medium uppercase tracking-[0.04em] text-[#566253]">Governador · 22 · Mato Grosso</div>
         </div>
       </header>
 
       <section className="px-5 pb-6 pt-9 text-center">
         <div className="mx-auto max-w-[480px]">
-          <div className="mb-2.5 text-xs font-semibold uppercase tracking-[0.12em] text-[#97B832]" style={{ fontFamily: "'Oswald',sans-serif" }}>
-            Governador · 22 · Paraná 2026
+          <div className="mb-2.5 text-xs font-semibold uppercase tracking-[0.12em] text-[#f5c400]" style={{ fontFamily: "-apple-system,'system-ui','Segoe UI',Roboto,'Helvetica Neue',Arial,'Noto Sans',sans-serif" }}>
+            Governador · 22 · Mato Grosso 2026
           </div>
-          <h1 className="mb-3.5 text-[32px] font-bold uppercase leading-[1.08] text-[#006731]" style={{ fontFamily: "'Oswald',sans-serif" }}>
+          <h1 className="mb-3.5 text-[32px] font-bold uppercase leading-[1.08] text-[#0f7a32]" style={{ fontFamily: "-apple-system,'system-ui','Segoe UI',Roboto,'Helvetica Neue',Arial,'Noto Sans',sans-serif" }}>
             Coloque sua
             <br />
-            moldura do Moro
+            moldura do Wellington
           </h1>
-          <p className="mb-3.5 text-[15px] italic text-[#006731]" style={{ fontFamily: "'Oswald',sans-serif" }}>
-            "Paraná, a nossa fortaleza."
+          <p className="mb-3.5 text-[15px] italic text-[#0f7a32]" style={{ fontFamily: "-apple-system,'system-ui','Segoe UI',Roboto,'Helvetica Neue',Arial,'Noto Sans',sans-serif" }}>
+            "Mato Grosso, a nossa força."
           </p>
           <p className="mx-auto mb-6 max-w-[360px] text-[15px] text-[#566253]">
             Mostre seu apoio direto no perfil. Envie a foto, ajuste o enquadramento e baixe — leva 10 segundos, direto do celular.
@@ -646,8 +646,8 @@ const Moldura = () => {
           {avatarCount != null && (
             <div className="mx-auto mt-6 max-w-[320px] rounded-[18px] border border-[#E1DFD2] bg-white px-5 py-4">
               <div
-                className="text-[34px] font-bold leading-none text-[#006731]"
-                style={{ fontFamily: "'Oswald',sans-serif" }}
+                className="text-[34px] font-bold leading-none text-[#0f7a32]"
+                style={{ fontFamily: "-apple-system,'system-ui','Segoe UI',Roboto,'Helvetica Neue',Arial,'Noto Sans',sans-serif" }}
               >
                 {avatarCount.toLocaleString("pt-BR")}
               </div>
@@ -661,7 +661,7 @@ const Moldura = () => {
 
       <section className="px-5 pb-9 pt-2">
         <div className="mx-auto max-w-[480px]">
-          <h2 className="mb-5 text-center text-[13px] uppercase tracking-[0.14em] text-[#006731]" style={{ fontFamily: "'Oswald',sans-serif" }}>
+          <h2 className="mb-5 text-center text-[13px] uppercase tracking-[0.14em] text-[#0f7a32]" style={{ fontFamily: "-apple-system,'system-ui','Segoe UI',Roboto,'Helvetica Neue',Arial,'Noto Sans',sans-serif" }}>
             Como funciona
           </h2>
           <div className="grid gap-4">
@@ -671,11 +671,11 @@ const Moldura = () => {
               ["03", "Baixe e publique", "Salve a imagem e troque sua foto nas redes."],
             ].map(([n, t, d]) => (
               <div key={n} className="flex items-start gap-3.5 rounded-[18px] border border-[#E1DFD2] bg-white p-4">
-                <div className="min-w-[30px] text-[22px] font-bold text-[#97B832]" style={{ fontFamily: "'Oswald',sans-serif" }}>
+                <div className="min-w-[30px] text-[22px] font-bold text-[#f5c400]" style={{ fontFamily: "-apple-system,'system-ui','Segoe UI',Roboto,'Helvetica Neue',Arial,'Noto Sans',sans-serif" }}>
                   {n}
                 </div>
                 <div>
-                  <h3 className="mb-1 text-sm font-semibold uppercase text-[#006731]" style={{ fontFamily: "'Oswald',sans-serif" }}>
+                  <h3 className="mb-1 text-sm font-semibold uppercase text-[#0f7a32]" style={{ fontFamily: "-apple-system,'system-ui','Segoe UI',Roboto,'Helvetica Neue',Arial,'Noto Sans',sans-serif" }}>
                     {t}
                   </h3>
                   <p className="text-[13.5px] text-[#566253]">{d}</p>
@@ -689,7 +689,7 @@ const Moldura = () => {
       <section ref={editorRef} className="px-5 pb-12 pt-2">
         <div className="mx-auto max-w-[480px]">
           <div className="rounded-[24px] border border-[#E1DFD2] bg-white px-[18px] pb-6 pt-[22px]">
-            <p className="mb-1 text-center text-[15px] font-bold uppercase text-[#006731]" style={{ fontFamily: "'Oswald',sans-serif" }}>
+            <p className="mb-1 text-center text-[15px] font-bold uppercase text-[#0f7a32]" style={{ fontFamily: "-apple-system,'system-ui','Segoe UI',Roboto,'Helvetica Neue',Arial,'Noto Sans',sans-serif" }}>
               Monte sua foto
             </p>
             <p className="mb-5 text-center text-xs text-[#566253]">
@@ -702,7 +702,7 @@ const Moldura = () => {
                   key={f}
                   onClick={() => changeFormat(f)}
                   className={`flex-1 rounded-full px-2 py-2.5 text-[13px] font-semibold ${
-                    format === f ? "bg-[#006731] text-white" : "text-[#566253]"
+                    format === f ? "bg-[#0f7a32] text-white" : "text-[#566253]"
                   }`}
                 >
                   {f === "feed" ? "Feed / Perfil" : "Story / Status"}
@@ -729,8 +729,8 @@ const Moldura = () => {
             )}
 
             {adminMode && !hasImg && (
-              <div className="mb-4 rounded-2xl border-2 border-dashed border-[#006731] bg-white p-4">
-                <p className="mb-3 text-center text-[13px] font-bold uppercase text-[#006731]">
+              <div className="mb-4 rounded-2xl border-2 border-dashed border-[#0f7a32] bg-white p-4">
+                <p className="mb-3 text-center text-[13px] font-bold uppercase text-[#0f7a32]">
                   Admin · enquadrar foto de modelo ({format === "feed" ? "Feed / Perfil" : "Story / Status"})
                 </p>
                 {([
@@ -755,7 +755,7 @@ const Moldura = () => {
                           setExFitSaved(false);
                         }
                       }
-                      className="w-full accent-[#006731]"
+                      className="w-full accent-[#0f7a32]"
                     />
                   </div>
                 ))}
@@ -765,7 +765,7 @@ const Moldura = () => {
                       setExFit((p) => ({ ...p, [format]: DEFAULT_EXAMPLE_FIT[format] }));
                       setExFitSaved(false);
                     }}
-                    className="flex-1 rounded-full border-2 border-[#006731] px-3 py-2 text-xs font-semibold text-[#006731]"
+                    className="flex-1 rounded-full border-2 border-[#0f7a32] px-3 py-2 text-xs font-semibold text-[#0f7a32]"
                   >
                     Restaurar padrão
                   </button>
@@ -797,7 +797,7 @@ const Moldura = () => {
                         setExFitSaving(false);
                       }
                     }}
-                    className="flex-1 rounded-full bg-[#006731] px-3 py-2 text-xs font-bold text-white disabled:opacity-50"
+                    className="flex-1 rounded-full bg-[#0f7a32] px-3 py-2 text-xs font-bold text-white disabled:opacity-50"
                   >
                     {exFitSaving ? "Publicando..." : exFitSaved ? "Publicado ✓" : "Salvar e publicar"}
                   </button>
@@ -819,7 +819,7 @@ const Moldura = () => {
                     max={300}
                     value={zoom}
                     onChange={(e) => onZoom(Number(e.target.value))}
-                    className="flex-1 accent-[#006731]"
+                    className="flex-1 accent-[#0f7a32]"
                   />
                   <span className="text-base text-[#566253]">+</span>
                 </div>
@@ -827,30 +827,30 @@ const Moldura = () => {
               </div>
             )}
 
-            <p className="mb-2 mt-1 text-center text-[13px] font-bold uppercase text-[#006731]" style={{ fontFamily: "'Oswald',sans-serif" }}>
+            <p className="mb-2 mt-1 text-center text-[13px] font-bold uppercase text-[#0f7a32]" style={{ fontFamily: "-apple-system,'system-ui','Segoe UI',Roboto,'Helvetica Neue',Arial,'Noto Sans',sans-serif" }}>
               Escolha sua arte
             </p>
             <div className="mb-[18px] flex gap-2.5">
               <button
                 onClick={() => changeArt("faixa")}
                 className={`flex-1 rounded-[14px] border-2 bg-white px-1.5 py-2.5 text-center ${
-                  art === "faixa" ? "border-[#006731]" : "border-[#E1DFD2]"
+                  art === "faixa" ? "border-[#0f7a32]" : "border-[#E1DFD2]"
                 }`}
               >
                 <svg viewBox="0 0 60 60" className="mb-1.5 block h-auto w-full">
-                  <circle cx="30" cy="30" r="24" fill="none" stroke="#006731" strokeWidth="5" />
-                  <circle cx="30" cy="30" r="26.5" fill="none" stroke="#F8DC00" strokeWidth="1.5" />
+                  <circle cx="30" cy="30" r="24" fill="none" stroke="#0f7a32" strokeWidth="5" />
+                  <circle cx="30" cy="30" r="26.5" fill="none" stroke="#f5c400" strokeWidth="1.5" />
                 </svg>
                 <span className="text-xs font-semibold">Faixa</span>
               </button>
               <button
                 onClick={() => changeArt("leve")}
                 className={`flex-1 rounded-[14px] border-2 bg-white px-1.5 py-2.5 text-center ${
-                  art === "leve" ? "border-[#006731]" : "border-[#E1DFD2]"
+                  art === "leve" ? "border-[#0f7a32]" : "border-[#E1DFD2]"
                 }`}
               >
                 <svg viewBox="0 0 60 60" className="mb-1.5 block h-auto w-full">
-                  <circle cx="30" cy="30" r="26" fill="none" stroke="#006731" strokeWidth="3" />
+                  <circle cx="30" cy="30" r="26" fill="none" stroke="#0f7a32" strokeWidth="3" />
                 </svg>
                 <span className="text-xs font-semibold">Leve</span>
               </button>
@@ -882,14 +882,14 @@ const Moldura = () => {
                 <img
                   src={fallbackUrl}
                   alt="Sua arte pronta para salvar"
-                  className="mx-auto w-full max-w-[320px] rounded-[12px] border border-[#00673120]"
+                  className="mx-auto w-full max-w-[320px] rounded-[12px] border border-[#0f7a3220]"
                 />
                 <a
                   href={fallbackUrl}
-                  download={`moro-moldura-${format}.png`}
+                  download={`wellington-moldura-${format}.png`}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="mt-2 block text-center text-xs font-semibold text-[#006731] underline"
+                  className="mt-2 block text-center text-xs font-semibold text-[#0f7a32] underline"
                 >
                   Abrir imagem em nova aba
                 </a>
@@ -899,26 +899,25 @@ const Moldura = () => {
         </div>
       </section>
 
-      <footer className="bg-[#006731] px-5 py-8 text-center text-xs text-[#CFE0C6]">
+      <footer className="bg-[#0f7a32] px-5 py-8 text-center text-xs text-[#CFE0C6]">
         <div className="mx-auto max-w-[480px]">
-          <img src={FOOTER_LOGO_SRC} alt="Moro 22 Governador" className="mx-auto mb-3.5 w-[200px]" loading="lazy" />
+          <img src={FOOTER_LOGO_SRC} alt="Wellington 22 Governador" className="mx-auto mb-3.5 w-[200px]" loading="lazy" />
           <p className="my-1">
             <a
               className="font-semibold text-white no-underline"
-              href="https://oficialsergiomoro.com.br/"
+              href="https://wellingtongovernador.com.br/"
               target="_blank"
               rel="noopener noreferrer"
             >
-              oficialsergiomoro.com.br
+              wellingtongovernador.com.br
             </a>
           </p>
           <div className="mb-1.5 mt-4 flex justify-center gap-3.5">
             {[
-              ["IG", "https://www.instagram.com/sf_moro/", "Instagram"],
-              ["FB", "https://www.facebook.com/sf.moro/", "Facebook"],
-              ["X", "https://x.com/SF_Moro", "X"],
-              ["YT", "https://www.youtube.com/@sf_moro", "YouTube"],
-              ["TT", "https://www.tiktok.com/@sergiomoro_", "TikTok"],
+              ["IG", "https://www.instagram.com/wellingtonfagundesmt/", "Instagram"],
+              ["FB", "https://facebook.com/1501236886772782", "Facebook"],
+              ["X", "https://x.com/sen_wellington", "X"],
+              ["TT", "https://www.tiktok.com/@senwellingtonfagundes", "TikTok"],
             ].map(([l, href, label]) => (
               <a
                 key={l}
@@ -936,9 +935,9 @@ const Moldura = () => {
           <p className="mt-1.5 text-[10.5px] leading-relaxed text-[#9FC194]">
             <strong className="text-[#CFE0C6]">PROPAGANDA ELEITORAL</strong>
             <br />
-            Coligação: Fortaleza Paraná — Partidos: PL – NOVO – PODEMOS
+            Coligação: Coração da Gente — Partidos: PL – NOVO – MDB – Federação PRD e Solidariedade – DC
             <br />
-            CNPJ de campanha: 68.456.168/0001-40
+            CNPJ de campanha: [PENDENTE: informar CNPJ oficial da campanha MT]
             <br />
             <br />
             Este site não coleta, armazena nem envia suas fotos para nenhum servidor. Todo o processamento acontece no seu próprio aparelho.
