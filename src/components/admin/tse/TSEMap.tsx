@@ -324,13 +324,13 @@ export default function TSEMap({
       try {
         mapboxgl.accessToken = token;
 
-        const center = STATE_CENTERS[selectedUF] || [-51.4166, -25.2521];
+        const center = STATE_CENTERS[selectedUF] || DEFAULT_CENTER;
 
         map.current = new mapboxgl.Map({
           container: container,
           style: "mapbox://styles/mapbox/dark-v11",
           center,
-          zoom: 7,
+          zoom: selectedUF === "MT" ? 5.2 : 7,
         });
 
         map.current.on('load', () => {
@@ -368,8 +368,8 @@ export default function TSEMap({
   // Update map center when state changes
   useEffect(() => {
     if (!map.current) return;
-    const center = STATE_CENTERS[selectedUF] || [-51.4166, -25.2521];
-    map.current.flyTo({ center, zoom: 7 });
+    const center = STATE_CENTERS[selectedUF] || DEFAULT_CENTER;
+    map.current.flyTo({ center, zoom: selectedUF === "MT" ? 5.2 : 7 });
   }, [selectedUF]);
 
   // Update visualization when data or mode changes
