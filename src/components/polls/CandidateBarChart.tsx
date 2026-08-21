@@ -43,7 +43,7 @@ const CustomLabel = (props: any) => {
     <text
       x={x + width + 6}
       y={y + 10}
-      fill="#dde4ec"
+      fill="#000000"
       fontSize={12}
       fontWeight={600}
     >
