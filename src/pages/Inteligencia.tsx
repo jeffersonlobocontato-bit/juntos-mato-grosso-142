@@ -328,11 +328,38 @@ export default function Inteligencia() {
                 </CardContent>
               </Card>
             )}
+
+            {regiaoLider && (
+              <Card>
+                <CardHeader>
+                  <CardTitle className="text-base">Desempenho por região — {regiaoLider.candidato}</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+                    {regiaoLider.linhas.map(l => (
+                      <div key={l.regiao} className="rounded-lg border p-3">
+                        <p className="text-xs text-muted-foreground">{l.regiao}</p>
+                        <p className="text-xl font-bold">{l.pct.toFixed(1)}%</p>
+                      </div>
+                    ))}
+                  </div>
+                  <p className="text-xs text-muted-foreground mt-3">
+                    % de intenção de voto dentro de cada uma das 7 regiões de Mato Grosso (IMEA).
+                  </p>
+                </CardContent>
+              </Card>
+            )}
+          </TabsContent>
+
+          <TabsContent value="segmentos" className="mt-6">
+            <CruzamentosSegmentos waves={waves} questions={questions} destaque={lider?.candidate} />
           </TabsContent>
 
           <TabsContent value="cruzamento" className="space-y-6 mt-6">
             <CruzamentoPesquisas pesquisas={pesquisas} />
           </TabsContent>
+
+
 
           <TabsContent value="insights" className="mt-6">
             <InsightsComunicacao context={contextoParaIA} />
