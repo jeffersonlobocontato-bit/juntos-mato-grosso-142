@@ -25,6 +25,12 @@ import { CandidateBarChart } from '@/components/polls/CandidateBarChart';
 import AnaliseIAChat from '@/components/inteligencia/AnaliseIAChat';
 import InsightsComunicacao from '@/components/inteligencia/InsightsComunicacao';
 import CruzamentosSegmentos from '@/components/inteligencia/CruzamentosSegmentos';
+import ApoioHeritage from '@/components/inteligencia/ApoioHeritage';
+import {
+  APOIO_TRANSFERENCIA,
+  HERITAGE_POR_REGIAO,
+  HERITAGE_TOTAL,
+} from '@/data/apoioHeritageMt';
 import { useSurveys } from '@/hooks/useSurveys';
 import { CANDIDATE_COLORS } from '@/data/pollsData';
 
