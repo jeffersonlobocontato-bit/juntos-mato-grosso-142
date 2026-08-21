@@ -300,9 +300,10 @@ export default function Inteligencia() {
         </Card>
       ) : (
         <Tabs defaultValue="painel" className="w-full">
-          <TabsList className="grid w-full grid-cols-3 md:grid-cols-5 h-auto">
+          <TabsList className="grid w-full grid-cols-3 md:grid-cols-6 h-auto">
             <TabsTrigger value="painel" className="gap-2"><LayoutDashboard className="w-4 h-4" />Painel Geral</TabsTrigger>
             <TabsTrigger value="segmentos" className="gap-2"><Map className="w-4 h-4" />Regiões e Perfis</TabsTrigger>
+            <TabsTrigger value="apoio" className="gap-2"><Handshake className="w-4 h-4" />Apoios e Heritage</TabsTrigger>
             <TabsTrigger value="cruzamento" className="gap-2"><GitCompare className="w-4 h-4" />Cruzamento</TabsTrigger>
             <TabsTrigger value="insights" className="gap-2"><Megaphone className="w-4 h-4" />Insights</TabsTrigger>
             <TabsTrigger value="ia" className="gap-2"><Sparkles className="w-4 h-4" />Análise IA</TabsTrigger>
