@@ -130,8 +130,8 @@ const ParanaMap: React.FC<ParanaMapProps> = ({
     const newMap = new mapboxgl.Map({
       container: container,
       style: 'mapbox://styles/mapbox/light-v11',
-      center: [-51.5, -24.5],
-      zoom: 6,
+      center: [-55.9, -12.7],
+      zoom: 5,
     });
 
     newMap.addControl(
