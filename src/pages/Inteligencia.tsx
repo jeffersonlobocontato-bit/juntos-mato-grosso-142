@@ -11,7 +11,7 @@
 import { useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
 import {
-  LayoutDashboard, GitCompare, Sparkles, Megaphone, Upload, BarChart2,
+  LayoutDashboard, GitCompare, Sparkles, Megaphone, Upload, BarChart2, Map,
 } from 'lucide-react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -24,8 +24,10 @@ import {
 import { CandidateBarChart } from '@/components/polls/CandidateBarChart';
 import AnaliseIAChat from '@/components/inteligencia/AnaliseIAChat';
 import InsightsComunicacao from '@/components/inteligencia/InsightsComunicacao';
+import CruzamentosSegmentos from '@/components/inteligencia/CruzamentosSegmentos';
 import { useSurveys } from '@/hooks/useSurveys';
 import { CANDIDATE_COLORS } from '@/data/pollsData';
+
 
 interface PesquisaRow {
   inst: string; data: string; cand: string; pct: number; n: number; margem: number;
@@ -239,8 +241,30 @@ export default function Inteligencia() {
       instituto: waves.find(w => w.id === q.waveId)?.institute,
       cargo: q.cargo, tipo: q.questionType, cenario: q.scenarioLabel,
       resultados: q.results,
+      cruzamentos: q.crossTabs.map(ct => ({
+        recorte: ct.filterLabel,
+        leitura: ct.basis === 'perfil'
+          ? 'composição do eleitorado de cada candidato'
+          : 'percentual dentro de cada segmento',
+        linhas: ct.rows,
+      })),
     })),
   }), [waves, questions]);
+
+  // Recorte regional do líder no cenário principal mais recente
+  const regiaoLider = useMemo(() => {
+    if (!latestMainQuestion || !lider) return null;
+    const ct = latestMainQuestion.crossTabs.find(
+      c => c.filterType === 'regiao' && c.basis !== 'perfil',
+    );
+    if (!ct) return null;
+    return {
+      candidato: lider.candidate,
+      linhas: ct.rows.map(r => ({ regiao: r.label, pct: r.values[lider.candidate] ?? 0 })),
+    };
+  }, [latestMainQuestion, lider]);
+
+
 
   return (
     <div className="p-4 md:p-6 space-y-6">
@@ -268,12 +292,14 @@ export default function Inteligencia() {
         </Card>
       ) : (
         <Tabs defaultValue="painel" className="w-full">
-          <TabsList className="grid w-full grid-cols-2 md:grid-cols-4 h-auto">
+          <TabsList className="grid w-full grid-cols-3 md:grid-cols-5 h-auto">
             <TabsTrigger value="painel" className="gap-2"><LayoutDashboard className="w-4 h-4" />Painel Geral</TabsTrigger>
+            <TabsTrigger value="segmentos" className="gap-2"><Map className="w-4 h-4" />Regiões e Perfis</TabsTrigger>
             <TabsTrigger value="cruzamento" className="gap-2"><GitCompare className="w-4 h-4" />Cruzamento</TabsTrigger>
             <TabsTrigger value="insights" className="gap-2"><Megaphone className="w-4 h-4" />Insights</TabsTrigger>
             <TabsTrigger value="ia" className="gap-2"><Sparkles className="w-4 h-4" />Análise IA</TabsTrigger>
           </TabsList>
+
 
           <TabsContent value="painel" className="space-y-6 mt-6">
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
@@ -316,11 +342,38 @@ export default function Inteligencia() {
                 </CardContent>
               </Card>
             )}
+
+            {regiaoLider && (
+              <Card>
+                <CardHeader>
+                  <CardTitle className="text-base">Desempenho por região — {regiaoLider.candidato}</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+                    {regiaoLider.linhas.map(l => (
+                      <div key={l.regiao} className="rounded-lg border p-3">
+                        <p className="text-xs text-muted-foreground">{l.regiao}</p>
+                        <p className="text-xl font-bold">{l.pct.toFixed(1)}%</p>
+                      </div>
+                    ))}
+                  </div>
+                  <p className="text-xs text-muted-foreground mt-3">
+                    % de intenção de voto dentro de cada uma das 7 regiões de Mato Grosso (IMEA).
+                  </p>
+                </CardContent>
+              </Card>
+            )}
+          </TabsContent>
+
+          <TabsContent value="segmentos" className="mt-6">
+            <CruzamentosSegmentos waves={waves} questions={questions} destaque={lider?.candidate} />
           </TabsContent>
 
           <TabsContent value="cruzamento" className="space-y-6 mt-6">
             <CruzamentoPesquisas pesquisas={pesquisas} />
           </TabsContent>
+
+
 
           <TabsContent value="insights" className="mt-6">
             <InsightsComunicacao context={contextoParaIA} />

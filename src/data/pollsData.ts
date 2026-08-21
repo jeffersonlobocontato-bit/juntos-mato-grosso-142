@@ -8,7 +8,10 @@
 
 export type Cargo = 'governador' | 'senador' | 'presidente';
 export type QuestionType = 'espontanea' | 'estimulada' | 'rejeicao' | 'aprovacao';
-export type FilterType = 'genero' | 'faixa_etaria' | 'escolaridade' | 'renda' | 'religiosidade';
+export type FilterType =
+  | 'genero' | 'faixa_etaria' | 'escolaridade' | 'renda' | 'religiosidade'
+  | 'regiao' | 'sexo' | 'idade' | 'posicionamento' | 'presidente'
+  | (string & {});
 
 export interface CandidateResult {
   candidate: string;
@@ -24,9 +27,12 @@ export interface CrossTabRow {
 export interface CrossTab {
   filterType: FilterType;
   filterLabel: string;
+  /** 'segmento' = % dentro de cada segmento · 'perfil' = composição do eleitorado do candidato */
+  basis?: 'segmento' | 'perfil';
   candidates: string[];
   rows: CrossTabRow[];
 }
+
 
 export interface PollQuestion {
   id: string;

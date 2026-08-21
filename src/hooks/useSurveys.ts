@@ -2,7 +2,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase as db } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
 import { toast } from 'sonner';
-import type { PollWave, PollQuestion } from '@/data/pollsData';
+import type { PollWave, PollQuestion, CrossTab } from '@/data/pollsData';
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 export interface DbSurvey {
@@ -46,6 +46,18 @@ export interface DbSurveyResult {
   created_at: string;
 }
 
+export interface DbSurveyCrossTab {
+  id: string;
+  question_id: string;
+  filter_type: string;
+  filter_label: string;
+  basis: string;
+  segment_label: string;
+  segment_order: number;
+  candidate_name: string;
+  percentage: number;
+}
+
 // ─── Converters ───────────────────────────────────────────────────────────────
 export function dbSurveyToWave(s: DbSurvey): PollWave {
   return {
@@ -64,9 +76,44 @@ export function dbSurveyToWave(s: DbSurvey): PollWave {
   };
 }
 
+/** Agrupa as linhas de survey_crosstabs de uma pergunta em tabelas cruzadas */
+export function buildCrossTabs(rows: DbSurveyCrossTab[]): CrossTab[] {
+  const byFilter = new Map<string, DbSurveyCrossTab[]>();
+  rows.forEach(r => {
+    const list = byFilter.get(r.filter_type) ?? [];
+    list.push(r);
+    byFilter.set(r.filter_type, list);
+  });
+
+  return [...byFilter.entries()].map(([filterType, list]) => {
+    const segments = [...new Set(list.map(r => r.segment_label))].sort(
+      (a, b) =>
+        (list.find(r => r.segment_label === a)?.segment_order ?? 0) -
+        (list.find(r => r.segment_label === b)?.segment_order ?? 0),
+    );
+    const candidates = [...new Set(list.map(r => r.candidate_name))];
+
+    return {
+      filterType,
+      filterLabel: list[0].filter_label,
+      basis: (list[0].basis === 'perfil' ? 'perfil' : 'segmento') as 'perfil' | 'segmento',
+      candidates,
+      rows: segments.map(seg => ({
+        label: seg,
+        values: Object.fromEntries(
+          list
+            .filter(r => r.segment_label === seg)
+            .map(r => [r.candidate_name, Number(r.percentage)]),
+        ),
+      })),
+    } satisfies CrossTab;
+  });
+}
+
 export function dbQuestionToPoll(
   q: DbSurveyQuestion,
   results: DbSurveyResult[],
+  crossTabRows: DbSurveyCrossTab[] = [],
 ): PollQuestion {
   return {
     id: q.id,
@@ -81,9 +128,10 @@ export function dbQuestionToPoll(
       .filter(r => r.question_id === q.id)
       .map(r => ({ candidate: r.candidate_name, percentage: Number(r.percentage) }))
       .sort((a, b) => b.percentage - a.percentage),
-    crossTabs: [],
+    crossTabs: buildCrossTabs(crossTabRows.filter(r => r.question_id === q.id)),
   };
 }
+
 
 // ─── Hooks ────────────────────────────────────────────────────────────────────
 
@@ -92,11 +140,12 @@ export function useSurveys() {
   return useQuery({
     queryKey: ['surveys'],
     queryFn: async () => {
-      const [{ data: surveys, error: e1 }, { data: questions, error: e2 }, { data: results, error: e3 }] =
+      const [{ data: surveys, error: e1 }, { data: questions, error: e2 }, { data: results, error: e3 }, { data: crossRows }] =
         await Promise.all([
           db.from('electoral_surveys' as any).select('*').is('deleted_at', null).order('release_date', { ascending: false }),
           db.from('survey_questions' as any).select('*').order('sort_order'),
           db.from('survey_results' as any).select('*'),
+          db.from('survey_crosstabs' as any).select('*').order('segment_order'),
         ]);
 
       if (e1 || e2 || e3) {
@@ -107,10 +156,12 @@ export function useSurveys() {
       const waves: PollWave[] = ((surveys as unknown as DbSurvey[]) ?? []).map(dbSurveyToWave);
       const dbQuestions = ((questions as unknown as DbSurveyQuestion[]) ?? []);
       const dbResults = ((results as unknown as DbSurveyResult[]) ?? []);
+      const dbCross = ((crossRows as unknown as DbSurveyCrossTab[]) ?? []);
 
       const pollQuestions: PollQuestion[] = dbQuestions.map(q =>
-        dbQuestionToPoll(q, dbResults),
+        dbQuestionToPoll(q, dbResults, dbCross),
       );
+
 
       return { waves, questions: pollQuestions };
     },
