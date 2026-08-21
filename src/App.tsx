@@ -27,7 +27,7 @@ import AdminAnalytics from "./pages/AdminAnalytics";
 import AdminMeuPainel from "./pages/AdminMeuPainel";
 import AdminAIHub from "./pages/AdminAIHub";
 import AdminPesquisas from "./pages/AdminPesquisas";
-import AdminTSE from "./pages/AdminTSE";
+import HistoricoEleitoral from "./pages/HistoricoEleitoral";
 import AdminBiblioteca from "./pages/AdminBiblioteca";
 import AdminGeradorConteudo from "./pages/AdminGeradorConteudo";
 import AdminCadastroRapido from "./pages/AdminCadastroRapido";
@@ -89,7 +89,7 @@ const App = () => (
             <Route path="/admin/inteligencia" element={<ProtectedRoute requiredRoles={[]}><Inteligencia /></ProtectedRoute>} />
             <Route path="/admin/tracking" element={<ProtectedRoute requiredRoles={[]}><TrackingDashboard /></ProtectedRoute>} />
             <Route path="/tracking/coleta/:shareCode" element={<ProtectedRoute requiredRoles={[]}><TrackingColeta /></ProtectedRoute>} />
-            <Route path="/admin/tse" element={<ProtectedRoute requiredRoles={[]}><AdminTSE /></ProtectedRoute>} />
+            <Route path="/admin/tse" element={<ProtectedRoute requiredRoles={[]}><HistoricoEleitoral /></ProtectedRoute>} />
             <Route path="/admin/biblioteca" element={<ProtectedRoute requiredRoles={['lider_tematico']}><AdminBiblioteca /></ProtectedRoute>} />
             <Route path="/admin/gerador-conteudo" element={<ProtectedRoute requiredRoles={['lider_tematico']}><AdminGeradorConteudo /></ProtectedRoute>} />
             <Route path="/admin/cadastro-rapido" element={<ProtectedRoute><AdminCadastroRapido /></ProtectedRoute>} />
