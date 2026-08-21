@@ -50,9 +50,9 @@ const defaultEixoColors: Record<string, string> = {
 
 const MAPBOX_TOKEN = import.meta.env.VITE_MAPBOX_PUBLIC_TOKEN || '';
 
-// Bounds do Paraná para filtrar marcadores fora do estado
+// Bounds do Mato Grosso para filtrar marcadores fora do estado
 const isWithinParana = (lat: number, lng: number): boolean => {
-  return lat >= -26.8 && lat <= -22.4 && lng >= -54.8 && lng <= -48.0;
+  return lat >= -18.2 && lat <= -7.2 && lng >= -62.0 && lng <= -50.0;
 };
 
 const ParanaMap: React.FC<ParanaMapProps> = ({
