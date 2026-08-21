@@ -124,7 +124,7 @@ const Dashboard = () => {
   const stats = [
     { icon: FileText, value: filteredPropostas.length.toLocaleString("pt-BR"), label: "Propostas Técnicas", color: "primary" },
     { icon: Users, value: filteredSugestoes.length.toLocaleString("pt-BR"), label: "Sugestões Populares", color: "secondary" },
-    { icon: MapPin, value: String(activeMunicipios), label: "Municípios Ativos", sublabel: "/399", color: "accent" },
+    { icon: MapPin, value: String(activeMunicipios), label: "Municípios Ativos", sublabel: "/142", color: "accent" },
     { icon: Target, value: String(eixos?.length || 5), label: "Eixos Temáticos", color: "primary" },
   ];
 

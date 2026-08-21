@@ -51,7 +51,7 @@ const ANOS_ELEITORAIS = [
 ];
 
 export default function AdminTSE() {
-  const [selectedUF, setSelectedUF] = useState("PR");
+  const [selectedUF, setSelectedUF] = useState("MT");
   const [activeTab, setActiveTab] = useState("importar");
 
   // Fetch import status for selected state
