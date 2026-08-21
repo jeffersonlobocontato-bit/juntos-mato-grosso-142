@@ -378,6 +378,12 @@ export default function Inteligencia() {
             <CruzamentosSegmentos waves={waves} questions={questions} destaque={lider?.candidate} />
           </TabsContent>
 
+          <TabsContent value="apoio" className="mt-6">
+            <ApoioHeritage />
+          </TabsContent>
+
+
+
           <TabsContent value="cruzamento" className="space-y-6 mt-6">
             <CruzamentoPesquisas pesquisas={pesquisas} />
           </TabsContent>
