@@ -2,7 +2,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase as db } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
 import { toast } from 'sonner';
-import type { PollWave, PollQuestion } from '@/data/pollsData';
+import type { PollWave, PollQuestion, CrossTab } from '@/data/pollsData';
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 export interface DbSurvey {
