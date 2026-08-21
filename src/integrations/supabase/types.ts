@@ -1688,6 +1688,54 @@ export type Database = {
           },
         ]
       }
+      resultados_eleicoes_historicos: {
+        Row: {
+          ano_eleicao: number
+          cd_cargo: number
+          created_at: string
+          ds_cargo: string
+          id: string
+          nm_candidato: string
+          nm_municipio: string
+          nm_municipio_normalizado: string | null
+          nm_municipio_tse: string
+          nr_candidato: string
+          num_turno: number
+          qt_votos: number
+          sg_partido: string
+        }
+        Insert: {
+          ano_eleicao: number
+          cd_cargo: number
+          created_at?: string
+          ds_cargo: string
+          id?: string
+          nm_candidato: string
+          nm_municipio: string
+          nm_municipio_normalizado?: string | null
+          nm_municipio_tse: string
+          nr_candidato: string
+          num_turno: number
+          qt_votos: number
+          sg_partido: string
+        }
+        Update: {
+          ano_eleicao?: number
+          cd_cargo?: number
+          created_at?: string
+          ds_cargo?: string
+          id?: string
+          nm_candidato?: string
+          nm_municipio?: string
+          nm_municipio_normalizado?: string | null
+          nm_municipio_tse?: string
+          nr_candidato?: string
+          num_turno?: number
+          qt_votos?: number
+          sg_partido?: string
+        }
+        Relationships: []
+      }
       shared_presentations: {
         Row: {
           conversation_id: string | null
@@ -3288,6 +3336,39 @@ export type Database = {
           _user_id: string
         }
         Returns: boolean
+      }
+      hist_candidatos: {
+        Args: { p_ano: number; p_cargo: number; p_turno: number }
+        Returns: {
+          nm_candidato: string
+          nr_candidato: string
+          pct: number
+          sg_partido: string
+          votos: number
+        }[]
+      }
+      hist_combos: {
+        Args: never
+        Returns: {
+          ano: number
+          cargo: number
+          label: string
+          turno: number
+        }[]
+      }
+      hist_municipios: {
+        Args: {
+          p_ano: number
+          p_candidato: string
+          p_cargo: number
+          p_turno: number
+        }
+        Returns: {
+          cd_municipio_ibge: string
+          nm_municipio: string
+          pct: number
+          votos: number
+        }[]
       }
       increment_presentation_view: {
         Args: { p_public_id: string }
