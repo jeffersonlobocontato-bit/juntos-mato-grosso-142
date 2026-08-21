@@ -3,7 +3,7 @@ import { MapPin, Users, FileText } from "lucide-react";
 import { useState, useEffect, forwardRef } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
-import paranaMap3D from "@/assets/parana-map-3d.png";
+import estadoMapa from "@/assets/mato-grosso-map.png";
 
 const MapSection = () => {
   const [displayedCities, setDisplayedCities] = useState<string[]>([]);
@@ -72,7 +72,7 @@ const MapSection = () => {
       <div 
         className="absolute inset-0 opacity-10"
         style={{
-          backgroundImage: `url(${paranaMap3D})`,
+          backgroundImage: `url(${estadoMapa})`,
           backgroundSize: 'contain',
           backgroundPosition: 'center',
           backgroundRepeat: 'no-repeat',
