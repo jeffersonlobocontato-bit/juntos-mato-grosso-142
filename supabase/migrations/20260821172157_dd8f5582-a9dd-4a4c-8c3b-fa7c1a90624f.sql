@@ -1,0 +1,1 @@
+UPDATE public.municipios SET regiao = 'Norte Mato-grossense' WHERE regiao = 'Sinop';
