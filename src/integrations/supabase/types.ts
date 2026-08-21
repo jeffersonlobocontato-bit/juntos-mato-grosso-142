@@ -484,6 +484,35 @@ export type Database = {
         }
         Relationships: []
       }
+      association_members: {
+        Row: {
+          association_id: string
+          created_at: string
+          id: string
+          municipality_name: string
+        }
+        Insert: {
+          association_id: string
+          created_at?: string
+          id?: string
+          municipality_name: string
+        }
+        Update: {
+          association_id?: string
+          created_at?: string
+          id?: string
+          municipality_name?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "association_members_association_id_fkey"
+            columns: ["association_id"]
+            isOneToOne: false
+            referencedRelation: "municipality_associations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       audit_logs: {
         Row: {
           action: string
@@ -567,6 +596,30 @@ export type Database = {
           },
         ]
       }
+      cruzamento_wellington_access: {
+        Row: {
+          created_at: string
+          email: string
+          granted_by: string | null
+          id: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          email: string
+          granted_by?: string | null
+          id?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          email?: string
+          granted_by?: string | null
+          id?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       eixos_tematicos: {
         Row: {
           created_at: string
@@ -594,6 +647,63 @@ export type Database = {
           nome?: string
           ordem?: number | null
           subtitulo?: string | null
+        }
+        Relationships: []
+      }
+      electoral_surveys: {
+        Row: {
+          cargos: string[]
+          collection_end: string | null
+          collection_start: string | null
+          created_at: string
+          created_by: string | null
+          deleted_at: string | null
+          file_name: string | null
+          id: string
+          institute: string
+          margin_of_error: number
+          methodology: string | null
+          release_date: string
+          sample_size: number
+          territory: string
+          tse_registration: string | null
+          updated_at: string
+        }
+        Insert: {
+          cargos?: string[]
+          collection_end?: string | null
+          collection_start?: string | null
+          created_at?: string
+          created_by?: string | null
+          deleted_at?: string | null
+          file_name?: string | null
+          id?: string
+          institute: string
+          margin_of_error: number
+          methodology?: string | null
+          release_date: string
+          sample_size: number
+          territory: string
+          tse_registration?: string | null
+          updated_at?: string
+        }
+        Update: {
+          cargos?: string[]
+          collection_end?: string | null
+          collection_start?: string | null
+          created_at?: string
+          created_by?: string | null
+          deleted_at?: string | null
+          file_name?: string | null
+          id?: string
+          institute?: string
+          margin_of_error?: number
+          methodology?: string | null
+          release_date?: string
+          sample_size?: number
+          territory?: string
+          tse_registration?: string | null
+          updated_at?: string
         }
         Relationships: []
       }
@@ -813,6 +923,30 @@ export type Database = {
           story_y?: number
           story_zoom?: number
           updated_at?: string
+        }
+        Relationships: []
+      }
+      municipality_associations: {
+        Row: {
+          acronym: string
+          created_at: string
+          created_by: string | null
+          id: string
+          name: string
+        }
+        Insert: {
+          acronym: string
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          name: string
+        }
+        Update: {
+          acronym?: string
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          name?: string
         }
         Relationships: []
       }
@@ -1863,6 +1997,88 @@ export type Database = {
           },
         ]
       }
+      survey_questions: {
+        Row: {
+          cargo: string
+          created_at: string
+          id: string
+          is_main_scenario: boolean
+          is_multiple_choice: boolean
+          note: string | null
+          question_type: string
+          scenario_label: string
+          sort_order: number
+          survey_id: string
+        }
+        Insert: {
+          cargo: string
+          created_at?: string
+          id?: string
+          is_main_scenario?: boolean
+          is_multiple_choice?: boolean
+          note?: string | null
+          question_type: string
+          scenario_label: string
+          sort_order?: number
+          survey_id: string
+        }
+        Update: {
+          cargo?: string
+          created_at?: string
+          id?: string
+          is_main_scenario?: boolean
+          is_multiple_choice?: boolean
+          note?: string | null
+          question_type?: string
+          scenario_label?: string
+          sort_order?: number
+          survey_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "survey_questions_survey_id_fkey"
+            columns: ["survey_id"]
+            isOneToOne: false
+            referencedRelation: "electoral_surveys"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      survey_results: {
+        Row: {
+          candidate_name: string
+          created_at: string
+          id: string
+          is_excluded: boolean
+          percentage: number
+          question_id: string
+        }
+        Insert: {
+          candidate_name: string
+          created_at?: string
+          id?: string
+          is_excluded?: boolean
+          percentage: number
+          question_id: string
+        }
+        Update: {
+          candidate_name?: string
+          created_at?: string
+          id?: string
+          is_excluded?: boolean
+          percentage?: number
+          question_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "survey_results_question_id_fkey"
+            columns: ["question_id"]
+            isOneToOne: false
+            referencedRelation: "survey_questions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       taxonomia_keywords: {
         Row: {
           ativo: boolean
@@ -1955,6 +2171,386 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      tracking: {
+        Row: {
+          created_at: string
+          created_by: string | null
+          event_type: string
+          id: string
+          payload: Json | null
+          round_id: string | null
+        }
+        Insert: {
+          created_at?: string
+          created_by?: string | null
+          event_type: string
+          id?: string
+          payload?: Json | null
+          round_id?: string | null
+        }
+        Update: {
+          created_at?: string
+          created_by?: string | null
+          event_type?: string
+          id?: string
+          payload?: Json | null
+          round_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "tracking_round_id_fkey"
+            columns: ["round_id"]
+            isOneToOne: false
+            referencedRelation: "tracking_rounds"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      tracking_ai_config: {
+        Row: {
+          config: Json | null
+          created_at: string
+          id: string
+          is_active: boolean
+          round_id: string | null
+        }
+        Insert: {
+          config?: Json | null
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          round_id?: string | null
+        }
+        Update: {
+          config?: Json | null
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          round_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "tracking_ai_config_round_id_fkey"
+            columns: ["round_id"]
+            isOneToOne: false
+            referencedRelation: "tracking_rounds"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      tracking_ai_knowledge: {
+        Row: {
+          content: string
+          created_at: string
+          created_by: string | null
+          id: string
+          round_id: string | null
+        }
+        Insert: {
+          content: string
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          round_id?: string | null
+        }
+        Update: {
+          content?: string
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          round_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "tracking_ai_knowledge_round_id_fkey"
+            columns: ["round_id"]
+            isOneToOne: false
+            referencedRelation: "tracking_rounds"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      tracking_ai_messages: {
+        Row: {
+          content: string
+          created_at: string
+          id: string
+          role: string
+          round_id: string | null
+          user_id: string | null
+        }
+        Insert: {
+          content: string
+          created_at?: string
+          id?: string
+          role: string
+          round_id?: string | null
+          user_id?: string | null
+        }
+        Update: {
+          content?: string
+          created_at?: string
+          id?: string
+          role?: string
+          round_id?: string | null
+          user_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "tracking_ai_messages_round_id_fkey"
+            columns: ["round_id"]
+            isOneToOne: false
+            referencedRelation: "tracking_rounds"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      tracking_interview_answers: {
+        Row: {
+          answer_value: string
+          candidate_name: string | null
+          created_at: string
+          id: string
+          interview_id: string
+          question_key: string
+        }
+        Insert: {
+          answer_value: string
+          candidate_name?: string | null
+          created_at?: string
+          id?: string
+          interview_id: string
+          question_key: string
+        }
+        Update: {
+          answer_value?: string
+          candidate_name?: string | null
+          created_at?: string
+          id?: string
+          interview_id?: string
+          question_key?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "tracking_interview_answers_interview_id_fkey"
+            columns: ["interview_id"]
+            isOneToOne: false
+            referencedRelation: "tracking_interviews"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      tracking_interviewers: {
+        Row: {
+          created_at: string
+          created_by: string | null
+          email: string | null
+          full_name: string
+          id: string
+          is_active: boolean
+          phone: string | null
+          user_id: string | null
+        }
+        Insert: {
+          created_at?: string
+          created_by?: string | null
+          email?: string | null
+          full_name: string
+          id?: string
+          is_active?: boolean
+          phone?: string | null
+          user_id?: string | null
+        }
+        Update: {
+          created_at?: string
+          created_by?: string | null
+          email?: string | null
+          full_name?: string
+          id?: string
+          is_active?: boolean
+          phone?: string | null
+          user_id?: string | null
+        }
+        Relationships: []
+      }
+      tracking_interviews: {
+        Row: {
+          created_at: string
+          id: string
+          interviewer_id: string | null
+          lat: number | null
+          lng: number | null
+          macroregion_id: string | null
+          microregion: string | null
+          municipality: string | null
+          respondent_age_range: string | null
+          respondent_education: string | null
+          respondent_gender: string | null
+          respondent_income: string | null
+          round_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          interviewer_id?: string | null
+          lat?: number | null
+          lng?: number | null
+          macroregion_id?: string | null
+          microregion?: string | null
+          municipality?: string | null
+          respondent_age_range?: string | null
+          respondent_education?: string | null
+          respondent_gender?: string | null
+          respondent_income?: string | null
+          round_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          interviewer_id?: string | null
+          lat?: number | null
+          lng?: number | null
+          macroregion_id?: string | null
+          microregion?: string | null
+          municipality?: string | null
+          respondent_age_range?: string | null
+          respondent_education?: string | null
+          respondent_gender?: string | null
+          respondent_income?: string | null
+          round_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "tracking_interviews_round_id_fkey"
+            columns: ["round_id"]
+            isOneToOne: false
+            referencedRelation: "tracking_rounds"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      tracking_round_questions: {
+        Row: {
+          allow_other: boolean
+          conditional_question_key: string | null
+          conditional_value: string | null
+          description: string | null
+          id: string
+          is_required: boolean
+          label: string
+          options: Json | null
+          question_key: string
+          question_type: string
+          round_id: string
+          sort_order: number
+        }
+        Insert: {
+          allow_other?: boolean
+          conditional_question_key?: string | null
+          conditional_value?: string | null
+          description?: string | null
+          id?: string
+          is_required?: boolean
+          label: string
+          options?: Json | null
+          question_key: string
+          question_type?: string
+          round_id: string
+          sort_order?: number
+        }
+        Update: {
+          allow_other?: boolean
+          conditional_question_key?: string | null
+          conditional_value?: string | null
+          description?: string | null
+          id?: string
+          is_required?: boolean
+          label?: string
+          options?: Json | null
+          question_key?: string
+          question_type?: string
+          round_id?: string
+          sort_order?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "tracking_round_questions_round_id_fkey"
+            columns: ["round_id"]
+            isOneToOne: false
+            referencedRelation: "tracking_rounds"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      tracking_rounds: {
+        Row: {
+          city: string | null
+          created_at: string
+          created_by: string | null
+          deleted_at: string | null
+          description: string | null
+          end_date: string | null
+          end_time: string | null
+          id: string
+          macroregion_id: string | null
+          microregion: string | null
+          municipality: string | null
+          share_code: string | null
+          start_date: string
+          start_time: string | null
+          state: string | null
+          status: string
+          target_interviews: number
+          territory_scope: string
+          title: string
+          updated_at: string
+        }
+        Insert: {
+          city?: string | null
+          created_at?: string
+          created_by?: string | null
+          deleted_at?: string | null
+          description?: string | null
+          end_date?: string | null
+          end_time?: string | null
+          id?: string
+          macroregion_id?: string | null
+          microregion?: string | null
+          municipality?: string | null
+          share_code?: string | null
+          start_date: string
+          start_time?: string | null
+          state?: string | null
+          status?: string
+          target_interviews?: number
+          territory_scope?: string
+          title: string
+          updated_at?: string
+        }
+        Update: {
+          city?: string | null
+          created_at?: string
+          created_by?: string | null
+          deleted_at?: string | null
+          description?: string | null
+          end_date?: string | null
+          end_time?: string | null
+          id?: string
+          macroregion_id?: string | null
+          microregion?: string | null
+          municipality?: string | null
+          share_code?: string | null
+          start_date?: string
+          start_time?: string | null
+          state?: string | null
+          status?: string
+          target_interviews?: number
+          territory_scope?: string
+          title?: string
+          updated_at?: string
+        }
+        Relationships: []
       }
       tse_candidatos: {
         Row: {
