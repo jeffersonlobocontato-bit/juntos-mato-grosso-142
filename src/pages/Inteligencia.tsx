@@ -255,6 +255,8 @@ export default function Inteligencia() {
         linhas: ct.rows,
       })),
     })),
+    apoio_de_politicos: APOIO_TRANSFERENCIA,
+    operacao_heritage: { total: HERITAGE_TOTAL, por_regiao: HERITAGE_POR_REGIAO },
   }), [waves, questions]);
 
   // Recorte regional do líder no cenário principal mais recente
