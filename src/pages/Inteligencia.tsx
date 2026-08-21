@@ -251,6 +251,20 @@ export default function Inteligencia() {
     })),
   }), [waves, questions]);
 
+  // Recorte regional do líder no cenário principal mais recente
+  const regiaoLider = useMemo(() => {
+    if (!latestMainQuestion || !lider) return null;
+    const ct = latestMainQuestion.crossTabs.find(
+      c => c.filterType === 'regiao' && c.basis !== 'perfil',
+    );
+    if (!ct) return null;
+    return {
+      candidato: lider.candidate,
+      linhas: ct.rows.map(r => ({ regiao: r.label, pct: r.values[lider.candidate] ?? 0 })),
+    };
+  }, [latestMainQuestion, lider]);
+
+
 
   return (
     <div className="p-4 md:p-6 space-y-6">
