@@ -11,7 +11,7 @@
 import { useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
 import {
-  LayoutDashboard, GitCompare, Sparkles, Megaphone, Upload, BarChart2,
+  LayoutDashboard, GitCompare, Sparkles, Megaphone, Upload, BarChart2, Map,
 } from 'lucide-react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -24,8 +24,10 @@ import {
 import { CandidateBarChart } from '@/components/polls/CandidateBarChart';
 import AnaliseIAChat from '@/components/inteligencia/AnaliseIAChat';
 import InsightsComunicacao from '@/components/inteligencia/InsightsComunicacao';
+import CruzamentosSegmentos from '@/components/inteligencia/CruzamentosSegmentos';
 import { useSurveys } from '@/hooks/useSurveys';
 import { CANDIDATE_COLORS } from '@/data/pollsData';
+
 
 interface PesquisaRow {
   inst: string; data: string; cand: string; pct: number; n: number; margem: number;
