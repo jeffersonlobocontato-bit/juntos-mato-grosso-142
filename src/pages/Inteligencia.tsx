@@ -373,11 +373,29 @@ export default function Inteligencia() {
               </Card>
             </div>
 
-            {latestMainQuestion && (
+            {validVotesResults.length > 0 && (
               <Card>
-                <CardHeader><CardTitle className="text-base">{latestWave?.institute} — {latestMainQuestion.scenarioLabel}</CardTitle></CardHeader>
+                <CardHeader><CardTitle className="text-base">{latestWave?.institute} — Votos válidos</CardTitle></CardHeader>
                 <CardContent>
-                  <CandidateBarChart results={latestMainQuestion.results} height={Math.max(200, latestMainQuestion.results.length * 34)} />
+                  <CandidateBarChart results={validVotesResults} hideNeutral height={Math.max(200, validVotesResults.length * 34)} />
+                </CardContent>
+              </Card>
+            )}
+
+            {latestEstimuladaQuestion && (
+              <Card>
+                <CardHeader><CardTitle className="text-base">{latestWave?.institute} — {latestEstimuladaQuestion.scenarioLabel}</CardTitle></CardHeader>
+                <CardContent>
+                  <CandidateBarChart results={latestEstimuladaQuestion.results} height={Math.max(200, latestEstimuladaQuestion.results.length * 34)} />
+                </CardContent>
+              </Card>
+            )}
+
+            {latestEspontaneaQuestion && (
+              <Card>
+                <CardHeader><CardTitle className="text-base">{latestWave?.institute} — {latestEspontaneaQuestion.scenarioLabel}</CardTitle></CardHeader>
+                <CardContent>
+                  <CandidateBarChart results={latestEspontaneaQuestion.results} height={Math.max(200, latestEspontaneaQuestion.results.length * 34)} />
                 </CardContent>
               </Card>
             )}
