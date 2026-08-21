@@ -94,9 +94,9 @@ export function useSurveys() {
     queryFn: async () => {
       const [{ data: surveys, error: e1 }, { data: questions, error: e2 }, { data: results, error: e3 }] =
         await Promise.all([
-          supabase.from('electoral_surveys' as any).select('*').is('deleted_at', null).order('release_date', { ascending: false }),
-          supabase.from('survey_questions' as any).select('*').order('sort_order'),
-          supabase.from('survey_results' as any).select('*'),
+          db.from('electoral_surveys' as any).select('*').is('deleted_at', null).order('release_date', { ascending: false }),
+          db.from('survey_questions' as any).select('*').order('sort_order'),
+          db.from('survey_results' as any).select('*'),
         ]);
 
       if (e1 || e2 || e3) {
@@ -239,8 +239,8 @@ export function useUpdateSurvey() {
 
       if (oldQuestions && oldQuestions.length > 0) {
         const oldQIds = oldQuestions.map((q: any) => q.id);
-        await (supabase as any).from('survey_results').delete().in('question_id', oldQIds);
-        await (supabase as any).from('survey_questions').delete().eq('survey_id', surveyId);
+        await (db as any).from('survey_results').delete().in('question_id', oldQIds);
+        await (db as any).from('survey_questions').delete().eq('survey_id', surveyId);
       }
 
       // 3. Re-insert questions + results
