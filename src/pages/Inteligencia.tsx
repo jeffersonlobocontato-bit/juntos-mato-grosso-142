@@ -241,8 +241,16 @@ export default function Inteligencia() {
       instituto: waves.find(w => w.id === q.waveId)?.institute,
       cargo: q.cargo, tipo: q.questionType, cenario: q.scenarioLabel,
       resultados: q.results,
+      cruzamentos: q.crossTabs.map(ct => ({
+        recorte: ct.filterLabel,
+        leitura: ct.basis === 'perfil'
+          ? 'composição do eleitorado de cada candidato'
+          : 'percentual dentro de cada segmento',
+        linhas: ct.rows,
+      })),
     })),
   }), [waves, questions]);
+
 
   return (
     <div className="p-4 md:p-6 space-y-6">
