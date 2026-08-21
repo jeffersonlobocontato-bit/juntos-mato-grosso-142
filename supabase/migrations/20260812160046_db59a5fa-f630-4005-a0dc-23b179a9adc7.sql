@@ -1,4 +1,0 @@
-CREATE POLICY "Fotos da galeria sao legiveis" ON storage.objects FOR SELECT USING (bucket_id = 'metodologia-galeria');
-CREATE POLICY "Admins enviam fotos da galeria" ON storage.objects FOR INSERT TO authenticated WITH CHECK (bucket_id = 'metodologia-galeria' AND is_admin(auth.uid()));
-CREATE POLICY "Admins atualizam fotos da galeria" ON storage.objects FOR UPDATE TO authenticated USING (bucket_id = 'metodologia-galeria' AND is_admin(auth.uid()));
-CREATE POLICY "Admins removem fotos da galeria" ON storage.objects FOR DELETE TO authenticated USING (bucket_id = 'metodologia-galeria' AND is_admin(auth.uid()));

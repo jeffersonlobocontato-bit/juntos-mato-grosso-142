@@ -1,4 +1,0 @@
-CREATE POLICY "site_video read" ON storage.objects FOR SELECT TO anon, authenticated USING (bucket_id = 'site-video');
-CREATE POLICY "site_video admin insert" ON storage.objects FOR INSERT TO authenticated WITH CHECK (bucket_id = 'site-video' AND (public.has_role(auth.uid(),'admin') OR public.has_role(auth.uid(),'admin_master')));
-CREATE POLICY "site_video admin update" ON storage.objects FOR UPDATE TO authenticated USING (bucket_id = 'site-video' AND (public.has_role(auth.uid(),'admin') OR public.has_role(auth.uid(),'admin_master')));
-CREATE POLICY "site_video admin delete" ON storage.objects FOR DELETE TO authenticated USING (bucket_id = 'site-video' AND (public.has_role(auth.uid(),'admin') OR public.has_role(auth.uid(),'admin_master')));

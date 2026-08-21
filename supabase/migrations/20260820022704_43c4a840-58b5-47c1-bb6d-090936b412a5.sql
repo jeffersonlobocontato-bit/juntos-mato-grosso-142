@@ -1,1 +1,0 @@
-delete from public.page_analytics_events where session_id = 'test_sess';
