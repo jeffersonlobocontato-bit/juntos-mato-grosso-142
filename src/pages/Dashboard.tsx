@@ -541,7 +541,8 @@ const Dashboard = () => {
         </div>
       </main>
     </div>
-  </SidebarProvider>
+  </div>
+</SidebarProvider>
 );
 };
 
