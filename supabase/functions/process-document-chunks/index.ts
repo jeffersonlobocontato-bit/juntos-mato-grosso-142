@@ -87,7 +87,11 @@ serve(async (req) => {
     const allowed = (roles || []).some((r: any) => ["admin", "admin_master"].includes(r.role));
     if (!allowed) return new Response(JSON.stringify({ error: "Forbidden" }), { status: 403, headers: { ...corsHeaders, "Content-Type": "application/json" } });
 
-    const { document_id } = await req.json();
+    const body = await req.json();
+    const document_id = body?.document_id;
+    const startIndex: number = Number(body?.start_index) || 0;
+    const BATCH = 20; // chunks per invocation — keeps memory/CPU under the worker limit
+
 
     if (!document_id) {
       return new Response(
