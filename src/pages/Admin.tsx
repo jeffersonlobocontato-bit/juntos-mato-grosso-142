@@ -271,7 +271,7 @@ const Admin = () => {
   });
 
   return (
-    <div className="min-h-screen bg-muted/20">
+    <div className="idv-dash min-h-screen bg-background">
       {/* Header */}
       <header className="sticky top-0 z-50 bg-background/95 backdrop-blur-md border-b border-border">
         <div className="container mx-auto px-4 py-4">
