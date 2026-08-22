@@ -3365,6 +3365,8 @@ export type Database = {
         }
         Returns: {
           cd_municipio_ibge: string
+          lat: number
+          lng: number
           nm_municipio: string
           pct: number
           votos: number
