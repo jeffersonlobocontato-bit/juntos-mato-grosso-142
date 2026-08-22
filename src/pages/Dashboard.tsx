@@ -266,52 +266,45 @@ const Dashboard = () => {
   }, [sugestoes]);
 
   return (
-    <div className="min-h-screen bg-muted/20">
-      {/* Header */}
-      <header className="bg-card border-b border-border sticky top-0 z-40">
-        <div className="container mx-auto px-4">
-          <div className="flex items-center justify-between h-16">
-            <div className="flex items-center gap-4">
-              <Link to="/">
-                <Button variant="ghost" size="sm" className="gap-2">
-                  <ArrowLeft className="w-4 h-4" />
-                  Voltar
-                </Button>
-              </Link>
-              <div className="h-6 w-px bg-border" />
-              <div className="flex items-center gap-3">
-                <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-primary to-primary/80 flex items-center justify-center">
-                  <BarChart3 className="w-4 h-4 text-primary-foreground" />
+    <SidebarProvider>
+      <div className="min-h-screen bg-muted/20 flex w-full">
+        <DashboardSidebar />
+        <div className="flex-1 flex flex-col min-w-0">
+          {/* Header */}
+          <header className="bg-card border-b border-border sticky top-0 z-40">
+            <div className="container mx-auto px-4">
+              <div className="flex items-center justify-between h-16">
+                <div className="flex items-center gap-3">
+                  <SidebarTrigger className="-ml-2" />
+                  <div className="flex items-center gap-3">
+                    <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-primary to-primary/80 flex items-center justify-center">
+                      <BarChart3 className="w-4 h-4 text-primary-foreground" />
+                    </div>
+                    <h1 className="font-display font-bold text-lg text-foreground">Dashboard Público</h1>
+                  </div>
                 </div>
-                <h1 className="font-display font-bold text-lg text-foreground">Dashboard Público</h1>
+
+                <div className="flex items-center gap-4">
+                  <Select value={selectedEixo} onValueChange={setSelectedEixo}>
+                    <SelectTrigger className="w-[180px] h-9">
+                      <Filter className="w-4 h-4 mr-2" />
+                      <SelectValue placeholder="Eixo Temático" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="todos">Todos os Eixos</SelectItem>
+                      {eixos?.map(e => (
+                        <SelectItem key={e.id} value={e.id}>
+                          {e.nome.length > 25 ? e.nome.substring(0, 25) + "..." : e.nome}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
               </div>
             </div>
+          </header>
 
-            <div className="flex items-center gap-4">
-              <Select value={selectedEixo} onValueChange={setSelectedEixo}>
-                <SelectTrigger className="w-[180px] h-9">
-                  <Filter className="w-4 h-4 mr-2" />
-                  <SelectValue placeholder="Eixo Temático" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="todos">Todos os Eixos</SelectItem>
-                  {eixos?.map(e => (
-                    <SelectItem key={e.id} value={e.id}>
-                      {e.nome.length > 25 ? e.nome.substring(0, 25) + "..." : e.nome}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-              <Button variant="outline" size="sm" className="gap-2">
-                <Download className="w-4 h-4" />
-                Exportar
-              </Button>
-            </div>
-          </div>
-        </div>
-      </header>
-
-      <main className="container mx-auto px-4 py-8">
+          <main className="container mx-auto px-4 py-8">
         {/* Stats Grid */}
         <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
           {stats.map((stat, index) => (
