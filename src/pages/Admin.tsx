@@ -28,7 +28,8 @@ import {
   Map,
   Layers,
   Brain,
-  Radar
+  Radar,
+  History
 
 } from 'lucide-react';
 
