@@ -10,6 +10,7 @@ import { useToast } from '@/hooks/use-toast';
 import { Upload, FileText, Loader2, Link as LinkIcon, Globe, Bot } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { TemasMultiSelect } from './TemasMultiSelect';
+import { Checkbox } from '@/components/ui/checkbox';
 
 interface DocumentUploadModalProps {
   open: boolean;
@@ -69,6 +70,8 @@ export function DocumentUploadModal({
   const [sourceUrl, setSourceUrl] = useState('');
   const [file, setFile] = useState<File | null>(null);
   const [temaIds, setTemaIds] = useState<string[]>([]);
+  const [allTemas, setAllTemas] = useState(false);
+
 
   useEffect(() => {
     if (open) {
@@ -103,6 +106,8 @@ export function DocumentUploadModal({
     setFile(null);
     setInputMode('text');
     setTemaIds([]);
+    setAllTemas(false);
+
     if (!preselectedAgentId) {
       setScope('global');
       setTargetAgentId('');
@@ -137,14 +142,15 @@ export function DocumentUploadModal({
       return;
     }
 
-    if (temaIds.length === 0) {
+    if (!allTemas && temaIds.length === 0) {
       toast({
         title: "Selecione ao menos 1 tema",
-        description: "Necessário para que a IA cruze apenas fontes relacionadas ao tema da entrevista (evita alucinação).",
+        description: "Ou marque \"Documento transversal\" se ele abrange todos os temas (ex.: Plano de Governo).",
         variant: "destructive",
       });
       return;
     }
+
 
     if (scope === 'agent_specific' && !targetAgentId) {
       toast({ title: "Selecione um agente", description: "Escolha o agente para vincular o documento", variant: "destructive" });
@@ -214,12 +220,21 @@ export function DocumentUploadModal({
 
       if (insertError) throw insertError;
 
-      // Vincular temas (multi)
-      if (newDoc && temaIds.length > 0) {
-        const links = temaIds.map(tema_id => ({ document_id: newDoc.id, tema_id }));
-        const { error: linkError } = await supabase.from('ai_document_temas').insert(links);
-        if (linkError) console.error('Falha ao vincular temas:', linkError);
+      // Vincular temas (multi) — transversal vincula todos os temas
+      if (newDoc) {
+        let idsParaVincular = temaIds;
+        if (allTemas) {
+          const { data: todos } = await supabase.from('temas').select('id');
+          idsParaVincular = (todos || []).map(t => t.id);
+        }
+        if (idsParaVincular.length > 0) {
+          const links = idsParaVincular.map(tema_id => ({ document_id: newDoc.id, tema_id }));
+          const { error: linkError } = await supabase.from('ai_document_temas').insert(links);
+          if (linkError) console.error('Falha ao vincular temas:', linkError);
+        }
       }
+
+
 
       // Auto-link to agent if agent_specific
       if (newDoc && scope === 'agent_specific' && targetAgentId) {
@@ -394,18 +409,34 @@ export function DocumentUploadModal({
             </Select>
           </div>
 
-          {/* Temas vinculados (obrigatório) */}
+          {/* Temas vinculados */}
           <div className="space-y-2">
             <Label className="flex items-center gap-2">
-              Temas vinculados <span className="text-destructive">*</span>
+              Temas vinculados {!allTemas && <span className="text-destructive">*</span>}
             </Label>
-            <p className="text-xs text-muted-foreground">
-              Selecione os temas a que este documento se refere. A IA usará apenas
-              documentos vinculados ao tema da entrevista para fazer o cruzamento,
-              evitando misturar fontes não relacionadas.
-            </p>
-            <TemasMultiSelect value={temaIds} onChange={setTemaIds} />
+            <label className="flex items-start gap-2 rounded-md border p-2 text-sm cursor-pointer bg-muted/30">
+              <Checkbox
+                checked={allTemas}
+                onCheckedChange={(v) => setAllTemas(v === true)}
+                className="mt-0.5"
+              />
+              <span>
+                Documento transversal — abrange <strong>todos os temas</strong>
+                <span className="block text-xs text-muted-foreground">
+                  Use para Plano de Governo, diretrizes gerais e documentos institucionais.
+                </span>
+              </span>
+            </label>
+            {!allTemas && (
+              <p className="text-xs text-muted-foreground">
+                Selecione os temas a que este documento se refere. A IA usará apenas
+                documentos vinculados ao tema da entrevista para fazer o cruzamento,
+                evitando misturar fontes não relacionadas.
+              </p>
+            )}
+            {!allTemas && <TemasMultiSelect value={temaIds} onChange={setTemaIds} />}
           </div>
+
 
           {/* Location */}
           <div className="grid grid-cols-2 gap-4">
