@@ -89,7 +89,7 @@ const DownloadPlanoCTA = ({ onDownload }: { onDownload?: () => void }) => (
       </h2>
       <a
         href={planoPdf.url}
-        download="Plano_de_Governo_MORO2026-2.pdf"
+        download="Plano_de_Governo_Wellington_Fagundes_2026.pdf"
         target="_blank"
         rel="noopener noreferrer"
         onClick={onDownload}
@@ -125,7 +125,7 @@ export default function MetodologiaPlano() {
       event_type: 'download',
       component_name: 'plano_governo_pdf',
       component_action: origem,
-      metadata: { arquivo: 'Plano_de_Governo_MORO2026-2.pdf' },
+      metadata: { arquivo: 'Plano_de_Governo_Wellington_Fagundes_2026.pdf' },
     });
 
   useEffect(() => {
@@ -210,7 +210,7 @@ export default function MetodologiaPlano() {
               {/* CTA — Baixar o Plano de Governo */}
               <a
                 href={planoPdf.url}
-                download="Plano_de_Governo_MORO2026-2.pdf"
+                download="Plano_de_Governo_Wellington_Fagundes_2026.pdf"
                 target="_blank"
                 rel="noopener noreferrer"
                 onClick={() => trackDownload('hero')}

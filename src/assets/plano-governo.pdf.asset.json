@@ -1,11 +1,11 @@
 {
-  "asset_id": "94f61a47-854a-4b89-8e58-4279987a3def",
-  "content_type": "application/pdf",
-  "created_at": "2026-08-14T16:26:35Z",
-  "original_filename": "Plano_de_Governo_MORO2026-2.pdf",
+  "version": 1,
+  "asset_id": "719b7968-b78e-4d80-8fe7-a6a06807d721",
   "project_id": "1a6383ca-4ec7-4b0c-b7fd-85b9dbcc6e2b",
-  "r2_key": "a/v1/1a6383ca-4ec7-4b0c-b7fd-85b9dbcc6e2b/94f61a47-854a-4b89-8e58-4279987a3def/Plano_de_Governo_MORO2026-2.pdf",
-  "size": 2420584,
-  "url": "/__l5e/assets-v1/94f61a47-854a-4b89-8e58-4279987a3def/Plano_de_Governo_MORO2026-2.pdf",
-  "version": 1
+  "url": "/__l5e/assets-v1/719b7968-b78e-4d80-8fe7-a6a06807d721/Plano_de_Governo_Wellington_Fagundes_2026.pdf",
+  "r2_key": "a/v1/1a6383ca-4ec7-4b0c-b7fd-85b9dbcc6e2b/719b7968-b78e-4d80-8fe7-a6a06807d721/Plano_de_Governo_Wellington_Fagundes_2026.pdf",
+  "original_filename": "Plano_de_Governo_Wellington_Fagundes_2026.pdf",
+  "size": 29105464,
+  "content_type": "application/pdf",
+  "created_at": "2026-08-22T01:36:01Z"
 }
