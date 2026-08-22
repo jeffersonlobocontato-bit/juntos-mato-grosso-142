@@ -339,7 +339,7 @@ export default function HistoricoEleitoral() {
     }]);
     setPainelCamadas(true);
   };
-  const updateCamada = (id: string, patch: Partial<CamadaEleicaoCfg> & Partial<CamadaPesquisaCfg>) =>
+  const updateCamada = (id: string, patch: Record<string, unknown>) =>
     setCamadas(cs => cs.map(c => c.id === id ? { ...c, ...patch } as CamadaCfg : c));
   const removeCamada = (id: string) => setCamadas(cs => cs.filter(c => c.id !== id));
 
