@@ -69,6 +69,8 @@ export function DocumentUploadModal({
   const [sourceUrl, setSourceUrl] = useState('');
   const [file, setFile] = useState<File | null>(null);
   const [temaIds, setTemaIds] = useState<string[]>([]);
+  const [allTemas, setAllTemas] = useState(false);
+
 
   useEffect(() => {
     if (open) {
