@@ -14,12 +14,29 @@ import {
   PieChart,
   ArrowLeft,
   Download,
-  Calendar
+  Calendar,
+  LayoutDashboard,
+  ChevronRight
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Skeleton } from "@/components/ui/skeleton";
+import { Separator } from "@/components/ui/separator";
+import { ScrollArea } from "@/components/ui/scroll-area";
+import {
+  Sidebar,
+  SidebarContent,
+  SidebarGroup,
+  SidebarGroupContent,
+  SidebarGroupLabel,
+  SidebarMenu,
+  SidebarMenuButton,
+  SidebarMenuItem,
+  SidebarProvider,
+  SidebarTrigger,
+  useSidebar,
+} from "@/components/ui/sidebar";
 import {
   BarChart,
   Bar,
@@ -38,6 +55,77 @@ import {
 import PublicParanaHeatmap from "@/components/dashboard/PublicParanaHeatmap";
 import { format, subMonths, eachMonthOfInterval, startOfMonth } from "date-fns";
 import { ptBR } from "date-fns/locale";
+
+const sectionItems = [
+  { id: "stats", title: "Visão Geral", icon: LayoutDashboard },
+  { id: "timeline", title: "Evolução Temporal", icon: Calendar },
+  { id: "status", title: "Status das Propostas", icon: PieChart },
+  { id: "heatmap", title: "Mapa de Calor", icon: MapPin },
+  { id: "eixos", title: "Distribuição por Eixo", icon: BarChart3 },
+  { id: "municipios", title: "Top Municípios", icon: TrendingUp },
+];
+
+function DashboardSidebar() {
+  const { state } = useSidebar();
+  const collapsed = state === "collapsed";
+
+  const scrollTo = (id: string) => {
+    const el = document.getElementById(id);
+    if (el) {
+      const headerOffset = 80;
+      const top = el.getBoundingClientRect().top + window.scrollY - headerOffset;
+      window.scrollTo({ top, behavior: "smooth" });
+    }
+  };
+
+  return (
+    <Sidebar collapsible="icon" className="border-r border-border bg-card">
+      <SidebarContent>
+        <SidebarGroup defaultOpen>
+          <SidebarGroupLabel>Navegação</SidebarGroupLabel>
+          <SidebarGroupContent>
+            <SidebarMenu>
+              {sectionItems.map((item) => (
+                <SidebarMenuItem key={item.id}>
+                  <SidebarMenuButton
+                    asChild
+                    tooltip={collapsed ? item.title : undefined}
+                    onClick={() => scrollTo(item.id)}
+                    className="cursor-pointer"
+                  >
+                    <div className="flex items-center gap-2">
+                      <item.icon className="h-4 w-4 shrink-0" />
+                      <span className="truncate">{item.title}</span>
+                      <ChevronRight className="ml-auto h-3.5 w-3.5 opacity-0 group-data-[state=expanded]/sidebar-menu-button:opacity-50" />
+                    </div>
+                  </SidebarMenuButton>
+                </SidebarMenuItem>
+              ))}
+            </SidebarMenu>
+          </SidebarGroupContent>
+        </SidebarGroup>
+        <Separator />
+        <SidebarGroup>
+          <SidebarGroupLabel>Ações</SidebarGroupLabel>
+          <SidebarGroupContent>
+            <div className="px-2 py-2 space-y-2">
+              <Button asChild size="sm" className="w-full justify-start gap-2">
+                <Link to="/">
+                  <ArrowLeft className="h-4 w-4" />
+                  {!collapsed && <span>Voltar ao site</span>}
+                </Link>
+              </Button>
+              <Button variant="outline" size="sm" className="w-full justify-start gap-2">
+                <Download className="h-4 w-4" />
+                {!collapsed && <span>Exportar</span>}
+              </Button>
+            </div>
+          </SidebarGroupContent>
+        </SidebarGroup>
+      </SidebarContent>
+    </Sidebar>
+  );
+}
 
 const Dashboard = () => {
   const [selectedEixo, setSelectedEixo] = useState("todos");
