@@ -112,6 +112,65 @@
   }
 }
 
+  /* ===========================================================
+     IDV Wellington 22 — tema escuro dos painéis (dashboard/admin)
+     Fundo verde-profundo da campanha + cards claros em contraste.
+     =========================================================== */
+  .idv-dash {
+    --background: 150 72% 6%;
+    --foreground: 0 0% 98%;
+
+    --muted: 150 55% 11%;
+    --muted-foreground: 145 22% 78%;
+
+    --card: 0 0% 100%;
+    --card-foreground: 152 45% 11%;
+
+    --popover: 0 0% 100%;
+    --popover-foreground: 152 45% 11%;
+
+    --primary: 140 78% 34%;
+    --primary-foreground: 0 0% 100%;
+    --primary-glow: 92 62% 51%;
+
+    --secondary: 140 70% 16%;
+    --secondary-foreground: 0 0% 100%;
+
+    --accent: 55 96% 58%;
+    --accent-foreground: 152 45% 11%;
+
+    --border: 150 35% 18%;
+    --input: 150 35% 18%;
+    --ring: 92 62% 51%;
+
+    --sidebar-background: 152 70% 5%;
+    --sidebar-foreground: 0 0% 96%;
+    --sidebar-primary: 55 96% 58%;
+    --sidebar-primary-foreground: 152 45% 11%;
+    --sidebar-accent: 150 55% 12%;
+    --sidebar-accent-foreground: 0 0% 96%;
+    --sidebar-border: 150 35% 16%;
+    --sidebar-ring: 92 62% 51%;
+
+    background-color: hsl(var(--background));
+    background-image:
+      radial-gradient(ellipse at 15% -10%, hsl(140 70% 14% / 0.9), transparent 60%),
+      radial-gradient(ellipse at 90% 0%, hsl(92 62% 30% / 0.28), transparent 55%);
+    color: hsl(var(--foreground));
+  }
+
+  /* Dentro dos cards claros, os tokens voltam ao contraste escuro sobre branco */
+  .idv-dash .bg-card,
+  .idv-dash [data-slot="card"] {
+    --foreground: 152 45% 11%;
+    --muted-foreground: 150 10% 38%;
+    --muted: 140 16% 95%;
+    --border: 146 12% 88%;
+    --secondary: 140 20% 94%;
+    --secondary-foreground: 152 45% 11%;
+    box-shadow: 0 18px 40px -24px hsl(150 80% 3% / 0.85);
+  }
+
 @layer base {
   * {
     @apply border-border;
