@@ -105,6 +105,8 @@ export function DocumentUploadModal({
     setFile(null);
     setInputMode('text');
     setTemaIds([]);
+    setAllTemas(false);
+
     if (!preselectedAgentId) {
       setScope('global');
       setTargetAgentId('');
