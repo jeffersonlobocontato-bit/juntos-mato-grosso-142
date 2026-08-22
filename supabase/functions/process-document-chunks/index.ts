@@ -121,15 +121,13 @@ serve(async (req) => {
       );
     }
 
-    // Delete existing chunks for this document
-    await supabase
-      .from("ai_document_chunks")
-      .delete()
-      .eq("document_id", document_id);
+    // Delete existing chunks only on the first pass
+    if (startIndex === 0) {
+      await supabase.from("ai_document_chunks").delete().eq("document_id", document_id);
+    }
 
     // Chunk the content
-    const fullText = `${doc.title}\n\n${doc.content}`;
-    const chunks = chunkText(fullText);
+    const chunks = chunkText(`${doc.title}\n\n${doc.content}`);
 
     if (chunks.length === 0) {
       return new Response(
@@ -138,43 +136,48 @@ serve(async (req) => {
       );
     }
 
-    // Generate embeddings and insert chunks
-    let successCount = 0;
-    for (let i = 0; i < chunks.length; i++) {
-      const embedding = await generateEmbedding(chunks[i], LOVABLE_API_KEY);
-      
-      const insertData: any = {
+    const slice = chunks.slice(startIndex, startIndex + BATCH);
+    const embeddings = await embedBatch(slice, LOVABLE_API_KEY);
+
+    const rows = slice.map((content, k) => {
+      const emb = embeddings[k];
+      return {
         document_id,
-        chunk_index: i,
-        content: chunks[i],
+        chunk_index: startIndex + k,
+        content,
         metadata: { title: doc.title, total_chunks: chunks.length },
+        ...(emb ? { embedding: JSON.stringify(emb) } : {}),
       };
+    });
 
-      if (embedding) {
-        insertData.embedding = JSON.stringify(embedding);
-      }
+    const { error: insertError } = await supabase.from("ai_document_chunks").insert(rows);
+    if (insertError) console.error("Error inserting chunks:", insertError);
 
-      const { error: insertError } = await supabase
-        .from("ai_document_chunks")
-        .insert(insertData);
+    const nextIndex = startIndex + slice.length;
+    const done = nextIndex >= chunks.length;
 
-      if (!insertError) successCount++;
-      else console.error(`Error inserting chunk ${i}:`, insertError);
-
-      // Small delay to avoid rate limits
-      if (i < chunks.length - 1) {
-        await new Promise(r => setTimeout(r, 500));
-      }
+    // Chain the next batch in the background so each worker stays well under its limits
+    if (!done) {
+      const chain = fetch(`${supabaseUrl}/functions/v1/process-document-chunks`, {
+        method: "POST",
+        headers: { Authorization: authHeader, "Content-Type": "application/json" },
+        body: JSON.stringify({ document_id, start_index: nextIndex }),
+      }).catch((e) => console.error("Chain error:", e));
+      // @ts-ignore EdgeRuntime is available in Supabase edge functions
+      if (typeof EdgeRuntime !== "undefined") EdgeRuntime.waitUntil(chain);
+      else await chain;
     }
 
     return new Response(
       JSON.stringify({
-        message: "Document processed",
-        chunks_created: successCount,
+        message: done ? "Document processed" : "Batch processed, continuing",
+        done,
+        processed: nextIndex,
         total_chunks: chunks.length,
       }),
       { headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );
+
   } catch (error) {
     console.error("process-document-chunks error:", error);
     return new Response(
