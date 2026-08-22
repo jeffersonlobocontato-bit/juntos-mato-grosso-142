@@ -92,3 +92,33 @@ export function useMunicipiosHistoricos(
     staleTime: 1000 * 60 * 30,
   });
 }
+
+export interface MunicipioBase {
+  codigoIbge: string;
+  nome: string;
+  regiao: string | null;
+  lat: number | null;
+  lng: number | null;
+}
+
+/** Cadastro dos municípios de MT (nome, região, centróide). */
+export function useMunicipiosMT() {
+  return useQuery({
+    queryKey: ['municipios-mt-base'],
+    queryFn: async (): Promise<MunicipioBase[]> => {
+      const { data, error } = await db
+        .from('municipios' as any)
+        .select('codigo_ibge, nome, regiao, latitude, longitude')
+        .order('nome');
+      if (error) throw error;
+      return ((data ?? []) as any[]).map(r => ({
+        codigoIbge: String(r.codigo_ibge),
+        nome: r.nome as string,
+        regiao: (r.regiao as string) ?? null,
+        lat: r.latitude != null ? Number(r.latitude) : null,
+        lng: r.longitude != null ? Number(r.longitude) : null,
+      }));
+    },
+    staleTime: 1000 * 60 * 60,
+  });
+}
