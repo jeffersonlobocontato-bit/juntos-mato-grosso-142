@@ -408,18 +408,34 @@ export function DocumentUploadModal({
             </Select>
           </div>
 
-          {/* Temas vinculados (obrigatório) */}
+          {/* Temas vinculados */}
           <div className="space-y-2">
             <Label className="flex items-center gap-2">
-              Temas vinculados <span className="text-destructive">*</span>
+              Temas vinculados {!allTemas && <span className="text-destructive">*</span>}
             </Label>
-            <p className="text-xs text-muted-foreground">
-              Selecione os temas a que este documento se refere. A IA usará apenas
-              documentos vinculados ao tema da entrevista para fazer o cruzamento,
-              evitando misturar fontes não relacionadas.
-            </p>
-            <TemasMultiSelect value={temaIds} onChange={setTemaIds} />
+            <label className="flex items-start gap-2 rounded-md border p-2 text-sm cursor-pointer bg-muted/30">
+              <Checkbox
+                checked={allTemas}
+                onCheckedChange={(v) => setAllTemas(v === true)}
+                className="mt-0.5"
+              />
+              <span>
+                Documento transversal — abrange <strong>todos os temas</strong>
+                <span className="block text-xs text-muted-foreground">
+                  Use para Plano de Governo, diretrizes gerais e documentos institucionais.
+                </span>
+              </span>
+            </label>
+            {!allTemas && (
+              <p className="text-xs text-muted-foreground">
+                Selecione os temas a que este documento se refere. A IA usará apenas
+                documentos vinculados ao tema da entrevista para fazer o cruzamento,
+                evitando misturar fontes não relacionadas.
+              </p>
+            )}
+            {!allTemas && <TemasMultiSelect value={temaIds} onChange={setTemaIds} />}
           </div>
+
 
           {/* Location */}
           <div className="grid grid-cols-2 gap-4">
