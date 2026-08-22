@@ -10,6 +10,7 @@ import { useToast } from '@/hooks/use-toast';
 import { Upload, FileText, Loader2, Link as LinkIcon, Globe, Bot } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { TemasMultiSelect } from './TemasMultiSelect';
+import { Checkbox } from '@/components/ui/checkbox';
 
 interface DocumentUploadModalProps {
   open: boolean;
