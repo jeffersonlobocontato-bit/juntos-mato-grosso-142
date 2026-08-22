@@ -222,7 +222,7 @@ const HomeHero = () => {
         <div className="wrap topbar__in">
           <a className="logo" href="#topo" aria-label="Wellington 22 Governador">
             <img
-              src="/marca/moro22-horizontal-verde.png"
+              src="/marca/wellington22-horizontal-verde.png"
               alt="Wellington 22 Governador"
               width={2300}
               height={852}
