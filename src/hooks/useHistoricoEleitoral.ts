@@ -14,6 +14,8 @@ export interface MunicipioAgg {
   nome: string;
   votos: number;
   pct: number;
+  lat: number | null;
+  lng: number | null;
 }
 
 /** Combinações disponíveis (ano / turno / cargo). */
@@ -83,6 +85,8 @@ export function useMunicipiosHistoricos(
         nome: r.nm_municipio as string,
         votos: Number(r.votos),
         pct: Number(r.pct ?? 0),
+        lat: r.lat != null ? Number(r.lat) : null,
+        lng: r.lng != null ? Number(r.lng) : null,
       }));
     },
     staleTime: 1000 * 60 * 30,
