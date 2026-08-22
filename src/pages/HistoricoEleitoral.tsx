@@ -4,12 +4,16 @@ import { useQuery } from '@tanstack/react-query';
 import 'leaflet/dist/leaflet.css';
 import {
   History, Loader2, TrendingUp, TrendingDown, Users, Search, ChevronDown, ChevronUp,
+  Layers, Plus, X,
 } from 'lucide-react';
 import {
   useCandidatosHistoricos,
   useMunicipiosHistoricos,
   useCombinacoesDisponiveis,
+  useMunicipiosMT,
+  type MunicipioBase,
 } from '@/hooks/useHistoricoEleitoral';
+import { useSurveys } from '@/hooks/useSurveys';
 
 // ── constantes ────────────────────────────────────────────────────────────────
 const IGNORAR = new Set(['NULO', 'BRANCO', 'Nulo', 'Branco', '#NULO#', 'VOTO NULO', 'VOTO BRANCO']);
@@ -27,6 +31,20 @@ const CARGOS_PADRAO = [
   { cd: 6, label: 'Deputado Federal' },
   { cd: 7, label: 'Deputado Estadual' },
 ];
+
+// Cores das camadas cruzadas (a 1ª é sempre a camada base)
+const CORES_CAMADAS = ['#1d4ed8', '#dc2626', '#059669', '#d97706', '#7c3aed'];
+
+// Regiões usadas nas pesquisas → mesorregiões IBGE do cadastro de municípios
+const REGIAO_PESQUISA_TO_MESO: Record<string, string[]> = {
+  'Norte': ['Norte Mato-grossense'],
+  'Médio Norte': ['Norte Mato-grossense'],
+  'Noroeste': ['Norte Mato-grossense'],
+  'Nordeste': ['Nordeste Mato-grossense'],
+  'Oeste': ['Sudoeste Mato-grossense'],
+  'Centro Sul': ['Centro-Sul Mato-grossense'],
+  'Sudeste': ['Sudeste Mato-grossense'],
+};
 
 // ── GeoJSON de MT (IBGE) ──────────────────────────────────────────────────────
 function useMtGeoJson() {
@@ -59,9 +77,9 @@ function colorForPct(pct: number | null): string {
   return '#123a70';
 }
 
-// raio do pin proporcional ao % (mín 6 px, máx 22 px)
+// raio proporcional ao % (mín 5 px, máx 24 px)
 function radiusForPct(pct: number): number {
-  return Math.max(6, Math.min(22, 6 + (pct / 50) * 16));
+  return Math.max(5, Math.min(24, 5 + (pct / 50) * 19));
 }
 
 const LEGEND = [
@@ -77,7 +95,33 @@ const LEGEND = [
 
 const fmt = (n: number) => n.toLocaleString('pt-BR');
 
-// ── componente que reposiciona o mapa ao mudar os dados ───────────────────────
+// ── tipos de camada ───────────────────────────────────────────────────────────
+interface CamadaEleicaoCfg {
+  id: string;
+  tipo: 'eleicao';
+  ano: number;
+  turno: number;
+  cargo: number;
+  candidato: string;
+}
+interface CamadaPesquisaCfg {
+  id: string;
+  tipo: 'pesquisa';
+  questionId: string;
+  candidato: string;
+}
+type CamadaCfg = CamadaEleicaoCfg | CamadaPesquisaCfg;
+
+interface PontoCamada {
+  key: string;
+  nome: string;
+  pct: number;
+  votos?: number;
+  lat: number;
+  lng: number;
+}
+
+// ── reposiciona o mapa ao mudar o recorte ─────────────────────────────────────
 function MapReset({ trigger }: { trigger: string }) {
   const map = useMap();
   const prev = useRef('');
@@ -88,6 +132,79 @@ function MapReset({ trigger }: { trigger: string }) {
     }
   }, [trigger, map]);
   return null;
+}
+
+// ── camada renderizada no mapa ────────────────────────────────────────────────
+function CamadaMarkers({
+  pontos, cor, rotulo, opacidade,
+}: { pontos: PontoCamada[]; cor: string; rotulo: string; opacidade: number }) {
+  return (
+    <>
+      {pontos.map(p => (
+        <CircleMarker
+          key={`${rotulo}-${p.key}`}
+          center={[p.lat, p.lng]}
+          radius={radiusForPct(p.pct)}
+          pathOptions={{
+            fillColor: cor,
+            fillOpacity: opacidade,
+            color: cor,
+            weight: 1.5,
+            opacity: 0.9,
+          }}
+        >
+          <Tooltip direction="top" offset={[0, -4]} opacity={0.95}>
+            <div style={{ fontSize: 11, lineHeight: 1.4 }}>
+              <strong>{p.nome}</strong><br />
+              <span style={{ color: cor, fontWeight: 600 }}>{rotulo}</span><br />
+              {p.votos != null ? `${fmt(p.votos)} votos — ` : ''}{p.pct.toFixed(2)}%
+            </div>
+          </Tooltip>
+        </CircleMarker>
+      ))}
+    </>
+  );
+}
+
+/** Camada de eleição: busca os votos por município no banco. */
+function CamadaEleicao({
+  cfg, cor, rotulo, opacidade,
+}: { cfg: CamadaEleicaoCfg; cor: string; rotulo: string; opacidade: number }) {
+  const { data } = useMunicipiosHistoricos(cfg.ano, cfg.turno, cfg.cargo, cfg.candidato);
+  const pontos = useMemo<PontoCamada[]>(
+    () => (data ?? [])
+      .filter(m => m.lat != null && m.lng != null)
+      .map(m => ({ key: m.codigoIbge, nome: m.nome, pct: m.pct, votos: m.votos, lat: m.lat!, lng: m.lng! })),
+    [data],
+  );
+  return <CamadaMarkers pontos={pontos} cor={cor} rotulo={rotulo} opacidade={opacidade} />;
+}
+
+/** Percentuais por município derivados do cruzamento regional de uma pesquisa. */
+function pontosDePesquisa(
+  porRegiaoPesquisa: Record<string, number>,
+  municipios: MunicipioBase[],
+): PontoCamada[] {
+  // média das regiões de pesquisa que caem em cada mesorregião IBGE
+  const acc = new Map<string, { soma: number; n: number }>();
+  Object.entries(porRegiaoPesquisa).forEach(([regiao, pct]) => {
+    (REGIAO_PESQUISA_TO_MESO[regiao] ?? []).forEach(meso => {
+      const cur = acc.get(meso) ?? { soma: 0, n: 0 };
+      acc.set(meso, { soma: cur.soma + pct, n: cur.n + 1 });
+    });
+  });
+  const porMeso = new Map<string, number>();
+  acc.forEach((v, k) => porMeso.set(k, v.soma / v.n));
+
+  return municipios
+    .filter(m => m.lat != null && m.lng != null && m.regiao && porMeso.has(m.regiao))
+    .map(m => ({
+      key: m.codigoIbge,
+      nome: m.nome,
+      pct: porMeso.get(m.regiao!)!,
+      lat: m.lat!,
+      lng: m.lng!,
+    }));
 }
 
 // ── componente principal ──────────────────────────────────────────────────────
@@ -103,9 +220,14 @@ export default function HistoricoEleitoral() {
   const [expandirCidades, setExpandirCidades] = useState(false);
   const [mostrarPins, setMostrarPins] = useState(true);
   const [mostrarChoropleth, setMostrarChoropleth] = useState(true);
+  const [mostrarNomes, setMostrarNomes] = useState(false);
+  const [camadas, setCamadas] = useState<CamadaCfg[]>([]);
+  const [painelCamadas, setPainelCamadas] = useState(false);
 
   const { data: candidatosRaw, isLoading: loadingCand } = useCandidatosHistoricos(ano, turno, cargo);
   const { data: geo } = useMtGeoJson();
+  const { data: municipiosBase } = useMunicipiosMT();
+  const { data: pesquisas } = useSurveys();
 
   // ── combos dinâmicos ────────────────────────────────────────────────────────
   const anos = useMemo(() => {
@@ -155,9 +277,10 @@ export default function HistoricoEleitoral() {
     return map;
   }, [municipios]);
 
-  // municípios com coordenadas válidas para pins
-  const municipiosComCoords = useMemo(
-    () => (municipios ?? []).filter(m => m.lat != null && m.lng != null),
+  const pontosBase = useMemo<PontoCamada[]>(
+    () => (municipios ?? [])
+      .filter(m => m.lat != null && m.lng != null)
+      .map(m => ({ key: m.codigoIbge, nome: m.nome, pct: m.pct, votos: m.votos, lat: m.lat!, lng: m.lng! })),
     [municipios],
   );
 
@@ -175,8 +298,67 @@ export default function HistoricoEleitoral() {
 
   const trocarRecorte = (fn: () => void) => { fn(); setCandidato('TODOS'); setBusca(''); };
 
-  // chave que identifica o recorte atual — usada para resetar o mapa
   const recorteKey = `${ano}-${turno}-${cargo}`;
+  const cruzando = camadas.length > 0;
+
+  // ── perguntas de pesquisa com cruzamento regional ───────────────────────────
+  const perguntasRegionais = useMemo(() => {
+    return (pesquisas?.questions ?? [])
+      .map(q => {
+        const ct = q.crossTabs?.find(c => c.filterType === 'regiao');
+        if (!ct) return null;
+        return { id: q.id, label: `${q.cargo} · ${q.scenarioLabel}`, candidatos: ct.candidates, crossTab: ct };
+      })
+      .filter(Boolean) as { id: string; label: string; candidatos: string[]; crossTab: any }[];
+  }, [pesquisas]);
+
+  const rotuloCamada = (c: CamadaCfg): string => {
+    if (c.tipo === 'eleicao') {
+      const cargoLabel = (cargos.find(x => x.cd === c.cargo)?.label)
+        ?? CARGOS_PADRAO.find(x => x.cd === c.cargo)?.label ?? `Cargo ${c.cargo}`;
+      return `${c.ano} · ${cargoLabel} · ${c.turno}º T · ${c.candidato === 'TODOS' ? 'Todos' : c.candidato}`;
+    }
+    const p = perguntasRegionais.find(x => x.id === c.questionId);
+    return `Pesquisa · ${p?.label ?? '—'} · ${c.candidato}`;
+  };
+
+  const rotuloBase = `${ano} · ${cargos.find(c => c.cd === cargo)?.label ?? cargo} · ${turno}º T · ${todosSelecionado ? 'Todos' : selecionado}`;
+
+  const addCamadaEleicao = () => {
+    setCamadas(cs => cs.length >= 4 ? cs : [...cs, {
+      id: crypto.randomUUID(), tipo: 'eleicao',
+      ano: anos[0] ?? 2018, turno: 1, cargo, candidato: 'TODOS',
+    }]);
+    setPainelCamadas(true);
+  };
+  const addCamadaPesquisa = () => {
+    const p = perguntasRegionais[0];
+    if (!p) return;
+    setCamadas(cs => cs.length >= 4 ? cs : [...cs, {
+      id: crypto.randomUUID(), tipo: 'pesquisa', questionId: p.id, candidato: p.candidatos[0],
+    }]);
+    setPainelCamadas(true);
+  };
+  const updateCamada = (id: string, patch: Partial<CamadaEleicaoCfg> & Partial<CamadaPesquisaCfg>) =>
+    setCamadas(cs => cs.map(c => c.id === id ? { ...c, ...patch } as CamadaCfg : c));
+  const removeCamada = (id: string) => setCamadas(cs => cs.filter(c => c.id !== id));
+
+  // pontos das camadas de pesquisa (calculados no cliente)
+  const pontosPesquisaPorCamada = useMemo(() => {
+    const out = new Map<string, PontoCamada[]>();
+    camadas.forEach(c => {
+      if (c.tipo !== 'pesquisa' || !municipiosBase) return;
+      const p = perguntasRegionais.find(x => x.id === c.questionId);
+      if (!p) return;
+      const porRegiao: Record<string, number> = {};
+      p.crossTab.rows.forEach((r: any) => {
+        const v = r.values?.[c.candidato];
+        if (typeof v === 'number') porRegiao[r.label] = v;
+      });
+      out.set(c.id, pontosDePesquisa(porRegiao, municipiosBase));
+    });
+    return out;
+  }, [camadas, perguntasRegionais, municipiosBase]);
 
   // ── render ──────────────────────────────────────────────────────────────────
   return (
@@ -270,7 +452,7 @@ export default function HistoricoEleitoral() {
         </div>
 
         {/* Toggles de camadas */}
-        <div className="flex gap-2 items-center">
+        <div className="flex gap-3 items-center">
           <label className="flex items-center gap-1.5 text-xs text-muted-foreground cursor-pointer select-none">
             <input type="checkbox" checked={mostrarChoropleth} onChange={e => setMostrarChoropleth(e.target.checked)} className="rounded" />
             Mapa de calor
@@ -279,8 +461,113 @@ export default function HistoricoEleitoral() {
             <input type="checkbox" checked={mostrarPins} onChange={e => setMostrarPins(e.target.checked)} className="rounded" />
             Pins por município
           </label>
+          <label className="flex items-center gap-1.5 text-xs text-muted-foreground cursor-pointer select-none">
+            <input type="checkbox" checked={mostrarNomes} onChange={e => setMostrarNomes(e.target.checked)} className="rounded" />
+            Nomes das cidades
+          </label>
+          <button
+            onClick={() => setPainelCamadas(v => !v)}
+            className="flex items-center gap-1.5 text-xs px-2.5 py-1.5 rounded-md border border-border bg-background text-foreground hover:bg-muted transition-colors"
+          >
+            <Layers className="w-3.5 h-3.5" />
+            Cruzar eleições {cruzando && <span className="text-primary font-semibold">({camadas.length})</span>}
+          </button>
         </div>
       </div>
+
+      {/* Painel de camadas cruzadas */}
+      {painelCamadas && (
+        <div className="bg-card border border-border rounded-xl p-3 space-y-3">
+          <div className="flex items-center justify-between">
+            <p className="text-xs font-semibold text-foreground flex items-center gap-1.5">
+              <Layers className="w-3.5 h-3.5" /> Camadas cruzadas
+            </p>
+            <div className="flex gap-2">
+              <button
+                onClick={addCamadaEleicao}
+                disabled={camadas.length >= 4}
+                className="flex items-center gap-1 text-[11px] px-2 py-1 rounded-md border border-border hover:bg-muted disabled:opacity-40 text-foreground"
+              >
+                <Plus className="w-3 h-3" /> Eleição
+              </button>
+              <button
+                onClick={addCamadaPesquisa}
+                disabled={camadas.length >= 4 || perguntasRegionais.length === 0}
+                className="flex items-center gap-1 text-[11px] px-2 py-1 rounded-md border border-border hover:bg-muted disabled:opacity-40 text-foreground"
+              >
+                <Plus className="w-3 h-3" /> Pesquisa
+              </button>
+            </div>
+          </div>
+
+          {/* camada base */}
+          <div className="flex items-center gap-2 text-[11px]">
+            <span className="w-3 h-3 rounded-full flex-shrink-0" style={{ background: CORES_CAMADAS[0], opacity: 0.7 }} />
+            <span className="text-foreground font-medium">Camada base:</span>
+            <span className="text-muted-foreground">{rotuloBase}</span>
+          </div>
+
+          {camadas.map((c, idx) => {
+            const cor = CORES_CAMADAS[(idx + 1) % CORES_CAMADAS.length];
+            return (
+              <div key={c.id} className="flex flex-wrap items-end gap-2 border-t border-border pt-2">
+                <span className="w-3 h-3 rounded-full flex-shrink-0 mb-2" style={{ background: cor, opacity: 0.7 }} />
+                {c.tipo === 'eleicao' ? (
+                  <>
+                    <CamadaSelects
+                      cfg={c}
+                      combos={combos ?? []}
+                      onChange={patch => updateCamada(c.id, patch)}
+                    />
+                  </>
+                ) : (
+                  <>
+                    <div>
+                      <label className="block text-[10px] uppercase tracking-wider text-muted-foreground mb-1">Pesquisa</label>
+                      <select
+                        className="bg-background border border-border rounded-md px-2 py-1 text-xs text-foreground max-w-[320px]"
+                        value={c.questionId}
+                        onChange={e => {
+                          const p = perguntasRegionais.find(x => x.id === e.target.value);
+                          updateCamada(c.id, { questionId: e.target.value, candidato: p?.candidatos[0] ?? '' });
+                        }}
+                      >
+                        {perguntasRegionais.map(p => <option key={p.id} value={p.id}>{p.label}</option>)}
+                      </select>
+                    </div>
+                    <div>
+                      <label className="block text-[10px] uppercase tracking-wider text-muted-foreground mb-1">Candidato</label>
+                      <select
+                        className="bg-background border border-border rounded-md px-2 py-1 text-xs text-foreground"
+                        value={c.candidato}
+                        onChange={e => updateCamada(c.id, { candidato: e.target.value })}
+                      >
+                        {(perguntasRegionais.find(x => x.id === c.questionId)?.candidatos ?? []).map(n => (
+                          <option key={n} value={n}>{n}</option>
+                        ))}
+                      </select>
+                    </div>
+                  </>
+                )}
+                <button
+                  onClick={() => removeCamada(c.id)}
+                  className="mb-1 p-1 rounded-md text-muted-foreground hover:text-destructive hover:bg-muted"
+                  aria-label="Remover camada"
+                >
+                  <X className="w-3.5 h-3.5" />
+                </button>
+              </div>
+            );
+          })}
+
+          {camadas.some(c => c.tipo === 'pesquisa') && (
+            <p className="text-[10px] text-muted-foreground italic leading-snug">
+              Pesquisas têm recorte regional — o percentual da região é aplicado a todos os municípios da
+              mesorregião correspondente (aproximação para leitura comparativa).
+            </p>
+          )}
+        </div>
+      )}
 
       {loadingCand ? (
         <div className="flex items-center justify-center h-64 text-muted-foreground gap-2">
@@ -319,7 +606,6 @@ export default function HistoricoEleitoral() {
                 zoom={MT_ZOOM}
                 style={{ height: '100%', width: '100%' }}
               >
-                {/* Reseta o viewport sempre que muda o recorte (ano/cargo/turno) */}
                 <MapReset trigger={recorteKey} />
 
                 <TileLayer
@@ -328,18 +614,20 @@ export default function HistoricoEleitoral() {
                   opacity={0.4}
                 />
 
-                {/* Choropleth — polígonos dos municípios coloridos por % */}
-                {mostrarChoropleth && geo && (
+                {/* Contornos azuis dos municípios (+ preenchimento quando o mapa de calor está ligado) */}
+                {geo && (
                   <GeoJSON
-                    key={`geo-${recorteKey}-${selecionado}-${porMunicipio.size}`}
+                    key={`geo-${recorteKey}-${selecionado}-${porMunicipio.size}-${mostrarChoropleth}-${cruzando}`}
                     data={geo}
                     style={(f: any) => {
                       const info = porMunicipio.get(String(f?.properties?.codarea ?? ''));
+                      const pintar = mostrarChoropleth && !cruzando;
                       return {
                         fillColor:   colorForPct(info ? info.pct : null),
-                        fillOpacity: 0.75,
-                        color:       '#ffffff',
-                        weight:      0.5,
+                        fillOpacity: pintar ? 0.7 : (mostrarChoropleth ? 0.25 : 0),
+                        color:       '#1d4ed8',
+                        weight:      0.9,
+                        opacity:     0.85,
                       };
                     }}
                     onEachFeature={(feature: any, layer: any) => {
@@ -358,42 +646,94 @@ export default function HistoricoEleitoral() {
                   />
                 )}
 
-                {/* Pins — CircleMarker nos centróides dos municípios */}
-                {mostrarPins && municipiosComCoords.map(m => (
-                  <CircleMarker
-                    key={`pin-${m.codigoIbge}`}
-                    center={[m.lat!, m.lng!]}
-                    radius={radiosSelecionado(m.pct, selecionado)}
-                    pathOptions={{
-                      fillColor:   colorForPct(m.pct),
-                      fillOpacity: 0.92,
-                      color:       '#ffffff',
-                      weight:      1.5,
-                    }}
-                  >
-                    <Tooltip direction="top" offset={[0, -4]} opacity={0.95}>
-                      <div style={{ fontSize: 11, lineHeight: 1.4 }}>
-                        <strong>{m.nome}</strong><br />
-                        {fmt(m.votos)} votos — {m.pct.toFixed(2)}%
-                      </div>
-                    </Tooltip>
-                  </CircleMarker>
-                ))}
+                {/* Nomes das cidades */}
+                {mostrarNomes && (municipiosBase ?? [])
+                  .filter(m => m.lat != null && m.lng != null)
+                  .map(m => (
+                    <CircleMarker
+                      key={`label-${m.codigoIbge}`}
+                      center={[m.lat!, m.lng!]}
+                      radius={0.1}
+                      pathOptions={{ opacity: 0, fillOpacity: 0, interactive: false }}
+                    >
+                      <Tooltip permanent direction="center" className="hist-city-label" opacity={1}>
+                        {m.nome}
+                      </Tooltip>
+                    </CircleMarker>
+                  ))}
+
+                {/* Camada base */}
+                {mostrarPins && (
+                  <CamadaMarkers
+                    pontos={pontosBase}
+                    cor={CORES_CAMADAS[0]}
+                    rotulo={rotuloBase}
+                    opacidade={cruzando ? 0.4 : 0.75}
+                  />
+                )}
+
+                {/* Camadas cruzadas */}
+                {camadas.map((c, idx) => {
+                  const cor = CORES_CAMADAS[(idx + 1) % CORES_CAMADAS.length];
+                  if (c.tipo === 'eleicao') {
+                    return (
+                      <CamadaEleicao
+                        key={c.id}
+                        cfg={c}
+                        cor={cor}
+                        rotulo={rotuloCamada(c)}
+                        opacidade={0.4}
+                      />
+                    );
+                  }
+                  return (
+                    <CamadaMarkers
+                      key={c.id}
+                      pontos={pontosPesquisaPorCamada.get(c.id) ?? []}
+                      cor={cor}
+                      rotulo={rotuloCamada(c)}
+                      opacidade={0.4}
+                    />
+                  );
+                })}
               </MapContainer>
             </div>
 
             {/* Legenda */}
             <div className="flex flex-wrap gap-3 bg-card border border-border rounded-xl p-3">
-              {LEGEND.map(l => (
-                <div key={l.label} className="flex items-center gap-1.5 text-[11px] text-muted-foreground">
-                  <span className="w-3 h-3 rounded-full border border-border" style={{ background: l.color }} />
-                  {l.label}
-                </div>
-              ))}
-              {mostrarPins && (
-                <span className="text-[11px] text-muted-foreground ml-2 italic">
-                  • Tamanho do pin proporcional ao %
-                </span>
+              {cruzando ? (
+                <>
+                  <div className="flex items-center gap-1.5 text-[11px] text-foreground">
+                    <span className="w-3 h-3 rounded-full" style={{ background: CORES_CAMADAS[0], opacity: 0.6 }} />
+                    {rotuloBase}
+                  </div>
+                  {camadas.map((c, idx) => (
+                    <div key={c.id} className="flex items-center gap-1.5 text-[11px] text-foreground">
+                      <span
+                        className="w-3 h-3 rounded-full"
+                        style={{ background: CORES_CAMADAS[(idx + 1) % CORES_CAMADAS.length], opacity: 0.6 }}
+                      />
+                      {rotuloCamada(c)}
+                    </div>
+                  ))}
+                  <span className="text-[11px] text-muted-foreground italic ml-2">
+                    • Círculos translúcidos e proporcionais ao % — sobreposição mostra o cruzamento
+                  </span>
+                </>
+              ) : (
+                <>
+                  {LEGEND.map(l => (
+                    <div key={l.label} className="flex items-center gap-1.5 text-[11px] text-muted-foreground">
+                      <span className="w-3 h-3 rounded-full border border-border" style={{ background: l.color }} />
+                      {l.label}
+                    </div>
+                  ))}
+                  {mostrarPins && (
+                    <span className="text-[11px] text-muted-foreground ml-2 italic">
+                      • Tamanho do pin proporcional ao %
+                    </span>
+                  )}
+                </>
               )}
             </div>
           </div>
@@ -501,7 +841,88 @@ export default function HistoricoEleitoral() {
   );
 }
 
-// raio do pin: maior quando candidato específico selecionado, menor no modo "todos"
-function radiosSelecionado(pct: number, sel: string): number {
-  return sel === 'TODOS' ? Math.max(4, Math.min(14, 4 + (pct / 100) * 10)) : radiusForPct(pct);
+// ── selects de uma camada de eleição ──────────────────────────────────────────
+function CamadaSelects({
+  cfg, combos, onChange,
+}: {
+  cfg: CamadaEleicaoCfg;
+  combos: { ano: number; turno: number; cargo: number; label: string }[];
+  onChange: (patch: Partial<CamadaEleicaoCfg>) => void;
+}) {
+  const anos = useMemo(() => {
+    const l = Array.from(new Set(combos.map(c => c.ano))).sort();
+    return l.length ? l : ANOS_PADRAO;
+  }, [combos]);
+
+  const cargos = useMemo(() => {
+    const map = new Map<number, string>();
+    combos.filter(c => c.ano === cfg.ano).forEach(c => map.set(c.cargo, c.label));
+    const l = Array.from(map.entries()).sort((a, b) => a[0] - b[0]).map(([cd, label]) => ({ cd, label }));
+    return l.length ? l : CARGOS_PADRAO;
+  }, [combos, cfg.ano]);
+
+  const turnos = useMemo(() => {
+    const l = Array.from(new Set(combos.filter(c => c.ano === cfg.ano && c.cargo === cfg.cargo).map(c => c.turno))).sort();
+    return l.length ? l : [1];
+  }, [combos, cfg.ano, cfg.cargo]);
+
+  useEffect(() => {
+    if (!turnos.includes(cfg.turno)) onChange({ turno: turnos[0] });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [turnos.join(','), cfg.turno]);
+
+  const { data: cands } = useCandidatosHistoricos(cfg.ano, cfg.turno, cfg.cargo);
+  const lista = (cands ?? []).filter(c => !IGNORAR.has(c.nome.toUpperCase()));
+
+  return (
+    <>
+      <div>
+        <label className="block text-[10px] uppercase tracking-wider text-muted-foreground mb-1">Ano</label>
+        <select
+          className="bg-background border border-border rounded-md px-2 py-1 text-xs text-foreground"
+          value={cfg.ano}
+          onChange={e => onChange({ ano: Number(e.target.value), candidato: 'TODOS' })}
+        >
+          {anos.map(a => <option key={a} value={a}>{a}</option>)}
+        </select>
+      </div>
+      <div>
+        <label className="block text-[10px] uppercase tracking-wider text-muted-foreground mb-1">Cargo</label>
+        <select
+          className="bg-background border border-border rounded-md px-2 py-1 text-xs text-foreground"
+          value={cfg.cargo}
+          onChange={e => onChange({ cargo: Number(e.target.value), candidato: 'TODOS' })}
+        >
+          {cargos.map(c => <option key={c.cd} value={c.cd}>{c.label}</option>)}
+        </select>
+      </div>
+      {turnos.length > 1 && (
+        <div>
+          <label className="block text-[10px] uppercase tracking-wider text-muted-foreground mb-1">Turno</label>
+          <select
+            className="bg-background border border-border rounded-md px-2 py-1 text-xs text-foreground"
+            value={cfg.turno}
+            onChange={e => onChange({ turno: Number(e.target.value), candidato: 'TODOS' })}
+          >
+            {turnos.map(t => <option key={t} value={t}>{t}º turno</option>)}
+          </select>
+        </div>
+      )}
+      <div className="min-w-[220px]">
+        <label className="block text-[10px] uppercase tracking-wider text-muted-foreground mb-1">Candidato</label>
+        <select
+          className="w-full bg-background border border-border rounded-md px-2 py-1 text-xs text-foreground"
+          value={cfg.candidato}
+          onChange={e => onChange({ candidato: e.target.value })}
+        >
+          <option value="TODOS">Todos os candidatos</option>
+          {lista.map(c => (
+            <option key={c.nome} value={c.nome}>
+              {c.nome} ({c.partido}) — {c.pct.toFixed(2)}%
+            </option>
+          ))}
+        </select>
+      </div>
+    </>
+  );
 }
