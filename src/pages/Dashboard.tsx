@@ -81,23 +81,20 @@ function DashboardSidebar() {
   return (
     <Sidebar collapsible="icon" className="border-r border-border bg-card">
       <SidebarContent>
-        <SidebarGroup defaultOpen>
+        <SidebarGroup>
           <SidebarGroupLabel>Navegação</SidebarGroupLabel>
           <SidebarGroupContent>
             <SidebarMenu>
               {sectionItems.map((item) => (
                 <SidebarMenuItem key={item.id}>
                   <SidebarMenuButton
-                    asChild
                     tooltip={collapsed ? item.title : undefined}
                     onClick={() => scrollTo(item.id)}
                     className="cursor-pointer"
                   >
-                    <div className="flex items-center gap-2">
-                      <item.icon className="h-4 w-4 shrink-0" />
-                      <span className="truncate">{item.title}</span>
-                      <ChevronRight className="ml-auto h-3.5 w-3.5 opacity-0 group-data-[state=expanded]/sidebar-menu-button:opacity-50" />
-                    </div>
+                    <item.icon className="h-4 w-4 shrink-0" />
+                    <span className="truncate">{item.title}</span>
+                    <ChevronRight className="ml-auto h-3.5 w-3.5 opacity-50" />
                   </SidebarMenuButton>
                 </SidebarMenuItem>
               ))}
