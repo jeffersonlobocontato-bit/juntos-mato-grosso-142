@@ -28,7 +28,8 @@ import {
   Map,
   Layers,
   Brain,
-  Radar
+  Radar,
+  History
 
 } from 'lucide-react';
 
@@ -211,6 +212,14 @@ const Admin = () => {
       description: 'Gerenciar pesquisas de institutos',
       href: '/admin/pesquisas',
       color: 'primary',
+      roles: ['admin', 'admin_master']
+    },
+    { 
+      icon: History, 
+      title: 'Histórico Eleitoral', 
+      description: 'Resultados históricos de eleições no estado',
+      href: '/admin/tse',
+      color: 'secondary',
       roles: ['admin', 'admin_master']
     },
     {
