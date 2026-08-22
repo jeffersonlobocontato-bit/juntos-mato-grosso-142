@@ -14,12 +14,29 @@ import {
   PieChart,
   ArrowLeft,
   Download,
-  Calendar
+  Calendar,
+  LayoutDashboard,
+  ChevronRight
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Skeleton } from "@/components/ui/skeleton";
+import { Separator } from "@/components/ui/separator";
+import { ScrollArea } from "@/components/ui/scroll-area";
+import {
+  Sidebar,
+  SidebarContent,
+  SidebarGroup,
+  SidebarGroupContent,
+  SidebarGroupLabel,
+  SidebarMenu,
+  SidebarMenuButton,
+  SidebarMenuItem,
+  SidebarProvider,
+  SidebarTrigger,
+  useSidebar,
+} from "@/components/ui/sidebar";
 import {
   BarChart,
   Bar,
@@ -38,6 +55,74 @@ import {
 import PublicParanaHeatmap from "@/components/dashboard/PublicParanaHeatmap";
 import { format, subMonths, eachMonthOfInterval, startOfMonth } from "date-fns";
 import { ptBR } from "date-fns/locale";
+
+const sectionItems = [
+  { id: "stats", title: "Visão Geral", icon: LayoutDashboard },
+  { id: "timeline", title: "Evolução Temporal", icon: Calendar },
+  { id: "status", title: "Status das Propostas", icon: PieChart },
+  { id: "heatmap", title: "Mapa de Calor", icon: MapPin },
+  { id: "eixos", title: "Distribuição por Eixo", icon: BarChart3 },
+  { id: "municipios", title: "Top Municípios", icon: TrendingUp },
+];
+
+function DashboardSidebar() {
+  const { state } = useSidebar();
+  const collapsed = state === "collapsed";
+
+  const scrollTo = (id: string) => {
+    const el = document.getElementById(id);
+    if (el) {
+      const headerOffset = 80;
+      const top = el.getBoundingClientRect().top + window.scrollY - headerOffset;
+      window.scrollTo({ top, behavior: "smooth" });
+    }
+  };
+
+  return (
+    <Sidebar collapsible="icon" className="border-r border-border bg-card">
+      <SidebarContent>
+        <SidebarGroup>
+          <SidebarGroupLabel>Navegação</SidebarGroupLabel>
+          <SidebarGroupContent>
+            <SidebarMenu>
+              {sectionItems.map((item) => (
+                <SidebarMenuItem key={item.id}>
+                  <SidebarMenuButton
+                    tooltip={collapsed ? item.title : undefined}
+                    onClick={() => scrollTo(item.id)}
+                    className="cursor-pointer"
+                  >
+                    <item.icon className="h-4 w-4 shrink-0" />
+                    <span className="truncate">{item.title}</span>
+                    <ChevronRight className="ml-auto h-3.5 w-3.5 opacity-50" />
+                  </SidebarMenuButton>
+                </SidebarMenuItem>
+              ))}
+            </SidebarMenu>
+          </SidebarGroupContent>
+        </SidebarGroup>
+        <Separator />
+        <SidebarGroup>
+          <SidebarGroupLabel>Ações</SidebarGroupLabel>
+          <SidebarGroupContent>
+            <div className="px-2 py-2 space-y-2">
+              <Button asChild size="sm" className="w-full justify-start gap-2">
+                <Link to="/">
+                  <ArrowLeft className="h-4 w-4" />
+                  {!collapsed && <span>Voltar ao site</span>}
+                </Link>
+              </Button>
+              <Button variant="outline" size="sm" className="w-full justify-start gap-2">
+                <Download className="h-4 w-4" />
+                {!collapsed && <span>Exportar</span>}
+              </Button>
+            </div>
+          </SidebarGroupContent>
+        </SidebarGroup>
+      </SidebarContent>
+    </Sidebar>
+  );
+}
 
 const Dashboard = () => {
   const [selectedEixo, setSelectedEixo] = useState("todos");
@@ -181,54 +266,47 @@ const Dashboard = () => {
   }, [sugestoes]);
 
   return (
-    <div className="min-h-screen bg-muted/20">
-      {/* Header */}
-      <header className="bg-card border-b border-border sticky top-0 z-40">
-        <div className="container mx-auto px-4">
-          <div className="flex items-center justify-between h-16">
-            <div className="flex items-center gap-4">
-              <Link to="/">
-                <Button variant="ghost" size="sm" className="gap-2">
-                  <ArrowLeft className="w-4 h-4" />
-                  Voltar
-                </Button>
-              </Link>
-              <div className="h-6 w-px bg-border" />
-              <div className="flex items-center gap-3">
-                <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-primary to-primary/80 flex items-center justify-center">
-                  <BarChart3 className="w-4 h-4 text-primary-foreground" />
+    <SidebarProvider>
+      <div className="min-h-screen bg-muted/20 flex w-full">
+        <DashboardSidebar />
+        <div className="flex-1 flex flex-col min-w-0">
+          {/* Header */}
+          <header className="bg-card border-b border-border sticky top-0 z-40">
+            <div className="container mx-auto px-4">
+              <div className="flex items-center justify-between h-16">
+                <div className="flex items-center gap-3">
+                  <SidebarTrigger className="-ml-2" />
+                  <div className="flex items-center gap-3">
+                    <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-primary to-primary/80 flex items-center justify-center">
+                      <BarChart3 className="w-4 h-4 text-primary-foreground" />
+                    </div>
+                    <h1 className="font-display font-bold text-lg text-foreground">Dashboard Público</h1>
+                  </div>
                 </div>
-                <h1 className="font-display font-bold text-lg text-foreground">Dashboard Público</h1>
+
+                <div className="flex items-center gap-4">
+                  <Select value={selectedEixo} onValueChange={setSelectedEixo}>
+                    <SelectTrigger className="w-[180px] h-9">
+                      <Filter className="w-4 h-4 mr-2" />
+                      <SelectValue placeholder="Eixo Temático" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="todos">Todos os Eixos</SelectItem>
+                      {eixos?.map(e => (
+                        <SelectItem key={e.id} value={e.id}>
+                          {e.nome.length > 25 ? e.nome.substring(0, 25) + "..." : e.nome}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
               </div>
             </div>
+          </header>
 
-            <div className="flex items-center gap-4">
-              <Select value={selectedEixo} onValueChange={setSelectedEixo}>
-                <SelectTrigger className="w-[180px] h-9">
-                  <Filter className="w-4 h-4 mr-2" />
-                  <SelectValue placeholder="Eixo Temático" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="todos">Todos os Eixos</SelectItem>
-                  {eixos?.map(e => (
-                    <SelectItem key={e.id} value={e.id}>
-                      {e.nome.length > 25 ? e.nome.substring(0, 25) + "..." : e.nome}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-              <Button variant="outline" size="sm" className="gap-2">
-                <Download className="w-4 h-4" />
-                Exportar
-              </Button>
-            </div>
-          </div>
-        </div>
-      </header>
-
-      <main className="container mx-auto px-4 py-8">
+          <main className="container mx-auto px-4 py-8">
         {/* Stats Grid */}
-        <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+        <div id="stats" className="grid sm:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
           {stats.map((stat, index) => (
             <motion.div
               key={stat.label}
@@ -270,6 +348,7 @@ const Dashboard = () => {
         <div className="grid lg:grid-cols-3 gap-6 mb-8">
           {/* Timeline Chart */}
           <motion.div
+            id="timeline"
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.4, delay: 0.4 }}
@@ -320,6 +399,7 @@ const Dashboard = () => {
 
           {/* Status Pie Chart */}
           <motion.div
+            id="status"
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.4, delay: 0.5 }}
@@ -368,6 +448,7 @@ const Dashboard = () => {
 
         {/* Heatmap Section */}
         <motion.div
+          id="heatmap"
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.4, delay: 0.8 }}
@@ -380,6 +461,7 @@ const Dashboard = () => {
         <div className="grid lg:grid-cols-3 gap-6">
           {/* Bar Chart by Eixo */}
           <motion.div
+            id="eixos"
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.4, delay: 0.6 }}
@@ -418,6 +500,7 @@ const Dashboard = () => {
 
           {/* Top Municipalities */}
           <motion.div
+            id="municipios"
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.4, delay: 0.7 }}
@@ -463,7 +546,9 @@ const Dashboard = () => {
         </div>
       </main>
     </div>
-  );
+  </div>
+</SidebarProvider>
+);
 };
 
 export default Dashboard;
