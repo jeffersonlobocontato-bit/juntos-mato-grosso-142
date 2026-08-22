@@ -219,11 +219,20 @@ export function DocumentUploadModal({
 
       if (insertError) throw insertError;
 
-      // Vincular temas (multi)
-      if (newDoc && temaIds.length > 0) {
-        const links = temaIds.map(tema_id => ({ document_id: newDoc.id, tema_id }));
-        const { error: linkError } = await supabase.from('ai_document_temas').insert(links);
-        if (linkError) console.error('Falha ao vincular temas:', linkError);
+      // Vincular temas (multi) — transversal vincula todos os temas
+      if (newDoc) {
+        let idsParaVincular = temaIds;
+        if (allTemas) {
+          const { data: todos } = await supabase.from('temas').select('id');
+          idsParaVincular = (todos || []).map(t => t.id);
+        }
+        if (idsParaVincular.length > 0) {
+          const links = idsParaVincular.map(tema_id => ({ document_id: newDoc.id, tema_id }));
+          const { error: linkError } = await supabase.from('ai_document_temas').insert(links);
+          if (linkError) console.error('Falha ao vincular temas:', linkError);
+        }
+      }
+
       }
 
       // Auto-link to agent if agent_specific
