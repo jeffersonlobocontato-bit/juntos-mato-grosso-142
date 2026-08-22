@@ -137,14 +137,15 @@ export function DocumentUploadModal({
       return;
     }
 
-    if (temaIds.length === 0) {
+    if (!allTemas && temaIds.length === 0) {
       toast({
         title: "Selecione ao menos 1 tema",
-        description: "Necessário para que a IA cruze apenas fontes relacionadas ao tema da entrevista (evita alucinação).",
+        description: "Ou marque \"Documento transversal\" se ele abrange todos os temas (ex.: Plano de Governo).",
         variant: "destructive",
       });
       return;
     }
+
 
     if (scope === 'agent_specific' && !targetAgentId) {
       toast({ title: "Selecione um agente", description: "Escolha o agente para vincular o documento", variant: "destructive" });
