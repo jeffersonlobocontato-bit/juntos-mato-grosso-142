@@ -41,49 +41,34 @@ function chunkText(text: string, maxChunkSize = 1500, overlap = 200): string[] {
   return chunks.filter(c => c.length > 20);
 }
 
-async function generateEmbedding(text: string, apiKey: string): Promise<number[] | null> {
+// Lightweight embeddings endpoint (no LLM round-trip = far less memory/CPU)
+async function embedBatch(texts: string[], apiKey: string): Promise<(number[] | null)[]> {
   try {
-    const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
+    const response = await fetch("https://ai.gateway.lovable.dev/v1/embeddings", {
       method: "POST",
-      headers: {
-        Authorization: `Bearer ${apiKey}`,
-        "Content-Type": "application/json",
-      },
+      headers: { Authorization: `Bearer ${apiKey}`, "Content-Type": "application/json" },
       body: JSON.stringify({
-        model: "google/gemini-2.5-flash-lite",
-        messages: [
-          {
-            role: "system",
-            content: "You are an embedding generator. Given the input text, output ONLY a JSON array of exactly 768 floating point numbers representing a semantic embedding vector. No other text.",
-          },
-          { role: "user", content: `Generate a 768-dimensional embedding vector for: ${text.substring(0, 2000)}` },
-        ],
-        stream: false,
+        model: "google/text-embedding-004",
+        input: texts.map((t) => t.substring(0, 2000)),
       }),
     });
 
     if (!response.ok) {
-      console.error("Embedding API error:", response.status);
-      return null;
+      console.error("Embedding API error:", response.status, await response.text());
+      return texts.map(() => null);
     }
 
     const data = await response.json();
-    const content = data.choices?.[0]?.message?.content || "";
-    
-    // Try to parse the JSON array from the response
-    const match = content.match(/\[[\s\S]*\]/);
-    if (!match) return null;
-    
-    const embedding = JSON.parse(match[0]);
-    if (Array.isArray(embedding) && embedding.length === 768) {
-      return embedding;
-    }
-    return null;
+    return texts.map((_, i) => {
+      const v = data?.data?.[i]?.embedding;
+      return Array.isArray(v) ? v : null;
+    });
   } catch (e) {
     console.error("Embedding generation error:", e);
-    return null;
+    return texts.map(() => null);
   }
 }
+
 
 serve(async (req) => {
   if (req.method === "OPTIONS") {
@@ -102,7 +87,11 @@ serve(async (req) => {
     const allowed = (roles || []).some((r: any) => ["admin", "admin_master"].includes(r.role));
     if (!allowed) return new Response(JSON.stringify({ error: "Forbidden" }), { status: 403, headers: { ...corsHeaders, "Content-Type": "application/json" } });
 
-    const { document_id } = await req.json();
+    const body = await req.json();
+    const document_id = body?.document_id;
+    const startIndex: number = Number(body?.start_index) || 0;
+    const BATCH = 20; // chunks per invocation — keeps memory/CPU under the worker limit
+
 
     if (!document_id) {
       return new Response(
@@ -132,15 +121,13 @@ serve(async (req) => {
       );
     }
 
-    // Delete existing chunks for this document
-    await supabase
-      .from("ai_document_chunks")
-      .delete()
-      .eq("document_id", document_id);
+    // Delete existing chunks only on the first pass
+    if (startIndex === 0) {
+      await supabase.from("ai_document_chunks").delete().eq("document_id", document_id);
+    }
 
     // Chunk the content
-    const fullText = `${doc.title}\n\n${doc.content}`;
-    const chunks = chunkText(fullText);
+    const chunks = chunkText(`${doc.title}\n\n${doc.content}`);
 
     if (chunks.length === 0) {
       return new Response(
@@ -149,43 +136,48 @@ serve(async (req) => {
       );
     }
 
-    // Generate embeddings and insert chunks
-    let successCount = 0;
-    for (let i = 0; i < chunks.length; i++) {
-      const embedding = await generateEmbedding(chunks[i], LOVABLE_API_KEY);
-      
-      const insertData: any = {
+    const slice = chunks.slice(startIndex, startIndex + BATCH);
+    const embeddings = await embedBatch(slice, LOVABLE_API_KEY);
+
+    const rows = slice.map((content, k) => {
+      const emb = embeddings[k];
+      return {
         document_id,
-        chunk_index: i,
-        content: chunks[i],
+        chunk_index: startIndex + k,
+        content,
         metadata: { title: doc.title, total_chunks: chunks.length },
+        ...(emb ? { embedding: JSON.stringify(emb) } : {}),
       };
+    });
 
-      if (embedding) {
-        insertData.embedding = JSON.stringify(embedding);
-      }
+    const { error: insertError } = await supabase.from("ai_document_chunks").insert(rows);
+    if (insertError) console.error("Error inserting chunks:", insertError);
 
-      const { error: insertError } = await supabase
-        .from("ai_document_chunks")
-        .insert(insertData);
+    const nextIndex = startIndex + slice.length;
+    const done = nextIndex >= chunks.length;
 
-      if (!insertError) successCount++;
-      else console.error(`Error inserting chunk ${i}:`, insertError);
-
-      // Small delay to avoid rate limits
-      if (i < chunks.length - 1) {
-        await new Promise(r => setTimeout(r, 500));
-      }
+    // Chain the next batch in the background so each worker stays well under its limits
+    if (!done) {
+      const chain = fetch(`${supabaseUrl}/functions/v1/process-document-chunks`, {
+        method: "POST",
+        headers: { Authorization: authHeader, "Content-Type": "application/json" },
+        body: JSON.stringify({ document_id, start_index: nextIndex }),
+      }).catch((e) => console.error("Chain error:", e));
+      // @ts-ignore EdgeRuntime is available in Supabase edge functions
+      if (typeof EdgeRuntime !== "undefined") EdgeRuntime.waitUntil(chain);
+      else await chain;
     }
 
     return new Response(
       JSON.stringify({
-        message: "Document processed",
-        chunks_created: successCount,
+        message: done ? "Document processed" : "Batch processed, continuing",
+        done,
+        processed: nextIndex,
         total_chunks: chunks.length,
       }),
       { headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );
+
   } catch (error) {
     console.error("process-document-chunks error:", error);
     return new Response(
