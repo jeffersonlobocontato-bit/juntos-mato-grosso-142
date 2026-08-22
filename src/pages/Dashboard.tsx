@@ -267,7 +267,7 @@ const Dashboard = () => {
 
   return (
     <SidebarProvider>
-      <div className="min-h-screen bg-muted/20 flex w-full">
+      <div className="idv-dash min-h-screen bg-background flex w-full">
         <DashboardSidebar />
         <div className="flex-1 flex flex-col min-w-0">
           {/* Header */}
