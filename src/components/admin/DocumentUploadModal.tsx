@@ -233,7 +233,7 @@ export function DocumentUploadModal({
         }
       }
 
-      }
+
 
       // Auto-link to agent if agent_specific
       if (newDoc && scope === 'agent_specific' && targetAgentId) {
