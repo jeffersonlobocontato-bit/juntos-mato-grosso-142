@@ -41,49 +41,34 @@ function chunkText(text: string, maxChunkSize = 1500, overlap = 200): string[] {
   return chunks.filter(c => c.length > 20);
 }
 
-async function generateEmbedding(text: string, apiKey: string): Promise<number[] | null> {
+// Lightweight embeddings endpoint (no LLM round-trip = far less memory/CPU)
+async function embedBatch(texts: string[], apiKey: string): Promise<(number[] | null)[]> {
   try {
-    const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
+    const response = await fetch("https://ai.gateway.lovable.dev/v1/embeddings", {
       method: "POST",
-      headers: {
-        Authorization: `Bearer ${apiKey}`,
-        "Content-Type": "application/json",
-      },
+      headers: { Authorization: `Bearer ${apiKey}`, "Content-Type": "application/json" },
       body: JSON.stringify({
-        model: "google/gemini-2.5-flash-lite",
-        messages: [
-          {
-            role: "system",
-            content: "You are an embedding generator. Given the input text, output ONLY a JSON array of exactly 768 floating point numbers representing a semantic embedding vector. No other text.",
-          },
-          { role: "user", content: `Generate a 768-dimensional embedding vector for: ${text.substring(0, 2000)}` },
-        ],
-        stream: false,
+        model: "google/text-embedding-004",
+        input: texts.map((t) => t.substring(0, 2000)),
       }),
     });
 
     if (!response.ok) {
-      console.error("Embedding API error:", response.status);
-      return null;
+      console.error("Embedding API error:", response.status, await response.text());
+      return texts.map(() => null);
     }
 
     const data = await response.json();
-    const content = data.choices?.[0]?.message?.content || "";
-    
-    // Try to parse the JSON array from the response
-    const match = content.match(/\[[\s\S]*\]/);
-    if (!match) return null;
-    
-    const embedding = JSON.parse(match[0]);
-    if (Array.isArray(embedding) && embedding.length === 768) {
-      return embedding;
-    }
-    return null;
+    return texts.map((_, i) => {
+      const v = data?.data?.[i]?.embedding;
+      return Array.isArray(v) ? v : null;
+    });
   } catch (e) {
     console.error("Embedding generation error:", e);
-    return null;
+    return texts.map(() => null);
   }
 }
+
 
 serve(async (req) => {
   if (req.method === "OPTIONS") {
