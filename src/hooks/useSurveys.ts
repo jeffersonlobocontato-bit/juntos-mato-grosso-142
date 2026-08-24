@@ -281,6 +281,7 @@ export function useUpdateSurvey() {
           methodology: wave.methodology || null,
           tse_registration: wave.tseRegistration || null,
           file_name: wave.fileName || null,
+          measured_municipios: wave.measuredMunicipios || null,
         })
         .eq('id', surveyId);
       if (e1) throw e1;
