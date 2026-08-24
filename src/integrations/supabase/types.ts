@@ -1736,6 +1736,75 @@ export type Database = {
         }
         Relationships: []
       }
+      resultados_secoes_historicos: {
+        Row: {
+          ano_eleicao: number
+          cd_cargo: number
+          cd_municipio_tse: number | null
+          created_at: string
+          ds_cargo: string
+          ds_endereco: string | null
+          geocode_relevance: number | null
+          id: string
+          latitude: number | null
+          longitude: number | null
+          nm_candidato: string
+          nm_local_votacao: string | null
+          nm_municipio: string
+          nr_candidato: string
+          nr_local_votacao: number | null
+          nr_secao: number
+          nr_zona: number
+          num_turno: number
+          qt_votos: number
+          sg_uf: string
+        }
+        Insert: {
+          ano_eleicao: number
+          cd_cargo: number
+          cd_municipio_tse?: number | null
+          created_at?: string
+          ds_cargo: string
+          ds_endereco?: string | null
+          geocode_relevance?: number | null
+          id?: string
+          latitude?: number | null
+          longitude?: number | null
+          nm_candidato: string
+          nm_local_votacao?: string | null
+          nm_municipio: string
+          nr_candidato: string
+          nr_local_votacao?: number | null
+          nr_secao: number
+          nr_zona: number
+          num_turno: number
+          qt_votos?: number
+          sg_uf?: string
+        }
+        Update: {
+          ano_eleicao?: number
+          cd_cargo?: number
+          cd_municipio_tse?: number | null
+          created_at?: string
+          ds_cargo?: string
+          ds_endereco?: string | null
+          geocode_relevance?: number | null
+          id?: string
+          latitude?: number | null
+          longitude?: number | null
+          nm_candidato?: string
+          nm_local_votacao?: string | null
+          nm_municipio?: string
+          nr_candidato?: string
+          nr_local_votacao?: number | null
+          nr_secao?: number
+          nr_zona?: number
+          num_turno?: number
+          qt_votos?: number
+          sg_uf?: string
+        }
+        Relationships: []
+      }
       shared_presentations: {
         Row: {
           conversation_id: string | null
