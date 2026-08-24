@@ -3446,6 +3446,25 @@ export type Database = {
           turno: number
         }[]
       }
+      hist_locais_votacao: {
+        Args: {
+          p_ano: number
+          p_candidato: string
+          p_cargo: number
+          p_turno: number
+        }
+        Returns: {
+          ds_endereco: string
+          lat: number
+          lng: number
+          local_key: string
+          nm_local: string
+          nm_municipio: string
+          pct: number
+          total_local: number
+          votos: number
+        }[]
+      }
       hist_municipios: {
         Args: {
           p_ano: number

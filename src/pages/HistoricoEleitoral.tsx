@@ -11,6 +11,7 @@ import {
   useMunicipiosHistoricos,
   useCombinacoesDisponiveis,
   useMunicipiosMT,
+  useLocaisVotacao,
   type MunicipioBase,
 } from '@/hooks/useHistoricoEleitoral';
 import { useSurveys } from '@/hooks/useSurveys';
@@ -212,6 +213,7 @@ export default function HistoricoEleitoral() {
   const [mostrarPins, setMostrarPins] = useState(true);
   const [mostrarChoropleth, setMostrarChoropleth] = useState(true);
   const [mostrarNomes, setMostrarNomes] = useState(false);
+  const [mostrarLocais, setMostrarLocais] = useState(false);
   const [camadas, setCamadas] = useState<CamadaCfg[]>([]);
   const [painelCamadas, setPainelCamadas] = useState(false);
   const [painelComparativo, setPainelComparativo] = useState(false);
@@ -261,6 +263,15 @@ export default function HistoricoEleitoral() {
   const infoSelecionado   = candidatos.find(c => c.nome === selecionado);
 
   const { data: municipios, isLoading: loadingMun } = useMunicipiosHistoricos(ano, turno, cargo, selecionado);
+
+  // Camada por local de votação (disponível apenas nos recortes com dados por seção)
+  const { data: locais, isLoading: loadingLocais } = useLocaisVotacao(
+    ano, turno, cargo, selecionado, mostrarLocais,
+  );
+  const maxVotosLocal = useMemo(
+    () => (locais ?? []).reduce((m, l) => Math.max(m, l.votos), 0),
+    [locais],
+  );
 
   // ── mapas auxiliares ────────────────────────────────────────────────────────
   const porMunicipio = useMemo(() => {
@@ -456,6 +467,14 @@ export default function HistoricoEleitoral() {
           <label className="flex items-center gap-1.5 text-xs text-muted-foreground cursor-pointer select-none">
             <input type="checkbox" checked={mostrarNomes} onChange={e => setMostrarNomes(e.target.checked)} className="rounded" />
             Nomes das cidades
+          </label>
+          <label className="flex items-center gap-1.5 text-xs text-muted-foreground cursor-pointer select-none">
+            <input type="checkbox" checked={mostrarLocais} onChange={e => setMostrarLocais(e.target.checked)} className="rounded" />
+            Locais de votação
+            {mostrarLocais && loadingLocais && <Loader2 className="w-3 h-3 animate-spin" />}
+            {mostrarLocais && !loadingLocais && (
+              <span className="text-[10px] text-muted-foreground">({(locais ?? []).length})</span>
+            )}
           </label>
           <button
             onClick={() => setPainelCamadas(v => !v)}
@@ -670,6 +689,29 @@ export default function HistoricoEleitoral() {
                     opacidade={cruzando ? 0.4 : 0.75}
                   />
                 )}
+
+                {/* Locais de votação (dados por seção) */}
+                {mostrarLocais && (locais ?? []).map(l => {
+                  const r = maxVotosLocal > 0 ? 3 + Math.sqrt(l.votos / maxVotosLocal) * 11 : 4;
+                  return (
+                    <CircleMarker
+                      key={`local-${l.key}`}
+                      center={[l.lat, l.lng]}
+                      radius={r}
+                      pathOptions={{ color: '#b91c1c', weight: 1, fillColor: '#ef4444', fillOpacity: 0.5 }}
+                    >
+                      <Tooltip sticky>
+                        <div style={{ fontSize: 11, lineHeight: 1.4 }}>
+                          <strong>{l.nome}</strong><br />
+                          {l.municipio}{l.endereco ? ` — ${l.endereco}` : ''}<br />
+                          {fmt(l.votos)} votos ({l.pct.toFixed(1)}% do local)<br />
+                          Total no local: {fmt(l.totalLocal)}
+                        </div>
+                      </Tooltip>
+                    </CircleMarker>
+                  );
+                })}
+
 
                 {/* Camadas cruzadas */}
                 {camadas.map((c, idx) => {
