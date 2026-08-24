@@ -682,6 +682,29 @@ export default function HistoricoEleitoral() {
                   />
                 )}
 
+                {/* Locais de votação (dados por seção) */}
+                {mostrarLocais && (locais ?? []).map(l => {
+                  const r = maxVotosLocal > 0 ? 3 + Math.sqrt(l.votos / maxVotosLocal) * 11 : 4;
+                  return (
+                    <CircleMarker
+                      key={`local-${l.key}`}
+                      center={[l.lat, l.lng]}
+                      radius={r}
+                      pathOptions={{ color: '#b91c1c', weight: 1, fillColor: '#ef4444', fillOpacity: 0.5 }}
+                    >
+                      <Tooltip sticky>
+                        <div style={{ fontSize: 11, lineHeight: 1.4 }}>
+                          <strong>{l.nome}</strong><br />
+                          {l.municipio}{l.endereco ? ` — ${l.endereco}` : ''}<br />
+                          {fmt(l.votos)} votos ({l.pct.toFixed(1)}% do local)<br />
+                          Total no local: {fmt(l.totalLocal)}
+                        </div>
+                      </Tooltip>
+                    </CircleMarker>
+                  );
+                })}
+
+
                 {/* Camadas cruzadas */}
                 {camadas.map((c, idx) => {
                   const cor = CORES_CAMADAS[(idx + 1) % CORES_CAMADAS.length];
