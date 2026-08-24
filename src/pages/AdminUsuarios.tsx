@@ -604,6 +604,19 @@ const AdminUsuarios = () => {
     );
   };
 
+  const toggleModule = (key: string) => {
+    setSelectedModules(prev =>
+      prev.includes(key) ? prev.filter(k => k !== key) : [...prev, key]
+    );
+  };
+
+  const toggleEditModule = (key: string) => {
+    setEditModules(prev =>
+      prev.includes(key) ? prev.filter(k => k !== key) : [...prev, key]
+    );
+  };
+
+
   const getUserHubFunctions = (userId: string): string[] => {
     return userHubFunctions?.filter(uf => uf.user_id === userId).map(uf => {
       const func = aiHubFunctions?.find(f => f.id === uf.function_id);
