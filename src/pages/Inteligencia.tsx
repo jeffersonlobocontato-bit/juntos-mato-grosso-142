@@ -11,7 +11,7 @@
 import { useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
 import {
-  LayoutDashboard, GitCompare, Sparkles, Megaphone, Upload, BarChart2, Map, Handshake,
+  LayoutDashboard, GitCompare, Sparkles, Megaphone, Upload, BarChart2, Map, Handshake, Target,
 } from 'lucide-react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -26,6 +26,7 @@ import AnaliseIAChat from '@/components/inteligencia/AnaliseIAChat';
 import InsightsComunicacao from '@/components/inteligencia/InsightsComunicacao';
 import CruzamentosSegmentos from '@/components/inteligencia/CruzamentosSegmentos';
 import ApoioHeritage from '@/components/inteligencia/ApoioHeritage';
+import PrioridadeCampo from '@/components/inteligencia/PrioridadeCampo';
 import {
   APOIO_TRANSFERENCIA,
   HERITAGE_POR_REGIAO,
@@ -330,11 +331,12 @@ export default function Inteligencia() {
         </Card>
       ) : (
         <Tabs defaultValue="painel" className="w-full">
-          <TabsList className="grid w-full grid-cols-3 md:grid-cols-6 h-auto">
+          <TabsList className="grid w-full grid-cols-3 md:grid-cols-7 h-auto">
             <TabsTrigger value="painel" className="gap-2"><LayoutDashboard className="w-4 h-4" />Painel Geral</TabsTrigger>
             <TabsTrigger value="segmentos" className="gap-2"><Map className="w-4 h-4" />Regiões e Perfis</TabsTrigger>
             <TabsTrigger value="apoio" className="gap-2"><Handshake className="w-4 h-4" />Apoios e Heritage</TabsTrigger>
             <TabsTrigger value="cruzamento" className="gap-2"><GitCompare className="w-4 h-4" />Cruzamento</TabsTrigger>
+            <TabsTrigger value="campo" className="gap-2"><Target className="w-4 h-4" />Prioridade de Campo</TabsTrigger>
             <TabsTrigger value="insights" className="gap-2"><Megaphone className="w-4 h-4" />Insights</TabsTrigger>
             <TabsTrigger value="ia" className="gap-2"><Sparkles className="w-4 h-4" />Análise IA</TabsTrigger>
           </TabsList>
@@ -437,6 +439,10 @@ export default function Inteligencia() {
           </TabsContent>
 
 
+
+          <TabsContent value="campo" className="mt-6">
+            <PrioridadeCampo />
+          </TabsContent>
 
           <TabsContent value="insights" className="mt-6">
             <InsightsComunicacao context={contextoParaIA} />
