@@ -186,6 +186,20 @@ const AdminUsuarios = () => {
     enabled: isAdminMaster,
   });
 
+  // Fetch user modules (acesso a módulos do painel)
+  const { data: allUserModules } = useQuery({
+    queryKey: ['admin-user-modules'],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('user_modules')
+        .select('*');
+      if (error) throw error;
+      return data;
+    },
+    enabled: isAdmin || isAdminMaster,
+  });
+
+
   const { data: userEixos } = useQuery({
     queryKey: ['user-eixos'],
     queryFn: async () => {
