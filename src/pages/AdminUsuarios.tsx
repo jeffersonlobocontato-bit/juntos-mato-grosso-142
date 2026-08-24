@@ -71,6 +71,7 @@ const AdminUsuarios = () => {
   const [selectedEixos, setSelectedEixos] = useState<string[]>([]);
   const [selectedMunicipios, setSelectedMunicipios] = useState<string[]>([]);
   const [selectedHubFunctions, setSelectedHubFunctions] = useState<string[]>([]);
+  const [selectedModules, setSelectedModules] = useState<string[]>([]);
 
   // State for edit user
   const [editingUser, setEditingUser] = useState<any | null>(null);
