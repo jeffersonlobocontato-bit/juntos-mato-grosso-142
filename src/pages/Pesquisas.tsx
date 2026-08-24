@@ -40,6 +40,7 @@ interface ImportForm {
   tseRegistration: string;
   govScenarios: ScenarioEntry[];
   senScenarios: ScenarioEntry[];
+  measuredMunicipios: string[];
 }
 
 const emptyScenario = (label = 'Cenário 1'): ScenarioEntry => ({
