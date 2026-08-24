@@ -662,6 +662,7 @@ export type Database = {
           id: string
           institute: string
           margin_of_error: number
+          measured_municipios: Json | null
           methodology: string | null
           release_date: string
           sample_size: number
@@ -680,6 +681,7 @@ export type Database = {
           id?: string
           institute: string
           margin_of_error: number
+          measured_municipios?: Json | null
           methodology?: string | null
           release_date: string
           sample_size: number
@@ -698,6 +700,7 @@ export type Database = {
           id?: string
           institute?: string
           margin_of_error?: number
+          measured_municipios?: Json | null
           methodology?: string | null
           release_date?: string
           sample_size?: number
