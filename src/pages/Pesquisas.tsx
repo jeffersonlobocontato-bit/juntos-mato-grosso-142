@@ -8,20 +8,22 @@
 // - Sem o recurso de "candidato mestre" (cruzamento com uma tabela de
 //   candidatos cadastrados) — a Juntos Mato Grosso 142 é uma plataforma de um
 //   único candidato, então essa camada de correspondência não é necessária.
-import { useState, useMemo } from 'react';
-import { BarChart2, Upload, Plus, Trash2, Loader2, FileText } from 'lucide-react';
+import { useState, useMemo, useEffect } from 'react';
+import { BarChart2, Upload, Plus, Trash2, Loader2, FileText, MapPin, X } from 'lucide-react';
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
+import { Checkbox } from '@/components/ui/checkbox';
 import {
   Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter,
 } from '@/components/ui/dialog';
 import { CandidateBarChart } from '@/components/polls/CandidateBarChart';
 import { PollWave, PollQuestion, Cargo } from '@/data/pollsData';
 import { useSurveys, useCreateSurvey, useDeleteSurvey } from '@/hooks/useSurveys';
+import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 
 // ─── Import form ─────────────────────────────────────────────
