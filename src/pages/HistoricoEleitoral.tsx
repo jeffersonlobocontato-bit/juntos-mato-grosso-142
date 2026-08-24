@@ -38,6 +38,16 @@ const CARGOS_PADRAO = [
 // Cores das camadas cruzadas (a 1ª é sempre a camada base)
 const CORES_CAMADAS = ['#1d4ed8', '#dc2626', '#059669', '#d97706', '#7c3aed'];
 
+/** Uma paleta por ano eleitoral — tons dentro da mesma família quando o ano se repete. */
+const PALETAS_ANO = [
+  ['#1d4ed8', '#60a5fa', '#1e3a8a'], // azul
+  ['#dc2626', '#f87171', '#7f1d1d'], // vermelho
+  ['#059669', '#34d399', '#065f46'], // verde
+  ['#d97706', '#fbbf24', '#92400e'], // âmbar
+  ['#7c3aed', '#a78bfa', '#4c1d95'], // roxo
+];
+const CORES_PESQUISA = ['#0891b2', '#db2777', '#65a30d'];
+
 // ── GeoJSON de MT (IBGE) ──────────────────────────────────────────────────────
 function useMtGeoJson() {
   return useQuery({
