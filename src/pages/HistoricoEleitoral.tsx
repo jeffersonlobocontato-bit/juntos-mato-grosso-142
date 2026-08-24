@@ -316,6 +316,30 @@ export default function HistoricoEleitoral() {
   const recorteKey = `${ano}-${turno}-${cargo}`;
   const cruzando = camadas.length > 0;
 
+  // ── contexto do recorte atual do mapa para geração de insights por IA ────────
+  const contextoInsightsMapa = useMemo(() => ({
+    fonte: 'Histórico Eleitoral TSE — recorte do mapa',
+    uf: 'MT',
+    recorte: {
+      ano, turno, cargo,
+      candidato: todosSelecionado ? 'Todos os candidatos' : selecionado,
+      partido: infoSelecionado?.partido ?? null,
+      total_votos: totalVotos,
+      pct_estadual: Number(pctEstadual.toFixed(2)),
+      municipios_com_dados: (municipios ?? []).length,
+    },
+    ranking_estadual_candidatos: candidatos.slice(0, 12).map(c => ({
+      nome: c.nome, partido: c.partido, votos: c.votos, pct: Number(c.pct.toFixed(2)),
+    })),
+    melhores_municipios: [...(municipios ?? [])].sort((a, b) => b.pct - a.pct).slice(0, 15)
+      .map(m => ({ municipio: m.nome, pct: Number(m.pct.toFixed(2)), votos: m.votos })),
+    piores_municipios: [...(municipios ?? [])].sort((a, b) => a.pct - b.pct).slice(0, 15)
+      .map(m => ({ municipio: m.nome, pct: Number(m.pct.toFixed(2)), votos: m.votos })),
+    maiores_volumes_de_voto: [...(municipios ?? [])].sort((a, b) => b.votos - a.votos).slice(0, 15)
+      .map(m => ({ municipio: m.nome, votos: m.votos, pct: Number(m.pct.toFixed(2)) })),
+  }), [ano, turno, cargo, selecionado, todosSelecionado, infoSelecionado, totalVotos, pctEstadual, municipios, candidatos]);
+
+
   // ── cores por ano eleitoral (camadas de anos diferentes ficam em famílias distintas) ──
   const { corBase, coresCamadas } = useMemo(() => {
     const slotAno = new Map<number, number>();
