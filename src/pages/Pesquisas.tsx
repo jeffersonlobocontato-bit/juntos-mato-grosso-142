@@ -142,6 +142,23 @@ function ImportDialog({ open, onClose, onSave, saving }: {
   const [municipioSearch, setMunicipioSearch] = useState('');
   const update = (partial: Partial<ImportForm>) => setForm(f => ({ ...f, ...partial }));
 
+  useEffect(() => {
+    supabase
+      .from('municipios')
+      .select('nome')
+      .order('nome')
+      .then(({ data }) => {
+        setMunicipios((data?.map((m: any) => m.nome) ?? []) as string[]);
+      });
+  }, []);
+
+  const toggleMunicipio = (nome: string) => {
+    const set = new Set(form.measuredMunicipios);
+    if (set.has(nome)) set.delete(nome);
+    else set.add(nome);
+    update({ measuredMunicipios: [...set] });
+  };
+
   const updateScenario = (cargo: 'gov' | 'sen', idx: number, partial: Partial<ScenarioEntry>) => {
     const key = cargo === 'gov' ? 'govScenarios' : 'senScenarios';
     update({ [key]: form[key].map((s, i) => i === idx ? { ...s, ...partial } : s) } as any);
