@@ -487,6 +487,16 @@ const AdminUsuarios = () => {
         );
         if (insHub) throw insHub;
       }
+
+      // Sync módulos do painel
+      const { error: delMod } = await supabase.from('user_modules').delete().eq('user_id', userId);
+      if (delMod) throw delMod;
+      if (editModules.length > 0) {
+        const { error: insMod } = await supabase.from('user_modules').insert(
+          editModules.map(key => ({ user_id: userId, module_key: key }))
+        );
+        if (insMod) throw insMod;
+      }
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['admin-profiles'] });
@@ -494,6 +504,8 @@ const AdminUsuarios = () => {
       queryClient.invalidateQueries({ queryKey: ['user-eixos'] });
       queryClient.invalidateQueries({ queryKey: ['user-municipios'] });
       queryClient.invalidateQueries({ queryKey: ['user-ai-hub-functions'] });
+      queryClient.invalidateQueries({ queryKey: ['admin-user-modules'] });
+      queryClient.invalidateQueries({ queryKey: ['user-modules'] });
       toast({ title: 'Usuário atualizado com sucesso!' });
       setEditingUser(null);
     },
