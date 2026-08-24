@@ -17,6 +17,7 @@ import {
 import { useSurveys } from '@/hooks/useSurveys';
 import { REGIAO_PESQUISA_TO_MESO } from '@/lib/regioesPesquisaMT';
 import { ComparativoPesquisa } from '@/components/historico/ComparativoPesquisa';
+import InsightsComunicacao from '@/components/inteligencia/InsightsComunicacao';
 
 // ── constantes ────────────────────────────────────────────────────────────────
 const IGNORAR = new Set(['NULO', 'BRANCO', 'Nulo', 'Branco', '#NULO#', 'VOTO NULO', 'VOTO BRANCO']);
