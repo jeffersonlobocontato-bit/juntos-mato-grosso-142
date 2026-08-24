@@ -75,6 +75,7 @@ export interface PollWave {
   methodology: string;
   tseRegistration: string;
   fileName?: string;
+  measuredMunicipios?: string[];
 }
 
 // Sem dados mockados/fallback — a Home busca tudo do banco via useSurveys().
