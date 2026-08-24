@@ -546,6 +546,13 @@ export default function HistoricoEleitoral() {
             <TrendingUp className="w-3.5 h-3.5" />
             Comparar com pesquisa 2026
           </button>
+          <button
+            onClick={() => setPainelInsights(v => !v)}
+            className="flex items-center gap-1.5 text-xs px-2.5 py-1.5 rounded-md border border-primary/40 bg-primary/10 text-primary hover:bg-primary/20 transition-colors"
+          >
+            <Sparkles className="w-3.5 h-3.5" />
+            Gerar insights deste recorte
+          </button>
         </div>
       </div>
 
