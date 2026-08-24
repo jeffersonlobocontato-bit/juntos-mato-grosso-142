@@ -122,6 +122,11 @@ function WaveCard({ wave, questions, onSelect, onDelete }: {
         {wave.cargos.map(c => (
           <Badge key={c} variant="outline" className="text-[10px] capitalize">{c}</Badge>
         ))}
+        {wave.measuredMunicipios && wave.measuredMunicipios.length > 0 && (
+          <Badge variant="outline" className="text-[10px] border-emerald-500/30 text-emerald-600 bg-emerald-500/10">
+            {wave.measuredMunicipios.length} cidade{wave.measuredMunicipios.length === 1 ? '' : 's'}
+          </Badge>
+        )}
         <span className="text-[10px] px-1.5 py-0.5 rounded bg-primary/10 text-primary ml-auto">
           {questions.length} pergunta{questions.length === 1 ? '' : 's'}
         </span>
