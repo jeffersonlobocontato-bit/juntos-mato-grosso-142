@@ -81,6 +81,13 @@ const ProtectedRoute = ({ children, requiredRoles }: ProtectedRouteProps) => {
     }
   }
 
+  // Restrição por módulos liberados (quando configurada para o usuário)
+  const moduleKey = MODULE_KEY_BY_HREF[location.pathname];
+  if (moduleKey && location.pathname !== '/admin' && !canAccessModule(moduleKey)) {
+    return <Navigate to="/admin" replace />;
+  }
+
+
   return <>{children}</>;
 };
 
