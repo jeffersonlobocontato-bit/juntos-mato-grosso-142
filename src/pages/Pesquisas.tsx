@@ -180,6 +180,7 @@ function ImportDialog({ open, onClose, onSave, saving }: {
       marginOfError: Number(form.marginOfError) || 0,
       methodology: form.methodology,
       tseRegistration: form.tseRegistration,
+      measuredMunicipios: form.measuredMunicipios,
     };
     const questions = [
       ...scenariosToQuestions(waveId, 'governador', form.govScenarios),
