@@ -264,6 +264,15 @@ export default function HistoricoEleitoral() {
 
   const { data: municipios, isLoading: loadingMun } = useMunicipiosHistoricos(ano, turno, cargo, selecionado);
 
+  // Camada por local de votação (disponível apenas nos recortes com dados por seção)
+  const { data: locais, isLoading: loadingLocais } = useLocaisVotacao(
+    ano, turno, cargo, selecionado, mostrarLocais,
+  );
+  const maxVotosLocal = useMemo(
+    () => (locais ?? []).reduce((m, l) => Math.max(m, l.votos), 0),
+    [locais],
+  );
+
   // ── mapas auxiliares ────────────────────────────────────────────────────────
   const porMunicipio = useMemo(() => {
     const map = new Map<string, { votos: number; pct: number; nome: string }>();
