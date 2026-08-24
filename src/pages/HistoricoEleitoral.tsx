@@ -11,6 +11,7 @@ import {
   useMunicipiosHistoricos,
   useCombinacoesDisponiveis,
   useMunicipiosMT,
+  useLocaisVotacao,
   type MunicipioBase,
 } from '@/hooks/useHistoricoEleitoral';
 import { useSurveys } from '@/hooks/useSurveys';
