@@ -567,6 +567,7 @@ const AdminUsuarios = () => {
       eixo_ids: selectedEixos,
       municipio_ids: needsMunicipios ? selectedMunicipios : undefined,
       ai_hub_function_ids: selectedHubFunctions.length > 0 ? selectedHubFunctions : undefined,
+      module_keys: selectedModules,
     });
   };
 
