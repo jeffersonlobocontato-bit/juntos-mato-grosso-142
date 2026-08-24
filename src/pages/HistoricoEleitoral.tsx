@@ -38,6 +38,16 @@ const CARGOS_PADRAO = [
 // Cores das camadas cruzadas (a 1ª é sempre a camada base)
 const CORES_CAMADAS = ['#1d4ed8', '#dc2626', '#059669', '#d97706', '#7c3aed'];
 
+/** Uma paleta por ano eleitoral — tons dentro da mesma família quando o ano se repete. */
+const PALETAS_ANO = [
+  ['#1d4ed8', '#60a5fa', '#1e3a8a'], // azul
+  ['#dc2626', '#f87171', '#7f1d1d'], // vermelho
+  ['#059669', '#34d399', '#065f46'], // verde
+  ['#d97706', '#fbbf24', '#92400e'], // âmbar
+  ['#7c3aed', '#a78bfa', '#4c1d95'], // roxo
+];
+const CORES_PESQUISA = ['#0891b2', '#db2777', '#65a30d'];
+
 // ── GeoJSON de MT (IBGE) ──────────────────────────────────────────────────────
 function useMtGeoJson() {
   return useQuery({
@@ -304,6 +314,26 @@ export default function HistoricoEleitoral() {
   const recorteKey = `${ano}-${turno}-${cargo}`;
   const cruzando = camadas.length > 0;
 
+  // ── cores por ano eleitoral (camadas de anos diferentes ficam em famílias distintas) ──
+  const { corBase, coresCamadas } = useMemo(() => {
+    const slotAno = new Map<number, number>();
+    const usoAno = new Map<number, number>();
+    const corDeEleicao = (a: number) => {
+      if (!slotAno.has(a)) slotAno.set(a, slotAno.size);
+      const pal = PALETAS_ANO[slotAno.get(a)! % PALETAS_ANO.length];
+      const u = usoAno.get(a) ?? 0;
+      usoAno.set(a, u + 1);
+      return pal[u % pal.length];
+    };
+    const base = corDeEleicao(ano);
+    let iPesq = 0;
+    const cores = camadas.map(c =>
+      c.tipo === 'eleicao' ? corDeEleicao(c.ano) : CORES_PESQUISA[iPesq++ % CORES_PESQUISA.length],
+    );
+    return { corBase: base, coresCamadas: cores };
+  }, [ano, camadas]);
+
+
   // ── perguntas de pesquisa com cruzamento regional ───────────────────────────
   const perguntasRegionais = useMemo(() => {
     return (pesquisas?.questions ?? [])
@@ -520,13 +550,13 @@ export default function HistoricoEleitoral() {
 
           {/* camada base */}
           <div className="flex items-center gap-2 text-[11px]">
-            <span className="w-3 h-3 rounded-full flex-shrink-0" style={{ background: CORES_CAMADAS[0], opacity: 0.7 }} />
+            <span className="w-3 h-3 rounded-full flex-shrink-0" style={{ background: corBase, opacity: 0.7 }} />
             <span className="text-foreground font-medium">Camada base:</span>
             <span className="text-muted-foreground">{rotuloBase}</span>
           </div>
 
           {camadas.map((c, idx) => {
-            const cor = CORES_CAMADAS[(idx + 1) % CORES_CAMADAS.length];
+            const cor = coresCamadas[idx] ?? CORES_CAMADAS[(idx + 1) % CORES_CAMADAS.length];
             return (
               <div key={c.id} className="flex flex-wrap items-end gap-2 border-t border-border pt-2">
                 <span className="w-3 h-3 rounded-full flex-shrink-0 mb-2" style={{ background: cor, opacity: 0.7 }} />
@@ -684,7 +714,7 @@ export default function HistoricoEleitoral() {
                 {mostrarPins && (
                   <CamadaMarkers
                     pontos={pontosBase}
-                    cor={CORES_CAMADAS[0]}
+                    cor={corBase}
                     rotulo={rotuloBase}
                     opacidade={cruzando ? 0.4 : 0.75}
                   />
@@ -715,7 +745,7 @@ export default function HistoricoEleitoral() {
 
                 {/* Camadas cruzadas */}
                 {camadas.map((c, idx) => {
-                  const cor = CORES_CAMADAS[(idx + 1) % CORES_CAMADAS.length];
+                  const cor = coresCamadas[idx] ?? CORES_CAMADAS[(idx + 1) % CORES_CAMADAS.length];
                   if (c.tipo === 'eleicao') {
                     return (
                       <CamadaEleicao
@@ -745,14 +775,14 @@ export default function HistoricoEleitoral() {
               {cruzando ? (
                 <>
                   <div className="flex items-center gap-1.5 text-[11px] text-foreground">
-                    <span className="w-3 h-3 rounded-full" style={{ background: CORES_CAMADAS[0], opacity: 0.6 }} />
+                    <span className="w-3 h-3 rounded-full" style={{ background: corBase, opacity: 0.6 }} />
                     {rotuloBase}
                   </div>
                   {camadas.map((c, idx) => (
                     <div key={c.id} className="flex items-center gap-1.5 text-[11px] text-foreground">
                       <span
                         className="w-3 h-3 rounded-full"
-                        style={{ background: CORES_CAMADAS[(idx + 1) % CORES_CAMADAS.length], opacity: 0.6 }}
+                        style={{ background: coresCamadas[idx] ?? CORES_CAMADAS[(idx + 1) % CORES_CAMADAS.length], opacity: 0.6 }}
                       />
                       {rotuloCamada(c)}
                     </div>
