@@ -74,6 +74,7 @@ export function dbSurveyToWave(s: DbSurvey): PollWave {
     methodology: s.methodology ?? '',
     tseRegistration: s.tse_registration ?? '',
     fileName: s.file_name ?? undefined,
+    measuredMunicipios: s.measured_municipios ?? undefined,
   };
 }
 
