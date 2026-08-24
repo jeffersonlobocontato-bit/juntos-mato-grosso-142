@@ -401,6 +401,7 @@ const AdminUsuarios = () => {
     setSelectedEixos([]);
     setSelectedMunicipios([]);
     setSelectedHubFunctions([]);
+    setSelectedModules([]);
   };
 
   const openEditUser = (profile: any) => {
@@ -408,6 +409,7 @@ const AdminUsuarios = () => {
     const eixoIds = userEixos?.filter(ue => ue.user_id === profile.id).map(ue => ue.eixo_id) || [];
     const municipioIds = userMunicipios?.filter(um => um.user_id === profile.id).map(um => um.municipio_id) || [];
     const hubFuncIds = userHubFunctions?.filter(uf => uf.user_id === profile.id).map(uf => uf.function_id) || [];
+    const moduleKeys = allUserModules?.filter(um => um.user_id === profile.id).map(um => um.module_key) || [];
 
     setEditingUser(profile);
     setEditUserData({
@@ -419,6 +421,7 @@ const AdminUsuarios = () => {
     setEditEixos(eixoIds);
     setEditMunicipios(municipioIds);
     setEditHubFunctions(hubFuncIds);
+    setEditModules(moduleKeys);
   };
 
   const getUserRolesRaw = (userId: string): AppRole[] => {
