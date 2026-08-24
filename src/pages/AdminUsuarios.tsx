@@ -1440,6 +1440,42 @@ const AdminUsuarios = () => {
                 </div>
               )}
 
+              {/* Módulos do painel */}
+              <div>
+                <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
+                  <Label className="flex items-center gap-2">
+                    <LayoutGrid className="h-4 w-4" />
+                    Módulos liberados no painel
+                  </Label>
+                  <div className="flex gap-2">
+                    <Button type="button" variant="outline" size="sm" onClick={() => setEditModules(ADMIN_MODULES.map(m => m.key))}>
+                      Selecionar todos
+                    </Button>
+                    <Button type="button" variant="ghost" size="sm" onClick={() => setEditModules([])}>
+                      Limpar
+                    </Button>
+                  </div>
+                </div>
+                <p className="text-sm text-muted-foreground mb-3">
+                  Sem nenhum módulo marcado, o usuário mantém o acesso padrão das funções atribuídas.
+                </p>
+                <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-2">
+                  {ADMIN_MODULES.map((mod) => (
+                    <div
+                      key={mod.key}
+                      className={`flex items-center gap-2 p-2 rounded-lg border cursor-pointer transition-colors ${
+                        editModules.includes(mod.key) ? 'border-primary bg-primary/10' : 'border-border hover:border-primary/50'
+                      }`}
+                      onClick={() => toggleEditModule(mod.key)}
+                    >
+                      <Checkbox checked={editModules.includes(mod.key)} onCheckedChange={() => toggleEditModule(mod.key)} />
+                      <span className="text-sm font-medium truncate">{mod.title}</span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+
               {/* AI Hub Functions */}
               {aiHubFunctions && aiHubFunctions.length > 0 && (
                 <div>
