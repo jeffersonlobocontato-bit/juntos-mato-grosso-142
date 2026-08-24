@@ -213,6 +213,7 @@ export default function HistoricoEleitoral() {
   const [mostrarPins, setMostrarPins] = useState(true);
   const [mostrarChoropleth, setMostrarChoropleth] = useState(true);
   const [mostrarNomes, setMostrarNomes] = useState(false);
+  const [mostrarLocais, setMostrarLocais] = useState(false);
   const [camadas, setCamadas] = useState<CamadaCfg[]>([]);
   const [painelCamadas, setPainelCamadas] = useState(false);
   const [painelComparativo, setPainelComparativo] = useState(false);
