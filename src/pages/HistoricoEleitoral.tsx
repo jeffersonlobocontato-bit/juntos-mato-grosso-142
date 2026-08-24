@@ -942,6 +942,18 @@ export default function HistoricoEleitoral() {
         </div>
       )}
 
+      {/* Insights de IA sobre o recorte atual do mapa */}
+      {painelInsights && (
+        <div className="bg-card border border-border rounded-xl p-3 space-y-3">
+          <p className="text-xs font-semibold text-foreground flex items-center gap-1.5">
+            <Sparkles className="w-3.5 h-3.5 text-primary" />
+            Insights — {ano} · {cargos.find(c => c.cd === cargo)?.label ?? cargo} · {turno}º turno ·{' '}
+            {todosSelecionado ? 'Todos os candidatos' : selecionado}
+          </p>
+          <InsightsComunicacao key={`${recorteKey}-${selecionado}`} context={contextoInsightsMapa} />
+        </div>
+      )}
+
       {/* Painel: histórico x pesquisa atual por região — gráficos + insights, abaixo do mapa */}
       {painelComparativo && (
         <ComparativoPesquisa
