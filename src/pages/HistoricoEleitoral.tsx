@@ -474,11 +474,6 @@ export default function HistoricoEleitoral() {
         </div>
       </div>
 
-      {/* Painel: histórico x pesquisa atual por região */}
-      {painelComparativo && (
-        <ComparativoPesquisa ano={ano} turno={turno} cargo={cargo} cargoLabel={cargos.find(c => c.cd === cargo)?.label ?? String(cargo)} />
-      )}
-
       {/* Painel de camadas cruzadas */}
       {painelCamadas && (
         <div className="bg-card border border-border rounded-xl p-3 space-y-3">
@@ -840,6 +835,16 @@ export default function HistoricoEleitoral() {
             </div>
           </div>
         </div>
+      )}
+
+      {/* Painel: histórico x pesquisa atual por região — gráficos + insights, abaixo do mapa */}
+      {painelComparativo && (
+        <ComparativoPesquisa
+          ano={ano}
+          turno={turno}
+          cargo={cargo}
+          cargoLabel={cargos.find(c => c.cd === cargo)?.label ?? String(cargo)}
+        />
       )}
     </div>
   );

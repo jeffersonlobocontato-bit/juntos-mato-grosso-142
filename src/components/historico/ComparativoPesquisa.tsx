@@ -1,11 +1,18 @@
 import { useEffect, useMemo, useState } from 'react';
 import { AlertTriangle, Loader2, TrendingUp } from 'lucide-react';
 import {
+  BarChart, Bar, XAxis, YAxis, CartesianGrid, ResponsiveContainer, Tooltip, Legend,
+} from 'recharts';
+import {
   useCandidatosHistoricos,
   useRegioesHistoricas,
 } from '@/hooks/useHistoricoEleitoral';
 import { useSurveys } from '@/hooks/useSurveys';
 import { REGIAO_PESQUISA_TO_MESO } from '@/lib/regioesPesquisaMT';
+import InsightsComunicacao from '@/components/inteligencia/InsightsComunicacao';
+
+const COR_HISTORICO = '#1d4ed8';
+const COR_PESQUISA = '#dc2626';
 
 const IGNORAR = new Set(['NULO', 'BRANCO', 'Nulo', 'Branco', '#NULO#', 'VOTO NULO', 'VOTO BRANCO']);
 
@@ -85,6 +92,32 @@ export function ComparativoPesquisa({ ano, turno, cargo, cargoLabel }: Props) {
   }, [perguntaSelecionada, candidatoPesquisa, porMeso]);
 
   const carregando = loadingPesquisas || loadingCand || loadingRegioes;
+
+  const chartData = linhas
+    .slice()
+    .sort((a, b) => a.regiao.localeCompare(b.regiao))
+    .map(l => ({
+      regiao: l.regiao,
+      [`Histórico ${ano}`]: Number(l.historicoPct.toFixed(2)),
+      'Pesquisa 2026': Number(l.pesquisaPct.toFixed(2)),
+    }));
+
+  const contextoInsights = useMemo(() => {
+    if (!perguntaSelecionada || linhas.length === 0) return null;
+    return {
+      modulo: 'Histórico Eleitoral × Pesquisa 2026 — comparativo regional',
+      recorte_historico: { ano, turno, cargo: cargoLabel, candidato: candidatoHistorico },
+      cenario_pesquisa: { label: perguntaSelecionada.label, candidato: candidatoPesquisa },
+      limiar_alerta_pp: LIMIAR_ALERTA_PP,
+      comparativo_por_regiao: linhas.map(l => ({
+        regiao: l.regiao,
+        historico_pct: Number(l.historicoPct.toFixed(2)),
+        pesquisa_pct: Number(l.pesquisaPct.toFixed(2)),
+        diferenca_pp: Number(l.diff.toFixed(2)),
+        acima_do_limiar: Math.abs(l.diff) >= LIMIAR_ALERTA_PP,
+      })),
+    };
+  }, [perguntaSelecionada, candidatoPesquisa, candidatoHistorico, ano, turno, cargoLabel, linhas]);
 
   return (
     <div className="bg-card border border-border rounded-xl p-3 space-y-3">
@@ -183,6 +216,28 @@ export function ComparativoPesquisa({ ano, turno, cargo, cargoLabel }: Props) {
                 mesorregião). Diferenças ≥ {LIMIAR_ALERTA_PP} p.p. (destacadas) indicam ruptura de padrão em
                 relação ao histórico — priorize tracking de campo nessas regiões antes de tirar conclusão.
               </p>
+
+              {/* Gráfico — mesmos dados da tabela, em barras agrupadas por região */}
+              <div className="mt-4">
+                <ResponsiveContainer width="100%" height={Math.max(260, chartData.length * 40)}>
+                  <BarChart data={chartData} margin={{ left: 10, right: 20 }}>
+                    <CartesianGrid strokeDasharray="3 3" opacity={0.3} />
+                    <XAxis dataKey="regiao" interval={0} angle={-15} textAnchor="end" height={60} fontSize={11} />
+                    <YAxis tickFormatter={v => `${v}%`} />
+                    <Tooltip formatter={(v: any) => `${v}%`} />
+                    <Legend />
+                    <Bar dataKey={`Histórico ${ano}`} fill={COR_HISTORICO} radius={[3, 3, 0, 0]} />
+                    <Bar dataKey="Pesquisa 2026" fill={COR_PESQUISA} radius={[3, 3, 0, 0]} />
+                  </BarChart>
+                </ResponsiveContainer>
+              </div>
+            </div>
+          )}
+
+          {/* Achados e insights gerados por IA sobre este comparativo */}
+          {contextoInsights && (
+            <div className="pt-2">
+              <InsightsComunicacao context={contextoInsights} />
             </div>
           )}
         </>
