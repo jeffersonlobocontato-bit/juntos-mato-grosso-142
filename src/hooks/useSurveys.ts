@@ -187,20 +187,21 @@ export function useCreateSurvey() {
       // 1. Insert survey
       const { data: survey, error: e1 } = await (db as any)
         .from('electoral_surveys')
-        .insert({
-          institute: wave.institute,
-          territory: wave.territory,
-          cargos: wave.cargos,
-          collection_start: wave.collectionStart || null,
-          collection_end: wave.collectionEnd || null,
-          release_date: wave.releaseDate,
-          sample_size: wave.sampleSize,
-          margin_of_error: wave.marginOfError,
-          methodology: wave.methodology || null,
-          tse_registration: wave.tseRegistration || null,
-          file_name: wave.fileName || null,
-          created_by: user?.id ?? null,
-        })
+          .insert({
+            institute: wave.institute,
+            territory: wave.territory,
+            cargos: wave.cargos,
+            collection_start: wave.collectionStart || null,
+            collection_end: wave.collectionEnd || null,
+            release_date: wave.releaseDate,
+            sample_size: wave.sampleSize,
+            margin_of_error: wave.marginOfError,
+            methodology: wave.methodology || null,
+            tse_registration: wave.tseRegistration || null,
+            file_name: wave.fileName || null,
+            measured_municipios: wave.measuredMunicipios || null,
+            created_by: user?.id ?? null,
+          })
         .select()
         .single();
       if (e1) throw e1;
