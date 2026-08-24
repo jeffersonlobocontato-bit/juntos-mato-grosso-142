@@ -84,6 +84,7 @@ const AdminUsuarios = () => {
   const [editEixos, setEditEixos] = useState<string[]>([]);
   const [editMunicipios, setEditMunicipios] = useState<string[]>([]);
   const [editHubFunctions, setEditHubFunctions] = useState<string[]>([]);
+  const [editModules, setEditModules] = useState<string[]>([]);
 
   // State for entrevistador detail modal
   const [selectedEntrevistadorId, setSelectedEntrevistadorId] = useState<string | null>(null);
