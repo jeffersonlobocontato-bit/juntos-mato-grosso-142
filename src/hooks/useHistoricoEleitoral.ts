@@ -93,6 +93,42 @@ export function useMunicipiosHistoricos(
   });
 }
 
+export interface RegiaoAgg {
+  regiao: string;
+  votos: number;
+  totalRegiao: number;
+  pct: number;
+}
+
+/** Percentual do candidato/recorte agregado por mesorregião IBGE (para cruzar com pesquisas). */
+export function useRegioesHistoricas(
+  ano: number,
+  turno: number,
+  cargo: number,
+  candidato: string | null,
+) {
+  return useQuery({
+    queryKey: ['hist-regioes', ano, turno, cargo, candidato],
+    enabled: !!candidato,
+    queryFn: async (): Promise<RegiaoAgg[]> => {
+      const { data, error } = await db.rpc('hist_regioes' as any, {
+        p_ano: ano,
+        p_turno: turno,
+        p_cargo: cargo,
+        p_candidato: candidato,
+      });
+      if (error) throw error;
+      return ((data ?? []) as any[]).map(r => ({
+        regiao: r.regiao as string,
+        votos: Number(r.votos),
+        totalRegiao: Number(r.total_regiao),
+        pct: Number(r.pct ?? 0),
+      }));
+    },
+    staleTime: 1000 * 60 * 30,
+  });
+}
+
 export interface MunicipioBase {
   codigoIbge: string;
   nome: string;

@@ -14,6 +14,8 @@ import {
   type MunicipioBase,
 } from '@/hooks/useHistoricoEleitoral';
 import { useSurveys } from '@/hooks/useSurveys';
+import { REGIAO_PESQUISA_TO_MESO } from '@/lib/regioesPesquisaMT';
+import { ComparativoPesquisa } from '@/components/historico/ComparativoPesquisa';
 
 // ── constantes ────────────────────────────────────────────────────────────────
 const IGNORAR = new Set(['NULO', 'BRANCO', 'Nulo', 'Branco', '#NULO#', 'VOTO NULO', 'VOTO BRANCO']);
@@ -34,17 +36,6 @@ const CARGOS_PADRAO = [
 
 // Cores das camadas cruzadas (a 1ª é sempre a camada base)
 const CORES_CAMADAS = ['#1d4ed8', '#dc2626', '#059669', '#d97706', '#7c3aed'];
-
-// Regiões usadas nas pesquisas → mesorregiões IBGE do cadastro de municípios
-const REGIAO_PESQUISA_TO_MESO: Record<string, string[]> = {
-  'Norte': ['Norte Mato-grossense'],
-  'Médio Norte': ['Norte Mato-grossense'],
-  'Noroeste': ['Norte Mato-grossense'],
-  'Nordeste': ['Nordeste Mato-grossense'],
-  'Oeste': ['Sudoeste Mato-grossense'],
-  'Centro Sul': ['Centro-Sul Mato-grossense'],
-  'Sudeste': ['Sudeste Mato-grossense'],
-};
 
 // ── GeoJSON de MT (IBGE) ──────────────────────────────────────────────────────
 function useMtGeoJson() {
@@ -223,6 +214,7 @@ export default function HistoricoEleitoral() {
   const [mostrarNomes, setMostrarNomes] = useState(false);
   const [camadas, setCamadas] = useState<CamadaCfg[]>([]);
   const [painelCamadas, setPainelCamadas] = useState(false);
+  const [painelComparativo, setPainelComparativo] = useState(false);
 
   const { data: candidatosRaw, isLoading: loadingCand } = useCandidatosHistoricos(ano, turno, cargo);
   const { data: geo } = useMtGeoJson();
@@ -472,8 +464,20 @@ export default function HistoricoEleitoral() {
             <Layers className="w-3.5 h-3.5" />
             Cruzar eleições {cruzando && <span className="text-primary font-semibold">({camadas.length})</span>}
           </button>
+          <button
+            onClick={() => setPainelComparativo(v => !v)}
+            className="flex items-center gap-1.5 text-xs px-2.5 py-1.5 rounded-md border border-border bg-background text-foreground hover:bg-muted transition-colors"
+          >
+            <TrendingUp className="w-3.5 h-3.5" />
+            Comparar com pesquisa 2026
+          </button>
         </div>
       </div>
+
+      {/* Painel: histórico x pesquisa atual por região */}
+      {painelComparativo && (
+        <ComparativoPesquisa ano={ano} turno={turno} cargo={cargo} cargoLabel={cargos.find(c => c.cd === cargo)?.label ?? String(cargo)} />
+      )}
 
       {/* Painel de camadas cruzadas */}
       {painelCamadas && (
