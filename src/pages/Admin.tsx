@@ -266,6 +266,8 @@ const Admin = () => {
 
 
   const filteredMenuItems = menuItems.filter(item => {
+    const moduleKey = MODULE_KEY_BY_HREF[item.href];
+    if (!canAccessModule(moduleKey)) return false;
     if (!item.roles) return true;
     return item.roles.some(role => roles.includes(role as any) || isAdmin);
   });
