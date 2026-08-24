@@ -4,7 +4,7 @@ import { useQuery } from '@tanstack/react-query';
 import 'leaflet/dist/leaflet.css';
 import {
   History, Loader2, TrendingUp, TrendingDown, Users, Search, ChevronDown, ChevronUp,
-  Layers, Plus, X,
+  Layers, Plus, X, Sparkles,
 } from 'lucide-react';
 import {
   useCandidatosHistoricos,
