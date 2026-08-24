@@ -61,6 +61,7 @@ const emptyForm = (): ImportForm => ({
   tseRegistration: '',
   govScenarios: [emptyScenario()],
   senScenarios: [],
+  measuredMunicipios: [],
 });
 
 function scenariosToQuestions(
