@@ -144,7 +144,7 @@ export function useSurveys() {
     queryFn: async () => {
       const [{ data: surveys, error: e1 }, { data: questions, error: e2 }, { data: results, error: e3 }, { data: crossRows }] =
         await Promise.all([
-          db.from('electoral_surveys' as any).select('*').is('deleted_at', null).order('release_date', { ascending: false }),
+          db.from('electoral_surveys' as any).select('*, measured_municipios').is('deleted_at', null).order('release_date', { ascending: false }),
           db.from('survey_questions' as any).select('*').order('sort_order'),
           db.from('survey_results' as any).select('*'),
           db.from('survey_crosstabs' as any).select('*').order('segment_order'),
