@@ -550,13 +550,13 @@ export default function HistoricoEleitoral() {
 
           {/* camada base */}
           <div className="flex items-center gap-2 text-[11px]">
-            <span className="w-3 h-3 rounded-full flex-shrink-0" style={{ background: CORES_CAMADAS[0], opacity: 0.7 }} />
+            <span className="w-3 h-3 rounded-full flex-shrink-0" style={{ background: corBase, opacity: 0.7 }} />
             <span className="text-foreground font-medium">Camada base:</span>
             <span className="text-muted-foreground">{rotuloBase}</span>
           </div>
 
           {camadas.map((c, idx) => {
-            const cor = CORES_CAMADAS[(idx + 1) % CORES_CAMADAS.length];
+            const cor = coresCamadas[idx] ?? CORES_CAMADAS[(idx + 1) % CORES_CAMADAS.length];
             return (
               <div key={c.id} className="flex flex-wrap items-end gap-2 border-t border-border pt-2">
                 <span className="w-3 h-3 rounded-full flex-shrink-0 mb-2" style={{ background: cor, opacity: 0.7 }} />
@@ -714,7 +714,7 @@ export default function HistoricoEleitoral() {
                 {mostrarPins && (
                   <CamadaMarkers
                     pontos={pontosBase}
-                    cor={CORES_CAMADAS[0]}
+                    cor={corBase}
                     rotulo={rotuloBase}
                     opacidade={cruzando ? 0.4 : 0.75}
                   />
@@ -745,7 +745,7 @@ export default function HistoricoEleitoral() {
 
                 {/* Camadas cruzadas */}
                 {camadas.map((c, idx) => {
-                  const cor = CORES_CAMADAS[(idx + 1) % CORES_CAMADAS.length];
+                  const cor = coresCamadas[idx] ?? CORES_CAMADAS[(idx + 1) % CORES_CAMADAS.length];
                   if (c.tipo === 'eleicao') {
                     return (
                       <CamadaEleicao
@@ -775,14 +775,14 @@ export default function HistoricoEleitoral() {
               {cruzando ? (
                 <>
                   <div className="flex items-center gap-1.5 text-[11px] text-foreground">
-                    <span className="w-3 h-3 rounded-full" style={{ background: CORES_CAMADAS[0], opacity: 0.6 }} />
+                    <span className="w-3 h-3 rounded-full" style={{ background: corBase, opacity: 0.6 }} />
                     {rotuloBase}
                   </div>
                   {camadas.map((c, idx) => (
                     <div key={c.id} className="flex items-center gap-1.5 text-[11px] text-foreground">
                       <span
                         className="w-3 h-3 rounded-full"
-                        style={{ background: CORES_CAMADAS[(idx + 1) % CORES_CAMADAS.length], opacity: 0.6 }}
+                        style={{ background: coresCamadas[idx] ?? CORES_CAMADAS[(idx + 1) % CORES_CAMADAS.length], opacity: 0.6 }}
                       />
                       {rotuloCamada(c)}
                     </div>
