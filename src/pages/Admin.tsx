@@ -38,6 +38,7 @@ import {
 const Admin = () => {
   const { user, roles, isLoading, signOut, isAdmin, hasRole } = useAuth();
   const navigate = useNavigate();
+  const { canAccessModule } = useUserModules();
   
   const isAdminMaster = hasRole('admin_master');
 
