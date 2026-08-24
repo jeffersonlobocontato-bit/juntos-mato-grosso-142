@@ -260,6 +260,43 @@ function ImportDialog({ open, onClose, onSave, saving }: {
             <Textarea value={form.methodology} onChange={e => update({ methodology: e.target.value })} rows={2} />
           </div>
 
+          {/* Municípios aferidos */}
+          <div className="border border-border rounded-lg p-3 space-y-3">
+            <div className="flex items-center gap-2 text-sm font-semibold">
+              <MapPin className="w-4 h-4 text-primary" />
+              Municípios aferidos
+              <span className="text-xs font-normal text-muted-foreground ml-auto">{form.measuredMunicipios.length} selecionado(s)</span>
+            </div>
+            <Input
+              className="text-xs h-8"
+              placeholder="Buscar município..."
+              value={municipioSearch}
+              onChange={e => setMunicipioSearch(e.target.value)}
+            />
+            {form.measuredMunicipios.length > 0 && (
+              <div className="flex flex-wrap gap-1.5">
+                {form.measuredMunicipios.map(nome => (
+                  <span key={nome} className="inline-flex items-center gap-1 text-[10px] bg-primary/10 text-primary px-2 py-1 rounded">
+                    {nome}
+                    <button onClick={() => toggleMunicipio(nome)} className="hover:text-destructive"><X className="w-3 h-3" /></button>
+                  </span>
+                ))}
+              </div>
+            )}
+            <div className="max-h-40 overflow-y-auto border border-border rounded-md p-2 space-y-1">
+              {municipios
+                .filter(n => n.toLowerCase().includes(municipioSearch.toLowerCase()))
+                .slice(0, 50)
+                .map(nome => (
+                  <label key={nome} className="flex items-center gap-2 text-xs cursor-pointer hover:bg-muted/50 rounded px-1 py-1">
+                    <Checkbox checked={form.measuredMunicipios.includes(nome)} onCheckedChange={() => toggleMunicipio(nome)} />
+                    {nome}
+                  </label>
+                ))}
+            </div>
+            <p className="text-[10px] text-muted-foreground">Selecione as cidades onde a pesquisa foi aplicada. O painel Inteligência usará essa lista para cruzar com histórico eleitoral.</p>
+          </div>
+
           {(['gov', 'sen'] as const).map(cargo => {
             const scenarios = cargo === 'gov' ? form.govScenarios : form.senScenarios;
             const label = cargo === 'gov' ? 'Governador' : 'Senador';
