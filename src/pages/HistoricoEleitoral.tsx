@@ -4,7 +4,7 @@ import { useQuery } from '@tanstack/react-query';
 import 'leaflet/dist/leaflet.css';
 import {
   History, Loader2, TrendingUp, TrendingDown, Users, Search, ChevronDown, ChevronUp,
-  Layers, Plus, X,
+  Layers, Plus, X, Sparkles,
 } from 'lucide-react';
 import {
   useCandidatosHistoricos,
@@ -17,6 +17,7 @@ import {
 import { useSurveys } from '@/hooks/useSurveys';
 import { REGIAO_PESQUISA_TO_MESO } from '@/lib/regioesPesquisaMT';
 import { ComparativoPesquisa } from '@/components/historico/ComparativoPesquisa';
+import InsightsComunicacao from '@/components/inteligencia/InsightsComunicacao';
 
 // ── constantes ────────────────────────────────────────────────────────────────
 const IGNORAR = new Set(['NULO', 'BRANCO', 'Nulo', 'Branco', '#NULO#', 'VOTO NULO', 'VOTO BRANCO']);
@@ -227,6 +228,7 @@ export default function HistoricoEleitoral() {
   const [camadas, setCamadas] = useState<CamadaCfg[]>([]);
   const [painelCamadas, setPainelCamadas] = useState(false);
   const [painelComparativo, setPainelComparativo] = useState(false);
+  const [painelInsights, setPainelInsights] = useState(false);
 
   const { data: candidatosRaw, isLoading: loadingCand } = useCandidatosHistoricos(ano, turno, cargo);
   const { data: geo } = useMtGeoJson();
@@ -313,6 +315,30 @@ export default function HistoricoEleitoral() {
 
   const recorteKey = `${ano}-${turno}-${cargo}`;
   const cruzando = camadas.length > 0;
+
+  // ── contexto do recorte atual do mapa para geração de insights por IA ────────
+  const contextoInsightsMapa = useMemo(() => ({
+    fonte: 'Histórico Eleitoral TSE — recorte do mapa',
+    uf: 'MT',
+    recorte: {
+      ano, turno, cargo,
+      candidato: todosSelecionado ? 'Todos os candidatos' : selecionado,
+      partido: infoSelecionado?.partido ?? null,
+      total_votos: totalVotos,
+      pct_estadual: Number(pctEstadual.toFixed(2)),
+      municipios_com_dados: (municipios ?? []).length,
+    },
+    ranking_estadual_candidatos: candidatos.slice(0, 12).map(c => ({
+      nome: c.nome, partido: c.partido, votos: c.votos, pct: Number(c.pct.toFixed(2)),
+    })),
+    melhores_municipios: [...(municipios ?? [])].sort((a, b) => b.pct - a.pct).slice(0, 15)
+      .map(m => ({ municipio: m.nome, pct: Number(m.pct.toFixed(2)), votos: m.votos })),
+    piores_municipios: [...(municipios ?? [])].sort((a, b) => a.pct - b.pct).slice(0, 15)
+      .map(m => ({ municipio: m.nome, pct: Number(m.pct.toFixed(2)), votos: m.votos })),
+    maiores_volumes_de_voto: [...(municipios ?? [])].sort((a, b) => b.votos - a.votos).slice(0, 15)
+      .map(m => ({ municipio: m.nome, votos: m.votos, pct: Number(m.pct.toFixed(2)) })),
+  }), [ano, turno, cargo, selecionado, todosSelecionado, infoSelecionado, totalVotos, pctEstadual, municipios, candidatos]);
+
 
   // ── cores por ano eleitoral (camadas de anos diferentes ficam em famílias distintas) ──
   const { corBase, coresCamadas } = useMemo(() => {
@@ -519,6 +545,13 @@ export default function HistoricoEleitoral() {
           >
             <TrendingUp className="w-3.5 h-3.5" />
             Comparar com pesquisa 2026
+          </button>
+          <button
+            onClick={() => setPainelInsights(v => !v)}
+            className="flex items-center gap-1.5 text-xs px-2.5 py-1.5 rounded-md border border-primary/40 bg-primary/10 text-primary hover:bg-primary/20 transition-colors"
+          >
+            <Sparkles className="w-3.5 h-3.5" />
+            Gerar insights deste recorte
           </button>
         </div>
       </div>
@@ -906,6 +939,18 @@ export default function HistoricoEleitoral() {
               </div>
             </div>
           </div>
+        </div>
+      )}
+
+      {/* Insights de IA sobre o recorte atual do mapa */}
+      {painelInsights && (
+        <div className="bg-card border border-border rounded-xl p-3 space-y-3">
+          <p className="text-xs font-semibold text-foreground flex items-center gap-1.5">
+            <Sparkles className="w-3.5 h-3.5 text-primary" />
+            Insights — {ano} · {cargos.find(c => c.cd === cargo)?.label ?? cargo} · {turno}º turno ·{' '}
+            {todosSelecionado ? 'Todos os candidatos' : selecionado}
+          </p>
+          <InsightsComunicacao key={`${recorteKey}-${selecionado}`} context={contextoInsightsMapa} />
         </div>
       )}
 
