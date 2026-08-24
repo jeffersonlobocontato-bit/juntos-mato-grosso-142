@@ -468,6 +468,14 @@ export default function HistoricoEleitoral() {
             <input type="checkbox" checked={mostrarNomes} onChange={e => setMostrarNomes(e.target.checked)} className="rounded" />
             Nomes das cidades
           </label>
+          <label className="flex items-center gap-1.5 text-xs text-muted-foreground cursor-pointer select-none">
+            <input type="checkbox" checked={mostrarLocais} onChange={e => setMostrarLocais(e.target.checked)} className="rounded" />
+            Locais de votação
+            {mostrarLocais && loadingLocais && <Loader2 className="w-3 h-3 animate-spin" />}
+            {mostrarLocais && !loadingLocais && (
+              <span className="text-[10px] text-muted-foreground">({(locais ?? []).length})</span>
+            )}
+          </label>
           <button
             onClick={() => setPainelCamadas(v => !v)}
             className="flex items-center gap-1.5 text-xs px-2.5 py-1.5 rounded-md border border-border bg-background text-foreground hover:bg-muted transition-colors"
