@@ -138,6 +138,8 @@ function ImportDialog({ open, onClose, onSave, saving }: {
   open: boolean; onClose: () => void; onSave: (wave: PollWave, questions: PollQuestion[]) => void; saving: boolean;
 }) {
   const [form, setForm] = useState<ImportForm>(emptyForm());
+  const [municipios, setMunicipios] = useState<string[]>([]);
+  const [municipioSearch, setMunicipioSearch] = useState('');
   const update = (partial: Partial<ImportForm>) => setForm(f => ({ ...f, ...partial }));
 
   const updateScenario = (cargo: 'gov' | 'sen', idx: number, partial: Partial<ScenarioEntry>) => {
