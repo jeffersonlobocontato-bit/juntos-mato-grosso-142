@@ -51,7 +51,7 @@ const ProtectedRoute = ({ children, requiredRoles }: ProtectedRouteProps) => {
     };
   }, []);
 
-  if (isLoading || (user && rolesLoading)) {
+  if (isLoading || (user && (rolesLoading || modulesLoading))) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-background">
         <div className="animate-spin text-4xl" aria-label="Carregando">⏳</div>
