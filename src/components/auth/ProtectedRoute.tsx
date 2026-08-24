@@ -18,6 +18,7 @@ interface ProtectedRouteProps {
 const ProtectedRoute = ({ children, requiredRoles }: ProtectedRouteProps) => {
   const { user, roles, isLoading, rolesLoading } = useAuth();
   const location = useLocation();
+  const { canAccessModule, isLoading: modulesLoading } = useUserModules();
 
   // Injeta noindex/nofollow + remove og:image em rotas administrativas para
   // impedir indexação e preview social de áreas internas.
