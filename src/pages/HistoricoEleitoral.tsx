@@ -228,6 +228,7 @@ export default function HistoricoEleitoral() {
   const [camadas, setCamadas] = useState<CamadaCfg[]>([]);
   const [painelCamadas, setPainelCamadas] = useState(false);
   const [painelComparativo, setPainelComparativo] = useState(false);
+  const [painelInsights, setPainelInsights] = useState(false);
 
   const { data: candidatosRaw, isLoading: loadingCand } = useCandidatosHistoricos(ano, turno, cargo);
   const { data: geo } = useMtGeoJson();
