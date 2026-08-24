@@ -1,6 +1,8 @@
 import { ReactNode, useEffect } from 'react';
 import { Navigate, useLocation } from 'react-router-dom';
 import { useAuth } from '@/hooks/useAuth';
+import { useUserModules } from '@/hooks/useUserModules';
+import { MODULE_KEY_BY_HREF } from '@/config/adminModules';
 
 type AppRole = 'admin' | 'admin_master' | 'lider_tematico' | 'curador_municipal' | 'especialista' | 'marketing';
 
