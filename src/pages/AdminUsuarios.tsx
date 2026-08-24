@@ -960,6 +960,45 @@ const AdminUsuarios = () => {
                   </div>
                 )}
 
+                {/* Módulos do painel */}
+                <div>
+                  <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
+                    <Label className="flex items-center gap-2">
+                      <LayoutGrid className="h-4 w-4" />
+                      Módulos liberados no painel
+                    </Label>
+                    <div className="flex gap-2">
+                      <Button type="button" variant="outline" size="sm" onClick={() => setSelectedModules(ADMIN_MODULES.map(m => m.key))}>
+                        Selecionar todos
+                      </Button>
+                      <Button type="button" variant="ghost" size="sm" onClick={() => setSelectedModules([])}>
+                        Limpar
+                      </Button>
+                    </div>
+                  </div>
+                  <p className="text-sm text-muted-foreground mb-3">
+                    Marque os módulos que este usuário poderá acessar. Se nenhum for marcado, valem apenas as permissões por função.
+                  </p>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-2">
+                    {ADMIN_MODULES.map((mod) => (
+                      <div
+                        key={mod.key}
+                        className={`flex items-center gap-2 p-2 rounded-lg border cursor-pointer transition-colors ${
+                          selectedModules.includes(mod.key) ? 'border-primary bg-primary/10' : 'border-border hover:border-primary/50'
+                        }`}
+                        onClick={() => toggleModule(mod.key)}
+                      >
+                        <Checkbox
+                          checked={selectedModules.includes(mod.key)}
+                          onCheckedChange={() => toggleModule(mod.key)}
+                        />
+                        <span className="text-sm font-medium truncate">{mod.title}</span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+
+
                 <div className="flex justify-end gap-3">
                   <Button variant="outline" onClick={resetCreateForm}>
                     Cancelar
