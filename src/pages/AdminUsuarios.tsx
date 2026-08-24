@@ -279,12 +279,21 @@ const AdminUsuarios = () => {
       eixo_ids: string[];
       municipio_ids?: string[];
       ai_hub_function_ids?: string[];
+      module_keys?: string[];
     }) => {
+      const { module_keys, ...payload } = data;
       const { data: result, error } = await supabase.functions.invoke('admin-create-user', {
-        body: data,
+        body: payload,
       });
       if (error) throw error;
       if (result.error) throw new Error(result.error);
+
+      if (module_keys && module_keys.length > 0 && result?.user?.id) {
+        const { error: modError } = await supabase.from('user_modules').insert(
+          module_keys.map((key) => ({ user_id: result.user.id, module_key: key }))
+        );
+        if (modError) throw modError;
+      }
       return result;
     },
     onSuccess: () => {
@@ -293,6 +302,7 @@ const AdminUsuarios = () => {
       queryClient.invalidateQueries({ queryKey: ['user-eixos'] });
       queryClient.invalidateQueries({ queryKey: ['user-municipios'] });
       queryClient.invalidateQueries({ queryKey: ['user-ai-hub-functions'] });
+      queryClient.invalidateQueries({ queryKey: ['admin-user-modules'] });
       toast({ title: 'Usuário criado com sucesso!' });
       resetCreateForm();
     },
