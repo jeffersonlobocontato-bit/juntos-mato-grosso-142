@@ -2,6 +2,8 @@ import { useEffect } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { useAuth } from '@/hooks/useAuth';
+import { useUserModules } from '@/hooks/useUserModules';
+import { MODULE_KEY_BY_HREF } from '@/config/adminModules';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { 
@@ -36,6 +38,7 @@ import {
 const Admin = () => {
   const { user, roles, isLoading, signOut, isAdmin, hasRole } = useAuth();
   const navigate = useNavigate();
+  const { canAccessModule } = useUserModules();
   
   const isAdminMaster = hasRole('admin_master');
 
@@ -266,6 +269,8 @@ const Admin = () => {
 
 
   const filteredMenuItems = menuItems.filter(item => {
+    const moduleKey = MODULE_KEY_BY_HREF[item.href];
+    if (!canAccessModule(moduleKey)) return false;
     if (!item.roles) return true;
     return item.roles.some(role => roles.includes(role as any) || isAdmin);
   });

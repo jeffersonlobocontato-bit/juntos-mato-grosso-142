@@ -4,7 +4,8 @@ import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
 import { useNavigate, Link } from 'react-router-dom';
 import { motion } from 'framer-motion';
-import { ArrowLeft, Users, Shield, UserCheck, MapPin, Briefcase, Plus, Trash2, UserPlus, Lock, Bot, Pencil } from 'lucide-react';
+import { ArrowLeft, Users, Shield, UserCheck, MapPin, Briefcase, Plus, Trash2, UserPlus, Lock, Bot, Pencil, LayoutGrid } from 'lucide-react';
+import { ADMIN_MODULES } from '@/config/adminModules';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
@@ -71,6 +72,7 @@ const AdminUsuarios = () => {
   const [selectedEixos, setSelectedEixos] = useState<string[]>([]);
   const [selectedMunicipios, setSelectedMunicipios] = useState<string[]>([]);
   const [selectedHubFunctions, setSelectedHubFunctions] = useState<string[]>([]);
+  const [selectedModules, setSelectedModules] = useState<string[]>([]);
 
   // State for edit user
   const [editingUser, setEditingUser] = useState<any | null>(null);
@@ -83,6 +85,7 @@ const AdminUsuarios = () => {
   const [editEixos, setEditEixos] = useState<string[]>([]);
   const [editMunicipios, setEditMunicipios] = useState<string[]>([]);
   const [editHubFunctions, setEditHubFunctions] = useState<string[]>([]);
+  const [editModules, setEditModules] = useState<string[]>([]);
 
   // State for entrevistador detail modal
   const [selectedEntrevistadorId, setSelectedEntrevistadorId] = useState<string | null>(null);
@@ -184,6 +187,20 @@ const AdminUsuarios = () => {
     enabled: isAdminMaster,
   });
 
+  // Fetch user modules (acesso a módulos do painel)
+  const { data: allUserModules } = useQuery({
+    queryKey: ['admin-user-modules'],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('user_modules')
+        .select('*');
+      if (error) throw error;
+      return data;
+    },
+    enabled: isAdmin || isAdminMaster,
+  });
+
+
   const { data: userEixos } = useQuery({
     queryKey: ['user-eixos'],
     queryFn: async () => {
@@ -263,12 +280,21 @@ const AdminUsuarios = () => {
       eixo_ids: string[];
       municipio_ids?: string[];
       ai_hub_function_ids?: string[];
+      module_keys?: string[];
     }) => {
+      const { module_keys, ...payload } = data;
       const { data: result, error } = await supabase.functions.invoke('admin-create-user', {
-        body: data,
+        body: payload,
       });
       if (error) throw error;
       if (result.error) throw new Error(result.error);
+
+      if (module_keys && module_keys.length > 0 && result?.user?.id) {
+        const { error: modError } = await supabase.from('user_modules').insert(
+          module_keys.map((key) => ({ user_id: result.user.id, module_key: key }))
+        );
+        if (modError) throw modError;
+      }
       return result;
     },
     onSuccess: () => {
@@ -277,6 +303,7 @@ const AdminUsuarios = () => {
       queryClient.invalidateQueries({ queryKey: ['user-eixos'] });
       queryClient.invalidateQueries({ queryKey: ['user-municipios'] });
       queryClient.invalidateQueries({ queryKey: ['user-ai-hub-functions'] });
+      queryClient.invalidateQueries({ queryKey: ['admin-user-modules'] });
       toast({ title: 'Usuário criado com sucesso!' });
       resetCreateForm();
     },
@@ -375,6 +402,7 @@ const AdminUsuarios = () => {
     setSelectedEixos([]);
     setSelectedMunicipios([]);
     setSelectedHubFunctions([]);
+    setSelectedModules([]);
   };
 
   const openEditUser = (profile: any) => {
@@ -382,6 +410,7 @@ const AdminUsuarios = () => {
     const eixoIds = userEixos?.filter(ue => ue.user_id === profile.id).map(ue => ue.eixo_id) || [];
     const municipioIds = userMunicipios?.filter(um => um.user_id === profile.id).map(um => um.municipio_id) || [];
     const hubFuncIds = userHubFunctions?.filter(uf => uf.user_id === profile.id).map(uf => uf.function_id) || [];
+    const moduleKeys = allUserModules?.filter(um => um.user_id === profile.id).map(um => um.module_key) || [];
 
     setEditingUser(profile);
     setEditUserData({
@@ -393,6 +422,7 @@ const AdminUsuarios = () => {
     setEditEixos(eixoIds);
     setEditMunicipios(municipioIds);
     setEditHubFunctions(hubFuncIds);
+    setEditModules(moduleKeys);
   };
 
   const getUserRolesRaw = (userId: string): AppRole[] => {
@@ -458,6 +488,16 @@ const AdminUsuarios = () => {
         );
         if (insHub) throw insHub;
       }
+
+      // Sync módulos do painel
+      const { error: delMod } = await supabase.from('user_modules').delete().eq('user_id', userId);
+      if (delMod) throw delMod;
+      if (editModules.length > 0) {
+        const { error: insMod } = await supabase.from('user_modules').insert(
+          editModules.map(key => ({ user_id: userId, module_key: key }))
+        );
+        if (insMod) throw insMod;
+      }
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['admin-profiles'] });
@@ -465,6 +505,8 @@ const AdminUsuarios = () => {
       queryClient.invalidateQueries({ queryKey: ['user-eixos'] });
       queryClient.invalidateQueries({ queryKey: ['user-municipios'] });
       queryClient.invalidateQueries({ queryKey: ['user-ai-hub-functions'] });
+      queryClient.invalidateQueries({ queryKey: ['admin-user-modules'] });
+      queryClient.invalidateQueries({ queryKey: ['user-modules'] });
       toast({ title: 'Usuário atualizado com sucesso!' });
       setEditingUser(null);
     },
@@ -526,6 +568,7 @@ const AdminUsuarios = () => {
       eixo_ids: selectedEixos,
       municipio_ids: needsMunicipios ? selectedMunicipios : undefined,
       ai_hub_function_ids: selectedHubFunctions.length > 0 ? selectedHubFunctions : undefined,
+      module_keys: selectedModules,
     });
   };
 
@@ -560,6 +603,19 @@ const AdminUsuarios = () => {
         : [...prev, funcId]
     );
   };
+
+  const toggleModule = (key: string) => {
+    setSelectedModules(prev =>
+      prev.includes(key) ? prev.filter(k => k !== key) : [...prev, key]
+    );
+  };
+
+  const toggleEditModule = (key: string) => {
+    setEditModules(prev =>
+      prev.includes(key) ? prev.filter(k => k !== key) : [...prev, key]
+    );
+  };
+
 
   const getUserHubFunctions = (userId: string): string[] => {
     return userHubFunctions?.filter(uf => uf.user_id === userId).map(uf => {
@@ -917,6 +973,45 @@ const AdminUsuarios = () => {
                     )}
                   </div>
                 )}
+
+                {/* Módulos do painel */}
+                <div>
+                  <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
+                    <Label className="flex items-center gap-2">
+                      <LayoutGrid className="h-4 w-4" />
+                      Módulos liberados no painel
+                    </Label>
+                    <div className="flex gap-2">
+                      <Button type="button" variant="outline" size="sm" onClick={() => setSelectedModules(ADMIN_MODULES.map(m => m.key))}>
+                        Selecionar todos
+                      </Button>
+                      <Button type="button" variant="ghost" size="sm" onClick={() => setSelectedModules([])}>
+                        Limpar
+                      </Button>
+                    </div>
+                  </div>
+                  <p className="text-sm text-muted-foreground mb-3">
+                    Marque os módulos que este usuário poderá acessar. Se nenhum for marcado, valem apenas as permissões por função.
+                  </p>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-2">
+                    {ADMIN_MODULES.map((mod) => (
+                      <div
+                        key={mod.key}
+                        className={`flex items-center gap-2 p-2 rounded-lg border cursor-pointer transition-colors ${
+                          selectedModules.includes(mod.key) ? 'border-primary bg-primary/10' : 'border-border hover:border-primary/50'
+                        }`}
+                        onClick={() => toggleModule(mod.key)}
+                      >
+                        <Checkbox
+                          checked={selectedModules.includes(mod.key)}
+                          onCheckedChange={() => toggleModule(mod.key)}
+                        />
+                        <span className="text-sm font-medium truncate">{mod.title}</span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+
 
                 <div className="flex justify-end gap-3">
                   <Button variant="outline" onClick={resetCreateForm}>
@@ -1344,6 +1439,42 @@ const AdminUsuarios = () => {
                   </div>
                 </div>
               )}
+
+              {/* Módulos do painel */}
+              <div>
+                <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
+                  <Label className="flex items-center gap-2">
+                    <LayoutGrid className="h-4 w-4" />
+                    Módulos liberados no painel
+                  </Label>
+                  <div className="flex gap-2">
+                    <Button type="button" variant="outline" size="sm" onClick={() => setEditModules(ADMIN_MODULES.map(m => m.key))}>
+                      Selecionar todos
+                    </Button>
+                    <Button type="button" variant="ghost" size="sm" onClick={() => setEditModules([])}>
+                      Limpar
+                    </Button>
+                  </div>
+                </div>
+                <p className="text-sm text-muted-foreground mb-3">
+                  Sem nenhum módulo marcado, o usuário mantém o acesso padrão das funções atribuídas.
+                </p>
+                <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-2">
+                  {ADMIN_MODULES.map((mod) => (
+                    <div
+                      key={mod.key}
+                      className={`flex items-center gap-2 p-2 rounded-lg border cursor-pointer transition-colors ${
+                        editModules.includes(mod.key) ? 'border-primary bg-primary/10' : 'border-border hover:border-primary/50'
+                      }`}
+                      onClick={() => toggleEditModule(mod.key)}
+                    >
+                      <Checkbox checked={editModules.includes(mod.key)} onCheckedChange={() => toggleEditModule(mod.key)} />
+                      <span className="text-sm font-medium truncate">{mod.title}</span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+
 
               {/* AI Hub Functions */}
               {aiHubFunctions && aiHubFunctions.length > 0 && (

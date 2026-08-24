@@ -1,6 +1,8 @@
 import { ReactNode, useEffect } from 'react';
 import { Navigate, useLocation } from 'react-router-dom';
 import { useAuth } from '@/hooks/useAuth';
+import { useUserModules } from '@/hooks/useUserModules';
+import { MODULE_KEY_BY_HREF } from '@/config/adminModules';
 
 type AppRole = 'admin' | 'admin_master' | 'lider_tematico' | 'curador_municipal' | 'especialista' | 'marketing';
 
@@ -16,6 +18,7 @@ interface ProtectedRouteProps {
 const ProtectedRoute = ({ children, requiredRoles }: ProtectedRouteProps) => {
   const { user, roles, isLoading, rolesLoading } = useAuth();
   const location = useLocation();
+  const { canAccessModule, isLoading: modulesLoading } = useUserModules();
 
   // Injeta noindex/nofollow + remove og:image em rotas administrativas para
   // impedir indexação e preview social de áreas internas.
@@ -48,7 +51,7 @@ const ProtectedRoute = ({ children, requiredRoles }: ProtectedRouteProps) => {
     };
   }, []);
 
-  if (isLoading || (user && rolesLoading)) {
+  if (isLoading || (user && (rolesLoading || modulesLoading))) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-background">
         <div className="animate-spin text-4xl" aria-label="Carregando">⏳</div>
@@ -77,6 +80,13 @@ const ProtectedRoute = ({ children, requiredRoles }: ProtectedRouteProps) => {
       return <Navigate to="/admin" replace />;
     }
   }
+
+  // Restrição por módulos liberados (quando configurada para o usuário)
+  const moduleKey = MODULE_KEY_BY_HREF[location.pathname];
+  if (moduleKey && location.pathname !== '/admin' && !canAccessModule(moduleKey)) {
+    return <Navigate to="/admin" replace />;
+  }
+
 
   return <>{children}</>;
 };
