@@ -314,6 +314,26 @@ export default function HistoricoEleitoral() {
   const recorteKey = `${ano}-${turno}-${cargo}`;
   const cruzando = camadas.length > 0;
 
+  // ── cores por ano eleitoral (camadas de anos diferentes ficam em famílias distintas) ──
+  const { corBase, coresCamadas } = useMemo(() => {
+    const slotAno = new Map<number, number>();
+    const usoAno = new Map<number, number>();
+    const corDeEleicao = (a: number) => {
+      if (!slotAno.has(a)) slotAno.set(a, slotAno.size);
+      const pal = PALETAS_ANO[slotAno.get(a)! % PALETAS_ANO.length];
+      const u = usoAno.get(a) ?? 0;
+      usoAno.set(a, u + 1);
+      return pal[u % pal.length];
+    };
+    const base = corDeEleicao(ano);
+    let iPesq = 0;
+    const cores = camadas.map(c =>
+      c.tipo === 'eleicao' ? corDeEleicao(c.ano) : CORES_PESQUISA[iPesq++ % CORES_PESQUISA.length],
+    );
+    return { corBase: base, coresCamadas: cores };
+  }, [ano, camadas]);
+
+
   // ── perguntas de pesquisa com cruzamento regional ───────────────────────────
   const perguntasRegionais = useMemo(() => {
     return (pesquisas?.questions ?? [])
