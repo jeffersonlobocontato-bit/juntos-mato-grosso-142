@@ -31,7 +31,8 @@ import {
   Layers,
   Brain,
   Radar,
-  History
+  History,
+  MessageCircle
 
 } from 'lucide-react';
 
