@@ -185,6 +185,14 @@ const Admin = () => {
       color: 'accent',
       roles: ['admin', 'admin_master', 'lider_tematico']
     },
+    {
+      icon: MessageCircle,
+      title: 'Integração WhatsApp',
+      description: 'Endpoint e monitoramento das sugestões vindas do WhatsApp',
+      href: '/admin/whatsapp',
+      color: 'primary',
+      roles: ['admin']
+    },
     { 
       icon: BarChart3, 
       title: 'Analytics LP', 

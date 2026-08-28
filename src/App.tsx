@@ -24,6 +24,7 @@ import AdminLeads from "./pages/AdminLeads";
 import AdminMensageria from "./pages/AdminMensageria";
 import AdminPlanoGoverno from "./pages/AdminPlanoGoverno";
 import AdminAnalytics from "./pages/AdminAnalytics";
+import AdminWhatsApp from "./pages/AdminWhatsApp";
 import AdminMeuPainel from "./pages/AdminMeuPainel";
 import AdminAIHub from "./pages/AdminAIHub";
 import AdminPesquisas from "./pages/AdminPesquisas";
@@ -79,6 +80,7 @@ const App = () => (
             <Route path="/admin/leads" element={<ProtectedRoute requiredRoles={['lider_tematico','curador_municipal']}><AdminLeads /></ProtectedRoute>} />
             <Route path="/admin/mensageria" element={<ProtectedRoute requiredRoles={['lider_tematico']}><AdminMensageria /></ProtectedRoute>} />
             <Route path="/admin/plano-governo" element={<ProtectedRoute requiredRoles={[]}><AdminPlanoGoverno /></ProtectedRoute>} />
+            <Route path="/admin/whatsapp" element={<ProtectedRoute requiredRoles={[]}><AdminWhatsApp /></ProtectedRoute>} />
             <Route path="/admin/analytics" element={<ProtectedRoute requiredRoles={[]}><AdminAnalytics /></ProtectedRoute>} />
             <Route path="/admin/meu-painel" element={<ProtectedRoute requiredRoles={['lider_tematico','curador_municipal','especialista']}><AdminMeuPainel /></ProtectedRoute>} />
             <Route path="/admin/ai-hub" element={<ProtectedRoute requiredRoles={[]}><AdminAIHub /></ProtectedRoute>} />

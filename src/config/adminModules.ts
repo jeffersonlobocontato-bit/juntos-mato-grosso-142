@@ -24,6 +24,7 @@ export const ADMIN_MODULES: AdminModuleDef[] = [
   { key: 'metodologia', title: 'Conteúdo LP Metodologia', href: '/admin/metodologia' },
   { key: 'biblioteca', title: 'Biblioteca de Documentos', href: '/admin/biblioteca' },
   { key: 'gerador-conteudo', title: 'Gerador de Conteúdo', href: '/admin/gerador-conteudo' },
+  { key: 'whatsapp', title: 'Integração WhatsApp', href: '/admin/whatsapp' },
   { key: 'analytics', title: 'Analytics LP', href: '/admin/analytics' },
   { key: 'cruzamento-sugestoes', title: 'Painel de Cruzamento', href: '/admin/cruzamento-sugestoes' },
   { key: 'modulo-mkt', title: 'Módulo MKT', href: '/admin/modulo-mkt' },
