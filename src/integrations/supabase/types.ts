@@ -2074,6 +2074,7 @@ export type Database = {
           id: string
           municipio: string
           nome: string | null
+          origem: string
           publico: boolean | null
           tema_id: string | null
           tema_ids: Json | null
@@ -2088,6 +2089,7 @@ export type Database = {
           id?: string
           municipio: string
           nome?: string | null
+          origem?: string
           publico?: boolean | null
           tema_id?: string | null
           tema_ids?: Json | null
@@ -2102,6 +2104,7 @@ export type Database = {
           id?: string
           municipio?: string
           nome?: string | null
+          origem?: string
           publico?: boolean | null
           tema_id?: string | null
           tema_ids?: Json | null
@@ -3304,6 +3307,51 @@ export type Database = {
           user_id?: string
         }
         Relationships: []
+      }
+      whatsapp_ingest_log: {
+        Row: {
+          created_at: string
+          erro: string | null
+          external_id: string | null
+          id: string
+          payload: Json
+          status: string
+          sugestao_id: string | null
+        }
+        Insert: {
+          created_at?: string
+          erro?: string | null
+          external_id?: string | null
+          id?: string
+          payload: Json
+          status?: string
+          sugestao_id?: string | null
+        }
+        Update: {
+          created_at?: string
+          erro?: string | null
+          external_id?: string | null
+          id?: string
+          payload?: Json
+          status?: string
+          sugestao_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "whatsapp_ingest_log_sugestao_id_fkey"
+            columns: ["sugestao_id"]
+            isOneToOne: false
+            referencedRelation: "sugestoes_populares"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "whatsapp_ingest_log_sugestao_id_fkey"
+            columns: ["sugestao_id"]
+            isOneToOne: false
+            referencedRelation: "sugestoes_publicas"
+            referencedColumns: ["id"]
+          },
+        ]
       }
     }
     Views: {

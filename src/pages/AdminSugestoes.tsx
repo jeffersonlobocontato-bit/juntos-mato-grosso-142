@@ -63,6 +63,7 @@ interface Sugestao {
   descricao: string;
   publico: boolean;
   created_at: string;
+  origem?: string | null;
   tema_ids: any;
   analise_semantica: any;
 }
@@ -105,6 +106,7 @@ const AdminSugestoes = () => {
   const [isLoading, setIsLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
   const [filterEixo, setFilterEixo] = useState<string>('all');
+  const [filterOrigem, setFilterOrigem] = useState<string>('all');
   
   // View dialog
   const [viewingSugestao, setViewingSugestao] = useState<Sugestao | null>(null);
@@ -242,7 +244,9 @@ const AdminSugestoes = () => {
       s.municipio.toLowerCase().includes(searchTerm.toLowerCase()) ||
       s.descricao.toLowerCase().includes(searchTerm.toLowerCase());
     const matchesEixo = filterEixo === 'all' || s.eixo === filterEixo;
-    return matchesSearch && matchesEixo;
+    const matchesOrigem =
+      filterOrigem === 'all' || (s.origem ?? 'site') === filterOrigem;
+    return matchesSearch && matchesEixo && matchesOrigem;
   });
 
   const countByEixo = (eixo: string) => sugestoes.filter(s => s.eixo === eixo).length;
@@ -403,6 +407,16 @@ const AdminSugestoes = () => {
                     <SelectItem value="Não classificado">Não classificado</SelectItem>
                   </SelectContent>
                 </Select>
+                <Select value={filterOrigem} onValueChange={setFilterOrigem}>
+                  <SelectTrigger className="w-full md:w-[180px]">
+                    <SelectValue placeholder="Origem" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">Todas as origens</SelectItem>
+                    <SelectItem value="site">Site</SelectItem>
+                    <SelectItem value="whatsapp">WhatsApp</SelectItem>
+                  </SelectContent>
+                </Select>
               </div>
             </CardContent>
           </Card>
@@ -450,7 +464,14 @@ const AdminSugestoes = () => {
                           <TableCell className="font-medium">
                             {sugestao.nome || <span className="text-muted-foreground italic">Anônimo</span>}
                           </TableCell>
-                          <TableCell>{sugestao.municipio}</TableCell>
+                          <TableCell>
+                            <div className="flex items-center gap-2">
+                              {sugestao.municipio}
+                              {(sugestao.origem ?? 'site') === 'whatsapp' && (
+                                <Badge variant="secondary" className="text-[10px]">WhatsApp</Badge>
+                              )}
+                            </div>
+                          </TableCell>
                           <TableCell>
                             <Badge className={`text-xs ${getEixoColors(sugestao.eixo).bg} ${getEixoColors(sugestao.eixo).text} hover:opacity-90`}>
                               {sugestao.eixo}
