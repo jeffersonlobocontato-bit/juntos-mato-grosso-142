@@ -63,6 +63,7 @@ interface Sugestao {
   descricao: string;
   publico: boolean;
   created_at: string;
+  origem?: string | null;
   tema_ids: any;
   analise_semantica: any;
 }
@@ -242,7 +243,9 @@ const AdminSugestoes = () => {
       s.municipio.toLowerCase().includes(searchTerm.toLowerCase()) ||
       s.descricao.toLowerCase().includes(searchTerm.toLowerCase());
     const matchesEixo = filterEixo === 'all' || s.eixo === filterEixo;
-    return matchesSearch && matchesEixo;
+    const matchesOrigem =
+      filterOrigem === 'all' || (s.origem ?? 'site') === filterOrigem;
+    return matchesSearch && matchesEixo && matchesOrigem;
   });
 
   const countByEixo = (eixo: string) => sugestoes.filter(s => s.eixo === eixo).length;
@@ -450,7 +453,14 @@ const AdminSugestoes = () => {
                           <TableCell className="font-medium">
                             {sugestao.nome || <span className="text-muted-foreground italic">Anônimo</span>}
                           </TableCell>
-                          <TableCell>{sugestao.municipio}</TableCell>
+                          <TableCell>
+                            <div className="flex items-center gap-2">
+                              {sugestao.municipio}
+                              {(sugestao.origem ?? 'site') === 'whatsapp' && (
+                                <Badge variant="secondary" className="text-[10px]">WhatsApp</Badge>
+                              )}
+                            </div>
+                          </TableCell>
                           <TableCell>
                             <Badge className={`text-xs ${getEixoColors(sugestao.eixo).bg} ${getEixoColors(sugestao.eixo).text} hover:opacity-90`}>
                               {sugestao.eixo}
