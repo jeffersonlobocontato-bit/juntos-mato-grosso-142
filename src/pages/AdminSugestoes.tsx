@@ -106,6 +106,7 @@ const AdminSugestoes = () => {
   const [isLoading, setIsLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
   const [filterEixo, setFilterEixo] = useState<string>('all');
+  const [filterOrigem, setFilterOrigem] = useState<string>('all');
   
   // View dialog
   const [viewingSugestao, setViewingSugestao] = useState<Sugestao | null>(null);
@@ -404,6 +405,16 @@ const AdminSugestoes = () => {
                       </SelectItem>
                     ))}
                     <SelectItem value="Não classificado">Não classificado</SelectItem>
+                  </SelectContent>
+                </Select>
+                <Select value={filterOrigem} onValueChange={setFilterOrigem}>
+                  <SelectTrigger className="w-full md:w-[180px]">
+                    <SelectValue placeholder="Origem" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">Todas as origens</SelectItem>
+                    <SelectItem value="site">Site</SelectItem>
+                    <SelectItem value="whatsapp">WhatsApp</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
