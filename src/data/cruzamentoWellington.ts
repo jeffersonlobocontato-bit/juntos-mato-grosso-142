@@ -68,13 +68,13 @@ export const DATA_CRUZAMENTO_WELLINGTON = {
           "18-29 anos com contato apenas por cortes de redes sociais, sem repertório sobre candidatos. Demandam emprego, renda, concurso, tecnologia e capacitação; rejeitam linguagem caricata.",
       },
     ],
-    ratinhoEixoGravitacional: {
+    eixoGravitacional: {
       leitura:
         "O eixo gravitacional da disputa em Cuiabá é a gestão Mauro Mendes: Pivetta é lido essencialmente como continuidade dela ('entrou no lugar do Mauro Mendes'), e não por atributos próprios.",
       limiteDoEfeitoHalo:
         "O halo tem limite claro: o Parque Novo Mato Grosso (FETHAB) é percebido por parte dos grupos como investimento voltado às classes mais abastadas e obra inacabada, e a Operação Heritage e a acusação de violência contra a ex-companheira corroem a imagem de Pivetta sobretudo entre mulheres.",
     },
-    moroLeituraFechada: {
+    wellingtonLeituraFechada: {
       forca: [
         "Trajetória e experiência política (deputado federal e dois mandatos de senador)",
         "Obras, emendas e recursos para MT",
@@ -92,7 +92,7 @@ export const DATA_CRUZAMENTO_WELLINGTON = {
       condicionanteMaisCritico:
         "Comentários espontâneos sobre aparência desgastada (magreza, suposição de doença grave ou uso de Mounjaro) surgiram no grupo feminino sem estímulo — é ruído de saúde não endereçado.",
     },
-    achadoMoroDeltanSubstituicao: {
+    achadoDestacado: {
       titulo: "Achado: o episódio dos neurodivergentes teve baixo impacto",
       achado:
         "A fala atribuída a Wellington sobre pessoas neurodivergentes circulou apenas como corte de debate entre os jovens; nenhum participante conhecia o contexto completo e o tema não moveu preferência nos grupos.",

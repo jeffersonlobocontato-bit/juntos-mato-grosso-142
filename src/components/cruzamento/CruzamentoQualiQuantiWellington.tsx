@@ -195,32 +195,32 @@ function AnaliseQualitativaIsolada() {
         </Card>
       )}
 
-      {q.ratinhoEixoGravitacional && (
-        <Card titulo="Ratinho como eixo gravitacional">
-          <div style={{ fontSize: 13.5, color: '#e8ecf1', marginBottom: 8, lineHeight: 1.55 }}>{q.ratinhoEixoGravitacional.leitura}</div>
-          <div style={{ fontSize: 12.5, color: '#eda100', lineHeight: 1.5 }}>{q.ratinhoEixoGravitacional.limiteDoEfeitoHalo}</div>
+      {q.eixoGravitacional && (
+        <Card titulo="Eixo gravitacional da disputa">
+          <div style={{ fontSize: 13.5, color: '#e8ecf1', marginBottom: 8, lineHeight: 1.55 }}>{q.eixoGravitacional.leitura}</div>
+          <div style={{ fontSize: 12.5, color: '#eda100', lineHeight: 1.5 }}>{q.eixoGravitacional.limiteDoEfeitoHalo}</div>
         </Card>
       )}
 
-      {q.moroLeituraFechada && (
+      {q.wellingtonLeituraFechada && (
         <Card titulo="Wellington — leitura fechada da quali" cor="#4a94ec">
-          <div style={{ fontSize: 12.5, color: '#1baf7a', marginBottom: 8 }}>Força: {(q.moroLeituraFechada.forca || []).join(', ')}</div>
-          <div style={{ fontSize: 13, color: '#e34948', marginBottom: 10, lineHeight: 1.5 }}>{q.moroLeituraFechada.vulnerabilidadeCentral}</div>
-          {q.moroLeituraFechada.autocriticaDoRelatorio && (
+          <div style={{ fontSize: 12.5, color: '#1baf7a', marginBottom: 8 }}>Força: {(q.wellingtonLeituraFechada.forca || []).join(', ')}</div>
+          <div style={{ fontSize: 13, color: '#e34948', marginBottom: 10, lineHeight: 1.5 }}>{q.wellingtonLeituraFechada.vulnerabilidadeCentral}</div>
+          {q.wellingtonLeituraFechada.autocriticaDoRelatorio && (
             <div style={{ background: 'rgba(74,148,236,0.10)', border: '1px solid #4a94ec', borderRadius: 8, padding: 12, marginBottom: 10 }}>
               <div style={{ fontSize: 11, color: '#4a94ec', fontWeight: 700, marginBottom: 4 }}>AUTOCRÍTICA DO PRÓPRIO RELATÓRIO</div>
-              <div style={{ fontSize: 12.5, color: '#c7cfda', lineHeight: 1.5 }}>{q.moroLeituraFechada.autocriticaDoRelatorio}</div>
+              <div style={{ fontSize: 12.5, color: '#c7cfda', lineHeight: 1.5 }}>{q.wellingtonLeituraFechada.autocriticaDoRelatorio}</div>
             </div>
           )}
-          <div style={{ fontSize: 12.5, color: '#b8c0cc', marginBottom: 6 }}>{q.moroLeituraFechada.segmentacaoInterna}</div>
-          <div style={{ fontSize: 12.5, color: '#b8c0cc' }}>{q.moroLeituraFechada.condicionanteMaisCritico}</div>
+          <div style={{ fontSize: 12.5, color: '#b8c0cc', marginBottom: 6 }}>{q.wellingtonLeituraFechada.segmentacaoInterna}</div>
+          <div style={{ fontSize: 12.5, color: '#b8c0cc' }}>{q.wellingtonLeituraFechada.condicionanteMaisCritico}</div>
         </Card>
       )}
 
-      {q.achadoMoroDeltanSubstituicao && (
-        <Card titulo={q.achadoMoroDeltanSubstituicao.titulo} cor="#eda100">
-          <div style={{ fontSize: 13, color: '#e8ecf1', marginBottom: 8, lineHeight: 1.55 }}>{q.achadoMoroDeltanSubstituicao.achado}</div>
-          <div style={{ fontSize: 12.5, color: '#b8c0cc', lineHeight: 1.5 }}>{q.achadoMoroDeltanSubstituicao.implicacao}</div>
+      {q.achadoDestacado && (
+        <Card titulo={q.achadoDestacado.titulo} cor="#eda100">
+          <div style={{ fontSize: 13, color: '#e8ecf1', marginBottom: 8, lineHeight: 1.55 }}>{q.achadoDestacado.achado}</div>
+          <div style={{ fontSize: 12.5, color: '#b8c0cc', lineHeight: 1.5 }}>{q.achadoDestacado.implicacao}</div>
         </Card>
       )}
 
