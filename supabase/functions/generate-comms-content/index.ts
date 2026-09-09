@@ -24,19 +24,19 @@ interface ContentResult {
 const FORMATO_LABELS: Record<string, string> = {
   pit: 'Pit de falas (bullet points curtos para entrevistas, frases de efeito prontas para uso)',
   discurso: 'Discurso completo (abertura, 3 blocos temáticos de desenvolvimento, fechamento com chamado à ação)',
-  release: 'Release em formato publieditorial (molde Gazeta do Povo: título-tese, lead-síntese, contexto, 2-3 parágrafos em 3ª pessoa, citação de abertura e de fechamento, blockquote de destaque)',
+  release: 'Release em formato publieditorial (título-tese, lead-síntese, contexto, 2-3 parágrafos em 3ª pessoa, citação de abertura e de fechamento, blockquote de destaque)',
   nota: 'Nota oficial para imprensa (curta, factual, direta, para resposta rápida a jornalistas)',
 };
 
 // ---------------------------------------------------------------------------
 // MÉTODO DEL — Decomposição de Estrutura de Linguagem aplicada ao senador
-// Sergio Moro. Construído a partir de material público real (pronunciamentos
+// Wellington Fagundes. Construído a partir de material público real (pronunciamentos
 // em Plenário do Senado, entrevistas de pré-campanha e citações em imprensa).
 // Descreve o PADRÃO de linguagem dele — não deve ser confundido com texto
 // dele a ser copiado; é a régua estilística para a IA escrever "com a voz dele".
 // ---------------------------------------------------------------------------
 const DEL_VOZ_MORO = `
-## MODELO DE VOZ (MÉTODO DEL) — SENADOR SERGIO MORO
+## MODELO DE VOZ (MÉTODO DEL) — SENADOR WELLINGTON FAGUNDES
 
 Escreva TODOS os formatos seguindo este padrão de linguagem real dele. Não é um personagem genérico de "político sóbrio" — são traços específicos observados no próprio discurso dele:
 
@@ -44,7 +44,7 @@ Escreva TODOS os formatos seguindo este padrão de linguagem real dele. Não é 
 
 2. ESTRUTURA ARGUMENTATIVA — antítese progressiva: primeiro reconhece o que já existe/foi feito, depois aponta a insuficiência, depois propõe o passo seguinte. Padrão: "não basta X, é preciso Y" / "X é positivo, mas não é suficiente para Z".
 
-3. AUTORIDADE POR CREDENCIAL PESSOAL: ancora a proposta na própria trajetória (ex-juiz da Lava Jato, ex-ministro da Justiça) ou em contato direto e recente com a realidade local ("tenho circulado no Estado", "estive em [cidade] essa semana"). Nunca apela à emoção pura — apela à experiência técnica e ao vínculo territorial.
+3. AUTORIDADE POR CREDENCIAL PESSOAL: ancora a proposta na própria trajetória (trajetória parlamentar e atuação em Mato Grosso) ou em contato direto e recente com a realidade local ("tenho circulado no Estado", "estive em [cidade] essa semana"). Nunca apela à emoção pura — apela à experiência técnica e ao vínculo territorial.
 
 4. DADO CONCRETO COMO ARGUMENTO: sempre que possível, ancora a fala em número específico (quantidade de municípios, posição em ranking, tempo de execução) em vez de generalização vaga.
 
@@ -305,7 +305,7 @@ Deno.serve(async (req) => {
       .map((f: string) => `- "${f}": ${FORMATO_LABELS[f]}`)
       .join('\n');
 
-    const prompt = `Você é o estrategista de comunicação e assessoria de imprensa da campanha do senador Sérgio Moro ao governo do Paraná (2026).
+    const prompt = `Você é o estrategista de comunicação e assessoria de imprensa da campanha do senador Wellington Fagundes ao governo de Mato Grosso (2026).
 
 ${DEL_VOZ_MORO}
 
@@ -357,8 +357,8 @@ REGRAS ESPECÍFICAS DO "RELEASE" — MOLDE PUBLIEDITORIAL GAZETA DO POVO (obriga
 1. Título-tese: uma frase afirmativa de posicionamento (não uma pergunta, não um resumo neutro).
 2. Lead-síntese: 1 parágrafo (2-3 frases) apresentando a tese central do senador sobre o tema, sem aspas ainda.
 3. Parágrafo de contexto: onde/quando/em que ocasião a fala ou proposta se encaixa (use o briefing).
-4. Citação de abertura: 1 frase entre aspas, atribuída a "Sérgio Moro" ou "o senador", coerente com o MODELO DE VOZ.
-5. 2 a 3 parágrafos de desenvolvimento, sempre em 3ª pessoa ("o senador destacou...", "Moro também defendeu..."), cada um cobrindo um subponto ancorado na base de referência.
+4. Citação de abertura: 1 frase entre aspas, atribuída a "Wellington Fagundes" ou "o senador", coerente com o MODELO DE VOZ.
+5. 2 a 3 parágrafos de desenvolvimento, sempre em 3ª pessoa ("o senador destacou...", "Wellington Fagundes também defendeu..."), cada um cobrindo um subponto ancorado na base de referência.
 6. Citação de fechamento: mais conclusiva, também entre aspas.
 7. Não repita a citação de fechamento em bloco de destaque nem em nenhum outro formato — ela deve aparecer UMA única vez, dentro do corpo do release. Nunca use ">" no release.
 8. Extensão total: entre 350 e 450 palavras. Texto corrido, sem subtítulos internos, sem bullets.

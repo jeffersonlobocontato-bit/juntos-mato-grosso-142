@@ -306,7 +306,7 @@ export function exportFichamentoPDF(data: FichamentoData): void {
     doc.setFontSize(7.5);
     doc.setTextColor(120, 120, 120);
     const dateStr = new Date().toLocaleDateString('pt-BR');
-    doc.text(`Juntos Paraná 399 · Fichamento gerado em ${dateStr}`, margin, pageH - 6);
+    doc.text(`Juntos Mato Grosso 142 · Fichamento gerado em ${dateStr}`, margin, pageH - 6);
     doc.text(`Página ${pageNum} ${totalPagesPlaceholder}`, pageW - margin, pageH - 6, { align: 'right' });
 
     // Linha vertical sutil entre as colunas
@@ -930,7 +930,7 @@ export async function exportFichamentoDOCX(data: FichamentoData): Promise<void> 
           new Paragraph({
             children: [
               new TextRun({
-                text: `Juntos Paraná 399 — Fichamento gerado em ${new Date().toLocaleDateString('pt-BR')}`,
+                text: `Juntos Mato Grosso 142 — Fichamento gerado em ${new Date().toLocaleDateString('pt-BR')}`,
                 size: 14,
                 color: '999999',
                 font: 'Arial',

@@ -335,7 +335,7 @@ export const exportEntrevistaPDF = (data: EntrevistaExportData) => {
   doc.setTextColor(255, 255, 255);
   doc.setFont("helvetica", "bold");
   doc.setFontSize(11);
-  doc.text("ENTREVISTA TÉCNICA — JUNTOS PARANÁ 399", marginX, 22);
+  doc.text("ENTREVISTA TÉCNICA — JUNTOS MATO GROSSO 142", marginX, 22);
   doc.setTextColor(0, 0, 0);
 
   y = marginTop;
@@ -431,7 +431,7 @@ export const exportEntrevistaPDF = (data: EntrevistaExportData) => {
       marginX,
       pageHeight - 24
     );
-    doc.text("Juntos Paraná 399", pageWidth - marginX, pageHeight - 24, { align: "right" });
+    doc.text("Juntos Mato Grosso 142", pageWidth - marginX, pageHeight - 24, { align: "right" });
   }
 
   const fileName = `entrevista-${slugify(data.titulo || "documento")}.pdf`;
@@ -490,7 +490,7 @@ export const exportEntrevistaDOCX = async (data: EntrevistaExportData) => {
       spacing: { after: 120 },
       children: [
         new TextRun({
-          text: "ENTREVISTA TÉCNICA — JUNTOS PARANÁ 399",
+          text: "ENTREVISTA TÉCNICA — JUNTOS MATO GROSSO 142",
           bold: true,
           size: 18,
           color: PRIMARY,

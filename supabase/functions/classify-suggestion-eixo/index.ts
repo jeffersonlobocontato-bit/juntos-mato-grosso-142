@@ -75,7 +75,7 @@ serve(async (req) => {
       });
     }
 
-    const systemPrompt = `Você é um classificador semântico de sugestões populares para um plano de governo do Paraná. Sua tarefa é ler o texto da sugestão e identificar qual é o EIXO TEMÁTICO principal abordado.
+    const systemPrompt = `Você é um classificador semântico de sugestões populares para um plano de governo de Mato Grosso. Sua tarefa é ler o texto da sugestão e identificar qual é o EIXO TEMÁTICO principal abordado.
 
 Os 5 eixos disponíveis e seus escopos:
 - "Desenvolvimento Social": saúde, educação, assistência social, cultura, esporte, juventude, idoso, mulher, igualdade.

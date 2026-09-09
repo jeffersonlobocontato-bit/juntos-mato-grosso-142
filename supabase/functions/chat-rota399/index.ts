@@ -44,11 +44,11 @@ const validateMessages = (messages: unknown): { role: string; content: string }[
   return validatedMessages;
 };
 
-const SYSTEM_PROMPT = `Você é o assistente virtual do Juntos Paraná 399, uma iniciativa para construir colaborativamente um Plano de Governo para o Paraná, ouvindo quem vive os 399 municípios.
+const SYSTEM_PROMPT = `Você é o assistente virtual do Juntos Mato Grosso 142, uma iniciativa para construir colaborativamente um Plano de Governo para Mato Grosso, ouvindo quem vive os 142 municípios.
 
-SOBRE O JUNTOS PARANÁ 399:
+SOBRE O JUNTOS MATO GROSSO 142:
 - É uma iniciativa que coleta propostas técnicas e sugestões da população
-- Visita todos os 399 municípios do Paraná
+- Visita todos os 142 municípios de Mato Grosso
 - Trabalha com eixos temáticos: Educação, Saúde, Segurança, Infraestrutura, Meio Ambiente, Agricultura, Desenvolvimento Econômico, Cultura e Turismo, Assistência Social
 - As sugestões passam por 3 etapas: rascunho, em análise, aprovada
 - Qualquer cidadão pode participar enviando sugestões pelo site
@@ -121,7 +121,7 @@ serve(async (req) => {
 
     // Sanitize user data
     const sanitizedUserName = sanitizeInput(userName as string, MAX_NAME_LENGTH) || "Cidadão";
-    const sanitizedUserCity = sanitizeInput(userCity as string, MAX_CITY_LENGTH) || "Paraná";
+    const sanitizedUserCity = sanitizeInput(userCity as string, MAX_CITY_LENGTH) || "Mato Grosso";
 
     const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
     
