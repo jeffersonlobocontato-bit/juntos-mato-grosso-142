@@ -203,7 +203,7 @@ function AnaliseQualitativaIsolada() {
       )}
 
       {q.moroLeituraFechada && (
-        <Card titulo="Moro — leitura fechada da quali" cor="#4a94ec">
+        <Card titulo="Wellington — leitura fechada da quali" cor="#4a94ec">
           <div style={{ fontSize: 12.5, color: '#1baf7a', marginBottom: 8 }}>Força: {(q.moroLeituraFechada.forca || []).join(', ')}</div>
           <div style={{ fontSize: 13, color: '#e34948', marginBottom: 10, lineHeight: 1.5 }}>{q.moroLeituraFechada.vulnerabilidadeCentral}</div>
           {q.moroLeituraFechada.autocriticaDoRelatorio && (
