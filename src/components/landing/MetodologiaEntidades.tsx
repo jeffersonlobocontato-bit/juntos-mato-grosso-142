@@ -1,20 +1,9 @@
 type Brand = { navy: string; green500: string; green700: string };
 
 const ENTIDADES = [
-  "Faciap\u00a0 .\u00a0 Sistema Fiep","FAEP/SENAR-PR","Fetranspar","OCEPAR","UOPECAN","Femipa","CRM-PR","AMP",
-  "Feapaes-PR","POD","Agência de Desenvolvimento do Sudoeste","Sindicato Rural de Cascavel",
-  "Sindicato Rural de Toledo","Sindicato Rural de Guarapuava","Sindicato Rural de Palotina",
-  "Sindicato Rural de Prudentópolis","Sindicato Rural de Laranjeiras do Sul","Sindicato Rural de Guaíra",
-  "Sindicato Rural de Terra Roxa","ACP","ACIC Cascavel","ACIM Maringá","ACIL Londrina","ACIAP Paranavaí",
-  "ACIU Umuarama","ACIPG Ponta Grossa","ACIFI Foz do Iguaçu","ACIT Toledo","ACIA Apucarana","ACIG Guarapuava",
-  "ACIA Arapongas","ACIR Rolândia","ACEPB Pato Branco","ACIMACAR Marechal Cândido Rondon","ACIPA Palotina",
-  "ACIQI","CACIOPAR","CACISPAR","CACINP","CONDEF","PRODESG","CDU","CODEFOZ","CODEMED","CODEM Maringá",
-  "CDPG","CODESC","NURESPOP","FETAEP","UNIPROLEITE","Rede do Terceiro Setor","Sinduscon Mato Grosso",
-  "Sinduscon Norte Mato Grosso","Sinduscon Mato Grosso Oeste","Sicepot Mato Grosso","Fentitabaco",
-  "Sindicato Rural de Alto Mato Grosso","Santa Casa de Paranavaí","UENOR","UNDIME","Carta Pato Branco",
-  "Todos Pela Educação","ABIOGÁS","CODETRI","Núcleo de Desenvolvimento Empresarial de Londrina","SENEPE",
-  "Software By Maringá","Gerar","CREFI","Sociedade Rural do Meio Oeste",
-  "Movimento Contra a Perturbação de Sossego","AMSOP","ASSOFEPAR","Agenda Animalista","APEPA.\u00a0",
+  "Famato","Aprosoja-MT","Acrimat","Sistema Fecomércio-MT","Fiemt","Sistema OCB/MT","Sebrae-MT",
+  "AMM — Associação Mato-grossense dos Municípios","UNEMAT","UFMT","CRM-MT","OAB-MT",
+  "Sinduscon-MT","Fetagri-MT","UNDIME-MT","Todos Pela Educação",
 ];
 
 const MetodologiaEntidades = ({ brand }: { brand: Brand }) => {

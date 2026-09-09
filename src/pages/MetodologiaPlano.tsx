@@ -58,11 +58,11 @@ const CountUp = ({ value, suffix = "" }: { value: number; suffix?: string }) => 
   return <span ref={ref}>{display.toLocaleString("pt-BR")}{suffix}</span>;
 };
 
-const MENSAGEM_MORO = `Sou mato-grossense do interior. Atuei em várias regiões do Estado até me estabelecer em Curitiba. Como Juiz Federal e Senador da República, conheci a grande amplitude econômica do Mato Grosso e a diversidade cultural de nossa gente.
+const MENSAGEM_CANDIDATO = `Sou mato-grossense do interior. Vivi e trabalhei em várias regiões do Estado e, como Senador da República, conheci de perto a grande amplitude econômica do Mato Grosso e a diversidade cultural da nossa gente.
 
 Sabendo que cada cidade e cada região tem uma realidade própria, determinei à minha equipe que precisávamos de um Plano de Governo que olhasse de perto cada canto desse nosso Mato Grosso, com o zelo e a obrigação de visitar todas as regiões, ouvindo as pessoas.
 
-Um Plano de Governo corajoso para enfrentar as lutas ao lado do povo mato-grossense. Afinal, encarar desafios faz parte da minha história. Para promover uma revolução no judiciário brasileiro, com a Operação Lava Jato de Combate à Corrupção, enfrentei poderosos e o arcaico sistema político de nosso País.
+Um Plano de Governo corajoso para enfrentar as lutas ao lado do povo mato-grossense. Afinal, encarar desafios e trabalhar pelo desenvolvimento do nosso Estado faz parte da minha história pública.
 
 Sempre lutei e continuarei lutando para transformar o lugar onde vivemos em um lugar mais justo, mais seguro, mais humano, mais próspero, mais sustentável e, principalmente, mais ético.
 
@@ -463,7 +463,7 @@ export default function MetodologiaPlano() {
                 </div>
               </div>
               <div className="space-y-4">
-                {MENSAGEM_MORO.split("\n\n").map((paragraph, i) => (
+                {MENSAGEM_CANDIDATO.split("\n\n").map((paragraph, i) => (
                   <p
                     key={i}
                     className="text-gray-700 leading-relaxed text-sm md:text-base"

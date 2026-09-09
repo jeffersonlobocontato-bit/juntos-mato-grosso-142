@@ -25,10 +25,10 @@ type FormState = {
 const EMPTY: FormState = { veiculo: "", titulo: "", url_materia: "", data_publicacao: "" };
 
 const PLACEHOLDERS: { veiculo: string; titulo: string }[] = [
-  { veiculo: "Gazeta do Povo", titulo: "Plano de governo ouve demandas em todo o Mato Grosso" },
-  { veiculo: "Bem Mato Grosso", titulo: "Expectativas dos mato-grossenses viram pauta prioritária" },
-  { veiculo: "Tribuna do Mato Grosso", titulo: "Curadoria técnica especializada analisa propostas" },
-  { veiculo: "RPC", titulo: "Maior processo de escuta popular repercute no Estado" },
+  { veiculo: "Gazeta Digital", titulo: "Plano de governo ouve demandas em todo o Mato Grosso" },
+  { veiculo: "Olhar Direto", titulo: "Expectativas dos mato-grossenses viram pauta prioritária" },
+  { veiculo: "RDNews", titulo: "Curadoria técnica especializada analisa propostas" },
+  { veiculo: "TV Centro América", titulo: "Maior processo de escuta popular repercute no Estado" },
 ];
 
 const MetodologiaDestaqueMidia = ({ brand, manageMode = false }: { brand: Brand; manageMode?: boolean }) => {
