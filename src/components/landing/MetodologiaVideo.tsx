@@ -93,7 +93,7 @@ const MetodologiaVideo = ({ navy, green700, green900, manageMode = false }: Prop
           Veja como funcionou
         </span>
         <h2 className="font-black text-2xl md:text-3xl mt-2" style={{ color: navy }}>
-          A campanha que convidou o Paraná
+          A campanha que convidou o Mato Grosso
         </h2>
       </div>
 

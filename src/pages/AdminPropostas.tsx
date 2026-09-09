@@ -741,7 +741,7 @@ const AdminPropostas = () => {
             </CardContent>
           </Card>
 
-          {/* Mapa do Paraná */}
+          {/* Mapa do Mato Grosso */}
           <div className="mb-6">
             <ParanaMap
               markers={mapMarkers}

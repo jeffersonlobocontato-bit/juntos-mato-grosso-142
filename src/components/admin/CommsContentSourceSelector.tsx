@@ -121,7 +121,7 @@ const SourceCard: React.FC<{
   </Collapsible>
 );
 
-// ---- Seletor de recorte geográfico (Paraná todo / por região / por cidade) ----
+// ---- Seletor de recorte geográfico (Mato Grosso todo / por região / por cidade) ----
 const GeoScopePicker: React.FC<{
   scope: GeoScope;
   onScopeChange: (s: GeoScope) => void;
@@ -140,7 +140,7 @@ const GeoScopePicker: React.FC<{
         <SelectValue />
       </SelectTrigger>
       <SelectContent>
-        <SelectItem value="estado">Paraná todo</SelectItem>
+        <SelectItem value="estado">Mato Grosso todo</SelectItem>
         <SelectItem value="regiao">Por região</SelectItem>
         <SelectItem value="cidade">Por cidade</SelectItem>
       </SelectContent>

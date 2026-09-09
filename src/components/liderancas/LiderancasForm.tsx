@@ -234,7 +234,7 @@ const LiderancasForm = () => {
                 Parabéns! Você faz parte de um movimento coletivo!
               </h2>
               <p className="text-muted-foreground mb-8 max-w-md mx-auto text-center">
-                Sua voz será ouvida. Juntos estamos construindo um Paraná que respeita todos os seus 142 municípios.
+                Sua voz será ouvida. Juntos estamos construindo um Mato Grosso que respeita todos os seus 142 municípios.
               </p>
 
               {/* Proposal Summary Card */}
@@ -292,7 +292,7 @@ const LiderancasForm = () => {
                   className="w-full bg-emerald-600 hover:bg-emerald-500 gap-2"
                 >
                   <ExternalLink className="w-5 h-5" />
-                  Veja o Paraná Todo
+                  Veja o Mato Grosso Todo
                 </Button>
               </Link>
 
@@ -332,7 +332,7 @@ const LiderancasForm = () => {
             <span className="text-primary"> Proposta Política</span>
           </h2>
           <p className="text-muted-foreground">
-            Preencha o formulário abaixo para contribuir com uma proposta para o Plano de Governo do Paraná.
+            Preencha o formulário abaixo para contribuir com uma proposta para o Plano de Governo do Mato Grosso.
           </p>
         </motion.div>
 

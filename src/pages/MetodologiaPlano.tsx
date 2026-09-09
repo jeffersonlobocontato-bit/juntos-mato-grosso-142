@@ -14,7 +14,7 @@ import planoPdf from "@/assets/plano-governo.pdf.asset.json";
 // Design system: identidade visual oficial da campanha Wellington Fagundes 2026,
 // extraída do manual de marca (WELLINGTON FAGUNDES 2026.pdf). Paleta e tipografia
 // exclusivas desta página — não reaproveita os tokens do site institucional
-// Juntos Paraná 399, por exigência de fidelidade rigorosa à IDV oficial.
+// Juntos Mato Grosso 142, por exigência de fidelidade rigorosa à IDV oficial.
 // ---------------------------------------------------------------------------
 const BRAND = {
   navy: "#013D22",
@@ -58,9 +58,9 @@ const CountUp = ({ value, suffix = "" }: { value: number; suffix?: string }) => 
   return <span ref={ref}>{display.toLocaleString("pt-BR")}{suffix}</span>;
 };
 
-const MENSAGEM_MORO = `Sou mato-grossense do interior. Atuei em várias regiões do Estado até me estabelecer em Curitiba. Como Juiz Federal e Senador da República, conheci a grande amplitude econômica do Paraná e a diversidade cultural de nossa gente.
+const MENSAGEM_MORO = `Sou mato-grossense do interior. Atuei em várias regiões do Estado até me estabelecer em Curitiba. Como Juiz Federal e Senador da República, conheci a grande amplitude econômica do Mato Grosso e a diversidade cultural de nossa gente.
 
-Sabendo que cada cidade e cada região tem uma realidade própria, determinei à minha equipe que precisávamos de um Plano de Governo que olhasse de perto cada canto desse nosso Paraná, com o zelo e a obrigação de visitar todas as regiões, ouvindo as pessoas.
+Sabendo que cada cidade e cada região tem uma realidade própria, determinei à minha equipe que precisávamos de um Plano de Governo que olhasse de perto cada canto desse nosso Mato Grosso, com o zelo e a obrigação de visitar todas as regiões, ouvindo as pessoas.
 
 Um Plano de Governo corajoso para enfrentar as lutas ao lado do povo mato-grossense. Afinal, encarar desafios faz parte da minha história. Para promover uma revolução no judiciário brasileiro, com a Operação Lava Jato de Combate à Corrupção, enfrentei poderosos e o arcaico sistema político de nosso País.
 
@@ -68,15 +68,15 @@ Sempre lutei e continuarei lutando para transformar o lugar onde vivemos em um l
 
 Para definir as prioridades do nosso projeto de governo, promovemos um amplo diálogo com a sociedade mato-grossense. Realizamos encontros e reuniões com representantes da população, homens e mulheres, lideranças regionais, entidades civis organizadas, associações empresariais, universidades e instituições técnicas.
 
-Ao percorrer todas as regiões do Paraná, ouvimos atentamente as necessidades mais urgentes e estruturantes. Consultamos especialistas nos temas mais relevantes — saúde, educação, logística, desenvolvimento econômico, inovação, segurança e sustentabilidade. Identificamos soluções viáveis, com base em experiências de sucesso e dados concretos.
+Ao percorrer todas as regiões do Mato Grosso, ouvimos atentamente as necessidades mais urgentes e estruturantes. Consultamos especialistas nos temas mais relevantes — saúde, educação, logística, desenvolvimento econômico, inovação, segurança e sustentabilidade. Identificamos soluções viáveis, com base em experiências de sucesso e dados concretos.
 
-Esta carta de compromissos é o resultado desse esforço coletivo. Ela foi construída com a contribuição de centenas de técnicos, gestores públicos, lideranças comunitárias, empresários, intelectuais e voluntários que acreditam em um Paraná mais eficiente, justo e competitivo.
+Esta carta de compromissos é o resultado desse esforço coletivo. Ela foi construída com a contribuição de centenas de técnicos, gestores públicos, lideranças comunitárias, empresários, intelectuais e voluntários que acreditam em um Mato Grosso mais eficiente, justo e competitivo.
 
 As demandas por melhores serviços públicos crescem a cada dia: atendimento digno na saúde, escolas mais modernas, transporte público de qualidade com tarifa justa, saneamento básico, mais segurança nas cidades, acesso a tecnologia, cultura e esporte, além da preservação ambiental.
 
-O Paraná tem uma economia forte, diversificada e conectada ao mundo. Temos um povo trabalhador, inovador e resiliente. É hora de transformar esse potencial em oportunidades reais, com políticas públicas ágeis, eficientes e focadas em resultados.
+O Mato Grosso tem uma economia forte, diversificada e conectada ao mundo. Temos um povo trabalhador, inovador e resiliente. É hora de transformar esse potencial em oportunidades reais, com políticas públicas ágeis, eficientes e focadas em resultados.
 
-O que propomos é um governo com planejamento, com metas e compromisso com as pessoas. Um governo que olha para o futuro, sem deixar ninguém para trás. Acima de tudo, vamos governar o Paraná juntos.`;
+O que propomos é um governo com planejamento, com metas e compromisso com as pessoas. Um governo que olha para o futuro, sem deixar ninguém para trás. Acima de tudo, vamos governar o Mato Grosso juntos.`;
 
 const DownloadPlanoCTA = ({ onDownload }: { onDownload?: () => void }) => (
   <section className="py-7 md:py-9" style={{ background: `${BRAND.navy}0d` }}>

@@ -160,7 +160,7 @@ const MetodologiaGaleria = ({ brand, manageMode = false }: { brand: Brand; manag
                   {urls[item.image_path] && (
                     <img
                       src={urls[item.image_path]}
-                      alt={item.legenda || "Registro do processo de escuta no Paraná"}
+                      alt={item.legenda || "Registro do processo de escuta no Mato Grosso"}
                       loading="lazy"
                       onClick={() => setLightbox(urls[item.image_path])}
                       className="w-full h-72 object-cover cursor-zoom-in"

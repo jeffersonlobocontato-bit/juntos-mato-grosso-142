@@ -1,7 +1,7 @@
 // Portado (versão genérica, sem táticas específicas contra adversários) da
 // plataforma Politiza IA (politiza.ia.br). O original tinha uma tese de
 // posicionamento e regras de contraste por adversário construídas em cima de
-// pesquisa qualitativa real do Paraná — não reaproveitável para MT sem
+// pesquisa qualitativa real do Mato Grosso — não reaproveitável para MT sem
 // fabricar estratégia. Aqui ficam só as regras genéricas de rigor
 // estatístico, vocabulário responsável e estrutura de resposta, que são
 // boas práticas e não dados fabricados.

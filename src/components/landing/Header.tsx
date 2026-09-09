@@ -49,10 +49,10 @@ const Header = ({ showSuggestionButton = true }: HeaderProps) => {
               </div>
               <div className="flex flex-col">
                 <span className={`font-display font-bold text-xl tracking-tight transition-colors ${isScrolled ? "text-foreground" : "text-primary-foreground"}`}>
-                  Juntos Paraná 399
+                  Juntos Mato Grosso 142
                 </span>
                 <span className={`text-xs font-medium transition-colors ${isScrolled ? "text-muted-foreground" : "text-primary-foreground/70"}`}>
-                  Paraná
+                  Mato Grosso
                 </span>
               </div>
             </Link>

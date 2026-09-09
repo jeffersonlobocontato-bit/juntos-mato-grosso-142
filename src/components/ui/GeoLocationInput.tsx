@@ -48,7 +48,7 @@ async function forwardGeocode(query: string): Promise<Suggestion[]> {
   if (query.length < 3) return [];
   try {
     const res = await fetch(
-      `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(query + ', Paraná, Brasil')}&limit=6&accept-language=pt-BR&countrycodes=br`,
+      `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(query + ', Mato Grosso, Brasil')}&limit=6&accept-language=pt-BR&countrycodes=br`,
       { headers: { 'Accept-Language': 'pt-BR' } }
     );
     const data = await res.json();

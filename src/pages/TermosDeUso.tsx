@@ -4,7 +4,7 @@ import { useEffect } from "react";
 
 const TermosDeUso = () => {
   useEffect(() => {
-    document.title = "Termos de Uso | Juntos Paraná 399";
+    document.title = "Termos de Uso | Juntos Mato Grosso 142";
   }, []);
 
   return (

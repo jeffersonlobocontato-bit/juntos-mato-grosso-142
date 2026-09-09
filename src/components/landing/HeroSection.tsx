@@ -12,7 +12,7 @@ const HeroSection = () => {
   const [copied, setCopied] = useState(false);
   const { toast } = useToast();
 
-  const message = "Participe do Juntos Paraná 399! Ajude a construir o futuro do Paraná 🌲";
+  const message = "Participe do Juntos Mato Grosso 142! Ajude a construir o futuro do Mato Grosso 🌲";
   const url = typeof window !== "undefined" ? window.location.origin : "https://rota399.org.br";
   const shareText = encodeURIComponent(message);
   const shareUrl = encodeURIComponent(url);
@@ -48,7 +48,7 @@ const HeroSection = () => {
       <motion.div style={{ y }} className="absolute inset-0 z-0">
         <img
           src={heroImage}
-          alt="Cataratas do Iguaçu, Paraná"
+          alt="Cataratas do Iguaçu, Mato Grosso"
           className="w-full h-[120%] object-cover"
         />
         <div className="absolute inset-0 bg-gradient-to-b from-foreground/50 via-foreground/30 to-foreground/60" />
@@ -74,7 +74,7 @@ const HeroSection = () => {
           transition={{ duration: 0.8, delay: 0.4 }}
           className="font-display text-4xl md:text-6xl lg:text-7xl font-black text-primary-foreground mb-6 leading-tight"
         >
-          Juntos Paraná 399:
+          Juntos Mato Grosso 142:
           <br />
           <span className="text-accent">o destino certo,</span>
           <br />
@@ -88,7 +88,7 @@ const HeroSection = () => {
           className="text-lg md:text-xl text-primary-foreground/80 max-w-2xl mx-auto mb-10"
         >
           Uma iniciativa para construir colaborativamente um Plano de Governo 
-          para o Paraná, ouvindo quem vive os 142 municípios.
+          para o Mato Grosso, ouvindo quem vive os 142 municípios.
         </motion.p>
 
         <motion.div

@@ -177,7 +177,7 @@ function AnaliseQualitativaIsolada() {
       )}
 
       {q.diagnosticoMacro && (
-        <Card titulo="Diagnóstico macro — Brasil x Paraná">
+        <Card titulo="Diagnóstico macro — Brasil x Mato Grosso">
           <div style={{ fontSize: 14, color: '#e8ecf1', marginBottom: 8, lineHeight: 1.55 }}>{q.diagnosticoMacro.achado}</div>
           <div style={{ fontSize: 12.5, color: '#1baf7a', marginBottom: 6 }}>Força do achado: {q.diagnosticoMacro.forcaDoAchado}</div>
           <div style={{ fontSize: 12.5, color: '#b8c0cc' }}>{q.diagnosticoMacro.leituraLula}</div>

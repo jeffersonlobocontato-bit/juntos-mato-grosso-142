@@ -47,7 +47,7 @@ const EntrevistaInstitucional = () => {
           </h1>
           <p className="text-muted-foreground mb-6">
             Esta área é exclusiva para entrevistadores/líderes e administradores da 
-            iniciativa Juntos Paraná 399.
+            iniciativa Juntos Mato Grosso 142.
           </p>
           <Button onClick={() => navigate("/")} variant="outline">
             Voltar à Página Inicial

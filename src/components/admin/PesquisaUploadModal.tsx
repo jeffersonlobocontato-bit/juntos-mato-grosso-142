@@ -50,7 +50,7 @@ const INSTITUTOS = [
   'IPEC',
   'Quaest',
   'Real Time Big Data',
-  'Paraná Pesquisas',
+  'Mato Grosso Pesquisas',
   'Atlas Intel',
   'Ágili Pesquisas',
   'Neokemp',
@@ -799,7 +799,7 @@ export const PesquisaUploadModal = ({
                     id="universo"
                     value={universo}
                     onChange={(e) => setUniverso(e.target.value)}
-                    placeholder="Ex: Eleitores do estado do Paraná com 16 anos ou mais"
+                    placeholder="Ex: Eleitores do estado do Mato Grosso com 16 anos ou mais"
                   />
                 </div>
 
@@ -931,7 +931,7 @@ export const PesquisaUploadModal = ({
                   onChange={(e) => setContent(e.target.value)}
                   placeholder={`Cole aqui TODO o conteúdo da pesquisa copiado do PDF/Excel...
 
-EXEMPLO - PESQUISA PARANÁ PESQUISAS - JANEIRO 2026
+EXEMPLO - PESQUISA MATO GROSSO PESQUISAS - JANEIRO 2026
 
 INTENÇÃO DE VOTO ESTIMULADA - GOVERNADOR PR
 - Candidato João Silva (PARTIDO): 35%
@@ -952,13 +952,13 @@ AVALIAÇÃO DO GOVERNO ATUAL
 - Não sabem: 5%
 
 METODOLOGIA
-- Instituto: Paraná Pesquisas
+- Instituto: Mato Grosso Pesquisas
 - Registro TSE: PR-00123/2026
 - Período de campo: 05 a 08 de janeiro de 2026
 - Amostra: 2.000 eleitores
 - Margem de erro: 2,2 pontos percentuais
 - Nível de confiança: 95%
-- Abrangência: Estado do Paraná`}
+- Abrangência: Estado do Mato Grosso`}
                   className="min-h-[350px] font-mono text-sm"
                 />
               </div>

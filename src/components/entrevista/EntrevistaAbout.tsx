@@ -5,7 +5,7 @@ const values = [
   {
     icon: Users,
     title: "Participação",
-    description: "Ouça a voz de todos os 142 municípios do Paraná.",
+    description: "Ouça a voz de todos os 142 municípios do Mato Grosso.",
   },
   {
     icon: Target,
@@ -46,13 +46,13 @@ const EntrevistaAbout = () => {
             Sobre a Iniciativa
           </span>
           <h2 className="font-display text-3xl md:text-4xl font-bold text-foreground mb-4">
-            Construindo o Futuro do Paraná
+            Construindo o Futuro do Mato Grosso
             <span className="text-primary"> Juntos</span>
           </h2>
           <p className="text-muted-foreground leading-relaxed">
-            O Juntos Paraná 399 percorre todos os municípios mato-grossenses para coletar 
+            O Juntos Mato Grosso 142 percorre todos os municípios mato-grossenses para coletar 
             propostas técnicas e sugestões da população, construindo colaborativamente 
-            um Plano de Governo para o Paraná.
+            um Plano de Governo para o Mato Grosso.
           </p>
         </motion.div>
 

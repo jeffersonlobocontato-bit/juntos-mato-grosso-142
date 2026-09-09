@@ -66,7 +66,7 @@ const INSTITUTOS = [
   'IPEC',
   'Quaest',
   'Real Time Big Data',
-  'Paraná Pesquisas',
+  'Mato Grosso Pesquisas',
   'Atlas Intel',
   'Outro'
 ];

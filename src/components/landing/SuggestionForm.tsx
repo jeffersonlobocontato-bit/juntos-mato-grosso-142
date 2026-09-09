@@ -180,7 +180,7 @@ const SuggestionForm = () => {
     
     toast({
       title: "Sugestão enviada com sucesso!",
-      description: "Obrigado por participar da construção do Paraná.",
+      description: "Obrigado por participar da construção do Mato Grosso.",
     });
   };
 
@@ -212,7 +212,7 @@ const SuggestionForm = () => {
                 Parabéns! Sua voz será ouvida!
               </h3>
               <p className="text-lg text-muted-foreground mb-8 max-w-md mx-auto text-center">
-                Sua ideia está no mapa do Paraná! Juntos, estamos construindo o futuro do nosso Estado.
+                Sua ideia está no mapa do Mato Grosso! Juntos, estamos construindo o futuro do nosso Estado.
               </p>
 
               {submittedData && (
@@ -262,7 +262,7 @@ const SuggestionForm = () => {
               <Link to="/dashboard" className="block mb-6">
                 <Button size="lg" variant="hero" className="w-full gap-2">
                   <ExternalLink className="w-5 h-5" />
-                  Veja o Paraná Todo
+                  Veja o Mato Grosso Todo
                 </Button>
               </Link>
 
@@ -274,10 +274,10 @@ const SuggestionForm = () => {
                   </h4>
                 </div>
                 <p className="text-sm text-muted-foreground mb-4 text-center">
-                  Quanto mais vozes, mais forte o Paraná. Compartilhe!
+                  Quanto mais vozes, mais forte o Mato Grosso. Compartilhe!
                 </p>
                 <SocialShareButtons 
-                  message="Acabei de contribuir com o Juntos Paraná 399! Você também pode ajudar a construir o Paraná 🌲"
+                  message="Acabei de contribuir com o Juntos Mato Grosso 142! Você também pode ajudar a construir o Mato Grosso 🌲"
                   variant="default"
                 />
               </div>
@@ -310,7 +310,7 @@ const SuggestionForm = () => {
             <span className="text-accent"> Sugestão</span>
           </h2>
           <p className="text-lg text-muted-foreground">
-            Sua voz importa! Contribua com ideias para o desenvolvimento do Paraná.
+            Sua voz importa! Contribua com ideias para o desenvolvimento do Mato Grosso.
           </p>
         </motion.div>
 
@@ -438,7 +438,7 @@ const SuggestionForm = () => {
                 </label>
                 <Textarea
                   required
-                  placeholder="Descreva sua ideia para o desenvolvimento do Paraná..."
+                  placeholder="Descreva sua ideia para o desenvolvimento do Mato Grosso..."
                   value={descricao}
                   onChange={(e) => setDescricao(e.target.value)}
                   className="min-h-[150px] rounded-xl border-border/50 focus:border-primary resize-none"

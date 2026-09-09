@@ -662,7 +662,7 @@ const EntrevistaForm = ({ mode = "tecnica" }: EntrevistaFormProps) => {
             </h2>
             <p className="text-gray-400 mb-8">
               {isInstitucional 
-                ? "A proposta da sua instituição foi salva e está disponível para análise. Obrigado pela contribuição ao Plano de Governo do Paraná."
+                ? "A proposta da sua instituição foi salva e está disponível para análise. Obrigado pela contribuição ao Plano de Governo do Mato Grosso."
                 : "Sua entrevista técnica foi salva e está disponível para análise. A estrutura padronizada permite consolidação entre todos os eixos."}
             </p>
 

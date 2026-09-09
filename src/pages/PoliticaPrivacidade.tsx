@@ -4,7 +4,7 @@ import { useEffect } from "react";
 
 const PoliticaPrivacidade = () => {
   useEffect(() => {
-    document.title = "Política de Privacidade | Juntos Paraná 399";
+    document.title = "Política de Privacidade | Juntos Mato Grosso 142";
   }, []);
 
   return (
@@ -16,7 +16,7 @@ const PoliticaPrivacidade = () => {
 
         <h2>1. Quem somos</h2>
         <p>
-          Esta plataforma (juntosmatogrosso142.com.br) é operada por Juntos Paraná 399,
+          Esta plataforma (juntosmatogrosso142.com.br) é operada por Juntos Mato Grosso 142,
           em conformidade com a Lei nº 13.709/2018 (Lei Geral de Proteção de Dados Pessoais — LGPD).
         </p>
         <p>
@@ -27,7 +27,7 @@ const PoliticaPrivacidade = () => {
         <ul>
           <li><strong>Nome</strong> — identificar a sugestão/opinião enviada</li>
           <li><strong>Telefone</strong> — validar autenticidade do envio e evitar fraude</li>
-          <li><strong>Cidade/município</strong> — segmentar propostas por região do Paraná</li>
+          <li><strong>Cidade/município</strong> — segmentar propostas por região do Mato Grosso</li>
           <li><strong>Opinião/proposta enviada</strong> — finalidade central da plataforma</li>
           <li><strong>Áudio</strong> (quando enviado) — transcrição da opinião em texto</li>
           <li><strong>Geolocalização</strong> (quando autorizada) — associar sugestão à região</li>

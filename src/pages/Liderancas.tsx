@@ -14,7 +14,7 @@ const Liderancas = () => {
   useEffect(() => {
     trackPageview();
     // Update page title for SEO
-    document.title = "Lideranças | Juntos Paraná 399";
+    document.title = "Lideranças | Juntos Mato Grosso 142";
   }, []);
 
   return (

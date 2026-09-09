@@ -6,7 +6,7 @@ const HeroPortrait = () => {
       <div className="relative mx-auto max-w-md lg:max-w-none overflow-hidden rounded-[2rem] shadow-card-float">
         <img
           src={portrait}
-          alt="Senador Wellington Fagundes - pré-candidato ao Governo do Paraná"
+          alt="Senador Wellington Fagundes - pré-candidato ao Governo do Mato Grosso"
           className="w-full h-auto object-cover object-top"
           loading="eager"
           decoding="async"
@@ -18,7 +18,7 @@ const HeroPortrait = () => {
               Wellington Fagundes
             </p>
             <p className="mt-2 text-[11px] md:text-xs font-semibold uppercase tracking-[0.18em] text-accent">
-              Senador e Pré-candidato ao Governo do Paraná
+              Senador e Pré-candidato ao Governo do Mato Grosso
             </p>
           </div>
         </div>

@@ -9,9 +9,9 @@ const ENTIDADES = [
   "ACIU Umuarama","ACIPG Ponta Grossa","ACIFI Foz do Iguaçu","ACIT Toledo","ACIA Apucarana","ACIG Guarapuava",
   "ACIA Arapongas","ACIR Rolândia","ACEPB Pato Branco","ACIMACAR Marechal Cândido Rondon","ACIPA Palotina",
   "ACIQI","CACIOPAR","CACISPAR","CACINP","CONDEF","PRODESG","CDU","CODEFOZ","CODEMED","CODEM Maringá",
-  "CDPG","CODESC","NURESPOP","FETAEP","UNIPROLEITE","Rede do Terceiro Setor","Sinduscon Paraná",
-  "Sinduscon Norte Paraná","Sinduscon Paraná Oeste","Sicepot Paraná","Fentitabaco",
-  "Sindicato Rural de Alto Paraná","Santa Casa de Paranavaí","UENOR","UNDIME","Carta Pato Branco",
+  "CDPG","CODESC","NURESPOP","FETAEP","UNIPROLEITE","Rede do Terceiro Setor","Sinduscon Mato Grosso",
+  "Sinduscon Norte Mato Grosso","Sinduscon Mato Grosso Oeste","Sicepot Mato Grosso","Fentitabaco",
+  "Sindicato Rural de Alto Mato Grosso","Santa Casa de Paranavaí","UENOR","UNDIME","Carta Pato Branco",
   "Todos Pela Educação","ABIOGÁS","CODETRI","Núcleo de Desenvolvimento Empresarial de Londrina","SENEPE",
   "Software By Maringá","Gerar","CREFI","Sociedade Rural do Meio Oeste",
   "Movimento Contra a Perturbação de Sossego","AMSOP","ASSOFEPAR","Agenda Animalista","APEPA.\u00a0",
@@ -26,7 +26,7 @@ const MetodologiaEntidades = ({ brand }: { brand: Brand }) => {
             PARTICIPAÇÃO
           </span>
           <h2 className="font-black text-2xl md:text-4xl mt-2" style={{ color: brand.navy }}>
-            Entidades de todo o Paraná
+            Entidades de todo o Mato Grosso
           </h2>
           <p className="text-gray-600 mt-3 max-w-2xl mx-auto text-sm">
             Algumas das instituições, federações, associações e movimentos que contribuíram
