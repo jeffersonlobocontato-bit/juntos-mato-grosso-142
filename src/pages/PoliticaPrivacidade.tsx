@@ -16,11 +16,11 @@ const PoliticaPrivacidade = () => {
 
         <h2>1. Quem somos</h2>
         <p>
-          Esta plataforma (juntosparana399.com.br) é operada por Juntos Paraná 399,
+          Esta plataforma (juntosmatogrosso142.com.br) é operada por Juntos Paraná 399,
           em conformidade com a Lei nº 13.709/2018 (Lei Geral de Proteção de Dados Pessoais — LGPD).
         </p>
         <p>
-          <strong>Encarregado de Dados (DPO):</strong> sergiomoro@juntosparana399.com.br
+          <strong>Encarregado de Dados (DPO):</strong> contato@juntosmatogrosso142.com.br
         </p>
 
         <h2>2. Quais dados coletamos</h2>
@@ -61,7 +61,7 @@ const PoliticaPrivacidade = () => {
         <p>
           Você pode solicitar confirmação de tratamento, acesso, correção, anonimização, bloqueio,
           eliminação, portabilidade e revogação do consentimento sobre seus dados a qualquer momento,
-          pelo contato: sergiomoro@juntosparana399.com.br.
+          pelo contato: contato@juntosmatogrosso142.com.br.
         </p>
 
         <h2>7. Retenção e segurança</h2>

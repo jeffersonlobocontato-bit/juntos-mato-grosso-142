@@ -184,9 +184,9 @@ function AnaliseQualitativaIsolada() {
         </Card>
       )}
 
-      {q.tipologiaDireitaParanaense && (
-        <Card titulo="Tipologia da direita paranaense">
-          {q.tipologiaDireitaParanaense.map((t: any, i: number) => (
+      {q.tipologiaDireitaMato-grossense && (
+        <Card titulo="Tipologia da direita mato-grossense">
+          {q.tipologiaDireitaMato-grossense.map((t: any, i: number) => (
             <div key={i} style={{ marginBottom: 10 }}>
               <div style={{ fontSize: 13.5, fontWeight: 600, color: '#e8ecf1' }}>{t.subtipo}</div>
               <div style={{ fontSize: 12.5, color: '#b8c0cc', lineHeight: 1.5 }}>{t.descricao}</div>

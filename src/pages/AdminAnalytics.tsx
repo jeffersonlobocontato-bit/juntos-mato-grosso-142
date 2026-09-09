@@ -276,7 +276,7 @@ const AdminAnalytics = () => {
   // Cálculos de métricas
   const pageviews = events?.filter(e => e.event_type === 'pageview').length || 0;
   const uniqueVisitors = new Set(events?.map(e => e.visitor_id)).size;
-  // Acessos exclusivos da Home (LP juntosparana399.com.br → path "/")
+  // Acessos exclusivos da Home (LP juntosmatogrosso142.com.br → path "/")
   const homeEvents = events?.filter(e => e.page_path === '/' || e.page_path === '') || [];
   const homePageviews = homeEvents.filter(e => e.event_type === 'pageview').length;
   const homeUniqueVisitors = new Set(homeEvents.map(e => e.visitor_id)).size;
@@ -531,12 +531,12 @@ const AdminAnalytics = () => {
                           Acessos da LP Home
                         </p>
                         <a
-                          href="https://juntosparana399.com.br"
+                          href="https://juntosmatogrosso142.com.br"
                           target="_blank"
                           rel="noreferrer"
                           className="text-sm text-primary hover:underline"
                         >
-                          juntosparana399.com.br
+                          juntosmatogrosso142.com.br
                         </a>
                       </div>
                     </div>
@@ -579,12 +579,12 @@ const AdminAnalytics = () => {
                           LP Plano de Governo
                         </p>
                         <a
-                          href="https://juntosparana399.com.br/planodegoverno"
+                          href="https://juntosmatogrosso142.com.br/planodegoverno"
                           target="_blank"
                           rel="noreferrer"
                           className="text-sm text-emerald-600 hover:underline"
                         >
-                          juntosparana399.com.br/planodegoverno
+                          juntosmatogrosso142.com.br/planodegoverno
                         </a>
                       </div>
                     </div>

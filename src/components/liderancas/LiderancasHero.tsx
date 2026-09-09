@@ -151,7 +151,7 @@ const LiderancasHero = () => {
               <div className="relative h-full rounded-2xl overflow-hidden border border-emerald-500/20">
                 <img
                   src={sergioMoro}
-                  alt="Senador Sergio Moro - Embaixador da Iniciativa"
+                  alt="Senador Wellington Fagundes - Embaixador da Iniciativa"
                   className="w-full h-full object-cover object-top"
                 />
                 
@@ -167,7 +167,7 @@ const LiderancasHero = () => {
                   className="absolute bottom-0 left-0 right-0 p-6"
                 >
                   <h3 className="font-display font-bold text-2xl text-white mb-1">
-                    Senador Sergio Moro
+                    Senador Wellington Fagundes
                   </h3>
                   <p className="text-emerald-400 text-sm font-medium">
                     Idealizador da Iniciativa Juntos Paraná 399

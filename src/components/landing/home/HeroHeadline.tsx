@@ -17,7 +17,7 @@ const HeroHeadline = () => {
         <br />
         é o <span className="underline-gold text-primary">futuro decidido</span>
         <br />
-        <span className="text-primary">por todos os paranaenses.</span>
+        <span className="text-primary">por todos os mato-grossenses.</span>
       </h1>
 
       <div className="flex items-start gap-3">

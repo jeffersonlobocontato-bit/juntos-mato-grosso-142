@@ -234,7 +234,7 @@ const LiderancasForm = () => {
                 Parabéns! Você faz parte de um movimento coletivo!
               </h2>
               <p className="text-muted-foreground mb-8 max-w-md mx-auto text-center">
-                Sua voz será ouvida. Juntos estamos construindo um Paraná que respeita todos os seus 399 municípios.
+                Sua voz será ouvida. Juntos estamos construindo um Paraná que respeita todos os seus 142 municípios.
               </p>
 
               {/* Proposal Summary Card */}

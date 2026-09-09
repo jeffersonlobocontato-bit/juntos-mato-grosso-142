@@ -5,7 +5,7 @@ const values = [
   {
     icon: Users,
     title: "Participação",
-    description: "Ouça a voz de todos os 399 municípios do Paraná, garantindo representatividade.",
+    description: "Ouça a voz de todos os 142 municípios do Paraná, garantindo representatividade.",
   },
   {
     icon: Target,
@@ -44,7 +44,7 @@ const AboutSection = () => {
           </h2>
           <p className="text-lg text-muted-foreground leading-relaxed">
             O Juntos Paraná 399 é uma iniciativa para construir colaborativamente 
-            um Plano de Governo para o Paraná, ouvindo quem vive os 399 municípios.
+            um Plano de Governo para o Paraná, ouvindo quem vive os 142 municípios.
           </p>
         </motion.div>
 

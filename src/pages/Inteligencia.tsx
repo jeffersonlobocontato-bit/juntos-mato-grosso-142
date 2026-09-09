@@ -4,7 +4,7 @@
 // Diferença central em relação ao original: o painel do Politiza tinha
 // abas inteiras (Ameaças, Oportunidades, Raio-X de rivais, Ações, Planos de
 // 90 dias) construídas sobre pesquisa qualitativa REAL do Paraná e achados
-// de vulnerabilidade específicos do Sergio Moro — não reaproveitável para
+// de vulnerabilidade específicos do Wellington Fagundes — não reaproveitável para
 // Wellington/MT sem fabricar inteligência eleitoral inexistente. Essas abas
 // não foram portadas. O que resta aqui é 100% orientado a dado real: tudo
 // vem das pesquisas cadastradas em Base de Pesquisas (useSurveys()).

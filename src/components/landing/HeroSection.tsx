@@ -64,7 +64,7 @@ const HeroSection = () => {
         >
           <Sparkles className="w-4 h-4 text-accent" />
           <span className="text-sm font-medium text-primary-foreground">
-            399 municípios, um só destino
+            142 municípios, um só destino
           </span>
         </motion.div>
 
@@ -78,7 +78,7 @@ const HeroSection = () => {
           <br />
           <span className="text-accent">o destino certo,</span>
           <br />
-          é o futuro decidido por todos os paranaenses
+          é o futuro decidido por todos os mato-grossenses
         </motion.h1>
 
         <motion.p
@@ -88,7 +88,7 @@ const HeroSection = () => {
           className="text-lg md:text-xl text-primary-foreground/80 max-w-2xl mx-auto mb-10"
         >
           Uma iniciativa para construir colaborativamente um Plano de Governo 
-          para o Paraná, ouvindo quem vive os 399 municípios.
+          para o Paraná, ouvindo quem vive os 142 municípios.
         </motion.p>
 
         <motion.div

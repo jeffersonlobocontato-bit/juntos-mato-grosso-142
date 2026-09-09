@@ -152,7 +152,7 @@ export const exemplosFormularioPorEixo: Record<string, ExemplosFormulario> = {
   "e1000000-0000-0000-0000-000000000001": {
     a1_area_atuacao: 'Ex: "Atenção primária em saúde no litoral" ou "Proteção social em municípios de alta vulnerabilidade".',
     a2_desafios_hint: "Foque nos desafios operacionais: filas de espera no SUS, cobertura do CRAS, evasão escolar, etc.",
-    b1_acoes_hint: "Programas sociais que dão resultado — ex: Programa Família Paranaense, Leite das Crianças, rede de CRAS.",
+    b1_acoes_hint: "Programas sociais que dão resultado — ex: Programa Família Mato-grossense, Leite das Crianças, rede de CRAS.",
     b2_impacto_hint: "Quantifique: quantas famílias ficariam desassistidas? Qual indicador pioraria?",
     c1_causas_hint: "Vá além dos sintomas — ex: falta de prontuário integrado entre saúde e assistência, subfinanciamento do SUAS.",
     c2_caso_hint: "Um caso concreto — ex: família atendida no CRAS sem acesso a consulta na UBS por falta de integração.",

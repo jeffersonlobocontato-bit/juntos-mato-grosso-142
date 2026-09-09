@@ -36,7 +36,7 @@ const CHIPS = [
   'Qual região está mais engajada em segurança agora?',
   'O que Almirante Tamandaré está pedindo?',
   'Onde a demanda por saúde é maior do que a cobertura de propostas técnicas?',
-  'Compare Oeste e Sudoeste Paranaense',
+  'Compare Oeste e Sudoeste Mato-grossense',
 ];
 
 export default function CruzamentoTerritorialChat() {

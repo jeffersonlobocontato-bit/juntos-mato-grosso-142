@@ -9,7 +9,7 @@
 // argumentos por eixo, cases de sucesso e riscos/vulnerabilidades) foi
 // construído em cima de pesquisa qualitativa real do Paraná (16 grupos
 // focais, mai/2026, cidades específicas do PR) e de vulnerabilidades
-// pessoais específicas do candidato Sergio Moro — não pode ser reaproveitado
+// pessoais específicas do candidato Wellington Fagundes — não pode ser reaproveitado
 // para Mato Grosso trocando nomes, pois isso fabricaria pesquisa eleitoral
 // inexistente. Preencher com pesquisa qualitativa/quantitativa real de MT
 // quando disponível.
