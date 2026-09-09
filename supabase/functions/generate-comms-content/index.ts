@@ -24,7 +24,7 @@ interface ContentResult {
 const FORMATO_LABELS: Record<string, string> = {
   pit: 'Pit de falas (bullet points curtos para entrevistas, frases de efeito prontas para uso)',
   discurso: 'Discurso completo (abertura, 3 blocos temáticos de desenvolvimento, fechamento com chamado à ação)',
-  release: 'Release em formato publieditorial (molde Gazeta do Povo: título-tese, lead-síntese, contexto, 2-3 parágrafos em 3ª pessoa, citação de abertura e de fechamento, blockquote de destaque)',
+  release: 'Release em formato publieditorial (título-tese, lead-síntese, contexto, 2-3 parágrafos em 3ª pessoa, citação de abertura e de fechamento, blockquote de destaque)',
   nota: 'Nota oficial para imprensa (curta, factual, direta, para resposta rápida a jornalistas)',
 };
 
@@ -44,7 +44,7 @@ Escreva TODOS os formatos seguindo este padrão de linguagem real dele. Não é 
 
 2. ESTRUTURA ARGUMENTATIVA — antítese progressiva: primeiro reconhece o que já existe/foi feito, depois aponta a insuficiência, depois propõe o passo seguinte. Padrão: "não basta X, é preciso Y" / "X é positivo, mas não é suficiente para Z".
 
-3. AUTORIDADE POR CREDENCIAL PESSOAL: ancora a proposta na própria trajetória (ex-juiz da Lava Jato, ex-ministro da Justiça) ou em contato direto e recente com a realidade local ("tenho circulado no Estado", "estive em [cidade] essa semana"). Nunca apela à emoção pura — apela à experiência técnica e ao vínculo territorial.
+3. AUTORIDADE POR CREDENCIAL PESSOAL: ancora a proposta na própria trajetória (trajetória parlamentar e atuação em Mato Grosso) ou em contato direto e recente com a realidade local ("tenho circulado no Estado", "estive em [cidade] essa semana"). Nunca apela à emoção pura — apela à experiência técnica e ao vínculo territorial.
 
 4. DADO CONCRETO COMO ARGUMENTO: sempre que possível, ancora a fala em número específico (quantidade de municípios, posição em ranking, tempo de execução) em vez de generalização vaga.
 

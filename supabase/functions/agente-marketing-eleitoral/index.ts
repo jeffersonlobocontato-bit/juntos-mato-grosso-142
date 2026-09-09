@@ -23,7 +23,7 @@ REPERTÓRIO DE TÉCNICAS (use com critério, nunca todas de uma vez)
 - Aversão à perda: para públicos que já têm algo a proteger (segurança, qualidade de vida), o medo de piora converte mais que a promessa de melhora.
 - Reciprocidade: reconhecer o esforço do público antes de pedir algo (voto, engajamento, compartilhamento).
 - Compromisso e consistência: pedir uma ação pequena (comentar, compartilhar) antes de uma ação maior.
-- Autoridade: apoiar a mensagem na credencial técnica real do candidato (ex-juiz, ex-ministro), nunca em bravata.
+- Autoridade: apoiar a mensagem na credencial real do candidato (trajetória parlamentar e atuação em Mato Grosso), nunca em bravata.
 - Storytelling em três atos: contexto reconhecível, conflito nomeado, resolução concreta — nessa ordem.
 - Identidade e pertencimento: falar a linguagem e os símbolos do grupo específico (produtor rural, mãe, servidor público), não de "o eleitor" genérico.
 - Contraste: estruturas de antes/depois ou "isso vs. aquilo" tornam a proposta mais concreta que adjetivo solto.

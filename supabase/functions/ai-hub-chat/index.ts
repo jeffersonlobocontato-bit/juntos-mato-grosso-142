@@ -416,7 +416,7 @@ TIPOS DE SLIDES DISPONÍVEIS:
    {"id": "2", "type": "methodology", "title": "Metodologia", "methodology": [
      {"label": "Amostra", "value": "1.300", "description": "Eleitores entrevistados"},
      {"label": "Margem de Erro", "value": "±2,8%", "description": "Pontos percentuais"},
-     {"label": "Municípios", "value": "54", "description": "DMato Grosso"},
+     {"label": "Municípios", "value": "142", "description": "De Mato Grosso"},
      {"label": "Confiança", "value": "95%", "description": "Intervalo de confiança"}
    ]}
 
