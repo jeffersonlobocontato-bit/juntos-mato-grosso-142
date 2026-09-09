@@ -30,7 +30,7 @@ export const DATA_CRUZAMENTO_WELLINGTON = {
       forcaDoAchado: string;
       leituraLula?: string;
     };
-    tipologiaDireitaMato-grossense?: { subtipo: string; descricao: string }[];
+    tipologiaDireitaEstadual?: { subtipo: string; descricao: string }[];
     ratinhoEixoGravitacional?: { leitura: string; limiteDoEfeitoHalo: string };
     moroLeituraFechada?: {
       forca: string[];
