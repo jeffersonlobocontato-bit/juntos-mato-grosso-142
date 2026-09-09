@@ -13,7 +13,7 @@ const HeroSection = () => {
   const { toast } = useToast();
 
   const message = "Participe do Juntos Mato Grosso 142! Ajude a construir o futuro do Mato Grosso 🌲";
-  const url = typeof window !== "undefined" ? window.location.origin : "https://rota399.org.br";
+  const url = typeof window !== "undefined" ? window.location.origin : "https://juntosmatogrosso142.com.br";
   const shareText = encodeURIComponent(message);
   const shareUrl = encodeURIComponent(url);
 

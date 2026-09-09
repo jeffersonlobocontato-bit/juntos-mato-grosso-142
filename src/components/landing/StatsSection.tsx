@@ -19,7 +19,7 @@ const stats = [
     icon: MapPin,
     value: 267,
     label: "Municípios Participantes",
-    suffix: "/399",
+    suffix: "/142",
     color: "accent",
   },
   {

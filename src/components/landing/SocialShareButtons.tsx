@@ -13,7 +13,7 @@ interface SocialShareButtonsProps {
 
 const SocialShareButtons = ({
   message = "Participe do Juntos Mato Grosso 142! Ajude a construir o futuro do Mato Grosso 🌲",
-  url = typeof window !== "undefined" ? window.location.origin : "https://rota399.org.br",
+  url = typeof window !== "undefined" ? window.location.origin : "https://juntosmatogrosso142.com.br",
   variant = "default",
   className = "",
 }: SocialShareButtonsProps) => {
