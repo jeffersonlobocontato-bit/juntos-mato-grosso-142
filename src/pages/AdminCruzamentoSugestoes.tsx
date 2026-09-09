@@ -582,7 +582,7 @@ export default function AdminCruzamentoSugestoes() {
         </p>
         {Number(totals?.total_nao_identificados ?? 0) > 0 && (
           <p className="text-xs text-muted-foreground">
-            {Number(totals?.total_nao_identificados).toLocaleString('pt-BR')} registro(s) com cidade fora do Paraná ou não identificada não entram na contagem de municípios.
+            {Number(totals?.total_nao_identificados).toLocaleString('pt-BR')} registro(s) com cidade fora de Mato Grosso ou não identificada não entram na contagem de municípios.
           </p>
         )}
       </main>

@@ -17,7 +17,7 @@ ninguem cada outro outra outros outras tao la ca aqui ali foram sera seria pode 
 poderia poderiam meu minha nosso nossa vosso vossa etc tambem entretanto porem contudo
 todavia sr sra dr dra vou pra pro pras pros num numa nesse nessa nesta neste naquele
 naquela deve deveria precisa precisam precisava gostaria gostariamos acho acredito
-parana governo governador candidato eleitoral eleicao voto
+mato grosso governo governador candidato eleitoral eleicao voto
 `.split(/\s+/).filter(Boolean));
 
 function stripAccents(s: string): string {

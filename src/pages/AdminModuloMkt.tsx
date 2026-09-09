@@ -271,7 +271,7 @@ export default function AdminModuloMkt() {
             <span className="text-sm font-medium text-primary-foreground">Exclusivo equipe de marketing</span>
           </div>
           <h1 className="font-display text-3xl md:text-5xl font-black text-primary-foreground mb-3 leading-tight">
-            Módulo MKT — Expectativa dos paranaenses
+            Módulo MKT — Expectativa dos mato-grossenses
           </h1>
           <p className="text-primary-foreground/85 text-base md:text-lg max-w-2xl mb-6">
             Microanálise e insights a partir das sugestões populares — ao vivo, direto da base de participação da campanha.
@@ -689,7 +689,7 @@ export default function AdminModuloMkt() {
 
             <div>
               <h2 className="font-display text-lg font-bold text-primary mb-1">Cases de sucesso</h2>
-              <p className="text-sm text-muted-foreground mb-4">Dor → estratégia → resultado → lição aplicada ao Paraná.</p>
+              <p className="text-sm text-muted-foreground mb-4">Dor → estratégia → resultado → lição aplicada a Mato Grosso.</p>
               <div className="space-y-4">
                 {CASES.map((c, i) => (
                   <Card key={i} className="shadow-soft border-l-4 border-l-secondary">
@@ -703,7 +703,7 @@ export default function AdminModuloMkt() {
                         <div><p className="text-[10px] uppercase tracking-wide font-bold text-primary mb-1">O resultado</p><p className="text-sm">{c.resultado}</p></div>
                       </div>
                       <div className="rounded-lg bg-muted/50 p-2.5 text-sm">
-                        <span className="font-medium text-foreground">Lição para o Paraná:</span> {c.licao}
+                        <span className="font-medium text-foreground">Lição para Mato Grosso:</span> {c.licao}
                       </div>
                     </CardContent>
                   </Card>
