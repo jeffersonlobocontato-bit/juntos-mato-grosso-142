@@ -54,16 +54,11 @@ interface Municipio {
 }
 
 const regioes = [
-  'Curitiba e Região Metropolitana',
-  'Norte Central',
-  'Norte Pioneiro',
-  'Noroeste',
-  'Centro-Oeste',
-  'Centro-Sul',
-  'Oeste',
-  'Sudoeste',
-  'Campos Gerais',
-  'Litoral',
+  'Norte Mato-grossense',
+  'Nordeste Mato-grossense',
+  'Sudeste Mato-grossense',
+  'Sudoeste Mato-grossense',
+  'Centro-Sul Mato-grossense',
 ];
 
 const AdminMunicipios = () => {

@@ -122,7 +122,7 @@ const MetodologiaGaleria = ({ brand, manageMode = false }: { brand: Brand; manag
             >
               <input
                 className={inputCls}
-                placeholder="Legenda (opcional) — ex.: Entrega de propostas em Cascavel"
+                placeholder="Legenda (opcional) — ex.: Entrega de propostas em Rondonópolis"
                 value={legenda}
                 onChange={(e) => setLegenda(e.target.value)}
               />

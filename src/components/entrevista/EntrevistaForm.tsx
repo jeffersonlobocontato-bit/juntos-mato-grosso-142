@@ -710,7 +710,7 @@ const EntrevistaForm = ({ mode = "tecnica" }: EntrevistaFormProps) => {
                     id="instituicaoNome"
                     value={instituicaoNome}
                     onChange={(e) => setInstituicaoNome(e.target.value)}
-                    placeholder="Ex: Associação Comercial e Industrial de Curitiba"
+                    placeholder="Ex: Associação Comercial e Industrial de Cuiabá"
                     className="bg-gray-900 border-gray-700 text-white"
                   />
                 </div>

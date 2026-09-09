@@ -182,7 +182,7 @@ export const exemplosFormularioPorEixo: Record<string, ExemplosFormulario> = {
 
   // 3. Desenvolvimento das Cidades e Infraestrutura
   "e3000000-0000-0000-0000-000000000003": {
-    a1_area_atuacao: 'Ex: "Saneamento básico em municípios de pequeno porte" ou "Mobilidade urbana em Curitiba e região metropolitana".',
+    a1_area_atuacao: 'Ex: "Saneamento básico em municípios de pequeno porte" ou "Mobilidade urbana em Cuiabá e Várzea Grande".',
     a2_desafios_hint: "Foque nos gargalos: déficit de saneamento, manutenção viária, transporte público, habitação.",
     b1_acoes_hint: "O que funciona — ex: concessões de rodovias, programas estaduais de energia rural, consórcios de saneamento.",
     b2_impacto_hint: "Quantifique: quantos km de estrada deteriorariam? Quantos municípios sem água tratada?",
@@ -216,7 +216,7 @@ export const exemplosFormularioPorEixo: Record<string, ExemplosFormulario> = {
   "e5000000-0000-0000-0000-000000000005": {
     a1_area_atuacao: 'Ex: "Inteligência policial na região metropolitana" ou "Gestão penitenciária no interior".',
     a2_desafios_hint: "Foque nos gargalos: efetivo policial, tecnologia, integração entre forças, sistema prisional.",
-    b1_acoes_hint: "O que funciona — ex: câmeras de monitoramento em Curitiba, programa de policiamento comunitário, GAECO.",
+    b1_acoes_hint: "O que funciona — ex: câmeras de monitoramento em Cuiabá, programa de policiamento comunitário, GAECO.",
     b2_impacto_hint: "Quantifique: qual indicador criminal pioraria? Quantas investigações ficariam sem recurso?",
     c1_causas_hint: "Vá além dos sintomas — ex: falta de integração entre PM e PC, inquéritos represados, sistema penal superlotado.",
     c2_caso_hint: "Um caso concreto — ex: boletins de ocorrência em papel que atrasam o fluxo de inquéritos.",

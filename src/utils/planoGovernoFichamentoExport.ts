@@ -35,7 +35,7 @@ export interface FichamentoData {
   subtitle?: string;
   body: string; // texto principal com marcadores [^N]
   sources: FichamentoSource[];
-  filtersSummary?: string; // ex: "Eixo: Saúde · Município: Curitiba"
+  filtersSummary?: string; // ex: "Eixo: Saúde · Município: Cuiabá"
   modeLabel?: string;
 }
 

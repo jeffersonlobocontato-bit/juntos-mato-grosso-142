@@ -347,7 +347,7 @@ const ChatBot = () => {
                       Sua cidade *
                     </label>
                     <Input
-                      placeholder="Ex: Curitiba"
+                      placeholder="Ex: Cuiabá"
                       value={formData.city}
                       onChange={(e) => setFormData({ ...formData, city: e.target.value })}
                       className="bg-muted/50"
