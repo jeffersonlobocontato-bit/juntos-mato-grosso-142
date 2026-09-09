@@ -683,7 +683,7 @@ export default function AdminModuloMkt() {
                 ))}
               </div>
               <p className="text-[11px] text-muted-foreground mt-3">
-                Fonte: pesquisa qualitativa interna da campanha (Paraná, 21/05–28/05, 16 grupos, Maringá/Londrina/Curitiba/Ponta Grossa/Cascavel).
+                Fonte: pesquisa qualitativa interna da campanha em Mato Grosso (a ser cadastrada).
               </p>
             </div>
 
