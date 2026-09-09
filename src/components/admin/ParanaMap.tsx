@@ -149,7 +149,7 @@ const ParanaMap: React.FC<ParanaMapProps> = ({
     markersRef.current.forEach((marker) => marker.remove());
     markersRef.current = [];
 
-    // Filtrar marcadores fora do Paraná
+    // Filtrar marcadores fora do Mato Grosso
     const validMarkers = markers.filter(
       (m) => m.latitude && m.longitude && isWithinParana(m.latitude, m.longitude)
     );

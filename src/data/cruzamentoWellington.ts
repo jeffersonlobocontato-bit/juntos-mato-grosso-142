@@ -5,7 +5,7 @@
 // [PENDENTE — Cruzamento Wellington]
 // O conteúdo de dados original (fontes, achados, classificação Agreement/Partial
 // Agreement/Dissonance/Silence, insights de marketing) é pesquisa eleitoral REAL e
-// específica da campanha de Sergio Moro no Paraná (fonte: VOX Brasil TSE PR-09668/2026;
+// específica da campanha de Wellington Fagundes no Mato Grosso (fonte: VOX Brasil TSE PR-09668/2026;
 // pesquisa qualitativa mai/2026, 16 grupos focais em 5 cidades do PR) — não pode ser
 // reaproveitado trocando nomes para Wellington/Mato Grosso, pois isso fabricaria
 // pesquisa eleitoral inexistente. Preencher com pesquisa quali-quanti REAL de Mato
@@ -30,7 +30,7 @@ export const DATA_CRUZAMENTO_WELLINGTON = {
       forcaDoAchado: string;
       leituraLula?: string;
     };
-    tipologiaDireitaParanaense?: { subtipo: string; descricao: string }[];
+    tipologiaDireitaMato-grossense?: { subtipo: string; descricao: string }[];
     ratinhoEixoGravitacional?: { leitura: string; limiteDoEfeitoHalo: string };
     moroLeituraFechada?: {
       forca: string[];

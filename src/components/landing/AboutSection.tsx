@@ -5,7 +5,7 @@ const values = [
   {
     icon: Users,
     title: "Participação",
-    description: "Ouça a voz de todos os 399 municípios do Paraná, garantindo representatividade.",
+    description: "Ouça a voz de todos os 142 municípios do Mato Grosso, garantindo representatividade.",
   },
   {
     icon: Target,
@@ -39,12 +39,12 @@ const AboutSection = () => {
             Sobre a Iniciativa
           </span>
           <h2 className="font-display text-3xl md:text-4xl lg:text-5xl font-bold text-foreground mb-6">
-            Construindo o Futuro do Paraná
+            Construindo o Futuro do Mato Grosso
             <span className="text-primary"> Juntos</span>
           </h2>
           <p className="text-lg text-muted-foreground leading-relaxed">
-            O Juntos Paraná 399 é uma iniciativa para construir colaborativamente 
-            um Plano de Governo para o Paraná, ouvindo quem vive os 399 municípios.
+            O Juntos Mato Grosso 142 é uma iniciativa para construir colaborativamente 
+            um Plano de Governo para o Mato Grosso, ouvindo quem vive os 142 municípios.
           </p>
         </motion.div>
 

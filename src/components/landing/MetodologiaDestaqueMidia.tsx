@@ -25,10 +25,10 @@ type FormState = {
 const EMPTY: FormState = { veiculo: "", titulo: "", url_materia: "", data_publicacao: "" };
 
 const PLACEHOLDERS: { veiculo: string; titulo: string }[] = [
-  { veiculo: "Gazeta do Povo", titulo: "Plano de governo ouve demandas em todo o Paraná" },
-  { veiculo: "Bem Paraná", titulo: "Expectativas dos paranaenses viram pauta prioritária" },
-  { veiculo: "Tribuna do Paraná", titulo: "Curadoria técnica especializada analisa propostas" },
-  { veiculo: "RPC", titulo: "Maior processo de escuta popular repercute no Estado" },
+  { veiculo: "Gazeta Digital", titulo: "Plano de governo ouve demandas em todo o Mato Grosso" },
+  { veiculo: "Olhar Direto", titulo: "Expectativas dos mato-grossenses viram pauta prioritária" },
+  { veiculo: "RDNews", titulo: "Curadoria técnica especializada analisa propostas" },
+  { veiculo: "TV Centro América", titulo: "Maior processo de escuta popular repercute no Estado" },
 ];
 
 const MetodologiaDestaqueMidia = ({ brand, manageMode = false }: { brand: Brand; manageMode?: boolean }) => {
@@ -161,7 +161,7 @@ const MetodologiaDestaqueMidia = ({ brand, manageMode = false }: { brand: Brand;
       <div className="container mx-auto px-6 max-w-6xl">
         <div className="text-center mb-10">
           <span className="text-xs font-bold tracking-wide uppercase" style={{ color: brand.green700 }}>
-            O Paraná está falando
+            O Mato Grosso está falando
           </span>
           <h2 className="font-black text-2xl md:text-3xl mt-2" style={{ color: brand.navy }}>
             Destaque na Mídia

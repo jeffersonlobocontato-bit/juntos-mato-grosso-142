@@ -64,7 +64,7 @@ Deno.serve(async (req) => {
           event_time: Math.floor(Date.now() / 1000),
           event_id: event_id || crypto.randomUUID(),
           action_source: 'website',
-          event_source_url: event_source_url || 'https://juntosparana399.com.br/',
+          event_source_url: event_source_url || 'https://juntosmatogrosso142.com.br/',
           user_data,
           custom_data: { content_name: 'sugestao_popular', municipio: municipio || null },
         },

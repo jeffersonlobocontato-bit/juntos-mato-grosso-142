@@ -5,11 +5,11 @@
 //
 // [PENDENTE — Juntos Mato Grosso 142]
 // Este arquivo foi esvaziado intencionalmente na adaptação da plataforma
-// Juntos Paraná 399 para Mato Grosso. O conteúdo original (personas,
+// Juntos Mato Grosso 142 para Mato Grosso. O conteúdo original (personas,
 // argumentos por eixo, cases de sucesso e riscos/vulnerabilidades) foi
-// construído em cima de pesquisa qualitativa real do Paraná (16 grupos
+// construído em cima de pesquisa qualitativa real do Mato Grosso (16 grupos
 // focais, mai/2026, cidades específicas do PR) e de vulnerabilidades
-// pessoais específicas do candidato Sergio Moro — não pode ser reaproveitado
+// pessoais específicas do candidato Wellington Fagundes — não pode ser reaproveitado
 // para Mato Grosso trocando nomes, pois isso fabricaria pesquisa eleitoral
 // inexistente. Preencher com pesquisa qualitativa/quantitativa real de MT
 // quando disponível.

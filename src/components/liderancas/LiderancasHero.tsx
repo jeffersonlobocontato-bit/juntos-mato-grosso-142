@@ -18,7 +18,7 @@ const LiderancasHero = () => {
       <div className="absolute inset-0 z-0">
         <img
           src={heroParana}
-          alt="Paraná"
+          alt="Mato Grosso"
           className="w-full h-full object-cover opacity-20"
         />
         <div className="absolute inset-0 bg-gradient-to-br from-black/88 via-black/83 to-emerald-950/30" />
@@ -88,7 +88,7 @@ const LiderancasHero = () => {
               transition={{ duration: 0.8, delay: 0.3 }}
               className="font-display text-4xl md:text-5xl lg:text-6xl font-black text-white mb-6 leading-tight"
             >
-              Juntos Paraná 399:
+              Juntos Mato Grosso 142:
               <br />
               <span className="text-transparent bg-clip-text bg-gradient-to-r from-emerald-400 via-emerald-500 to-emerald-600">
                 Colabore com o Plano de Governo
@@ -101,7 +101,7 @@ const LiderancasHero = () => {
               transition={{ duration: 0.8, delay: 0.4 }}
               className="text-lg md:text-xl text-zinc-400 max-w-lg mb-8 leading-relaxed"
             >
-              Sua experiência e visão são fundamentais para construir um Paraná melhor. 
+              Sua experiência e visão são fundamentais para construir um Mato Grosso melhor. 
               Contribua com propostas políticas que transformem o futuro do estado.
             </motion.p>
 
@@ -151,7 +151,7 @@ const LiderancasHero = () => {
               <div className="relative h-full rounded-2xl overflow-hidden border border-emerald-500/20">
                 <img
                   src={sergioMoro}
-                  alt="Senador Sergio Moro - Embaixador da Iniciativa"
+                  alt="Senador Wellington Fagundes - Embaixador da Iniciativa"
                   className="w-full h-full object-cover object-top"
                 />
                 
@@ -167,10 +167,10 @@ const LiderancasHero = () => {
                   className="absolute bottom-0 left-0 right-0 p-6"
                 >
                   <h3 className="font-display font-bold text-2xl text-white mb-1">
-                    Senador Sergio Moro
+                    Senador Wellington Fagundes
                   </h3>
                   <p className="text-emerald-400 text-sm font-medium">
-                    Idealizador da Iniciativa Juntos Paraná 399
+                    Idealizador da Iniciativa Juntos Mato Grosso 142
                   </p>
                 </motion.div>
               </div>

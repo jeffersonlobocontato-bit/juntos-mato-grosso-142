@@ -3,7 +3,7 @@ import { Users, ShieldCheck, Heart } from "lucide-react";
 const bullets = [
   { Icon: Users, text: "Sua participação faz a diferença." },
   { Icon: ShieldCheck, text: "Suas opiniões são seguras e transparentes." },
-  { Icon: Heart, text: "Juntos, vamos construir um Paraná melhor para todos." },
+  { Icon: Heart, text: "Juntos, vamos construir um Mato Grosso melhor para todos." },
 ];
 
 const ParticiparAgoraCard = () => {
@@ -28,7 +28,7 @@ const ParticiparAgoraCard = () => {
       <div className="my-6 h-px bg-accent/60" />
 
       <p className="text-base leading-snug">
-        O futuro do Paraná <br />
+        O futuro do Mato Grosso <br />
         é construído hoje, <br />
         <span className="text-accent font-bold">com você.</span>
       </p>

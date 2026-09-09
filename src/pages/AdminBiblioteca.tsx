@@ -7,15 +7,11 @@ import { ArrowLeft, BookOpen, Loader2 } from 'lucide-react';
 import DocumentLibrary from '@/components/admin/DocumentLibrary';
 
 const REGIOES = [
-  'Centro-Oriental',
-  'Centro-Sul',
-  'Centro Ocidental',
-  'Metropolitana de Curitiba',
-  'Noroeste',
-  'Norte Central',
-  'Norte Pioneiro',
-  'Oeste',
-  'Sudoeste',
+  'Norte Mato-grossense',
+  'Nordeste Mato-grossense',
+  'Sudeste Mato-grossense',
+  'Sudoeste Mato-grossense',
+  'Centro-Sul Mato-grossense',
 ];
 
 const AdminBiblioteca = () => {

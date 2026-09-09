@@ -94,16 +94,11 @@ interface ProposalEvaluation {
 }
 
 const REGIOES = [
-  'Campos Gerais',
-  'Centro Ocidental',
-  'Centro-Sul',
-  'Litoral',
-  'Metropolitana de Curitiba',
-  'Noroeste',
-  'Norte Central',
-  'Norte Pioneiro',
-  'Oeste',
-  'Sudoeste',
+  'Norte Mato-grossense',
+  'Nordeste Mato-grossense',
+  'Sudeste Mato-grossense',
+  'Sudoeste Mato-grossense',
+  'Centro-Sul Mato-grossense',
 ];
 
 const statusColors: Record<ProposalStatus, string> = {
@@ -741,7 +736,7 @@ const AdminPropostas = () => {
             </CardContent>
           </Card>
 
-          {/* Mapa do Paraná */}
+          {/* Mapa do Mato Grosso */}
           <div className="mb-6">
             <ParanaMap
               markers={mapMarkers}

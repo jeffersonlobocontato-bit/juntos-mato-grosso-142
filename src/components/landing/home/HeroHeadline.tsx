@@ -8,7 +8,7 @@ const HeroHeadline = () => {
           <Megaphone className="h-3.5 w-3.5" />
         </span>
         <span className="text-sm leading-tight">
-          Sua voz ajuda a decidir <strong>o futuro do Paraná.</strong>
+          Sua voz ajuda a decidir <strong>o futuro do Mato Grosso.</strong>
         </span>
       </div>
 
@@ -17,7 +17,7 @@ const HeroHeadline = () => {
         <br />
         é o <span className="underline-gold text-primary">futuro decidido</span>
         <br />
-        <span className="text-primary">por todos os paranaenses.</span>
+        <span className="text-primary">por todos os mato-grossenses.</span>
       </h1>
 
       <div className="flex items-start gap-3">
@@ -27,7 +27,7 @@ const HeroHeadline = () => {
         <div>
           <p className="font-display font-bold text-lg text-foreground">Plano de Governo Colaborativo</p>
           <p className="text-sm text-muted-foreground max-w-sm">
-            Compartilhe sua opinião e ajude a construir o futuro do Paraná.
+            Compartilhe sua opinião e ajude a construir o futuro do Mato Grosso.
           </p>
         </div>
       </div>

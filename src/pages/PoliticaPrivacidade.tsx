@@ -4,7 +4,7 @@ import { useEffect } from "react";
 
 const PoliticaPrivacidade = () => {
   useEffect(() => {
-    document.title = "Política de Privacidade | Juntos Paraná 399";
+    document.title = "Política de Privacidade | Juntos Mato Grosso 142";
   }, []);
 
   return (
@@ -16,18 +16,18 @@ const PoliticaPrivacidade = () => {
 
         <h2>1. Quem somos</h2>
         <p>
-          Esta plataforma (juntosparana399.com.br) é operada por Juntos Paraná 399,
+          Esta plataforma (juntosmatogrosso142.com.br) é operada por Juntos Mato Grosso 142,
           em conformidade com a Lei nº 13.709/2018 (Lei Geral de Proteção de Dados Pessoais — LGPD).
         </p>
         <p>
-          <strong>Encarregado de Dados (DPO):</strong> sergiomoro@juntosparana399.com.br
+          <strong>Encarregado de Dados (DPO):</strong> contato@juntosmatogrosso142.com.br
         </p>
 
         <h2>2. Quais dados coletamos</h2>
         <ul>
           <li><strong>Nome</strong> — identificar a sugestão/opinião enviada</li>
           <li><strong>Telefone</strong> — validar autenticidade do envio e evitar fraude</li>
-          <li><strong>Cidade/município</strong> — segmentar propostas por região do Paraná</li>
+          <li><strong>Cidade/município</strong> — segmentar propostas por região do Mato Grosso</li>
           <li><strong>Opinião/proposta enviada</strong> — finalidade central da plataforma</li>
           <li><strong>Áudio</strong> (quando enviado) — transcrição da opinião em texto</li>
           <li><strong>Geolocalização</strong> (quando autorizada) — associar sugestão à região</li>
@@ -61,7 +61,7 @@ const PoliticaPrivacidade = () => {
         <p>
           Você pode solicitar confirmação de tratamento, acesso, correção, anonimização, bloqueio,
           eliminação, portabilidade e revogação do consentimento sobre seus dados a qualquer momento,
-          pelo contato: sergiomoro@juntosparana399.com.br.
+          pelo contato: contato@juntosmatogrosso142.com.br.
         </p>
 
         <h2>7. Retenção e segurança</h2>

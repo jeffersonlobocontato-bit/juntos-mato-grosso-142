@@ -315,7 +315,7 @@ const AdminSugestoes = () => {
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.5 }}
         >
-          {/* Mapa do Paraná */}
+          {/* Mapa do Mato Grosso */}
           <div className="mb-6">
             <ParanaMap
               markers={mapMarkers}

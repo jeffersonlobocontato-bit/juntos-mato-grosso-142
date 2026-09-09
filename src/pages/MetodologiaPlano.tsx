@@ -11,10 +11,10 @@ import fotoOficial from "@/assets/metodologia/foto-oficial-moro-ombros.png";
 import planoPdf from "@/assets/plano-governo.pdf.asset.json";
 
 // ---------------------------------------------------------------------------
-// Design system: identidade visual oficial da campanha Sergio Moro 2026,
-// extraída do manual de marca (SERGIO MORO 2026.pdf). Paleta e tipografia
+// Design system: identidade visual oficial da campanha Wellington Fagundes 2026,
+// extraída do manual de marca (WELLINGTON FAGUNDES 2026.pdf). Paleta e tipografia
 // exclusivas desta página — não reaproveita os tokens do site institucional
-// Juntos Paraná 399, por exigência de fidelidade rigorosa à IDV oficial.
+// Juntos Mato Grosso 142, por exigência de fidelidade rigorosa à IDV oficial.
 // ---------------------------------------------------------------------------
 const BRAND = {
   navy: "#013D22",
@@ -58,25 +58,25 @@ const CountUp = ({ value, suffix = "" }: { value: number; suffix?: string }) => 
   return <span ref={ref}>{display.toLocaleString("pt-BR")}{suffix}</span>;
 };
 
-const MENSAGEM_MORO = `Sou paranaense do interior. Atuei em várias regiões do Estado até me estabelecer em Curitiba. Como Juiz Federal e Senador da República, conheci a grande amplitude econômica do Paraná e a diversidade cultural de nossa gente.
+const MENSAGEM_CANDIDATO = `Sou mato-grossense do interior. Vivi e trabalhei em várias regiões do Estado e, como Senador da República, conheci de perto a grande amplitude econômica do Mato Grosso e a diversidade cultural da nossa gente.
 
-Sabendo que cada cidade e cada região tem uma realidade própria, determinei à minha equipe que precisávamos de um Plano de Governo que olhasse de perto cada canto desse nosso Paraná, com o zelo e a obrigação de visitar todas as regiões, ouvindo as pessoas.
+Sabendo que cada cidade e cada região tem uma realidade própria, determinei à minha equipe que precisávamos de um Plano de Governo que olhasse de perto cada canto desse nosso Mato Grosso, com o zelo e a obrigação de visitar todas as regiões, ouvindo as pessoas.
 
-Um Plano de Governo corajoso para enfrentar as lutas ao lado do povo paranaense. Afinal, encarar desafios faz parte da minha história. Para promover uma revolução no judiciário brasileiro, com a Operação Lava Jato de Combate à Corrupção, enfrentei poderosos e o arcaico sistema político de nosso País.
+Um Plano de Governo corajoso para enfrentar as lutas ao lado do povo mato-grossense. Afinal, encarar desafios e trabalhar pelo desenvolvimento do nosso Estado faz parte da minha história pública.
 
 Sempre lutei e continuarei lutando para transformar o lugar onde vivemos em um lugar mais justo, mais seguro, mais humano, mais próspero, mais sustentável e, principalmente, mais ético.
 
-Para definir as prioridades do nosso projeto de governo, promovemos um amplo diálogo com a sociedade paranaense. Realizamos encontros e reuniões com representantes da população, homens e mulheres, lideranças regionais, entidades civis organizadas, associações empresariais, universidades e instituições técnicas.
+Para definir as prioridades do nosso projeto de governo, promovemos um amplo diálogo com a sociedade mato-grossense. Realizamos encontros e reuniões com representantes da população, homens e mulheres, lideranças regionais, entidades civis organizadas, associações empresariais, universidades e instituições técnicas.
 
-Ao percorrer todas as regiões do Paraná, ouvimos atentamente as necessidades mais urgentes e estruturantes. Consultamos especialistas nos temas mais relevantes — saúde, educação, logística, desenvolvimento econômico, inovação, segurança e sustentabilidade. Identificamos soluções viáveis, com base em experiências de sucesso e dados concretos.
+Ao percorrer todas as regiões do Mato Grosso, ouvimos atentamente as necessidades mais urgentes e estruturantes. Consultamos especialistas nos temas mais relevantes — saúde, educação, logística, desenvolvimento econômico, inovação, segurança e sustentabilidade. Identificamos soluções viáveis, com base em experiências de sucesso e dados concretos.
 
-Esta carta de compromissos é o resultado desse esforço coletivo. Ela foi construída com a contribuição de centenas de técnicos, gestores públicos, lideranças comunitárias, empresários, intelectuais e voluntários que acreditam em um Paraná mais eficiente, justo e competitivo.
+Esta carta de compromissos é o resultado desse esforço coletivo. Ela foi construída com a contribuição de centenas de técnicos, gestores públicos, lideranças comunitárias, empresários, intelectuais e voluntários que acreditam em um Mato Grosso mais eficiente, justo e competitivo.
 
 As demandas por melhores serviços públicos crescem a cada dia: atendimento digno na saúde, escolas mais modernas, transporte público de qualidade com tarifa justa, saneamento básico, mais segurança nas cidades, acesso a tecnologia, cultura e esporte, além da preservação ambiental.
 
-O Paraná tem uma economia forte, diversificada e conectada ao mundo. Temos um povo trabalhador, inovador e resiliente. É hora de transformar esse potencial em oportunidades reais, com políticas públicas ágeis, eficientes e focadas em resultados.
+O Mato Grosso tem uma economia forte, diversificada e conectada ao mundo. Temos um povo trabalhador, inovador e resiliente. É hora de transformar esse potencial em oportunidades reais, com políticas públicas ágeis, eficientes e focadas em resultados.
 
-O que propomos é um governo com planejamento, com metas e compromisso com as pessoas. Um governo que olha para o futuro, sem deixar ninguém para trás. Acima de tudo, vamos governar o Paraná juntos.`;
+O que propomos é um governo com planejamento, com metas e compromisso com as pessoas. Um governo que olha para o futuro, sem deixar ninguém para trás. Acima de tudo, vamos governar o Mato Grosso juntos.`;
 
 const DownloadPlanoCTA = ({ onDownload }: { onDownload?: () => void }) => (
   <section className="py-7 md:py-9" style={{ background: `${BRAND.navy}0d` }}>
@@ -191,7 +191,7 @@ export default function MetodologiaPlano() {
                   Revisão ponto a ponto
                 </div>
               </div>
-              {/* CTA — Mensagem do Sergio Moro */}
+              {/* CTA — Mensagem do Wellington Fagundes */}
               <button
                 onClick={() => setShowMensagem(true)}
                 className="group inline-flex items-center gap-3 px-6 py-3 rounded-full font-bold text-sm md:text-base transition-all duration-300 hover:scale-105 hover:shadow-2xl"
@@ -204,7 +204,7 @@ export default function MetodologiaPlano() {
                 <svg width="20" height="20" viewBox="0 0 24 24" fill="none" className="transition-transform group-hover:translate-x-0.5">
                   <path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
                 </svg>
-                Mensagem do Sergio Moro
+                Mensagem do Wellington Fagundes
               </button>
 
               {/* CTA — Baixar o Plano de Governo */}
@@ -238,7 +238,7 @@ export default function MetodologiaPlano() {
               />
               <img
                 src={fotoOficial}
-                alt="Sergio Moro"
+                alt="Wellington Fagundes"
                 width={1920}
                 height={1311}
                 decoding="async"
@@ -336,7 +336,7 @@ export default function MetodologiaPlano() {
 
           <p className="text-white/50 text-xs text-center mt-8 max-w-2xl mx-auto">
             Coordenação geral do processo: pré-candidato a vice-governador Edson Vasconcelos. Cada
-            contribuição foi analisada, ponto a ponto, pelo pré-candidato a governador Sergio Moro.
+            contribuição foi analisada, ponto a ponto, pelo pré-candidato a governador Wellington Fagundes.
             100% das contribuições foram documentadas, catalogadas e geolocalizadas.
           </p>
         </div>
@@ -413,7 +413,7 @@ export default function MetodologiaPlano() {
         </div>
       </footer>
 
-      {/* ============ MODAL — MENSAGEM DO SERGIO MORO ============ */}
+      {/* ============ MODAL — MENSAGEM DO WELLINGTON FAGUNDES ============ */}
       {showMensagem && (
         <div
           className="fixed inset-0 z-50 flex items-center justify-center p-4 md:p-6 animate-in fade-in duration-200"
@@ -433,7 +433,7 @@ export default function MetodologiaPlano() {
               <div className="flex items-center gap-3">
                 <img src={logoClara} alt="Wellington" className="h-8" />
                 <div>
-                  <h3 className="font-black text-white text-lg leading-tight">Mensagem do Sergio Moro</h3>
+                  <h3 className="font-black text-white text-lg leading-tight">Mensagem do Wellington Fagundes</h3>
                   <p className="text-white/60 text-xs">Carta de compromissos com Mato Grosso</p>
                 </div>
               </div>
@@ -453,17 +453,17 @@ export default function MetodologiaPlano() {
               <div className="flex items-center gap-4 mb-6 pb-6 border-b" style={{ borderColor: `${BRAND.green500}33` }}>
                 <img
                   src={fotoOficial}
-                  alt="Sergio Moro"
+                  alt="Wellington Fagundes"
                   className="w-16 h-16 object-contain rounded-full shrink-0"
                   style={{ background: `${BRAND.navy}0d` }}
                 />
                 <div>
-                  <p className="font-bold text-sm" style={{ color: BRAND.navy }}>Sergio Moro</p>
+                  <p className="font-bold text-sm" style={{ color: BRAND.navy }}>Wellington Fagundes</p>
                   <p className="text-xs text-gray-500">Candidato a Governador de Mato Grosso</p>
                 </div>
               </div>
               <div className="space-y-4">
-                {MENSAGEM_MORO.split("\n\n").map((paragraph, i) => (
+                {MENSAGEM_CANDIDATO.split("\n\n").map((paragraph, i) => (
                   <p
                     key={i}
                     className="text-gray-700 leading-relaxed text-sm md:text-base"

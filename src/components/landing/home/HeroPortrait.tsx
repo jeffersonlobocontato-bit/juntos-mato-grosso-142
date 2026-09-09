@@ -6,7 +6,7 @@ const HeroPortrait = () => {
       <div className="relative mx-auto max-w-md lg:max-w-none overflow-hidden rounded-[2rem] shadow-card-float">
         <img
           src={portrait}
-          alt="Senador Sergio Moro - pré-candidato ao Governo do Paraná"
+          alt="Senador Wellington Fagundes - pré-candidato ao Governo do Mato Grosso"
           className="w-full h-auto object-cover object-top"
           loading="eager"
           decoding="async"
@@ -15,10 +15,10 @@ const HeroPortrait = () => {
         <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-primary via-primary/90 to-primary/0 pt-16 pb-5 px-5">
           <div className="min-w-0">
             <p className="font-display font-black uppercase leading-none text-white tracking-tight text-3xl md:text-4xl lg:text-[2.6rem] drop-shadow">
-              Sergio Moro
+              Wellington Fagundes
             </p>
             <p className="mt-2 text-[11px] md:text-xs font-semibold uppercase tracking-[0.18em] text-accent">
-              Senador e Pré-candidato ao Governo do Paraná
+              Senador e Pré-candidato ao Governo do Mato Grosso
             </p>
           </div>
         </div>

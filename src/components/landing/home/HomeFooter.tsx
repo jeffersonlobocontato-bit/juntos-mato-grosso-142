@@ -32,7 +32,7 @@ const HomeFooter = () => {
         </span>
         <p className="text-sm md:text-base leading-snug">
           Transparência, diálogo e participação. <br />
-          Esse é o caminho do <strong className="text-primary">Paraná</strong> que queremos.
+          Esse é o caminho do <strong className="text-primary">Mato Grosso</strong> que queremos.
         </p>
         </div>
 
@@ -42,12 +42,12 @@ const HomeFooter = () => {
               Envie e convide seus amigos e familiares
             </h3>
             <p className="text-sm md:text-base text-muted-foreground max-w-2xl mx-auto">
-              Participe da construção do Plano de Governo do Paraná. Compartilhe agora com quem
+              Participe da construção do Plano de Governo do Mato Grosso. Compartilhe agora com quem
               você quer ver contribuindo para o futuro do nosso estado.
             </p>
           </div>
           <SocialShareButtons
-            message="Participe do Juntos Paraná 399 e ajude a construir o Plano de Governo do Paraná com sua opinião. Sua voz transforma o futuro do nosso estado! 🌲"
+            message="Participe do Juntos Mato Grosso 142 e ajude a construir o Plano de Governo do Mato Grosso com sua opinião. Sua voz transforma o futuro do nosso estado! 🌲"
           />
         </div>
       </div>

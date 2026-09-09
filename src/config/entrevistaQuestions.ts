@@ -152,7 +152,7 @@ export const exemplosFormularioPorEixo: Record<string, ExemplosFormulario> = {
   "e1000000-0000-0000-0000-000000000001": {
     a1_area_atuacao: 'Ex: "Atenção primária em saúde no litoral" ou "Proteção social em municípios de alta vulnerabilidade".',
     a2_desafios_hint: "Foque nos desafios operacionais: filas de espera no SUS, cobertura do CRAS, evasão escolar, etc.",
-    b1_acoes_hint: "Programas sociais que dão resultado — ex: Programa Família Paranaense, Leite das Crianças, rede de CRAS.",
+    b1_acoes_hint: "Programas sociais que dão resultado — ex: Programa Família Mato-grossense, Leite das Crianças, rede de CRAS.",
     b2_impacto_hint: "Quantifique: quantas famílias ficariam desassistidas? Qual indicador pioraria?",
     c1_causas_hint: "Vá além dos sintomas — ex: falta de prontuário integrado entre saúde e assistência, subfinanciamento do SUAS.",
     c2_caso_hint: "Um caso concreto — ex: família atendida no CRAS sem acesso a consulta na UBS por falta de integração.",
@@ -182,7 +182,7 @@ export const exemplosFormularioPorEixo: Record<string, ExemplosFormulario> = {
 
   // 3. Desenvolvimento das Cidades e Infraestrutura
   "e3000000-0000-0000-0000-000000000003": {
-    a1_area_atuacao: 'Ex: "Saneamento básico em municípios de pequeno porte" ou "Mobilidade urbana em Curitiba e região metropolitana".',
+    a1_area_atuacao: 'Ex: "Saneamento básico em municípios de pequeno porte" ou "Mobilidade urbana em Cuiabá e Várzea Grande".',
     a2_desafios_hint: "Foque nos gargalos: déficit de saneamento, manutenção viária, transporte público, habitação.",
     b1_acoes_hint: "O que funciona — ex: concessões de rodovias, programas estaduais de energia rural, consórcios de saneamento.",
     b2_impacto_hint: "Quantifique: quantos km de estrada deteriorariam? Quantos municípios sem água tratada?",
@@ -216,7 +216,7 @@ export const exemplosFormularioPorEixo: Record<string, ExemplosFormulario> = {
   "e5000000-0000-0000-0000-000000000005": {
     a1_area_atuacao: 'Ex: "Inteligência policial na região metropolitana" ou "Gestão penitenciária no interior".',
     a2_desafios_hint: "Foque nos gargalos: efetivo policial, tecnologia, integração entre forças, sistema prisional.",
-    b1_acoes_hint: "O que funciona — ex: câmeras de monitoramento em Curitiba, programa de policiamento comunitário, GAECO.",
+    b1_acoes_hint: "O que funciona — ex: câmeras de monitoramento em Cuiabá, programa de policiamento comunitário, GAECO.",
     b2_impacto_hint: "Quantifique: qual indicador criminal pioraria? Quantas investigações ficariam sem recurso?",
     c1_causas_hint: "Vá além dos sintomas — ex: falta de integração entre PM e PC, inquéritos represados, sistema penal superlotado.",
     c2_caso_hint: "Um caso concreto — ex: boletins de ocorrência em papel que atrasam o fluxo de inquéritos.",

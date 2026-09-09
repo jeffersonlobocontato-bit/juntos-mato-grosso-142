@@ -16,7 +16,7 @@ const benefits = [
   {
     icon: Zap,
     title: "Mais mudança",
-    description: "Juntos transformamos o Paraná",
+    description: "Juntos transformamos o Mato Grosso",
   },
 ];
 
@@ -51,13 +51,13 @@ const SocialEngagementSection = () => {
           </motion.div>
 
           <h2 className="font-display text-3xl md:text-4xl lg:text-5xl font-bold text-foreground mb-6">
-            Compartilhe o Juntos Paraná 399,
+            Compartilhe o Juntos Mato Grosso 142,
             <br />
-            <span className="text-accent">com quem ama o Paraná</span>
+            <span className="text-accent">com quem ama o Mato Grosso</span>
           </h2>
 
           <p className="text-lg text-muted-foreground mb-8">
-            Quanto mais pessoas participarem, mais forte será a voz do Paraná. 
+            Quanto mais pessoas participarem, mais forte será a voz do Mato Grosso. 
             Convide amigos, familiares e conhecidos para construir esse futuro juntos.
           </p>
 
@@ -74,7 +74,7 @@ const SocialEngagementSection = () => {
             </p>
             <SocialShareButtons 
               variant="large"
-              message="Estou participando do Juntos Paraná 399, uma iniciativa para construir juntos o futuro do Paraná! Venha contribuir também 🌲"
+              message="Estou participando do Juntos Mato Grosso 142, uma iniciativa para construir juntos o futuro do Mato Grosso! Venha contribuir também 🌲"
             />
           </motion.div>
         </motion.div>

@@ -676,7 +676,7 @@ Sempre que você fizer uma afirmação que se baseie em algum item da seção "D
   "sources": [
     { "id": 1, "type": "documento", "label": "Plano Estadual de Saúde 2024", "excerpt": "trecho curto que comprova a afirmação" },
     { "id": 2, "type": "proposta", "label": "Proposta — Dr. João Silva (Saúde)", "excerpt": "Menção usada: ampliação das equipes de atenção primária" },
-    { "id": 3, "type": "sugestao", "label": "Sugestão popular — Cascavel/PR", "excerpt": "demanda por atendimento mais próximo" }
+    { "id": 3, "type": "sugestao", "label": "Sugestão popular — Rondonópolis/MT", "excerpt": "demanda por atendimento mais próximo" }
   ]
 }
 \`\`\`

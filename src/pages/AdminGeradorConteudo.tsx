@@ -182,7 +182,7 @@ export default function AdminGeradorConteudo() {
               id="contexto"
               value={contexto}
               onChange={(e) => setContexto(e.target.value)}
-              placeholder='Ex: "Viagem ao Sudeste, evento com agricultores em Londrina"'
+              placeholder='Ex: "Viagem ao Sudeste, evento com produtores rurais em Sorriso"'
               className="min-h-[90px] text-base"
             />
             <div className="flex items-center justify-between flex-wrap gap-2 pt-1">

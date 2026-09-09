@@ -111,7 +111,7 @@ const MidiaClippingSection = () => {
             A imprensa acompanha a construção do Plano de Governo
           </h2>
           <p style={{ color: "rgba(236,243,236,.72)", fontSize: 15, maxWidth: 620, margin: "0 auto" }}>
-            Veículos de comunicação de todo o Paraná noticiaram a participação popular no Juntos Paraná 399.
+            Veículos de comunicação de todo o Mato Grosso noticiaram a participação popular no Juntos Mato Grosso 142.
           </p>
         </div>
 

@@ -177,16 +177,16 @@ function AnaliseQualitativaIsolada() {
       )}
 
       {q.diagnosticoMacro && (
-        <Card titulo="Diagnóstico macro — Brasil x Paraná">
+        <Card titulo="Diagnóstico macro — Brasil x Mato Grosso">
           <div style={{ fontSize: 14, color: '#e8ecf1', marginBottom: 8, lineHeight: 1.55 }}>{q.diagnosticoMacro.achado}</div>
           <div style={{ fontSize: 12.5, color: '#1baf7a', marginBottom: 6 }}>Força do achado: {q.diagnosticoMacro.forcaDoAchado}</div>
           <div style={{ fontSize: 12.5, color: '#b8c0cc' }}>{q.diagnosticoMacro.leituraLula}</div>
         </Card>
       )}
 
-      {q.tipologiaDireitaParanaense && (
-        <Card titulo="Tipologia da direita paranaense">
-          {q.tipologiaDireitaParanaense.map((t: any, i: number) => (
+      {q.tipologiaDireitaMato-grossense && (
+        <Card titulo="Tipologia da direita mato-grossense">
+          {q.tipologiaDireitaMato-grossense.map((t: any, i: number) => (
             <div key={i} style={{ marginBottom: 10 }}>
               <div style={{ fontSize: 13.5, fontWeight: 600, color: '#e8ecf1' }}>{t.subtipo}</div>
               <div style={{ fontSize: 12.5, color: '#b8c0cc', lineHeight: 1.5 }}>{t.descricao}</div>
@@ -203,7 +203,7 @@ function AnaliseQualitativaIsolada() {
       )}
 
       {q.moroLeituraFechada && (
-        <Card titulo="Moro — leitura fechada da quali" cor="#4a94ec">
+        <Card titulo="Wellington — leitura fechada da quali" cor="#4a94ec">
           <div style={{ fontSize: 12.5, color: '#1baf7a', marginBottom: 8 }}>Força: {(q.moroLeituraFechada.forca || []).join(', ')}</div>
           <div style={{ fontSize: 13, color: '#e34948', marginBottom: 10, lineHeight: 1.5 }}>{q.moroLeituraFechada.vulnerabilidadeCentral}</div>
           {q.moroLeituraFechada.autocriticaDoRelatorio && (

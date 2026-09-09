@@ -111,7 +111,7 @@ const LiveCounterCard = ({ embedded = false }: { embedded?: boolean } = {}) => {
                 ? "text-primary-foreground/85 text-xs md:text-sm font-medium leading-snug"
                 : "text-primary-foreground/85 text-base md:text-lg font-medium max-w-xl"
             }>
-              opiniões já recebidas de paranaenses para construir juntos o Plano de Governo.
+              opiniões já recebidas de mato-grossenses para construir juntos o Plano de Governo.
             </p>
           </div>
         </div>

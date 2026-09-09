@@ -490,7 +490,7 @@ const Moldura = () => {
   const download = async () => {
     const stage = stageRef.current;
     if (!stage || !stateRef.current.img) return;
-    const fileName = `moro-moldura-${stateRef.current.format}.png`;
+    const fileName = `wellington-moldura-${stateRef.current.format}.png`;
     void trackMoldura("moldura_download", { format: stateRef.current.format }).then(() => {
       setAvatarCount((c) => (c == null ? c : c + 1));
     });

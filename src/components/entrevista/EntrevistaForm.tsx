@@ -662,7 +662,7 @@ const EntrevistaForm = ({ mode = "tecnica" }: EntrevistaFormProps) => {
             </h2>
             <p className="text-gray-400 mb-8">
               {isInstitucional 
-                ? "A proposta da sua instituição foi salva e está disponível para análise. Obrigado pela contribuição ao Plano de Governo do Paraná."
+                ? "A proposta da sua instituição foi salva e está disponível para análise. Obrigado pela contribuição ao Plano de Governo do Mato Grosso."
                 : "Sua entrevista técnica foi salva e está disponível para análise. A estrutura padronizada permite consolidação entre todos os eixos."}
             </p>
 
@@ -710,7 +710,7 @@ const EntrevistaForm = ({ mode = "tecnica" }: EntrevistaFormProps) => {
                     id="instituicaoNome"
                     value={instituicaoNome}
                     onChange={(e) => setInstituicaoNome(e.target.value)}
-                    placeholder="Ex: Associação Comercial e Industrial de Curitiba"
+                    placeholder="Ex: Associação Comercial e Industrial de Cuiabá"
                     className="bg-gray-900 border-gray-700 text-white"
                   />
                 </div>

@@ -122,7 +122,7 @@ const MetodologiaGaleria = ({ brand, manageMode = false }: { brand: Brand; manag
             >
               <input
                 className={inputCls}
-                placeholder="Legenda (opcional) — ex.: Entrega de propostas em Cascavel"
+                placeholder="Legenda (opcional) — ex.: Entrega de propostas em Rondonópolis"
                 value={legenda}
                 onChange={(e) => setLegenda(e.target.value)}
               />
@@ -160,7 +160,7 @@ const MetodologiaGaleria = ({ brand, manageMode = false }: { brand: Brand; manag
                   {urls[item.image_path] && (
                     <img
                       src={urls[item.image_path]}
-                      alt={item.legenda || "Registro do processo de escuta no Paraná"}
+                      alt={item.legenda || "Registro do processo de escuta no Mato Grosso"}
                       loading="lazy"
                       onClick={() => setLightbox(urls[item.image_path])}
                       className="w-full h-72 object-cover cursor-zoom-in"

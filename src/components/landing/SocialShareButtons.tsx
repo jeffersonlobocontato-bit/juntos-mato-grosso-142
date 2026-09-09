@@ -12,8 +12,8 @@ interface SocialShareButtonsProps {
 }
 
 const SocialShareButtons = ({
-  message = "Participe do Juntos Paraná 399! Ajude a construir o futuro do Paraná 🌲",
-  url = typeof window !== "undefined" ? window.location.origin : "https://rota399.org.br",
+  message = "Participe do Juntos Mato Grosso 142! Ajude a construir o futuro do Mato Grosso 🌲",
+  url = typeof window !== "undefined" ? window.location.origin : "https://juntosmatogrosso142.com.br",
   variant = "default",
   className = "",
 }: SocialShareButtonsProps) => {
@@ -87,7 +87,7 @@ const SocialShareButtons = ({
     if (navigator.share) {
       try {
         await navigator.share({
-          title: "Juntos Paraná 399",
+          title: "Juntos Mato Grosso 142",
           text: message,
           url: url,
         });

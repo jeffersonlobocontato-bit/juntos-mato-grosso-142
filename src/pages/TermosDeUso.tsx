@@ -4,7 +4,7 @@ import { useEffect } from "react";
 
 const TermosDeUso = () => {
   useEffect(() => {
-    document.title = "Termos de Uso | Juntos Paraná 399";
+    document.title = "Termos de Uso | Juntos Mato Grosso 142";
   }, []);
 
   return (
@@ -48,7 +48,7 @@ const TermosDeUso = () => {
         <p>A plataforma não garante que todas as sugestões enviadas serão incorporadas ao plano de governo final.</p>
 
         <h2>6. Foro</h2>
-        <p>Fica eleito o foro da comarca de Curitiba/PR para dirimir eventuais controvérsias.</p>
+        <p>Fica eleito o foro da comarca de Cuiabá/MT para dirimir eventuais controvérsias.</p>
       </main>
       <Footer />
     </div>
