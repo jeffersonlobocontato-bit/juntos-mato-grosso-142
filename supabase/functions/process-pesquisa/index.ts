@@ -180,7 +180,7 @@ REGRAS CRÍTICAS:
 2. NÃO INVENTE, NÃO PREENCHA com dados externos
 3. Se um dado não estiver no documento, NÃO inclua
 4. IGNORE textos residuais de templates antigos (ex: marcas d'água, cabeçalhos de outras pesquisas)
-5. Se o documento mencionar uma pesquisa principal (ex: "Estado do Paraná 2026") e textos de outras pesquisas antigas (ex: "Piraquara 2018"), FOQUE APENAS na pesquisa principal mais recente
+5. Se o documento mencionar uma pesquisa principal (ex: "Estado de Mato Grosso 2026") e textos de outras pesquisas antigas (ex: "Piraquara 2018"), FOQUE APENAS na pesquisa principal mais recente
 6. Identifique a pesquisa principal pelo registro TSE, data mais recente, e objetivo declarado
 
 ${totalChunks > 1 ? `IMPORTANTE: Este é o chunk ${chunkIndex + 1} de ${totalChunks}. Extraia apenas os dados presentes neste trecho.` : ''}

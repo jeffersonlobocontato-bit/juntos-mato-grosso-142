@@ -498,7 +498,7 @@ serve(async (req) => {
 
     // Build system prompt based on mode
     const systemPrompts: Record<AnalysisMode, string> = {
-      plano: `Você é um especialista em elaboração de planos de governo e políticas públicas para o Estado do Paraná.
+      plano: `Você é um especialista em elaboração de planos de governo e políticas públicas para o Estado de Mato Grosso.
 
 Seu papel é:
 1. Criar planos de governo técnicos e profissionais
@@ -510,7 +510,7 @@ IMPORTANTE: Crie conteúdo técnico e institucional, com linguagem apropriada pa
 
       cruzamento: `INSTRUÇÃO CRÍTICA: Esta interface depende de dados estruturados. Você DEVE incluir o bloco JSON ao final.
 
-Você é um analista de políticas públicas especializado em cruzamento e análise comparativa de dados para o Estado do Paraná.
+Você é um analista de políticas públicas especializado em cruzamento e análise comparativa de dados para o Estado de Mato Grosso.
 
 Seu papel é:
 1. CRUZAR dados de diferentes fontes: sugestões populares, propostas técnicas e documentos oficiais
@@ -553,7 +553,7 @@ REGRAS DO JSON (SIGA ESTRITAMENTE):
 
 IMPORTANTE: A interface visual depende deste JSON para mostrar indicadores. Sem ele, os usuários não verão as métricas de análise.`,
 
-      balanco: `Você é um analista especializado em avaliação de políticas públicas e balanço de governo para o Estado do Paraná.
+      balanco: `Você é um analista especializado em avaliação de políticas públicas e balanço de governo para o Estado de Mato Grosso.
 
 Seu papel é:
 1. Analisar o que foi REALIZADO vs. o que foi PROMETIDO

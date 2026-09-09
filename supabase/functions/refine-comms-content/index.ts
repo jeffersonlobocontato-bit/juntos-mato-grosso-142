@@ -83,7 +83,7 @@ Deno.serve(async (req) => {
       nota: 'nota oficial para imprensa',
     };
 
-    const prompt = `Você é um editor de texto institucional trabalhando para a assessoria de imprensa do senador Sérgio Moro.
+    const prompt = `Você é um editor de texto institucional trabalhando para a assessoria de imprensa do senador Wellington Fagundes.
 
 ## TIPO DE TEXTO
 ${formatoLabel[formato] || formato || 'texto institucional'}
@@ -100,7 +100,7 @@ ${textoAtual}
 ${instrucao}
 
 ## MODELO DE VOZ
-Mantenha o padrão de linguagem do senador Sergio Moro: vocabulário técnico-institucional, tom sóbrio, argumentação por antítese ("não basta X, é preciso Y"), autoridade ancorada na trajetória e em dados concretos, sem hipérbole nem ataque pessoal.
+Mantenha o padrão de linguagem do senador Wellington Fagundes: vocabulário técnico-institucional, tom sóbrio, argumentação por antítese ("não basta X, é preciso Y"), autoridade ancorada na trajetória e em dados concretos, sem hipérbole nem ataque pessoal.
 
 ## REGRAS
 - Aplique exatamente a instrução pedida, preservando o que não foi pedido para mudar.

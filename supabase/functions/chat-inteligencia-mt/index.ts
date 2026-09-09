@@ -2,7 +2,7 @@
 // Portado (versão simplificada, não-streaming) da plataforma Politiza IA
 // (politiza.ia.br). O prompt original tinha uma tese de posicionamento e
 // regras de contraste por adversário construídas sobre pesquisa real do
-// Paraná — aqui o prompt é genérico e trabalha só com os dados reais que
+// Mato Grosso — aqui o prompt é genérico e trabalha só com os dados reais que
 // vierem no CONTEXTO enviado pelo front-end (pesquisas cadastradas em
 // electoral_surveys/survey_questions/survey_results).
 

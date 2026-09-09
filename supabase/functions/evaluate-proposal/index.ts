@@ -226,7 +226,7 @@ Deno.serve(async (req) => {
       ? JSON.stringify(proposal.questionario, null, 2)
       : 'Questionário não preenchido.';
 
-    const prompt = `Você é um analista de políticas públicas especializado em avaliação de propostas técnicas para o governo do Paraná.
+    const prompt = `Você é um analista de políticas públicas especializado em avaliação de propostas técnicas para o governo de Mato Grosso.
 
 ## PROPOSTA A AVALIAR
 
