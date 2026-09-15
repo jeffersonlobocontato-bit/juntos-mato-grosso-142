@@ -1,6 +1,7 @@
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
+import { useModuleVisibility } from '@/hooks/useModuleVisibility';
 
 /**
  * Módulos do painel liberados para o usuário logado.
@@ -9,6 +10,7 @@ import { useAuth } from '@/hooks/useAuth';
  */
 export const useUserModules = () => {
   const { user, isAdmin, isAdminMaster } = useAuth();
+  const { isModuleVisible, isLoading: visibilityLoading } = useModuleVisibility();
 
   const { data, isLoading } = useQuery({
     queryKey: ['user-modules', user?.id],
