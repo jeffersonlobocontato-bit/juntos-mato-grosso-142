@@ -9,7 +9,7 @@ import { useModuleVisibility } from '@/hooks/useModuleVisibility';
  * Usuários sem nenhum módulo configurado mantêm o comportamento antigo (acesso por função).
  */
 export const useUserModules = () => {
-  const { user, isAdmin, isAdminMaster } = useAuth();
+  const { user, isAdminMaster } = useAuth();
   const { isModuleVisible, isLoading: visibilityLoading } = useModuleVisibility();
 
   const { data, isLoading } = useQuery({
@@ -26,7 +26,8 @@ export const useUserModules = () => {
   });
 
   const modules = data ?? [];
-  const isPrivileged = isAdmin || isAdminMaster;
+  // Apenas o admin_master ignora as restrições de módulos.
+  const isPrivileged = isAdminMaster;
   const hasRestriction = !isPrivileged && modules.length > 0;
 
   const canAccessModule = (key?: string) => {

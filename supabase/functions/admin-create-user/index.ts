@@ -135,20 +135,20 @@ Deno.serve(async (req) => {
 
     console.log("User created:", newUser.user.id);
 
-    // Update profile with additional fields
-    if (body.celular || body.cargo) {
-      const { error: profileError } = await supabaseAdmin
-        .from("profiles")
-        .update({
-          celular: body.celular,
-          cargo: body.cargo,
-        })
-        .eq("id", newUser.user.id);
+    // Ensure profile exists (trigger may not run) and set additional fields
+    const { error: profileError } = await supabaseAdmin
+      .from("profiles")
+      .upsert({
+        id: newUser.user.id,
+        full_name: body.full_name,
+        email: body.email,
+        celular: body.celular ?? null,
+        cargo: body.cargo ?? null,
+      }, { onConflict: "id" });
 
-      if (profileError) {
-        console.error("Error updating profile:", profileError);
-        // Non-fatal error, continue
-      }
+    if (profileError) {
+      console.error("Error upserting profile:", profileError);
+      // Non-fatal error, continue
     }
 
     // Insert roles
