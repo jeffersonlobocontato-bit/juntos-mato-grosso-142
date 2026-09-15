@@ -26,13 +26,23 @@ export const useUserModules = () => {
   });
 
   const modules = data ?? [];
-  const hasRestriction = !isAdmin && !isAdminMaster && modules.length > 0;
+  const isPrivileged = isAdmin || isAdminMaster;
+  const hasRestriction = !isPrivileged && modules.length > 0;
 
   const canAccessModule = (key?: string) => {
-    if (!hasRestriction) return true;
     if (!key) return true;
+    // Admins veem tudo, inclusive o que estiver desativado globalmente.
+    if (isPrivileged) return true;
+    // Regra global definida pelo administrador.
+    if (!isModuleVisible(key)) return false;
+    if (!hasRestriction) return true;
     return modules.includes(key);
   };
 
-  return { modules, isLoading, hasRestriction, canAccessModule };
+  return {
+    modules,
+    isLoading: isLoading || visibilityLoading,
+    hasRestriction,
+    canAccessModule,
+  };
 };
