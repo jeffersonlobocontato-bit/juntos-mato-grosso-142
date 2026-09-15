@@ -90,23 +90,8 @@ const Auth = () => {
 
   useEffect(() => {
     if (user) {
-      // Fetch roles to determine redirect
-      supabase
-        .from('user_roles')
-        .select('role')
-        .eq('user_id', user.id)
-        .then(({ data }) => {
-          const userRoles = data?.map(r => r.role) || [];
-          if (userRoles.includes('admin') || userRoles.includes('admin_master')) {
-            navigate('/admin');
-          } else if (userRoles.includes('lider_tematico')) {
-              navigate('/admin');
-          } else if (userRoles.includes('marketing')) {
-            navigate('/admin/modulo-mkt');
-          } else {
-            navigate('/');
-          }
-        });
+      // Todos os usuários cadastrados vão direto para o painel de gestão
+      navigate('/admin');
     }
   }, [user, navigate]);
 
@@ -158,21 +143,7 @@ const Auth = () => {
         }
       } else {
         toast.success('Login realizado com sucesso!');
-        const { data: { user: loggedUser } } = await supabase.auth.getUser();
-        if (loggedUser) {
-          const { data: rolesData } = await supabase
-            .from('user_roles')
-            .select('role')
-            .eq('user_id', loggedUser.id);
-          const userRoles = rolesData?.map(r => r.role) || [];
-          if (userRoles.includes('admin') || userRoles.includes('admin_master') || userRoles.includes('lider_tematico')) {
-            navigate('/admin');
-          } else if (userRoles.includes('marketing')) {
-            navigate('/admin/modulo-mkt');
-          } else {
-            navigate('/');
-          }
-        }
+        navigate('/admin');
       }
     } finally {
       setIsLoading(false);
