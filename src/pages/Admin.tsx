@@ -3,6 +3,7 @@ import { useNavigate, Link } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { useAuth } from '@/hooks/useAuth';
 import { useUserModules } from '@/hooks/useUserModules';
+import ModuleVisibilityPanel from '@/components/admin/ModuleVisibilityPanel';
 import { MODULE_KEY_BY_HREF } from '@/config/adminModules';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -300,6 +301,7 @@ const Admin = () => {
             </div>
             
             <div className="flex items-center gap-4">
+              {(isAdmin || isAdminMaster) && <ModuleVisibilityPanel />}
               <div className="text-right hidden sm:block">
                 <p className="text-sm font-medium">{user.email}</p>
                 <p className="text-xs text-muted-foreground">

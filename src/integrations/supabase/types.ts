@@ -896,6 +896,30 @@ export type Database = {
         }
         Relationships: []
       }
+      module_visibility: {
+        Row: {
+          created_at: string
+          module_key: string
+          updated_at: string
+          updated_by: string | null
+          visible: boolean
+        }
+        Insert: {
+          created_at?: string
+          module_key: string
+          updated_at?: string
+          updated_by?: string | null
+          visible?: boolean
+        }
+        Update: {
+          created_at?: string
+          module_key?: string
+          updated_at?: string
+          updated_by?: string | null
+          visible?: boolean
+        }
+        Relationships: []
+      }
       moldura_config: {
         Row: {
           feed_x: number
